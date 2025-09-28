@@ -1,0 +1,11 @@
+{
+  "upsellity": {
+    "cart": {
+      "loading": "Loading offers...",
+      "error": "Unable to load cart offers",
+      "continueShoppingButton": "Continue Shopping",
+      "freeShippingUnlocked": "Free shipping unlocked!",
+      "progressTowards": "towards"
+    }
+  }
+}

@@ -9,8 +9,8 @@ generator client {
 // enough when changing adapters.
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
-  provider = "sqlite"
-  url      = "file:dev.sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Session {
@@ -29,4 +29,47 @@ model Session {
   locale        String?
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
+}
+
+// Cart Configuration Models
+model CartConfiguration {
+  id          String   @id @default(cuid())
+  shop        String
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  
+  // Rule conditions
+  conditionType     String  // "cart_value", "product_count", "category_value"
+  conditionOperator String  // "greater_than", "less_than", "equals"
+  conditionValue    Decimal
+  
+  // Rule actions  
+  actionType        String  // "discount_percentage", "discount_fixed", "free_shipping", "upsell_product"
+  actionValue       Decimal?
+  actionMessage     String  // Message to show to customer
+  
+  // Targeting
+  targetType        String  // "store_wide", "products", "categories", "collections"
+  
+  // Relationships
+  targets    CartConfigurationTarget[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([shop, isActive])
+}
+
+model CartConfigurationTarget {
+  id              String @id @default(cuid())
+  configurationId String
+  configuration   CartConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  
+  targetType      String  // "product", "category", "collection"
+  shopifyId       String  // Shopify ID of the target (product ID, collection ID, etc.)
+  title           String? // Display name for admin interface
+  
+  @@index([configurationId])
+  @@index([targetType, shopifyId])
 }

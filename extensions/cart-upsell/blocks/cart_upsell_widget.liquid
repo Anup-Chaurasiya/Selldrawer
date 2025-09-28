@@ -1,0 +1,305 @@
+{% comment %}
+  Cart Upsell Block - Shows personalized offers based on cart contents
+{% endcomment %}
+
+<div id="upsellity-cart-widget" class="upsellity-widget" style="display: none;">
+  <div class="upsellity-content">
+    <div class="upsellity-message"></div>
+    <div class="upsellity-progress"></div>
+    <div class="upsellity-actions"></div>
+  </div>
+</div>
+
+<style>
+  .upsellity-widget {
+    background: {{ block.settings.background_color }};
+    border: 2px solid {{ block.settings.border_color }};
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .upsellity-content {
+    text-align: center;
+  }
+  
+  .upsellity-message {
+    font-size: {{ block.settings.message_font_size }}px;
+    color: {{ block.settings.text_color }};
+    font-weight: 600;
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  
+  .upsellity-progress {
+    margin: 12px 0;
+  }
+  
+  .upsellity-progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 8px 0;
+  }
+  
+  .upsellity-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, {{ block.settings.progress_color }}, {{ block.settings.progress_color_end }});
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+  
+  .upsellity-progress-text {
+    font-size: 12px;
+    color: {{ block.settings.text_color }};
+    margin-top: 4px;
+  }
+  
+  .upsellity-actions {
+    margin-top: 16px;
+  }
+  
+  .upsellity-btn {
+    background: {{ block.settings.button_color }};
+    color: {{ block.settings.button_text_color }};
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    margin: 4px;
+    transition: all 0.2s ease;
+  }
+  
+  .upsellity-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  
+  .upsellity-discount-badge {
+    background: {{ block.settings.discount_color }};
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-left: 8px;
+  }
+</style>
+
+<script>
+(function() {
+  // Configuration
+  const APP_URL = '{{ block.settings.app_url | default: "https://your-app-url.com" }}';
+  const SHOP_DOMAIN = '{{ shop.permanent_domain }}';
+  
+  // Initialize the cart upsell widget
+  function initUpsellWidget() {
+    const widget = document.getElementById('upsellity-cart-widget');
+    if (!widget) return;
+    
+    // Get cart data
+    fetch('/cart.js')
+      .then(response => response.json())
+      .then(cart => {
+        fetchCartConfigurations(cart);
+      })
+      .catch(error => {
+        console.error('Error fetching cart:', error);
+      });
+  }
+  
+  // Fetch cart configurations from our app
+  function fetchCartConfigurations(cart) {
+    const cartItems = cart.items.map(item => ({
+      product_id: item.product_id,
+      variant_id: item.variant_id,
+      quantity: item.quantity,
+      price: (item.price / 100).toFixed(2), // Convert from cents
+      product_title: item.product_title,
+      variant_title: item.variant_title
+    }));
+    
+    const params = new URLSearchParams({
+      shop: SHOP_DOMAIN,
+      cartItems: JSON.stringify(cartItems)
+    });
+    
+    fetch(`${APP_URL}/api/cart-config?${params}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.configurations && data.configurations.length > 0) {
+          displayUpsellOffers(data.configurations, data.cartAnalysis, cart);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching cart configurations:', error);
+      });
+  }
+  
+  // Display upsell offers based on configurations
+  function displayUpsellOffers(configurations, cartAnalysis, cart) {
+    const widget = document.getElementById('upsellity-cart-widget');
+    const messageEl = widget.querySelector('.upsellity-message');
+    const progressEl = widget.querySelector('.upsellity-progress');
+    const actionsEl = widget.querySelector('.upsellity-actions');
+    
+    // Find the best configuration to display
+    const config = configurations[0]; // For now, show the first matching config
+    
+    if (config.conditionType === 'cart_value' && config.conditionOperator === 'less_than') {
+      // Show progress towards discount threshold
+      const currentValue = cartAnalysis.total;
+      const targetValue = parseFloat(config.conditionValue);
+      const remaining = targetValue - currentValue;
+      const progress = Math.min((currentValue / targetValue) * 100, 100);
+      
+      if (remaining > 0) {
+        messageEl.innerHTML = config.actionMessage.replace('{amount}', `$${remaining.toFixed(2)}`);
+        
+        // Show progress bar
+        progressEl.innerHTML = `
+          <div class="upsellity-progress-bar">
+            <div class="upsellity-progress-fill" style="width: ${progress}%"></div>
+          </div>
+          <div class="upsellity-progress-text">
+            $${currentValue.toFixed(2)} of $${targetValue.toFixed(2)} 
+            ${config.actionType === 'discount_percentage' ? `for ${config.actionValue}% off` : ''}
+          </div>
+        `;
+        
+        // Show action button
+        if (config.actionType === 'discount_percentage' || config.actionType === 'discount_fixed') {
+          actionsEl.innerHTML = `
+            <a href="/collections/all" class="upsellity-btn">
+              Continue Shopping
+              <span class="upsellity-discount-badge">
+                ${config.actionType === 'discount_percentage' ? config.actionValue + '% OFF' : '$' + config.actionValue + ' OFF'}
+              </span>
+            </a>
+          `;
+        }
+        
+        widget.style.display = 'block';
+      }
+    } else if (config.conditionOperator === 'greater_than') {
+      // Show achieved offer
+      messageEl.innerHTML = `🎉 ${config.actionMessage}`;
+      
+      if (config.actionType === 'free_shipping') {
+        actionsEl.innerHTML = `
+          <div style="color: #22c55e; font-weight: bold;">
+            ✅ Free shipping unlocked!
+          </div>
+        `;
+      }
+      
+      widget.style.display = 'block';
+    }
+  }
+  
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initUpsellWidget);
+  } else {
+    initUpsellWidget();
+  }
+  
+  // Re-initialize when cart changes (for AJAX cart updates)
+  document.addEventListener('cart:updated', initUpsellWidget);
+  
+  // Fallback: check periodically for cart changes
+  let lastCartCount = 0;
+  setInterval(() => {
+    fetch('/cart.js')
+      .then(response => response.json())
+      .then(cart => {
+        if (cart.item_count !== lastCartCount) {
+          lastCartCount = cart.item_count;
+          initUpsellWidget();
+        }
+      })
+      .catch(() => {});
+  }, 2000);
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Cart Upsell Widget",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "app_url",
+      "label": "App URL",
+      "default": "https://your-app-url.com",
+      "info": "The URL of your Upsellity app"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Border Color", 
+      "default": "#e0e0e0"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text Color",
+      "default": "#333333"
+    },
+    {
+      "type": "range",
+      "id": "message_font_size",
+      "label": "Message Font Size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "default": 16
+    },
+    {
+      "type": "color",
+      "id": "progress_color",
+      "label": "Progress Bar Start Color",
+      "default": "#3b82f6"
+    },
+    {
+      "type": "color", 
+      "id": "progress_color_end",
+      "label": "Progress Bar End Color",
+      "default": "#1d4ed8"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Button Background Color",
+      "default": "#3b82f6"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color", 
+      "label": "Button Text Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "discount_color",
+      "label": "Discount Badge Color",
+      "default": "#dc2626"
+    }
+  ]
+}
+{% endschema %}
+
