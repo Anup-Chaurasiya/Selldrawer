@@ -132,8 +132,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     return redirect("/app/cart-configurations");
   } catch (error) {
-    console.error("Error creating configuration:", error);
-    return json({ error: "Failed to create configuration" }, { status: 500 });
+    return json({ error: "Failed to create configuration. Please try again." }, { status: 500 });
   }
 };
 
@@ -182,19 +181,6 @@ export default function NewCartConfiguration() {
     { label: "Specific Collections", value: "collections" },
   ];
 
-  const handleSubmit = useCallback((event: React.FormEvent) => {
-    event.preventDefault();
-    const form = event.currentTarget as HTMLFormElement;
-    const formData = new FormData(form);
-    
-    if (targetType === "products") {
-      formData.set("selectedTargets", JSON.stringify(selectedProducts));
-    } else if (targetType === "collections") {
-      formData.set("selectedTargets", JSON.stringify(selectedCollections));
-    }
-
-    form.requestSubmit();
-  }, [targetType, selectedProducts, selectedCollections]);
 
   const removeProduct = (productId: string) => {
     setSelectedProducts(prev => prev.filter(p => p.id !== productId));
@@ -217,7 +203,13 @@ export default function NewCartConfiguration() {
             </Banner>
           )}
           
-          <form method="post" onSubmit={handleSubmit}>
+          <form method="post">
+            {/* Hidden fields for selected targets */}
+            <input 
+              type="hidden" 
+              name="selectedTargets" 
+              value={targetType === "products" ? JSON.stringify(selectedProducts) : targetType === "collections" ? JSON.stringify(selectedCollections) : ""} 
+            />
             <FormLayout>
               <Card>
                 <BlockStack gap="400">
