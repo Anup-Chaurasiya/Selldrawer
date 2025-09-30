@@ -10,7 +10,7 @@ on:
 env:
   AWS_REGION: ap-south-1
   ECR_REPOSITORY: upsellity/app
-  ECS_SERVICE: upsellity-app
+  ECS_SERVICE: upsellity-app-service
   ECS_CLUSTER: upsellity
   ECS_TASK_DEFINITION: upsellity-app
   CONTAINER_NAME: app
