@@ -52,6 +52,9 @@ jobs:
     - name: Download task definition
       run: |
         aws ecs describe-task-definition --task-definition $ECS_TASK_DEFINITION --query taskDefinition > task-definition.json
+        # Remove unsupported fields that cause deployment issues
+        jq 'del(.enableFaultInjection, .faultInjectionRules)' task-definition.json > task-definition-clean.json
+        mv task-definition-clean.json task-definition.json
 
     - name: Fill in the new image ID in the Amazon ECS task definition
       id: task-def
