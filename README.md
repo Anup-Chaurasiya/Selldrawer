@@ -100,15 +100,56 @@ Please read the [documentation for @shopify/shopify-app-remix](https://www.npmjs
 
 ## Deployment
 
+### Production Deployment to AWS ECS
+
+This app is configured for deployment to AWS ECS at `https://app.upsellity.com`. The deployment process is automated via GitHub Actions.
+
+**📚 Comprehensive Documentation:**
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide with AWS setup, configuration, and troubleshooting
+- **[DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)** - Step-by-step checklist for production deployment
+- **[ENVIRONMENT.md](./ENVIRONMENT.md)** - Detailed environment variables documentation
+
+**Quick Start for Production Deployment:**
+
+1. **Set up AWS infrastructure** (ECS cluster, ECR repository, Load Balancer)
+2. **Configure GitHub Secrets** (see [ENVIRONMENT.md](./ENVIRONMENT.md)):
+   - `AWS_ACCESS_KEY_ID`
+   - `AWS_SECRET_ACCESS_KEY`
+   - `DATABASE_URL`
+   - `SHOPIFY_API_KEY`
+   - `SHOPIFY_API_SECRET`
+   - `SHOPIFY_CART_UPSELL_EXTENSION_ID`
+
+3. **Update Shopify Partner Dashboard**:
+   - App URL: `https://app.upsellity.com`
+   - Redirect URLs: `https://app.upsellity.com/auth/callback` (and variants)
+
+4. **Deploy**:
+   ```bash
+   # Use production configuration
+   shopify app config use shopify.app.prod.toml
+   
+   # Deploy app configuration
+   shopify app deploy
+   
+   # Push code to trigger GitHub Actions deployment
+   git push origin main
+   ```
+
+The GitHub Actions workflow will:
+- ✅ Build Docker image
+- ✅ Push to Amazon ECR
+- ✅ Update ECS task definition with environment variables
+- ✅ Deploy to ECS service
+- ✅ Wait for service stability
+
 ### Application Storage
 
 This template uses [Prisma](https://www.prisma.io/) to store session data, by default using an [SQLite](https://www.sqlite.org/index.html) database.
-The database is defined as a Prisma schema in `prisma/schema.prisma`.
 
-This use of SQLite works in production if your app runs as a single instance.
-The database that works best for you depends on the data your app needs and how it is queried.
-You can run your database of choice on a server yourself or host it with a SaaS company.
-Here's a short list of databases providers that provide a free tier to get started:
+**For production, PostgreSQL or MySQL is recommended** instead of SQLite.
+
+Database options:
 
 | Database   | Type             | Hosters                                                                                                                                                                                                                               |
 | ---------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -123,29 +164,9 @@ To use one of these, you can use a different [datasource provider](https://www.p
 
 Remix handles building the app for you, by running the command below with the package manager of your choice:
 
-Using yarn:
-
-```shell
-yarn build
-```
-
-Using npm:
-
 ```shell
 npm run build
 ```
-
-Using pnpm:
-
-```shell
-pnpm run build
-```
-
-## Hosting
-
-When you're ready to set up your app in production, you can follow [our deployment documentation](https://shopify.dev/docs/apps/deployment/web) to host your app on a cloud provider like [Heroku](https://www.heroku.com/) or [Fly.io](https://fly.io/).
-
-When you reach the step for [setting up environment variables](https://shopify.dev/docs/apps/deployment/web#set-env-vars), you also need to set the variable `NODE_ENV=production`.
 
 ### Hosting on Vercel
 

@@ -1,0 +1,38 @@
+# Production configuration for Upsellity AI Shopify App
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "d64798b1d19d1bbad676d9411146f2d3"
+name = "Upsellity AI"
+application_url = "https://app.upsellity.com"
+embedded = true
+handle = "upsellity-ai"
+
+[build]
+include_config_on_deploy = true
+automatically_update_urls_on_dev = false
+
+[webhooks]
+api_version = "2025-07"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products,read_products,read_product_listings,write_checkouts,read_checkouts"
+
+[auth]
+redirect_urls = [
+  "https://app.upsellity.com/auth/callback",
+  "https://app.upsellity.com/auth/shopify/callback",
+  "https://app.upsellity.com/api/auth/callback"
+]
+
+[pos]
+embedded = false
+
