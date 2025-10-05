@@ -96,7 +96,7 @@
 <script>
 (function() {
   // Configuration
-  const APP_URL = '{{ block.settings.app_url | default: "https://your-app-url.com" }}';
+  const APP_URL = '{{ block.settings.app_url | default: "https://app.upsellity.com" }}';
   const SHOP_DOMAIN = '{{ shop.permanent_domain }}';
   
   // Initialize the cart upsell widget
@@ -271,7 +271,7 @@
       "type": "text",
       "id": "app_url",
       "label": "App URL",
-      "default": "https://your-app-url.com",
+      "default": "https://app.upsellity.com",
       "info": "The URL of your Upsellity app"
     },
     {
