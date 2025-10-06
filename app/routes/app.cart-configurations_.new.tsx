@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { json, redirect } from "@remix-run/node";
-import { useActionData, useNavigation, useLoaderData } from "@remix-run/react";
+import { json } from "@remix-run/node";
+import { useActionData, useNavigation, useLoaderData, Form } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -80,7 +80,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, redirect } = await authenticate.admin(request);
   const formData = await request.formData();
 
   try {
@@ -203,7 +203,7 @@ export default function NewCartConfiguration() {
             </Banner>
           )}
           
-          <form method="post">
+          <Form method="post">
             {/* Hidden fields for selected targets */}
             <input 
               type="hidden" 
@@ -405,7 +405,7 @@ export default function NewCartConfiguration() {
                 </Button>
               </InlineStack>
             </FormLayout>
-          </form>
+          </Form>
         </Layout.Section>
       </Layout>
     </Page>

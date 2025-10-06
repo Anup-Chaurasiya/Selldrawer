@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { json, redirect } from "@remix-run/node";
-import { useActionData, useNavigation, useLoaderData } from "@remix-run/react";
+import { json } from "@remix-run/node";
+import { useActionData, useNavigation, useLoaderData, Form } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -94,7 +94,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, redirect } = await authenticate.admin(request);
   const configId = params.id;
   const formData = await request.formData();
 
@@ -252,7 +252,7 @@ export default function EditCartConfiguration() {
             </Banner>
           )}
           
-          <form method="post" onSubmit={handleSubmit}>
+          <Form method="post" onSubmit={handleSubmit}>
             <FormLayout>
               <Card>
                 <BlockStack gap="400">
@@ -448,7 +448,7 @@ export default function EditCartConfiguration() {
                 </Button>
               </InlineStack>
             </FormLayout>
-          </form>
+          </Form>
         </Layout.Section>
       </Layout>
     </Page>

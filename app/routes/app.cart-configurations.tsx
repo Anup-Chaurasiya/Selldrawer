@@ -149,14 +149,16 @@ export default function CartConfigurations() {
 
   return (
     <Page>
-      <TitleBar title="Cart Configurations">
-        <Button variant="primary" url="/app/cart-configurations/new">
-          Create Configuration
-        </Button>
-      </TitleBar>
+      <TitleBar title="Cart Configurations" />
       
       <Layout>
         <Layout.Section>
+          <BlockStack gap="400">
+            <InlineStack align="end">
+              <Button variant="primary" url="/app/cart-configurations/new">
+                Create Configuration
+              </Button>
+            </InlineStack>
           {configurations.length === 0 ? (
             <Card>
               <EmptyState
@@ -195,6 +197,7 @@ export default function CartConfigurations() {
               />
             </Card>
           )}
+          </BlockStack>
         </Layout.Section>
       </Layout>
     </Page>
