@@ -1,0 +1,25 @@
+{% comment %}
+  Upsellity Cart Drawer Loader
+  This snippet loads the cart drawer script and initializes it
+  
+  Usage: 
+  1. Add this in theme.liquid before </body>:
+     {% render 'cart-drawer-loader', app_url: 'https://your-app.fly.dev' %}
+  
+  2. Or use the App Embed block instead (recommended)
+{% endcomment %}
+
+{% if app_url %}
+  <div data-upsellity-app-url="{{ app_url }}"></div>
+
+  <script>
+    (function() {
+      // Load the cart drawer script
+      var script = document.createElement('script');
+      script.src = '{{ 'cart-drawer.js' | asset_url }}';
+      script.async = true;
+      document.head.appendChild(script);
+    })();
+  </script>
+{% endif %}
+

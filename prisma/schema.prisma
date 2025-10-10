@@ -73,3 +73,288 @@ model CartConfigurationTarget {
   @@index([configurationId])
   @@index([targetType, shopifyId])
 }
+
+// ============================================================
+// NEW CART DRAWER MODELS - Feature-based approach
+// ============================================================
+
+// Main cart drawer configuration
+model CartDrawer {
+  id          String   @id @default(cuid())
+  shop        String   @unique
+  isActive    Boolean  @default(true)
+  
+  // Design settings
+  theme       String   @default("light") // "light", "dark", "custom"
+  primaryColor String  @default("#4F46E5")
+  
+  // Feature toggles - based on image
+  freeShippingProgressBarEnabled Boolean @default(true)
+  promotionalBannerEnabled       Boolean @default(true)
+  productRecommendationsEnabled  Boolean @default(true)
+  couponCodeFieldEnabled         Boolean @default(false)
+  savingsDisplayEnabled          Boolean @default(true)
+  freeShippingMessageEnabled     Boolean @default(true)
+  
+  // Relationships
+  freeShippingBars      FreeShippingProgressBar[]
+  promotionalBanners    PromotionalBanner[]
+  productRecommendations ProductRecommendation[]
+  savingsDisplays       SavingsDisplay[]
+  freeShippingMessages  FreeShippingMessage[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([shop])
+}
+
+// Free Shipping Progress Bar (shown at top of cart)
+model FreeShippingProgressBar {
+  id            String  @id @default(cuid())
+  cartDrawerId  String
+  cartDrawer    CartDrawer @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
+  
+  shop          String
+  isActive      Boolean @default(true)
+  priority      Int     @default(0)
+  
+  // Threshold configuration
+  thresholdAmount Decimal  // e.g., 5000 for ₹5000
+  currency        String   @default("INR")
+  
+  // Message templates
+  beforeThresholdMessage String @default("Add {remaining} for FREE shipping")
+  afterThresholdMessage  String @default("You've unlocked FREE shipping!")
+  
+  // Visual settings
+  progressBarColor  String @default("#FF6B35")
+  backgroundColor   String @default("#F3F4F6")
+  showPercentage    Boolean @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([cartDrawerId])
+  @@index([shop, isActive])
+}
+
+// Promotional Banner (e.g., "Summer Collection Sale")
+model PromotionalBanner {
+  id            String  @id @default(cuid())
+  cartDrawerId  String
+  cartDrawer    CartDrawer @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
+  
+  shop          String
+  isActive      Boolean @default(true)
+  priority      Int     @default(0)
+  
+  // Content
+  title         String  // e.g., "Summer Collection Sale"
+  subtitle      String? // e.g., "Buy 2 Get 10% OFF | Buy 3 Get 15% OFF"
+  
+  // Visual settings
+  backgroundColor String @default("#FF6B35")
+  textColor       String @default("#FFFFFF")
+  
+  // Scheduling
+  startDate     DateTime?
+  endDate       DateTime?
+  
+  // Display rules
+  minCartValue  Decimal? // Only show if cart value is above this
+  maxCartValue  Decimal? // Only show if cart value is below this
+  
+  // Targeting
+  conditions    PromotionalBannerCondition[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([cartDrawerId])
+  @@index([shop, isActive])
+  @@index([startDate, endDate])
+}
+
+model PromotionalBannerCondition {
+  id        String @id @default(cuid())
+  bannerId  String
+  banner    PromotionalBanner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+  
+  conditionType  String  // "product_in_cart", "collection_in_cart", "tag_in_cart", "customer_tag"
+  conditionValue String  // Shopify ID or tag name
+  operator       String  @default("contains") // "contains", "not_contains", "equals"
+  
+  @@index([bannerId])
+}
+
+// Product Recommendations ("You may also like")
+model ProductRecommendation {
+  id            String  @id @default(cuid())
+  cartDrawerId  String
+  cartDrawer    CartDrawer @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
+  
+  shop          String
+  isActive      Boolean @default(true)
+  priority      Int     @default(0)
+  
+  // Display settings
+  title         String  @default("You may also like")
+  maxProducts   Int     @default(4)
+  layout        String  @default("grid") // "grid", "carousel"
+  
+  // Recommendation logic
+  recommendationType String @default("manual") // "manual", "related", "frequently_bought", "bestsellers", "ai"
+  
+  // Display style
+  showDiscount      Boolean @default(true)
+  showDiscountBadge Boolean @default(true)
+  showAddButton     Boolean @default(true)
+  
+  // Relationships
+  rules     ProductRecommendationRule[]
+  products  RecommendedProduct[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([cartDrawerId])
+  @@index([shop, isActive])
+}
+
+model ProductRecommendationRule {
+  id                String @id @default(cuid())
+  recommendationId  String
+  recommendation    ProductRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  
+  // Trigger conditions
+  triggerType       String  // "cart_contains_product", "cart_contains_collection", "cart_value_above"
+  triggerValue      String  // Shopify ID or numeric value
+  
+  // What to recommend
+  recommendProducts String[] // Array of Shopify product IDs
+  
+  @@index([recommendationId])
+}
+
+model RecommendedProduct {
+  id                String @id @default(cuid())
+  recommendationId  String
+  recommendation    ProductRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  
+  shopifyProductId  String
+  title             String
+  price             Decimal
+  compareAtPrice    Decimal?
+  imageUrl          String?
+  position          Int     @default(0)
+  
+  @@index([recommendationId])
+  @@index([position])
+}
+
+// Savings Display (shows total savings in cart)
+model SavingsDisplay {
+  id            String  @id @default(cuid())
+  cartDrawerId  String
+  cartDrawer    CartDrawer @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
+  
+  shop          String
+  isActive      Boolean @default(true)
+  
+  // Display settings
+  message       String  @default("{amount} Saved so far!")
+  position      String  @default("above_total") // "above_total", "below_total", "top"
+  
+  // Visual settings
+  backgroundColor String @default("#10B981")
+  textColor       String @default("#FFFFFF")
+  highlightColor  String @default("#FFFFFF")
+  
+  // What to include in savings calculation
+  includeProductDiscounts Boolean @default(true)
+  includeCartDiscounts    Boolean @default(true)
+  includeFreeShipping     Boolean @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([cartDrawerId])
+  @@index([shop, isActive])
+}
+
+// Free Shipping Message (bottom message in cart)
+model FreeShippingMessage {
+  id            String  @id @default(cuid())
+  cartDrawerId  String
+  cartDrawer    CartDrawer @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
+  
+  shop          String
+  isActive      Boolean @default(true)
+  
+  // Threshold configuration
+  thresholdAmount Decimal  // e.g., 5000 for ₹5000
+  currency        String   @default("INR")
+  
+  // Messages
+  beforeThresholdMessage String @default("Free shipping on orders over {threshold}")
+  afterThresholdMessage  String @default("Add {remaining} more for FREE shipping")
+  achievedMessage        String @default("Free shipping applied!")
+  
+  // Visual settings
+  backgroundColor String @default("#FEF3C7")
+  textColor       String @default("#92400E")
+  iconColor       String @default("#F59E0B")
+  position        String @default("above_checkout") // "above_checkout", "below_total"
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([cartDrawerId])
+  @@index([shop, isActive])
+}
+
+// Discount/Coupon Code Settings
+model CouponCodeField {
+  id            String  @id @default(cuid())
+  shop          String  @unique
+  
+  isActive      Boolean @default(false)
+  
+  // Display settings
+  placeholder   String  @default("Enter coupon code")
+  buttonText    String  @default("Apply")
+  position      String  @default("above_checkout") // "above_checkout", "below_items"
+  
+  // Validation messages
+  successMessage String @default("Coupon applied successfully!")
+  errorMessage   String @default("Invalid coupon code")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([shop])
+}
+
+// Analytics and tracking
+model CartDrawerAnalytics {
+  id                String   @id @default(cuid())
+  shop              String
+  
+  // Event tracking
+  eventType         String   // "drawer_opened", "product_added", "recommendation_clicked", "checkout_clicked"
+  eventData         String?  // JSON data
+  
+  // Cart context
+  cartValue         Decimal?
+  itemCount         Int?
+  
+  // Session info
+  sessionId         String?
+  customerId        String?
+  
+  createdAt         DateTime @default(now())
+  
+  @@index([shop, createdAt])
+  @@index([eventType])
+}

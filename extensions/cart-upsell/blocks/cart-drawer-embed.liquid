@@ -1,0 +1,33 @@
+{% comment %}
+  Upsellity Cart Drawer - App Embed
+  This app embed enables the cart drawer functionality
+{% endcomment %}
+
+<div data-upsellity-app-url="{{ block.settings.app_url }}"></div>
+
+<script>
+  (function() {
+    // Load the cart drawer script
+    var script = document.createElement('script');
+    script.src = '{{ 'cart-drawer.js' | asset_url }}';
+    script.async = true;
+    document.head.appendChild(script);
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Upsellity Cart Drawer",
+  "target": "body",
+  "settings": [
+    {
+      "type": "text",
+      "id": "app_url",
+      "label": "App URL",
+      "info": "Enter your Upsellity app URL (e.g., https://your-app.fly.dev)",
+      "default": "https://app.upsellity.com"
+    }
+  ]
+}
+{% endschema %}
+
