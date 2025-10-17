@@ -125,7 +125,7 @@
       product_id: item.product_id,
       variant_id: item.variant_id,
       quantity: item.quantity,
-      price: (item.price / 100).toFixed(2), // Convert from cents
+      price: Math.round(item.price / 100), // Convert from cents to whole numbers
       product_title: item.product_title,
       variant_title: item.variant_title
     }));
@@ -187,7 +187,7 @@
       const progress = Math.min((currentValue / targetValue) * 100, 100);
       
       if (remaining > 0) {
-        messageEl.innerHTML = config.actionMessage.replace('{amount}', `$${remaining.toFixed(2)}`);
+        messageEl.innerHTML = config.actionMessage.replace('{amount}', `$${Math.round(remaining)}`);
         
         // Show progress bar
         progressEl.innerHTML = `
@@ -195,7 +195,7 @@
             <div class="upsellity-progress-fill" style="width: ${progress}%"></div>
           </div>
           <div class="upsellity-progress-text">
-            $${currentValue.toFixed(2)} of $${targetValue.toFixed(2)} 
+            $${Math.round(currentValue)} of $${Math.round(targetValue)} 
             ${config.actionType === 'discount_percentage' ? `for ${config.actionValue}% off` : ''}
           </div>
         `;

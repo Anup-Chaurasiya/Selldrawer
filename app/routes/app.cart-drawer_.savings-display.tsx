@@ -213,7 +213,7 @@ export default function SavingsDisplay() {
                 fontWeight: '600',
                 fontSize: '16px'
               }}>
-                {formState.message.replace('{amount}', '₹3300.00')}
+                {formState.message.replace('{amount}', '₹3300')}
               </div>
 
               <Text as="p" variant="bodyMd" tone="subdued">

@@ -118,35 +118,60 @@ export default function CartDrawerPreview() {
 
             <div style={{ padding: '16px 20px' }}>
               <BlockStack gap="400">
-                {/* Free Shipping Progress Bar */}
-                {cartDrawer?.freeShippingProgressBarEnabled && freeShippingBar && (
-                  <div>
-                    <div style={{ marginBottom: '8px' }}>
-                      <Text as="p" variant="bodySm">
-                        Add ₹{calculateRemaining().toFixed(2)} for FREE shipping
-                      </Text>
-                      {freeShippingBar.showPercentage && (
-                        <Text as="span" variant="bodySm" tone="success">
-                          {calculateProgress().toFixed(0)}%
-                        </Text>
-                      )}
-                    </div>
-                    <div style={{ 
-                      width: '100%', 
-                      height: '8px', 
-                      backgroundColor: freeShippingBar.backgroundColor,
-                      borderRadius: '4px',
-                      overflow: 'hidden'
+                {/* Enhanced Free Shipping Progress Bar */}
+                <div style={{ 
+                  marginBottom: '20px',
+                  padding: '16px',
+                  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '12px',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}>
+                    <span style={{ color: '#374151' }}>
+                      Add ₹{Math.round(calculateRemaining())} for FREE shipping
+                    </span>
+                    <span style={{ 
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: 'white',
+                      padding: '4px 12px',
+                      borderRadius: '20px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
                     }}>
-                      <div style={{ 
-                        width: `${calculateProgress()}%`, 
-                        height: '100%',
-                        backgroundColor: freeShippingBar.progressBarColor,
-                        transition: 'width 0.3s ease'
-                      }} />
-                    </div>
+                      {calculateProgress().toFixed(0)}%
+                    </span>
                   </div>
-                )}
+                  <div style={{ 
+                    width: '100%', 
+                    height: '12px', 
+                    backgroundColor: '#e5e7eb',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)',
+                    position: 'relative'
+                  }}>
+                    <div style={{ 
+                      width: `${calculateProgress()}%`, 
+                      height: '100%',
+                      display: 'block',
+                      background: calculateProgress() >= 100 
+                        ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                        : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                      borderRadius: '8px',
+                      transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                      minWidth: '2px'
+                    }} />
+                  </div>
+                </div>
 
                 {/* Promotional Banner */}
                 {cartDrawer?.promotionalBannerEnabled && promotionalBanner && (
@@ -168,14 +193,15 @@ export default function CartDrawerPreview() {
                   </div>
                 )}
 
-                {/* Cart Items */}
+                {/* Cart Items with Enhanced Controls */}
                 <div>
                   {sampleCart.items.map((item) => (
                     <div key={item.id} style={{ 
                       display: 'flex', 
                       gap: '12px',
                       padding: '12px 0',
-                      borderBottom: '1px solid #f3f4f6'
+                      borderBottom: '1px solid #f3f4f6',
+                      position: 'relative'
                     }}>
                       <img 
                         src={item.image} 
@@ -194,47 +220,86 @@ export default function CartDrawerPreview() {
                         <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>
                           {item.variant}
                         </div>
-                        <div>
+                        <div style={{ marginBottom: '8px' }}>
                           <span style={{ 
                             textDecoration: 'line-through', 
                             color: '#9ca3af',
                             fontSize: '14px',
                             marginRight: '8px'
                           }}>
-                            ₹{item.originalPrice.toFixed(2)}
+                            ₹{Math.round(item.originalPrice * item.quantity)}
                           </span>
                           <span style={{ fontWeight: '600', fontSize: '16px' }}>
-                            ₹{item.price.toFixed(2)}
+                            ₹{Math.round(item.price * item.quantity)}
                           </span>
                         </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <button style={{ 
-                          width: '28px', 
-                          height: '28px',
-                          border: '1px solid #e5e7eb',
-                          background: 'white',
-                          borderRadius: '4px',
-                          cursor: 'pointer'
-                        }}>−</button>
-                        <span>{item.quantity}</span>
-                        <button style={{ 
-                          width: '28px', 
-                          height: '28px',
-                          border: '1px solid #e5e7eb',
-                          background: 'white',
-                          borderRadius: '4px',
-                          cursor: 'pointer'
-                        }}>+</button>
-                        <button style={{ 
-                          width: '28px', 
-                          height: '28px',
-                          border: 'none',
-                          background: '#1f2937',
-                          color: 'white',
-                          borderRadius: '4px',
-                          cursor: 'pointer'
-                        }}>🗑</button>
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '8px'
+                        }}>
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '4px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '6px',
+                            background: 'white'
+                          }}>
+                            <button style={{ 
+                              width: '32px', 
+                              height: '32px',
+                              border: 'none',
+                              background: '#f8f9fa',
+                              color: '#374151',
+                              fontSize: '16px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: '4px',
+                              transition: 'all 0.2s ease'
+                            }}>−</button>
+                            <span style={{ 
+                              minWidth: '40px',
+                              textAlign: 'center',
+                              fontWeight: '600',
+                              fontSize: '14px',
+                              color: '#374151',
+                              padding: '0 8px'
+                            }}>{item.quantity}</span>
+                            <button style={{ 
+                              width: '32px', 
+                              height: '32px',
+                              border: 'none',
+                              background: '#f8f9fa',
+                              color: '#374151',
+                              fontSize: '16px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: '4px',
+                              transition: 'all 0.2s ease'
+                            }}>+</button>
+                          </div>
+                          <button style={{ 
+                            width: '32px', 
+                            height: '32px',
+                            border: 'none',
+                            background: '#ef4444',
+                            color: 'white',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '14px',
+                            transition: 'all 0.2s ease'
+                          }} title="Remove item">🗑</button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -275,9 +340,25 @@ export default function CartDrawerPreview() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '32px'
+                            fontSize: '32px',
+                            position: 'relative'
                           }}>
                             👟
+                            {productRecommendation.showDiscountBadge && (
+                              <div style={{ 
+                                position: 'absolute',
+                                top: '8px',
+                                right: '8px',
+                                backgroundColor: '#10b981',
+                                color: 'white',
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                fontSize: '11px',
+                                zIndex: 10
+                              }}>
+                                {product.discount}
+                              </div>
+                            )}
                           </div>
                           <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '4px' }}>
                             {product.title}
@@ -293,19 +374,6 @@ export default function CartDrawerPreview() {
                             </span>
                             <span style={{ fontWeight: '600' }}>₹{product.price}</span>
                           </div>
-                          {productRecommendation.showDiscountBadge && (
-                            <div style={{ 
-                              display: 'inline-block',
-                              backgroundColor: '#10b981',
-                              color: 'white',
-                              padding: '2px 8px',
-                              borderRadius: '12px',
-                              fontSize: '11px',
-                              marginBottom: '8px'
-                            }}>
-                              {product.discount}
-                            </div>
-                          )}
                           {productRecommendation.showAddButton && (
                             <button style={{ 
                               width: '100%',
@@ -338,7 +406,7 @@ export default function CartDrawerPreview() {
                     fontWeight: '600',
                     fontSize: '16px'
                   }}>
-                    ₹{sampleCart.savings.toFixed(2)} Saved so far!
+                    ₹{Math.round(sampleCart.savings)} Saved so far!
                   </div>
                 )}
 
@@ -353,7 +421,47 @@ export default function CartDrawerPreview() {
                     fontSize: '14px'
                   }}>
                     Free shipping on orders over ₹{Number(freeShippingMessage.thresholdAmount).toFixed(0)}<br/>
-                    <strong>Add ₹{calculateRemaining().toFixed(2)} more for FREE shipping</strong>
+                    <strong>Add ₹{Math.round(calculateRemaining())} more for FREE shipping</strong>
+                  </div>
+                )}
+
+                {/* Coupon Code Field */}
+                {cartDrawer?.couponCodeFieldEnabled && (
+                  <div style={{ 
+                    margin: '16px 0', 
+                    padding: '16px', 
+                    background: '#f8fafc', 
+                    borderRadius: '8px', 
+                    border: '1px solid #e2e8f0' 
+                  }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        placeholder="Enter coupon code"
+                        style={{
+                          flex: 1,
+                          padding: '10px 12px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                          background: 'white',
+                          outline: 'none'
+                        }}
+                      />
+                      <button style={{
+                        padding: '10px 16px',
+                        background: '#1f2937',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        Apply
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -374,9 +482,9 @@ export default function CartDrawerPreview() {
                         fontSize: '14px',
                         marginRight: '8px'
                       }}>
-                        ₹{sampleCart.originalTotal.toFixed(2)}
+                        ₹{Math.round(sampleCart.originalTotal)}
                       </span>
-                      <span>₹{sampleCart.total.toFixed(2)}</span>
+                      <span>₹{Math.round(sampleCart.total)}</span>
                     </div>
                   </div>
                 </div>
