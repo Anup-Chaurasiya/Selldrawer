@@ -72,6 +72,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       if (banner.endDate && new Date(banner.endDate) < now) return false;
       return true;
     });
+    
+    console.log('Upsellity API: Promotional banners data', {
+      totalBanners: cartDrawer.promotionalBanners.length,
+      activeBanners: activePromotionalBanners.length,
+      enabled: cartDrawer.promotionalBannerEnabled,
+      banners: activePromotionalBanners
+    });
+    
+    console.log('Upsellity API: Coupon code field data', {
+      enabled: cartDrawer.couponCodeFieldEnabled,
+      couponField: couponCodeField,
+      isActive: couponCodeField?.isActive
+    });
 
     // Create default progress bar configuration if none exists
     const defaultProgressBar = {

@@ -67,6 +67,7 @@ class UpsellityCartDrawer {
       const response = await fetch(`${appUrl}/api/cart-drawer?shop=${this.shop}`);
       this.config = await response.json();
       console.log('Upsellity: Config loaded', this.config);
+      console.log('Upsellity: Promotional banner config', this.config.features?.promotionalBanner);
     } catch (error) {
       console.error('Upsellity: Failed to load config, using default', error);
       this.config = {
@@ -964,7 +965,7 @@ class UpsellityCartDrawer {
           <span class="upsellity-progress-bar-message" style="color: #374151;">
             ${isComplete 
               ? (bar.achievedMessage || '🎉 You qualify for FREE shipping!')
-              : bar.beforeThresholdMessage.replace('{remaining}', `${bar.currency === 'INR' ? '₹' : '$'}${remaining.toFixed(2)}`)
+              : bar.beforeThresholdMessage.replace('{remaining}', `${bar.currency === 'INR' ? '₹' : '$'}${Math.round(remaining)}`)
             }
           </span>
           ${bar.showPercentage ? `<span class="upsellity-progress-bar-percentage" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);">${progress.toFixed(0)}%</span>` : ''}
@@ -979,7 +980,9 @@ class UpsellityCartDrawer {
     // Enhanced Promotional Banner
     if (this.config.features.promotionalBanner) {
       const banner = this.config.features.promotionalBanner;
+      console.log('Upsellity: Rendering promotional banner', banner);
       
+      // Check if banner has images
       if (banner.imageUrls && banner.imageUrls.length > 0) {
         if (banner.bannerType === 'image') {
           // Single Image Banner
@@ -1033,6 +1036,44 @@ class UpsellityCartDrawer {
             this.initializeEnhancedCarousel(carouselId, banner.imageUrls.length);
           }, 100);
         }
+      } else {
+        // Text-only banner (fallback when no images)
+        html += `
+          <div class="upsellity-text-banner" style="
+            background-color: ${banner.backgroundColor || '#FF6B35'};
+            color: ${banner.textColor || '#FFFFFF'};
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 16px;
+            cursor: ${banner.ctaEnabled ? 'pointer' : 'default'};
+            ${banner.ctaEnabled ? `onclick="window.upsellityDrawer.handleBannerClick('${banner.id}')"` : ''}
+          ">
+            <div style="font-weight: 700; font-size: 16px; margin-bottom: 4px;">
+              ${banner.title}
+            </div>
+            ${banner.subtitle ? `
+              <div style="font-size: 14px; margin-bottom: ${banner.ctaEnabled ? '12px' : '0'};">
+                ${banner.subtitle}
+              </div>
+            ` : ''}
+            ${banner.ctaEnabled ? `
+              <button style="
+                background-color: ${banner.textColor || '#FFFFFF'};
+                color: ${banner.backgroundColor || '#FF6B35'};
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: 600;
+                cursor: pointer;
+                font-size: 14px;
+                margin-top: 8px;
+              " onclick="window.upsellityDrawer.handleBannerClick('${banner.id}')">
+                ${banner.ctaButtonText}
+              </button>
+            ` : ''}
+          </div>
+        `;
       }
     }
 
@@ -1045,8 +1086,8 @@ class UpsellityCartDrawer {
             <div class="upsellity-cart-item-title">${item.title}</div>
             <div class="upsellity-cart-item-variant">${item.variant_title || ''}</div>
             <div class="upsellity-cart-item-price">
-              ${item.original_price > item.final_price ? `<span class="upsellity-cart-item-original-price">${this.formatMoney(item.original_price)}</span>` : ''}
-              ${this.formatMoney(item.final_price)}
+              ${item.original_price > item.final_price ? `<span class="upsellity-cart-item-original-price">${this.formatMoney(item.original_price * item.quantity)}</span>` : ''}
+              ${this.formatMoney(item.final_price * item.quantity)}
             </div>
             <div class="upsellity-cart-item-controls">
               <div class="upsellity-quantity-controls">
@@ -1094,8 +1135,13 @@ class UpsellityCartDrawer {
               const discount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
               return `
                 <div class="upsellity-recommendation-card">
-                  <div class="upsellity-recommendation-image">
+                  <div class="upsellity-recommendation-image" style="position: relative;">
                     <img src="${product.image}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />
+                    ${recommendations.showDiscountBadge && product.originalPrice > product.price ? `
+                      <div style="position: absolute; top: 8px; right: 8px; background-color: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; z-index: 10;">
+                        ${discount}% off
+                      </div>
+                    ` : ''}
                   </div>
                   <div style="font-size: 14px; font-weight: 500; margin-bottom: 4px;">
                     ${product.title}
@@ -1108,11 +1154,6 @@ class UpsellityCartDrawer {
                     ` : ''}
                     <span style="font-weight: 600;">₹${product.price}</span>
                   </div>
-                  ${recommendations.showDiscountBadge && product.originalPrice > product.price ? `
-                    <div style="display: inline-block; background-color: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-bottom: 8px;">
-                      ${discount}% off
-                    </div>
-                  ` : ''}
                   ${recommendations.showAddButton ? `
                     <button class="upsellity-add-recommendation-btn" 
                             onclick="window.upsellityDrawer.addProductToCartByHandle('${product.handle}')"
@@ -1153,9 +1194,60 @@ class UpsellityCartDrawer {
       html += `
         <div class="upsellity-shipping-message" style="background-color: ${msg.backgroundColor}; color: ${msg.textColor}">
           ${remaining > 0 
-            ? msg.beforeThresholdMessage.replace('{threshold}', `${msg.currency === 'INR' ? '₹' : '$'}${threshold}`).replace('{remaining}', `${msg.currency === 'INR' ? '₹' : '$'}${remaining.toFixed(2)}`)
+            ? msg.beforeThresholdMessage.replace('{threshold}', `${msg.currency === 'INR' ? '₹' : '$'}${Math.round(threshold)}`).replace('{remaining}', `${msg.currency === 'INR' ? '₹' : '$'}${Math.round(remaining)}`)
             : msg.achievedMessage
           }
+        </div>
+      `;
+    }
+
+    // Coupon Code Field
+    if (this.config.features.couponCodeField) {
+      const couponField = this.config.features.couponCodeField;
+      console.log('Upsellity: Rendering coupon code field', couponField);
+      
+      html += `
+        <div class="upsellity-coupon-field" style="margin: 16px 0; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input 
+              type="text" 
+              id="upsellity-coupon-input" 
+              placeholder="${couponField.placeholder || 'Enter coupon code'}"
+              style="
+                flex: 1;
+                padding: 10px 12px;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 14px;
+                background: white;
+                outline: none;
+                transition: border-color 0.2s ease;
+              "
+              onfocus="this.style.borderColor='#3b82f6'"
+              onblur="this.style.borderColor='#d1d5db'"
+            />
+            <button 
+              class="upsellity-coupon-apply-btn"
+              onclick="window.upsellityDrawer.applyCoupon()"
+              style="
+                padding: 10px 16px;
+                background: #1f2937;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+                white-space: nowrap;
+              "
+              onmouseover="this.style.backgroundColor='#374151'"
+              onmouseout="this.style.backgroundColor='#1f2937'"
+            >
+              ${couponField.buttonText || 'Apply'}
+            </button>
+          </div>
+          <div id="upsellity-coupon-message" style="margin-top: 8px; font-size: 12px; min-height: 16px;"></div>
         </div>
       `;
     }
@@ -1187,7 +1279,8 @@ class UpsellityCartDrawer {
 
   formatMoney(cents) {
     const amount = cents / 100;
-    return `₹${amount.toFixed(2)}`;
+    // Show whole numbers without decimals for cleaner display
+    return `₹${Math.round(amount)}`;
   }
 
   open() {
@@ -1355,6 +1448,68 @@ class UpsellityCartDrawer {
       // Add product to cart using product handle
       this.addProductToCartByHandle(banner.ctaProductHandle, banner.ctaVariantId, banner.ctaQuantity);
     }
+  }
+
+  // Apply coupon code
+  applyCoupon() {
+    const couponInput = document.getElementById('upsellity-coupon-input');
+    const messageDiv = document.getElementById('upsellity-coupon-message');
+    
+    if (!couponInput || !messageDiv) {
+      console.error('Upsellity: Coupon elements not found');
+      return;
+    }
+
+    const couponCode = couponInput.value.trim();
+    if (!couponCode) {
+      messageDiv.textContent = 'Please enter a coupon code';
+      messageDiv.style.color = '#ef4444';
+      return;
+    }
+
+    // Show loading state
+    messageDiv.textContent = 'Applying coupon...';
+    messageDiv.style.color = '#6b7280';
+
+    // Apply coupon via Shopify's discount code API
+    fetch('/cart/update.js', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({
+        discount_code: couponCode
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === 'success' || data.discount_codes) {
+        // Success
+        const couponField = this.config.features.couponCodeField;
+        messageDiv.textContent = couponField.successMessage || 'Coupon applied successfully!';
+        messageDiv.style.color = '#10b981';
+        
+        // Clear input
+        couponInput.value = '';
+        
+        // Reload cart to show updated totals
+        this.loadCart().then(() => {
+          this.render();
+        });
+      } else {
+        // Error
+        const couponField = this.config.features.couponCodeField;
+        messageDiv.textContent = couponField.errorMessage || 'Invalid coupon code';
+        messageDiv.style.color = '#ef4444';
+      }
+    })
+    .catch(error => {
+      console.error('Upsellity: Error applying coupon', error);
+      const couponField = this.config.features.couponCodeField;
+      messageDiv.textContent = couponField.errorMessage || 'Invalid coupon code';
+      messageDiv.style.color = '#ef4444';
+    });
   }
 
   async addProductToCart(productId, variantId, quantity = 1) {

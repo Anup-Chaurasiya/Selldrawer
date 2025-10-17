@@ -136,7 +136,7 @@ export default function CartDrawerPreview() {
                     fontWeight: '600'
                   }}>
                     <span style={{ color: '#374151' }}>
-                      Add ₹{calculateRemaining().toFixed(2)} for FREE shipping
+                      Add ₹{Math.round(calculateRemaining())} for FREE shipping
                     </span>
                     <span style={{ 
                       background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
@@ -227,10 +227,10 @@ export default function CartDrawerPreview() {
                             fontSize: '14px',
                             marginRight: '8px'
                           }}>
-                            ₹{item.originalPrice.toFixed(2)}
+                            ₹{Math.round(item.originalPrice * item.quantity)}
                           </span>
                           <span style={{ fontWeight: '600', fontSize: '16px' }}>
-                            ₹{item.price.toFixed(2)}
+                            ₹{Math.round(item.price * item.quantity)}
                           </span>
                         </div>
                         <div style={{ 
@@ -340,9 +340,25 @@ export default function CartDrawerPreview() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '32px'
+                            fontSize: '32px',
+                            position: 'relative'
                           }}>
                             👟
+                            {productRecommendation.showDiscountBadge && (
+                              <div style={{ 
+                                position: 'absolute',
+                                top: '8px',
+                                right: '8px',
+                                backgroundColor: '#10b981',
+                                color: 'white',
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                fontSize: '11px',
+                                zIndex: 10
+                              }}>
+                                {product.discount}
+                              </div>
+                            )}
                           </div>
                           <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '4px' }}>
                             {product.title}
@@ -358,19 +374,6 @@ export default function CartDrawerPreview() {
                             </span>
                             <span style={{ fontWeight: '600' }}>₹{product.price}</span>
                           </div>
-                          {productRecommendation.showDiscountBadge && (
-                            <div style={{ 
-                              display: 'inline-block',
-                              backgroundColor: '#10b981',
-                              color: 'white',
-                              padding: '2px 8px',
-                              borderRadius: '12px',
-                              fontSize: '11px',
-                              marginBottom: '8px'
-                            }}>
-                              {product.discount}
-                            </div>
-                          )}
                           {productRecommendation.showAddButton && (
                             <button style={{ 
                               width: '100%',
@@ -403,7 +406,7 @@ export default function CartDrawerPreview() {
                     fontWeight: '600',
                     fontSize: '16px'
                   }}>
-                    ₹{sampleCart.savings.toFixed(2)} Saved so far!
+                    ₹{Math.round(sampleCart.savings)} Saved so far!
                   </div>
                 )}
 
@@ -418,7 +421,47 @@ export default function CartDrawerPreview() {
                     fontSize: '14px'
                   }}>
                     Free shipping on orders over ₹{Number(freeShippingMessage.thresholdAmount).toFixed(0)}<br/>
-                    <strong>Add ₹{calculateRemaining().toFixed(2)} more for FREE shipping</strong>
+                    <strong>Add ₹{Math.round(calculateRemaining())} more for FREE shipping</strong>
+                  </div>
+                )}
+
+                {/* Coupon Code Field */}
+                {cartDrawer?.couponCodeFieldEnabled && (
+                  <div style={{ 
+                    margin: '16px 0', 
+                    padding: '16px', 
+                    background: '#f8fafc', 
+                    borderRadius: '8px', 
+                    border: '1px solid #e2e8f0' 
+                  }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        placeholder="Enter coupon code"
+                        style={{
+                          flex: 1,
+                          padding: '10px 12px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                          background: 'white',
+                          outline: 'none'
+                        }}
+                      />
+                      <button style={{
+                        padding: '10px 16px',
+                        background: '#1f2937',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        Apply
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -439,9 +482,9 @@ export default function CartDrawerPreview() {
                         fontSize: '14px',
                         marginRight: '8px'
                       }}>
-                        ₹{sampleCart.originalTotal.toFixed(2)}
+                        ₹{Math.round(sampleCart.originalTotal)}
                       </span>
-                      <span>₹{sampleCart.total.toFixed(2)}</span>
+                      <span>₹{Math.round(sampleCart.total)}</span>
                     </div>
                   </div>
                 </div>
