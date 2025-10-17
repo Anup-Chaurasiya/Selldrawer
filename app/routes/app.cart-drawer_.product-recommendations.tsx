@@ -54,6 +54,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ success: true });
   }
 
+
   if (intent === "save") {
     const cartDrawer = await prisma.cartDrawer.findUnique({
       where: { shop },
@@ -222,6 +223,7 @@ export default function ProductRecommendations() {
                 </FormLayout>
               </BlockStack>
             </Card>
+
           </BlockStack>
         </Layout.Section>
 
