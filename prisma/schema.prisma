@@ -86,7 +86,9 @@ model FreeShippingProgressBar {
   shop                   String
   isActive               Boolean    @default(true)
   priority               Int        @default(0)
-  thresholdAmount        Decimal
+  thresholdMode          String     @default("amount") // "amount" or "count"
+  thresholdAmount        Decimal?
+  thresholdCount         Int?
   currency               String     @default("INR")
   beforeThresholdMessage String     @default("Add {remaining} for FREE shipping")
   afterThresholdMessage  String     @default("You've unlocked FREE shipping!")
@@ -211,6 +213,7 @@ model RecommendedProduct {
   id               String                @id @default(cuid())
   recommendationId String
   shopifyProductId String
+  shopifyVariantId String?
   title            String
   price            Decimal
   compareAtPrice   Decimal?

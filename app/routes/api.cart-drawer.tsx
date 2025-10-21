@@ -89,10 +89,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // Create default progress bar configuration if none exists
     const defaultProgressBar = {
       id: 'default',
+      thresholdMode: 'amount',
       thresholdAmount: 5000,
+      thresholdCount: 5,
       currency: 'INR',
       beforeThresholdMessage: 'Add {remaining} for FREE shipping',
-      achievedMessage: '🎉 You qualify for FREE shipping!',
+      afterThresholdMessage: '🎉 You qualify for FREE shipping!',
       progressBarColor: '#10b981',
       backgroundColor: '#f3f4f6',
       showPercentage: true,
@@ -108,6 +110,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       showDiscount: true,
       showDiscountBadge: true,
       showAddButton: true,
+      products: [], // Empty products array for default
     };
 
     const response = json({

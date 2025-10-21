@@ -65,7 +65,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     const data = {
-      thresholdAmount: parseFloat(formData.get("thresholdAmount") as string),
+      thresholdMode: formData.get("thresholdMode") as string,
+      thresholdAmount: formData.get("thresholdAmount") ? parseFloat(formData.get("thresholdAmount") as string) : null,
+      thresholdCount: formData.get("thresholdCount") ? parseInt(formData.get("thresholdCount") as string) : null,
       currency: formData.get("currency") as string,
       beforeThresholdMessage: formData.get("beforeThresholdMessage") as string,
       afterThresholdMessage: formData.get("afterThresholdMessage") as string,
@@ -105,7 +107,9 @@ export default function FreeShippingBar() {
   const isLoading = navigation.state === "submitting";
 
   const [formState, setFormState] = useState({
+    thresholdMode: freeShippingBar?.thresholdMode || "amount",
     thresholdAmount: freeShippingBar?.thresholdAmount?.toString() || "5000",
+    thresholdCount: freeShippingBar?.thresholdCount?.toString() || "5",
     currency: freeShippingBar?.currency || "INR",
     beforeThresholdMessage: freeShippingBar?.beforeThresholdMessage || "Add {remaining} for FREE shipping",
     afterThresholdMessage: freeShippingBar?.afterThresholdMessage || "You've unlocked FREE shipping!",
@@ -164,15 +168,40 @@ export default function FreeShippingBar() {
                 )}
 
                 <FormLayout>
-                  <TextField
-                    label="Free Shipping Threshold"
-                    type="number"
-                    value={formState.thresholdAmount}
-                    onChange={(value) => setFormState({ ...formState, thresholdAmount: value })}
-                    helpText="Customers need to spend this amount to get free shipping"
-                    prefix="₹"
-                    autoComplete="off"
+                  <Select
+                    label="Threshold Mode"
+                    options={[
+                      { label: "Cart Total Amount", value: "amount" },
+                      { label: "Item Count", value: "count" },
+                    ]}
+                    value={formState.thresholdMode}
+                    onChange={(value) => setFormState({ ...formState, thresholdMode: value })}
+                    helpText="Choose whether to base free shipping on cart total or number of items"
                   />
+
+                  {formState.thresholdMode === "amount" && (
+                    <TextField
+                      label="Free Shipping Threshold Amount"
+                      type="number"
+                      value={formState.thresholdAmount}
+                      onChange={(value) => setFormState({ ...formState, thresholdAmount: value })}
+                      helpText="Customers need to spend this amount to get free shipping"
+                      prefix="₹"
+                      autoComplete="off"
+                    />
+                  )}
+
+                  {formState.thresholdMode === "count" && (
+                    <TextField
+                      label="Free Shipping Threshold Count"
+                      type="number"
+                      value={formState.thresholdCount}
+                      onChange={(value) => setFormState({ ...formState, thresholdCount: value })}
+                      helpText="Customers need to add this many items to get free shipping"
+                      suffix="items"
+                      autoComplete="off"
+                    />
+                  )}
 
                   <Select
                     label="Currency"
@@ -190,7 +219,9 @@ export default function FreeShippingBar() {
                     label="Before Threshold Message"
                     value={formState.beforeThresholdMessage}
                     onChange={(value) => setFormState({ ...formState, beforeThresholdMessage: value })}
-                    helpText="Use {remaining} to show remaining amount"
+                    helpText={formState.thresholdMode === "amount" 
+                      ? "Use {remaining} to show remaining amount" 
+                      : "Use {remaining} to show remaining items"}
                     autoComplete="off"
                   />
 
@@ -240,7 +271,11 @@ export default function FreeShippingBar() {
               <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
                 <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text as="p" variant="bodySm">
-                    {formState.beforeThresholdMessage.replace('{remaining}', `₹${formState.thresholdAmount}`)}
+                    {formState.beforeThresholdMessage.replace('{remaining}', 
+                      formState.thresholdMode === "amount" 
+                        ? `₹${formState.thresholdAmount}` 
+                        : `${formState.thresholdCount} more items`
+                    )}
                   </Text>
                   {formState.showPercentage && (
                     <Text as="span" variant="bodySm" tone="success">

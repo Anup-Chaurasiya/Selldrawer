@@ -14,6 +14,11 @@ import {
   Checkbox,
   InlineStack,
   Banner,
+  ResourceList,
+  ResourceItem,
+  Thumbnail,
+  Badge,
+  EmptyState,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -27,13 +32,92 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const cartDrawer = await prisma.cartDrawer.findUnique({
     where: { shop },
     include: {
-      productRecommendations: { where: { isActive: true } },
+      productRecommendations: { 
+        where: { isActive: true },
+        include: {
+          products: {
+            orderBy: { position: 'asc' }
+          }
+        }
+      },
     },
   });
 
   const productRecommendation = cartDrawer?.productRecommendations[0] || null;
 
-  return json({ cartDrawer, productRecommendation });
+  // Fetch real products from Shopify store using GraphQL
+  let shopProducts: any[] = [];
+  
+  try {
+    const { admin } = await authenticate.admin(request);
+    
+    const response = await admin.graphql(`
+      query getProducts($first: Int!) {
+        products(first: $first) {
+          edges {
+            node {
+              id
+              title
+              handle
+              status
+              images(first: 1) {
+                edges {
+                  node {
+                    url
+                    altText
+                  }
+                }
+              }
+              variants(first: 1) {
+                edges {
+                  node {
+                    price
+                    compareAtPrice
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `, {
+      variables: { first: 50 }
+    });
+
+    const responseJson = await response.json();
+    
+    if (responseJson.data && responseJson.data.products && responseJson.data.products.edges) {
+      shopProducts = responseJson.data.products.edges.map((edge: any) => {
+        const product = edge.node;
+        const image = product.images.edges[0]?.node;
+        const variant = product.variants.edges[0]?.node;
+        
+        return {
+          id: product.handle, // Use handle as ID for frontend compatibility
+          shopifyProductId: product.id.replace('gid://shopify/Product/', ''), // Keep numeric ID for reference
+          title: product.title,
+          handle: product.handle,
+          status: product.status.toLowerCase(),
+          images: image ? [{ src: image.url, alt: image.altText }] : [],
+          variants: variant ? [{
+            price: variant.price,
+            compare_at_price: variant.compareAtPrice
+          }] : []
+        };
+      });
+      
+      console.log('Successfully fetched', shopProducts.length, 'products from Shopify');
+    } else {
+      console.error('No products found in GraphQL response:', responseJson);
+    }
+  } catch (error) {
+    console.error('Error fetching products from Shopify:', error);
+    throw new Error('Failed to fetch products from your store. Please check your Shopify connection.');
+  }
+
+  console.log('Successfully loaded', shopProducts.length, 'products from your Shopify store');
+  
+  return json({ cartDrawer, productRecommendation, shopProducts });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -75,15 +159,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       showAddButton: formData.get("showAddButton") === "true",
     };
 
+    const selectedProducts = JSON.parse(formData.get("selectedProducts") as string || "[]");
+
     const existingRecommendation = cartDrawer.productRecommendations[0];
 
+    let recommendation;
     if (existingRecommendation) {
-      await prisma.productRecommendation.update({
+      recommendation = await prisma.productRecommendation.update({
         where: { id: existingRecommendation.id },
         data,
       });
     } else {
-      await prisma.productRecommendation.create({
+      recommendation = await prisma.productRecommendation.create({
         data: {
           ...data,
           shop,
@@ -93,6 +180,87 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
     }
 
+    // Clear existing recommended products
+    await prisma.recommendedProduct.deleteMany({
+      where: { recommendationId: recommendation.id }
+    });
+
+    // Add new recommended products
+    if (selectedProducts.length > 0) {
+      console.log('Saving selected products:', selectedProducts);
+      const { admin } = await authenticate.admin(request);
+      
+      for (let i = 0; i < selectedProducts.length; i++) {
+        const productId = selectedProducts[i];
+        console.log(`Processing product ${i + 1}/${selectedProducts.length}:`, productId);
+        
+        try {
+          // Use GraphQL to fetch product details by handle
+          const response = await admin.graphql(`
+            query getProductByHandle($handle: String!) {
+              productByHandle(handle: $handle) {
+                id
+                title
+                handle
+                images(first: 1) {
+                  edges {
+                    node {
+                      url
+                      altText
+                    }
+                  }
+                }
+                variants(first: 1) {
+                  edges {
+                    node {
+                      id
+                      price
+                      compareAtPrice
+                    }
+                  }
+                }
+              }
+            }
+          `, {
+            variables: { 
+              handle: productId 
+            }
+          });
+
+          const responseJson = await response.json();
+          
+          if (responseJson.data && responseJson.data.productByHandle) {
+            const product = responseJson.data.productByHandle;
+            const image = product.images.edges[0]?.node;
+            const variant = product.variants.edges[0]?.node;
+            
+            if (variant) {
+              const variantId = variant.id.replace('gid://shopify/ProductVariant/', '');
+              console.log(`Saving product: ${product.title}, variant ID: ${variantId}`);
+              
+              await prisma.recommendedProduct.create({
+                data: {
+                  recommendationId: recommendation.id,
+                  shopifyProductId: variantId, // Store variant ID
+                  title: product.title,
+                  price: parseFloat(variant.price),
+                  compareAtPrice: variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
+                  imageUrl: image?.url || null,
+                  position: i,
+                },
+              });
+              
+              console.log(`Successfully saved product: ${product.title}`);
+            } else {
+              console.error(`No variant found for product: ${product.title}`);
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching product ${productId}:`, error);
+        }
+      }
+    }
+
     return redirect("/app/cart-drawer");
   }
 
@@ -100,7 +268,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function ProductRecommendations() {
-  const { cartDrawer, productRecommendation } = useLoaderData<typeof loader>();
+  const { cartDrawer, productRecommendation, shopProducts } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const isLoading = navigation.state === "submitting";
@@ -115,6 +283,11 @@ export default function ProductRecommendations() {
     showAddButton: productRecommendation?.showAddButton ?? true,
   });
 
+  const [selectedProducts, setSelectedProducts] = useState<string[]>(
+    productRecommendation?.products?.map(p => p.shopifyProductId) || []
+  );
+  const [searchQuery, setSearchQuery] = useState("");
+
   const handleToggle = useCallback(() => {
     const formData = new FormData();
     formData.append("intent", "toggle");
@@ -122,14 +295,34 @@ export default function ProductRecommendations() {
     submit(formData, { method: "post" });
   }, [cartDrawer?.productRecommendationsEnabled, submit]);
 
+  const handleProductToggle = useCallback((productId: string) => {
+    setSelectedProducts(prev => {
+      if (prev.includes(productId)) {
+        return prev.filter(id => id !== productId);
+      } else {
+        // Allow unlimited selection - no maxProducts limit
+        return [...prev, productId];
+      }
+    });
+  }, []);
+
   const handleSubmit = useCallback(() => {
     const formData = new FormData();
     formData.append("intent", "save");
     Object.entries(formState).forEach(([key, value]) => {
       formData.append(key, value.toString());
     });
+    formData.append("selectedProducts", JSON.stringify(selectedProducts));
     submit(formData, { method: "post" });
-  }, [formState, submit]);
+  }, [formState, selectedProducts, submit]);
+
+  // Filter products based on search query
+  const filteredProducts = shopProducts.filter((product: any) =>
+    product.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Log product loading status
+  console.log('Loaded', shopProducts.length, 'products from your store');
 
   return (
     <Page
@@ -221,6 +414,302 @@ export default function ProductRecommendations() {
                     onChange={(value) => setFormState({ ...formState, showAddButton: value })}
                   />
                 </FormLayout>
+
+                {/* Product Selection Section */}
+                {formState.recommendationType === "manual" && (
+                  <Card>
+                    <BlockStack gap="400">
+                      <Text as="h3" variant="headingMd">
+                        Select Products to Recommend
+                      </Text>
+                      <Text as="p" variant="bodyMd" tone="subdued">
+                        Choose which products to show as recommendations. You can select up to {formState.maxProducts} products.
+                      </Text>
+                      
+                      <TextField
+                        label="Search Products"
+                        value={searchQuery}
+                        onChange={setSearchQuery}
+                        placeholder="Search for products..."
+                        autoComplete="off"
+                      />
+                      
+                      {/* Product count info */}
+                      <div style={{ 
+                        padding: '8px 12px', 
+                        backgroundColor: '#f0f9ff', 
+                        border: '1px solid #bae6fd', 
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        color: '#0c4a6e'
+                      }}>
+                        {shopProducts.length} products from your store
+                        {searchQuery && ` • ${filteredProducts.length} matching "${searchQuery}"`}
+                        {selectedProducts.length > 0 && ` • ${selectedProducts.length} selected`}
+                      </div>
+
+                      <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '16px' }}>
+                        {filteredProducts.length > 0 ? (
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+                            {filteredProducts.map((product: any) => {
+                              const isSelected = selectedProducts.includes(product.id);
+                              const variant = product.variants?.[0];
+                              const price = variant ? parseFloat(variant.price) : 0;
+                              const comparePrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null;
+                              const discountPercent = comparePrice && comparePrice > price ? Math.round(((comparePrice - price) / comparePrice) * 100) : 0;
+                              
+                              return (
+                                <div 
+                                  key={product.id} 
+                                  style={{ 
+                                    border: isSelected ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    padding: '16px',
+                                    backgroundColor: isSelected ? '#f0f9ff' : '#ffffff',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                  onClick={() => handleProductToggle(product.id)}
+                                >
+                                  <div style={{ display: 'flex', gap: '12px' }}>
+                                    <div style={{ flexShrink: 0 }}>
+                                      <img 
+                                        src={product.images?.[0]?.src || "https://via.placeholder.com/80x80?text=No+Image"} 
+                                        alt={product.title}
+                                        style={{ 
+                                          width: '80px', 
+                                          height: '80px', 
+                                          objectFit: 'cover',
+                                          borderRadius: '6px',
+                                          border: '1px solid #e5e7eb'
+                                        }}
+                                      />
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                        <h4 style={{ 
+                                          fontSize: '14px', 
+                                          fontWeight: '600', 
+                                          margin: 0, 
+                                          color: '#111827',
+                                          lineHeight: '1.4'
+                                        }}>
+                                          {product.title}
+                                        </h4>
+                                        <Checkbox
+                                          label=""
+                                          checked={isSelected}
+                                          onChange={() => handleProductToggle(product.id)}
+                                        />
+                                      </div>
+                                      
+                                      <div style={{ marginBottom: '8px' }}>
+                                        {comparePrice && comparePrice > price ? (
+                                          <div>
+                                            <span style={{ 
+                                              textDecoration: 'line-through', 
+                                              color: '#9ca3af',
+                                              fontSize: '12px',
+                                              marginRight: '6px'
+                                            }}>
+                                              ₹{Math.round(comparePrice)}
+                                            </span>
+                                            <span style={{ 
+                                              fontWeight: '600', 
+                                              fontSize: '14px',
+                                              color: '#111827'
+                                            }}>
+                                              ₹{Math.round(price)}
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          <span style={{ 
+                                            fontWeight: '600', 
+                                            fontSize: '14px',
+                                            color: '#111827'
+                                          }}>
+                                            ₹{Math.round(price)}
+                                          </span>
+                                        )}
+                                      </div>
+                                      
+                                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        <Badge tone={product.status === 'active' ? 'success' : 'warning'}>
+                                          {product.status}
+                                        </Badge>
+                                        {discountPercent > 0 && (
+                                          <Badge tone="info">
+                                            {`${discountPercent}% off`}
+                                          </Badge>
+                                        )}
+                                        {isSelected && (
+                                          <Badge tone="success">Selected</Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                            <div style={{ 
+                              width: '80px', 
+                              height: '80px', 
+                              backgroundColor: '#f3f4f6',
+                              borderRadius: '50%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              margin: '0 auto 16px',
+                              fontSize: '32px'
+                            }}>
+                              📦
+                            </div>
+                            <h3 style={{ fontSize: '16px', fontWeight: '600', margin: '0 0 8px', color: '#111827' }}>
+                              No products found
+                            </h3>
+                            <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                              Try adjusting your search terms or check if you have products in your store.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {selectedProducts.length > 0 && (
+                        <div>
+                      <div style={{ marginBottom: '12px' }}>
+                        <Text as="p" variant="bodyMd" fontWeight="semibold">
+                          Selected Products ({selectedProducts.length}/{formState.maxProducts})
+                        </Text>
+                      </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+                            {selectedProducts.map((productId, index) => {
+                              const product = shopProducts.find((p: any) => p.id === productId);
+                              if (!product) return null;
+                              
+                              const variant = product.variants?.[0];
+                              const price = variant ? parseFloat(variant.price) : 0;
+                              const comparePrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null;
+                              const discountPercent = comparePrice && comparePrice > price ? Math.round(((comparePrice - price) / comparePrice) * 100) : 0;
+                              
+                              return (
+                                <div key={productId} style={{ 
+                                  border: '1px solid #e5e7eb',
+                                  borderRadius: '8px',
+                                  padding: '12px',
+                                  backgroundColor: '#f8fafc',
+                                  position: 'relative'
+                                }}>
+                                  <div style={{ display: 'flex', gap: '8px' }}>
+                                    <div style={{ flexShrink: 0 }}>
+                                      <img 
+                                        src={product.images?.[0]?.src || "https://via.placeholder.com/60x60?text=No+Image"} 
+                                        alt={product.title}
+                                        style={{ 
+                                          width: '60px', 
+                                          height: '60px', 
+                                          objectFit: 'cover',
+                                          borderRadius: '4px',
+                                          border: '1px solid #e5e7eb'
+                                        }}
+                                      />
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <h5 style={{ 
+                                        fontSize: '12px', 
+                                        fontWeight: '600', 
+                                        margin: '0 0 4px', 
+                                        color: '#111827',
+                                        lineHeight: '1.3'
+                                      }}>
+                                        {product.title.length > 20 ? product.title.substring(0, 20) + '...' : product.title}
+                                      </h5>
+                                      
+                                      <div style={{ marginBottom: '4px' }}>
+                                        {comparePrice && comparePrice > price ? (
+                                          <div>
+                                            <span style={{ 
+                                              textDecoration: 'line-through', 
+                                              color: '#9ca3af',
+                                              fontSize: '10px',
+                                              marginRight: '4px'
+                                            }}>
+                                              ₹{Math.round(comparePrice)}
+                                            </span>
+                                            <span style={{ 
+                                              fontWeight: '600', 
+                                              fontSize: '12px',
+                                              color: '#111827'
+                                            }}>
+                                              ₹{Math.round(price)}
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          <span style={{ 
+                                            fontWeight: '600', 
+                                            fontSize: '12px',
+                                            color: '#111827'
+                                          }}>
+                                            ₹{Math.round(price)}
+                                          </span>
+                                        )}
+                                      </div>
+                                      
+                                      {discountPercent > 0 && (
+                                        <Badge tone="info" size="small">
+                                          {`${discountPercent}% off`}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  <div style={{ 
+                                    position: 'absolute', 
+                                    top: '8px', 
+                                    right: '8px',
+                                    display: 'flex',
+                                    gap: '4px'
+                                  }}>
+                             <span style={{
+                               fontSize: '10px',
+                               color: '#6b7280',
+                               backgroundColor: '#f3f4f6',
+                               padding: '2px 6px',
+                               borderRadius: '4px',
+                               fontWeight: '600'
+                             }}>
+                               #{String(index + 1)}
+                             </span>
+                                    <button
+                                      onClick={() => handleProductToggle(productId)}
+                                      style={{
+                                        width: '20px',
+                                        height: '20px',
+                                        border: 'none',
+                                        backgroundColor: '#ef4444',
+                                        color: 'white',
+                                        borderRadius: '50%',
+                                        cursor: 'pointer',
+                                        fontSize: '12px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                      }}
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </BlockStack>
+                  </Card>
+                )}
               </BlockStack>
             </Card>
 
@@ -243,66 +732,107 @@ export default function ProductRecommendations() {
                   gridTemplateColumns: '1fr 1fr',
                   gap: '12px'
                 }}>
-                  {[1, 2].slice(0, Math.min(parseInt(formState.maxProducts), 2)).map((_, idx) => (
-                    <div key={idx} style={{ 
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '6px',
-                      padding: '12px',
-                      textAlign: 'center'
+                  {selectedProducts.length > 0 ? (
+                    selectedProducts.slice(0, parseInt(formState.maxProducts)).map((productId, idx) => {
+                      const product = shopProducts.find((p: any) => p.id === productId);
+                      if (!product) return null;
+                      
+                      const variant = product.variants?.[0];
+                      const price = variant ? parseFloat(variant.price) : 0;
+                      const comparePrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null;
+                      const discountPercent = comparePrice && comparePrice > price ? Math.round(((comparePrice - price) / comparePrice) * 100) : 0;
+                      
+                      return (
+                        <div key={productId} style={{ 
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '6px',
+                          padding: '12px',
+                          textAlign: 'center'
+                        }}>
+                          {product.images?.[0]?.src ? (
+                            <img 
+                              src={product.images[0].src} 
+                              alt={product.title}
+                              style={{ 
+                                width: '100%',
+                                height: '80px',
+                                objectFit: 'cover',
+                                borderRadius: '4px',
+                                marginBottom: '8px'
+                              }} 
+                            />
+                          ) : (
+                            <div style={{ 
+                              width: '100%',
+                              height: '80px',
+                              backgroundColor: '#f3f4f6',
+                              borderRadius: '4px',
+                              marginBottom: '8px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '24px'
+                            }}>
+                              📦
+                            </div>
+                          )}
+                          <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '4px' }}>
+                            {product.title.length > 20 ? product.title.substring(0, 20) + '...' : product.title}
+                          </div>
+                          {formState.showDiscount && comparePrice && (
+                            <div style={{ marginBottom: '4px', fontSize: '12px' }}>
+                              <span style={{ textDecoration: 'line-through', color: '#9ca3af', marginRight: '4px' }}>
+                                ₹{Math.round(comparePrice)}
+                              </span>
+                              <span style={{ fontWeight: '600' }}>₹{Math.round(price)}</span>
+                            </div>
+                          )}
+                          {!formState.showDiscount && (
+                            <div style={{ marginBottom: '4px', fontSize: '12px', fontWeight: '600' }}>
+                              ₹{Math.round(price)}
+                            </div>
+                          )}
+                          {formState.showDiscountBadge && discountPercent > 0 && (
+                            <div style={{ 
+                              display: 'inline-block',
+                              backgroundColor: '#10b981',
+                              color: 'white',
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              fontSize: '10px',
+                              marginBottom: '8px'
+                            }}>
+                              {discountPercent}% off
+                            </div>
+                          )}
+                          {formState.showAddButton && (
+                            <div style={{ 
+                              width: '100%',
+                              padding: '4px',
+                              border: '1px solid #f97316',
+                              background: 'white',
+                              color: '#f97316',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              fontWeight: '500'
+                            }}>
+                              + Add
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div style={{ 
+                      gridColumn: '1 / -1',
+                      textAlign: 'center',
+                      padding: '40px 20px',
+                      color: '#6b7280',
+                      fontSize: '14px'
                     }}>
-                      <div style={{ 
-                        width: '100%',
-                        height: '80px',
-                        backgroundColor: '#f3f4f6',
-                        borderRadius: '4px',
-                        marginBottom: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '24px'
-                      }}>
-                        👟
-                      </div>
-                      <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '4px' }}>
-                        Product {idx + 1}
-                      </div>
-                      {formState.showDiscount && (
-                        <div style={{ marginBottom: '4px', fontSize: '12px' }}>
-                          <span style={{ textDecoration: 'line-through', color: '#9ca3af', marginRight: '4px' }}>
-                            ₹5999
-                          </span>
-                          <span style={{ fontWeight: '600' }}>₹2699</span>
-                        </div>
-                      )}
-                      {formState.showDiscountBadge && (
-                        <div style={{ 
-                          display: 'inline-block',
-                          backgroundColor: '#10b981',
-                          color: 'white',
-                          padding: '2px 8px',
-                          borderRadius: '12px',
-                          fontSize: '10px',
-                          marginBottom: '8px'
-                        }}>
-                          55% off
-                        </div>
-                      )}
-                      {formState.showAddButton && (
-                        <div style={{ 
-                          width: '100%',
-                          padding: '4px',
-                          border: '1px solid #f97316',
-                          background: 'white',
-                          color: '#f97316',
-                          borderRadius: '4px',
-                          fontSize: '12px',
-                          fontWeight: '500'
-                        }}>
-                          + Add
-                        </div>
-                      )}
+                      No products selected. Choose products above to see preview.
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
 
