@@ -709,7 +709,7 @@ export default function CartDrawerIndex() {
     {
       id: 'free-shipping-bar',
       title: 'Free Shipping Progress Bar',
-      description: 'Show customers how much more they need to spend for free shipping',
+      description: 'Display remaining amount for free shipping.',
       icon: ChartVerticalIcon,
       enabled: cartDrawer.freeShippingProgressBarEnabled,
       count: cartDrawer.freeShippingBars.length,
