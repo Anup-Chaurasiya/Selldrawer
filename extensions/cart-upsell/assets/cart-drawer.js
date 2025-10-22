@@ -9,6 +9,7 @@ class UpsellityCartDrawer {
     this.config = null;
     this.isOpen = false;
     this.cart = null;
+    this.appliedDiscount = null; // Store applied discount info
     
     this.init();
   }
@@ -1214,60 +1215,118 @@ class UpsellityCartDrawer {
       
       html += `
         <div class="upsellity-coupon-field" style="margin: 16px 0; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <input 
-              type="text" 
-              id="upsellity-coupon-input" 
-              placeholder="${couponField.placeholder || 'Enter coupon code'}"
-              style="
-                flex: 1;
-                padding: 10px 12px;
-                border: 1px solid #d1d5db;
-                border-radius: 6px;
-                font-size: 14px;
-                background: white;
-                outline: none;
-                transition: border-color 0.2s ease;
-              "
-              onfocus="this.style.borderColor='#3b82f6'"
-              onblur="this.style.borderColor='#d1d5db'"
-            />
-            <button 
-              class="upsellity-coupon-apply-btn"
-              onclick="window.upsellityDrawer.applyCoupon()"
-              style="
-                padding: 10px 16px;
-                background: #1f2937;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: background-color 0.2s ease;
-                white-space: nowrap;
-              "
-              onmouseover="this.style.backgroundColor='#374151'"
-              onmouseout="this.style.backgroundColor='#1f2937'"
-            >
-              ${couponField.buttonText || 'Apply'}
-            </button>
-          </div>
-          <div id="upsellity-coupon-message" style="margin-top: 8px; font-size: 12px; min-height: 16px;"></div>
+          ${this.appliedDiscount ? `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #ecfdf5; border: 1px solid #10b981; border-radius: 6px;">
+              <div>
+                <div style="font-weight: 600; color: #059669; margin-bottom: 4px;">
+                  ✓ ${this.appliedDiscount.code}
+                </div>
+                <div style="font-size: 12px; color: #047857;">
+                  ${this.getDiscountDescription()}
+                </div>
+              </div>
+              <button 
+                onclick="window.upsellityDrawer.removeDiscount()"
+                style="
+                  padding: 6px 12px;
+                  background: transparent;
+                  color: #059669;
+                  border: 1px solid #10b981;
+                  border-radius: 4px;
+                  font-size: 12px;
+                  font-weight: 500;
+                  cursor: pointer;
+                  transition: all 0.2s ease;
+                "
+                onmouseover="this.style.backgroundColor='#d1fae5'"
+                onmouseout="this.style.backgroundColor='transparent'"
+              >
+                Remove
+              </button>
+            </div>
+          ` : `
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input 
+                type="text" 
+                id="upsellity-coupon-input" 
+                placeholder="${couponField.placeholder || 'Enter coupon code'}"
+                style="
+                  flex: 1;
+                  padding: 10px 12px;
+                  border: 1px solid #d1d5db;
+                  border-radius: 6px;
+                  font-size: 14px;
+                  background: white;
+                  outline: none;
+                  transition: border-color 0.2s ease;
+                "
+                onfocus="this.style.borderColor='#3b82f6'"
+                onblur="this.style.borderColor='#d1d5db'"
+                onkeypress="if(event.key === 'Enter') window.upsellityDrawer.applyCoupon()"
+              />
+              <button 
+                class="upsellity-coupon-apply-btn"
+                onclick="window.upsellityDrawer.applyCoupon()"
+                style="
+                  padding: 10px 16px;
+                  background: #1f2937;
+                  color: white;
+                  border: none;
+                  border-radius: 6px;
+                  font-size: 14px;
+                  font-weight: 500;
+                  cursor: pointer;
+                  transition: background-color 0.2s ease;
+                  white-space: nowrap;
+                "
+                onmouseover="this.style.backgroundColor='#374151'"
+                onmouseout="this.style.backgroundColor='#1f2937'"
+              >
+                ${couponField.buttonText || 'Apply'}
+              </button>
+            </div>
+            <div id="upsellity-coupon-message" style="margin-top: 8px; font-size: 12px; min-height: 16px;"></div>
+          `}
         </div>
       `;
     }
 
-    // Checkout Button
+    // Cart Totals and Checkout
+    const subtotal = this.cart.total_price;
+    const estimatedDiscount = this.calculateEstimatedDiscount();
+    const estimatedTotal = Math.max(0, subtotal - estimatedDiscount);
+    
     html += `
-      <div style="font-size: 18px; font-weight: 600; margin: 20px 0; display: flex; justify-content: space-between;">
-        <span>Total</span>
-        <span>${this.formatMoney(this.cart.total_price)}</span>
+      <div style="border-top: 2px solid #e5e7eb; padding-top: 16px; margin-top: 20px;">
+        <div style="font-size: 16px; margin-bottom: 12px; display: flex; justify-content: space-between;">
+          <span style="color: #6b7280;">Subtotal</span>
+          <span>${this.formatMoney(subtotal)}</span>
+        </div>
+        ${this.appliedDiscount && estimatedDiscount > 0 ? `
+          <div style="font-size: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; color: #059669;">
+            <span>Discount (${this.appliedDiscount.code})</span>
+            <span>-${this.formatMoney(estimatedDiscount)}</span>
+          </div>
+          <div style="font-size: 18px; font-weight: 600; padding-top: 12px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between;">
+            <span>Estimated Total</span>
+            <span>${this.formatMoney(estimatedTotal)}</span>
+          </div>
+        ` : `
+          <div style="font-size: 18px; font-weight: 600; padding-top: 12px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between;">
+            <span>Total</span>
+            <span>${this.formatMoney(subtotal)}</span>
+          </div>
+        `}
       </div>
-      <button class="upsellity-checkout-btn" onclick="window.location.href='/checkout'">
+      <button class="upsellity-checkout-btn" onclick="window.location.href='${this.getCheckoutUrl()}'">
         Checkout →
       </button>
-      <div style="text-align: center; font-size: 12px; color: #6b7280; margin-top: 16px;">
+      ${this.appliedDiscount ? `
+        <div style="text-align: center; font-size: 11px; color: #6b7280; margin-top: 8px; font-style: italic;">
+          Final discount will be applied at checkout
+        </div>
+      ` : ''}
+      <div style="text-align: center; font-size: 12px; color: #6b7280; margin-top: 8px;">
         Secure Checkout • Free Returns
       </div>
     `;
@@ -1457,16 +1516,17 @@ class UpsellityCartDrawer {
   }
 
   // Apply coupon code
-  applyCoupon() {
+  async applyCoupon() {
     const couponInput = document.getElementById('upsellity-coupon-input');
     const messageDiv = document.getElementById('upsellity-coupon-message');
+    const applyBtn = document.querySelector('.upsellity-coupon-apply-btn');
     
     if (!couponInput || !messageDiv) {
       console.error('Upsellity: Coupon elements not found');
       return;
     }
 
-    const couponCode = couponInput.value.trim();
+    const couponCode = couponInput.value.trim().toUpperCase();
     if (!couponCode) {
       messageDiv.textContent = 'Please enter a coupon code';
       messageDiv.style.color = '#ef4444';
@@ -1474,24 +1534,28 @@ class UpsellityCartDrawer {
     }
 
     // Show loading state
-    messageDiv.textContent = 'Applying coupon...';
+    messageDiv.textContent = 'Validating coupon...';
     messageDiv.style.color = '#6b7280';
+    if (applyBtn) applyBtn.disabled = true;
 
-    // Apply coupon via Shopify's discount code API
-    fetch('/cart/update.js', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
-      },
-      body: JSON.stringify({
-        discount_code: couponCode
-      })
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.status === 'success' || data.discount_codes) {
-        // Success
+    try {
+      // Get app URL for API calls
+      const appUrl = document.querySelector('[data-upsellity-app-url]')?.dataset.upsellityAppUrl || '';
+      
+      // Validate discount code via API
+      const response = await fetch(`${appUrl}/api/validate-discount?shop=${this.shop}&code=${encodeURIComponent(couponCode)}`);
+      const data = await response.json();
+
+      if (data.valid) {
+        // Store the discount info
+        this.appliedDiscount = {
+          code: data.code,
+          title: data.title,
+          type: data.type,
+          value: data.value
+        };
+
+        // Show success message
         const couponField = this.config.features.couponCodeField;
         messageDiv.textContent = couponField.successMessage || 'Coupon applied successfully!';
         messageDiv.style.color = '#10b981';
@@ -1499,23 +1563,81 @@ class UpsellityCartDrawer {
         // Clear input
         couponInput.value = '';
         
-        // Reload cart to show updated totals
-        this.loadCart().then(() => {
-          this.render();
-        });
+        // Re-render to show discount and updated checkout button
+        this.render();
       } else {
-        // Error
+        // Show error message
         const couponField = this.config.features.couponCodeField;
-        messageDiv.textContent = couponField.errorMessage || 'Invalid coupon code';
+        messageDiv.textContent = data.error || couponField.errorMessage || 'Invalid coupon code';
         messageDiv.style.color = '#ef4444';
       }
-    })
-    .catch(error => {
-      console.error('Upsellity: Error applying coupon', error);
+    } catch (error) {
+      console.error('Upsellity: Error validating coupon', error);
       const couponField = this.config.features.couponCodeField;
       messageDiv.textContent = couponField.errorMessage || 'Invalid coupon code';
       messageDiv.style.color = '#ef4444';
-    });
+    } finally {
+      if (applyBtn) applyBtn.disabled = false;
+    }
+  }
+
+  // Remove applied discount
+  removeDiscount() {
+    this.appliedDiscount = null;
+    this.render();
+    this.showNotification('Discount removed', 'info');
+  }
+
+  // Get human-readable discount description
+  getDiscountDescription() {
+    if (!this.appliedDiscount) return '';
+    
+    const { type, value } = this.appliedDiscount;
+    
+    switch (type) {
+      case 'percentage':
+        return `${value}% off your order`;
+      case 'fixed':
+        return `₹${value} off your order`;
+      case 'free_shipping':
+        return 'Free shipping on your order';
+      case 'bxgy':
+        return 'Buy X Get Y discount';
+      default:
+        return 'Discount will be applied at checkout';
+    }
+  }
+
+  // Calculate estimated discount amount
+  calculateEstimatedDiscount() {
+    if (!this.appliedDiscount || !this.cart) return 0;
+    
+    const { type, value } = this.appliedDiscount;
+    
+    switch (type) {
+      case 'percentage':
+        // Percentage discount on cart total
+        return Math.round((this.cart.total_price * value) / 100);
+      case 'fixed':
+        // Fixed amount discount (value is in rupees, convert to cents)
+        return Math.min(value * 100, this.cart.total_price);
+      case 'free_shipping':
+        // We can't calculate shipping here, so return 0
+        return 0;
+      case 'bxgy':
+        // Complex discount, can't estimate
+        return 0;
+      default:
+        return 0;
+    }
+  }
+
+  // Get checkout URL with discount code
+  getCheckoutUrl() {
+    if (this.appliedDiscount) {
+      return `/checkout?discount=${encodeURIComponent(this.appliedDiscount.code)}`;
+    }
+    return '/checkout';
   }
 
   async addProductToCart(variantId, quantity = 1) {
