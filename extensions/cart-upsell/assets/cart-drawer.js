@@ -937,24 +937,46 @@ class UpsellityCartDrawer {
 
     // Enhanced Free Shipping Progress Bar - Always show with default config if no config exists
     const bar = this.config?.features?.freeShippingProgressBar || {
+      thresholdMode: 'amount',
       thresholdAmount: 5000,
+      thresholdCount: 5,
       currency: 'INR',
       beforeThresholdMessage: 'Add {remaining} for FREE shipping',
-      achievedMessage: '🎉 You qualify for FREE shipping!',
+      afterThresholdMessage: '🎉 You qualify for FREE shipping!',
       showPercentage: true
     };
     
-    const threshold = parseFloat(bar.thresholdAmount);
-    const progress = Math.min((this.cart.total_price / 100 / threshold) * 100, 100);
-    const remaining = Math.max(threshold - (this.cart.total_price / 100), 0);
-    const isComplete = progress >= 100;
+    let threshold, progress, remaining, isComplete, message;
+    
+    if (bar.thresholdMode === 'count') {
+      // Count-based mode
+      threshold = parseInt(bar.thresholdCount);
+      progress = Math.min((this.cart.item_count / threshold) * 100, 100);
+      remaining = Math.max(threshold - this.cart.item_count, 0);
+      isComplete = progress >= 100;
+      message = isComplete 
+        ? (bar.afterThresholdMessage || '🎉 You qualify for FREE shipping!')
+        : bar.beforeThresholdMessage.replace('{remaining}', `${remaining} more items`);
+    } else {
+      // Amount-based mode (default)
+      threshold = parseFloat(bar.thresholdAmount);
+      progress = Math.min((this.cart.total_price / 100 / threshold) * 100, 100);
+      remaining = Math.max(threshold - (this.cart.total_price / 100), 0);
+      isComplete = progress >= 100;
+      message = isComplete 
+        ? (bar.afterThresholdMessage || '🎉 You qualify for FREE shipping!')
+        : bar.beforeThresholdMessage.replace('{remaining}', `${bar.currency === 'INR' ? '₹' : '$'}${Math.round(remaining)}`);
+    }
     
     console.log('Upsellity: Progress bar calculation', {
+      mode: bar.thresholdMode,
       cartTotal: this.cart.total_price,
+      cartItemCount: this.cart.item_count,
       threshold,
       progress: progress.toFixed(2) + '%',
       remaining: remaining.toFixed(2),
       isComplete,
+      message,
       bar,
       willRender: true
     });
@@ -963,10 +985,7 @@ class UpsellityCartDrawer {
       <div class="upsellity-progress-bar-enhanced" style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
         <div class="upsellity-progress-bar-text-enhanced" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; font-weight: 600;">
           <span class="upsellity-progress-bar-message" style="color: #374151;">
-            ${isComplete 
-              ? (bar.achievedMessage || '🎉 You qualify for FREE shipping!')
-              : bar.beforeThresholdMessage.replace('{remaining}', `${bar.currency === 'INR' ? '₹' : '$'}${Math.round(remaining)}`)
-            }
+            ${message}
           </span>
           ${bar.showPercentage ? `<span class="upsellity-progress-bar-percentage" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);">${progress.toFixed(0)}%</span>` : ''}
         </div>
@@ -1108,36 +1127,23 @@ class UpsellityCartDrawer {
       
       // For now, show sample recommendations. In a real implementation, 
       // you would fetch actual recommended products based on the configuration
-      const sampleProducts = [
-        {
-          id: 'rec1',
-          title: 'Sport Elite',
-          price: 2699,
-          originalPrice: 5999,
-          image: 'https://via.placeholder.com/100',
-          handle: 'sport-elite'
-        },
-        {
-          id: 'rec2', 
-          title: 'Urban Style',
-          price: 2699,
-          originalPrice: 5999,
-          image: 'https://via.placeholder.com/100',
-          handle: 'urban-style'
-        }
-      ];
+      // Use actual recommended products from configuration
+      const recommendedProducts = recommendations.products || [];
 
       html += `
         <div class="upsellity-recommendations">
           <div class="upsellity-recommendations-title">${recommendations.title}</div>
           <div class="upsellity-recommendations-grid">
-            ${sampleProducts.slice(0, recommendations.maxProducts || 4).map(product => {
-              const discount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+            ${recommendedProducts.slice(0, recommendations.maxProducts || 4).map(product => {
+              const originalPrice = product.compareAtPrice || product.price;
+              const discount = product.compareAtPrice && product.compareAtPrice > product.price 
+                ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100) 
+                : 0;
               return `
                 <div class="upsellity-recommendation-card">
                   <div class="upsellity-recommendation-image" style="position: relative;">
-                    <img src="${product.image}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />
-                    ${recommendations.showDiscountBadge && product.originalPrice > product.price ? `
+                    <img src="${product.imageUrl || 'https://via.placeholder.com/100'}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />
+                    ${recommendations.showDiscountBadge && discount > 0 ? `
                       <div style="position: absolute; top: 8px; right: 8px; background-color: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; z-index: 10;">
                         ${discount}% off
                       </div>
@@ -1147,16 +1153,16 @@ class UpsellityCartDrawer {
                     ${product.title}
                   </div>
                   <div style="margin-bottom: 4px;">
-                    ${recommendations.showDiscount && product.originalPrice > product.price ? `
+                    ${recommendations.showDiscount && product.compareAtPrice && product.compareAtPrice > product.price ? `
                       <span style="text-decoration: line-through; color: #9ca3af; font-size: 12px; margin-right: 4px;">
-                        ₹${product.originalPrice}
+                        ₹${Math.round(product.compareAtPrice)}
                       </span>
                     ` : ''}
-                    <span style="font-weight: 600;">₹${product.price}</span>
+                    <span style="font-weight: 600;">₹${Math.round(product.price)}</span>
                   </div>
                   ${recommendations.showAddButton ? `
                     <button class="upsellity-add-recommendation-btn" 
-                            onclick="window.upsellityDrawer.addProductToCartByHandle('${product.handle}')"
+                            onclick="window.upsellityDrawer.addProductToCart('${product.shopifyProductId}')"
                             style="width: 100%; padding: 6px; border: 1px solid #f97316; background: white; color: #f97316; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s ease;">
                       + Add
                     </button>
@@ -1512,10 +1518,16 @@ class UpsellityCartDrawer {
     });
   }
 
-  async addProductToCart(productId, variantId, quantity = 1) {
+  async addProductToCart(variantId, quantity = 1) {
     try {
+      console.log('Adding product to cart with variant ID:', variantId);
+      
+      if (!variantId) {
+        throw new Error('No variant ID provided');
+      }
+
       const formData = new FormData();
-      formData.append('id', variantId || productId);
+      formData.append('id', variantId);
       formData.append('quantity', quantity.toString());
 
       const response = await fetch('/cart/add.js', {
@@ -1529,6 +1541,7 @@ class UpsellityCartDrawer {
         this.showNotification('Product added to cart!', 'success');
       } else {
         const error = await response.json();
+        console.error('Cart add error:', error);
         this.showNotification(error.description || 'Failed to add product to cart', 'error');
       }
     } catch (error) {
@@ -1539,13 +1552,41 @@ class UpsellityCartDrawer {
 
   async addProductToCartByHandle(productHandle, variantId, quantity = 1) {
     try {
-      // First, get the product data by handle
-      const productResponse = await fetch(`/products/${productHandle}.js`);
-      if (!productResponse.ok) {
-        throw new Error('Product not found');
+      console.log('Adding product to cart by handle:', productHandle);
+      
+      // Check if productHandle is a numeric ID (legacy data) or a handle
+      let productResponse;
+      if (/^\d+$/.test(productHandle)) {
+        // It's a numeric ID, try to use it directly as variant ID
+        console.log('Detected numeric ID, using as variant ID:', productHandle);
+        const formData = new FormData();
+        formData.append('id', productHandle);
+        formData.append('quantity', quantity.toString());
+
+        const response = await fetch('/cart/add.js', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (response.ok) {
+          await this.loadCart();
+          this.showNotification('Product added to cart!', 'success');
+          return;
+        } else {
+          console.error('Failed to add product with numeric ID:', productHandle);
+          throw new Error('Product not found');
+        }
+      } else {
+        // It's a product handle, fetch the product data
+        productResponse = await fetch(`/products/${productHandle}.js`);
+        if (!productResponse.ok) {
+          console.error('Product not found for handle:', productHandle);
+          throw new Error('Product not found');
+        }
       }
       
       const product = await productResponse.json();
+      console.log('Product data:', product);
       
       // Use the first variant if no specific variant ID provided
       const variant = variantId ? 
@@ -1553,12 +1594,17 @@ class UpsellityCartDrawer {
         product.variants[0];
       
       if (!variant) {
+        console.error('No variant found for product:', product.title);
         throw new Error('Variant not found');
       }
+
+      console.log('Using variant:', variant);
 
       const formData = new FormData();
       formData.append('id', variant.id);
       formData.append('quantity', quantity.toString());
+
+      console.log('Sending to cart/add.js with variant ID:', variant.id);
 
       const response = await fetch('/cart/add.js', {
         method: 'POST',
@@ -1571,6 +1617,7 @@ class UpsellityCartDrawer {
         this.showNotification(`${product.title} added to cart!`, 'success');
       } else {
         const error = await response.json();
+        console.error('Cart add failed:', error);
         this.showNotification(error.description || 'Failed to add product to cart', 'error');
       }
     } catch (error) {
