@@ -12,6 +12,9 @@ import {
   Text,
   InlineStack,
   Banner,
+  Checkbox,
+  Select,
+  Divider,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -70,6 +73,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       buttonText: formData.get("buttonText") as string,
       successMessage: formData.get("successMessage") as string,
       errorMessage: formData.get("errorMessage") as string,
+      enableAutoApply: formData.get("enableAutoApply") === "true",
+      autoApplyStrategy: formData.get("autoApplyStrategy") as string,
+      showAllOffers: formData.get("showAllOffers") === "true",
+      showAllOffersButtonText: formData.get("showAllOffersButtonText") as string,
     };
 
     await prisma.couponCodeField.upsert({
@@ -95,6 +102,10 @@ export default function CouponCode() {
     buttonText: couponCodeField?.buttonText || "Apply",
     successMessage: couponCodeField?.successMessage || "Coupon applied successfully!",
     errorMessage: couponCodeField?.errorMessage || "Invalid coupon code",
+    enableAutoApply: couponCodeField?.enableAutoApply || false,
+    autoApplyStrategy: couponCodeField?.autoApplyStrategy || "best_value",
+    showAllOffers: couponCodeField?.showAllOffers || false,
+    showAllOffersButtonText: couponCodeField?.showAllOffersButtonText || "Show all offers",
   });
 
   const handleToggle = useCallback(() => {
@@ -173,6 +184,60 @@ export default function CouponCode() {
                     helpText="Message shown when coupon is invalid"
                     autoComplete="off"
                   />
+
+                  <Divider />
+
+                  <BlockStack gap="300">
+                    <Text as="h3" variant="headingMd">
+                      Auto-Apply Best Offer
+                    </Text>
+                    
+                    <Checkbox
+                      label="Automatically apply best qualifying discount"
+                      checked={formState.enableAutoApply}
+                      onChange={(checked) => setFormState({ ...formState, enableAutoApply: checked })}
+                      helpText="When enabled, the best discount will be automatically applied when the cart loads"
+                    />
+
+                    {formState.enableAutoApply && (
+                      <Select
+                        label="Auto-apply Strategy"
+                        options={[
+                          { label: 'Best Value (Maximum savings)', value: 'best_value' },
+                          { label: 'Highest Percentage', value: 'highest_percentage' },
+                          { label: 'First Available', value: 'first_available' },
+                        ]}
+                        value={formState.autoApplyStrategy}
+                        onChange={(value) => setFormState({ ...formState, autoApplyStrategy: value })}
+                        helpText="Choose how to select the best discount to apply"
+                      />
+                    )}
+                  </BlockStack>
+
+                  <Divider />
+
+                  <BlockStack gap="300">
+                    <Text as="h3" variant="headingMd">
+                      Show All Offers
+                    </Text>
+                    
+                    <Checkbox
+                      label="Show 'Show all offers' button"
+                      checked={formState.showAllOffers}
+                      onChange={(checked) => setFormState({ ...formState, showAllOffers: checked })}
+                      helpText="Display a button that shows all available discounts to customers"
+                    />
+
+                    {formState.showAllOffers && (
+                      <TextField
+                        label="Button Text"
+                        value={formState.showAllOffersButtonText}
+                        onChange={(value) => setFormState({ ...formState, showAllOffersButtonText: value })}
+                        autoComplete="off"
+                        helpText="Text shown on the 'Show all offers' button"
+                      />
+                    )}
+                  </BlockStack>
                 </FormLayout>
               </BlockStack>
             </Card>
@@ -186,6 +251,7 @@ export default function CouponCode() {
                 Preview
               </Text>
               
+              {/* Manual Coupon Input */}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
                   type="text"
@@ -211,6 +277,47 @@ export default function CouponCode() {
                   {formState.buttonText}
                 </button>
               </div>
+
+              {/* Auto-Applied Discount Preview */}
+              {formState.enableAutoApply && (
+                <div style={{
+                  padding: '12px',
+                  backgroundColor: '#ecfdf5',
+                  border: '1px solid #10b981',
+                  borderRadius: '6px',
+                  marginTop: '8px'
+                }}>
+                  <div style={{ fontWeight: 600, color: '#059669', marginBottom: '4px', fontSize: '14px' }}>
+                    ✓ SUMMER20 - 20% OFF
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#047857' }}>
+                    Best offer automatically applied
+                  </div>
+                </div>
+              )}
+
+              {/* Show All Offers Preview */}
+              {formState.showAllOffers && (
+                <div style={{ marginTop: '12px' }}>
+                  <button style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    backgroundColor: 'white',
+                    color: '#1f2937',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span>{formState.showAllOffersButtonText} (3 available)</span>
+                    <span>▼</span>
+                  </button>
+                </div>
+              )}
 
               <Text as="p" variant="bodyMd" tone="subdued">
                 This is how the coupon field will appear in your cart drawer.
