@@ -608,36 +608,34 @@ function MiniCartDrawerPreview({ cartDrawer, couponCodeField }: { cartDrawer: an
 
           {/* Coupon Code Field */}
           {cartDrawer?.couponCodeFieldEnabled && (
-            <div style={{ marginTop: '8px' }}>
+            <div style={{ marginTop: '8px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <div style={{ 
                 display: 'flex', 
-                gap: '0px',
+                gap: '8px',
                 alignItems: 'center',
-                backgroundColor: '#ffffff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                overflow: 'hidden',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+                marginBottom: couponCodeField?.enableAutoApply || couponCodeField?.showAllOffers ? '12px' : '0'
               }}>
                 <input 
                   type="text" 
                   placeholder={couponCodeField?.placeholder || "Enter coupon code"}
                   style={{
                     flex: 1,
-                    padding: '12px 16px',
-                    border: 'none',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
                     fontSize: '14px',
                     outline: 'none',
-                    backgroundColor: 'transparent'
+                    backgroundColor: 'white'
                   }}
                 />
                 <button style={{
-                  padding: '12px 20px',
+                  padding: '10px 16px',
                   backgroundColor: '#1f2937',
                   color: 'white',
                   border: 'none',
+                  borderRadius: '6px',
                   fontSize: '14px',
-                  fontWeight: '600',
+                  fontWeight: '500',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   transition: 'background-color 0.2s'
@@ -645,6 +643,45 @@ function MiniCartDrawerPreview({ cartDrawer, couponCodeField }: { cartDrawer: an
                   {couponCodeField?.buttonText || 'Apply'}
                 </button>
               </div>
+              
+              {/* Auto-Applied Discount Preview */}
+              {couponCodeField?.enableAutoApply && (
+                <div style={{
+                  padding: '10px 12px',
+                  backgroundColor: '#ecfdf5',
+                  border: '1px solid #10b981',
+                  borderRadius: '6px',
+                  marginBottom: '8px'
+                }}>
+                  <div style={{ fontWeight: 600, color: '#059669', fontSize: '13px', marginBottom: '2px' }}>
+                    ✓ SUMMER20 - 20% OFF
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#047857' }}>
+                    Best offer automatically applied
+                  </div>
+                </div>
+              )}
+
+              {/* Show All Offers Button Preview */}
+              {couponCodeField?.showAllOffers && (
+                <button style={{
+                  width: '100%',
+                  padding: '8px 10px',
+                  backgroundColor: 'white',
+                  color: '#1f2937',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span>{couponCodeField?.showAllOffersButtonText || 'Show all offers'} (3 available)</span>
+                  <span style={{ fontSize: '14px' }}>▼</span>
+                </button>
+              )}
             </div>
           )}
 

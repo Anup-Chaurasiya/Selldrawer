@@ -269,16 +269,20 @@ model FreeShippingMessage {
 }
 
 model CouponCodeField {
-  id             String   @id @default(cuid())
-  shop           String   @unique
-  isActive       Boolean  @default(false)
-  placeholder    String   @default("Enter coupon code")
-  buttonText     String   @default("Apply")
-  position       String   @default("above_checkout")
-  successMessage String   @default("Coupon applied successfully!")
-  errorMessage   String   @default("Invalid coupon code")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                      String   @id @default(cuid())
+  shop                    String   @unique
+  isActive                Boolean  @default(false)
+  placeholder             String   @default("Enter coupon code")
+  buttonText              String   @default("Apply")
+  position                String   @default("above_checkout")
+  successMessage          String   @default("Coupon applied successfully!")
+  errorMessage            String   @default("Invalid coupon code")
+  enableAutoApply         Boolean  @default(false)
+  autoApplyStrategy       String   @default("best_value") // "best_value", "highest_percentage", "first_available"
+  showAllOffers           Boolean  @default(false)
+  showAllOffersButtonText String   @default("Show all offers")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
   @@index([shop])
 }
