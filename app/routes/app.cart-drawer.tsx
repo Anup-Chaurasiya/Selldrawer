@@ -89,7 +89,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const featureId = formData.get("featureId") as string;
     const enabled = formData.get("enabled") === "true";
 
-    console.log('Action - Toggle Feature:', { featureId, enabled, shop });
 
     // Map feature IDs to their corresponding database fields
     const featureFieldMap: { [key: string]: any } = {
@@ -103,12 +102,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     const updateData = featureFieldMap[featureId];
     if (updateData) {
-      console.log('Action - Updating database:', updateData);
       await prisma.cartDrawer.update({
         where: { shop },
         data: updateData,
       });
-      console.log('Action - Database updated, redirecting...');
       return redirect("/app/cart-drawer");
     }
   }
@@ -118,15 +115,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 // Enhanced Cart Drawer Preview Component
 function MiniCartDrawerPreview({ cartDrawer, couponCodeField }: { cartDrawer: any, couponCodeField: any }) {
-  // Debug: Log the current configuration state
-  console.log('Preview - Cart Drawer Config:', {
-    promotionalBannerEnabled: cartDrawer?.promotionalBannerEnabled,
-    freeShippingMessageEnabled: cartDrawer?.freeShippingMessageEnabled,
-    freeShippingProgressBarEnabled: cartDrawer?.freeShippingProgressBarEnabled,
-    savingsDisplayEnabled: cartDrawer?.savingsDisplayEnabled,
-    productRecommendationsEnabled: cartDrawer?.productRecommendationsEnabled,
-    couponCodeFieldEnabled: cartDrawer?.couponCodeFieldEnabled
-  });
   // Enhanced sample cart data for preview
   const sampleCart = {
     items: [
@@ -153,11 +141,6 @@ function MiniCartDrawerPreview({ cartDrawer, couponCodeField }: { cartDrawer: an
   const freeShippingMessage = cartDrawer?.freeShippingMessages?.[0];
 
   // Sample data for preview when no real data exists
-  const samplePromotionalBanner = promotionalBanner || {
-    text: "🎉 Special Offer: 20% off on all items!",
-    backgroundColor: "#fef3c7",
-    textColor: "#92400e"
-  };
 
   const sampleFreeShippingMessage = freeShippingMessage || {
     message: "🚚 Free shipping on orders over ₹5000"
@@ -301,8 +284,8 @@ function MiniCartDrawerPreview({ cartDrawer, couponCodeField }: { cartDrawer: an
           {cartDrawer?.promotionalBannerEnabled && (
             <div style={{
               padding: '16px 20px',
-              backgroundColor: '#fef3c7',
-              color: '#92400e',
+              backgroundColor: promotionalBanner?.backgroundColor || '#fef3c7',
+              color: promotionalBanner?.textColor || '#92400e',
               borderRadius: '12px',
               textAlign: 'center',
               fontSize: '15px',
@@ -312,7 +295,9 @@ function MiniCartDrawerPreview({ cartDrawer, couponCodeField }: { cartDrawer: an
               boxShadow: '0 4px 8px rgba(245, 158, 11, 0.2)',
               position: 'relative',
               overflow: 'hidden',
-              background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'
+              background: promotionalBanner?.backgroundColor 
+                ? `linear-gradient(135deg, ${promotionalBanner.backgroundColor} 0%, ${promotionalBanner.backgroundColor}dd 100%)`
+                : 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'
             }}>
               <div style={{
                 position: 'absolute',
@@ -328,8 +313,18 @@ function MiniCartDrawerPreview({ cartDrawer, couponCodeField }: { cartDrawer: an
                 zIndex: 1,
                 textShadow: '0 1px 2px rgba(0,0,0,0.1)'
               }}>
-                🎉 Special Offer: 20% off on all items!
+                {promotionalBanner?.title || '🎉 Special Offer: 20% off on all items!'}
               </span>
+              {promotionalBanner?.subtitle && (
+                <div style={{ 
+                  fontSize: '13px', 
+                  fontWeight: '600', 
+                  marginTop: '4px',
+                  opacity: 0.9
+                }}>
+                  {promotionalBanner.subtitle}
+                </div>
+              )}
             </div>
           )}
 
@@ -447,108 +442,184 @@ function MiniCartDrawerPreview({ cartDrawer, couponCodeField }: { cartDrawer: an
               <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
                 {productRecommendation?.title || "You may also like"}
               </h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                {productRecommendation?.products && productRecommendation.products.length > 0 ? (
-                  productRecommendation.products.slice(0, productRecommendation.maxProducts || 4).map((product: any, index: number) => (
-                    <div key={product.id} style={{ 
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '6px',
-                      padding: '8px',
-                      textAlign: 'center'
-                    }}>
-                      {product.imageUrl ? (
+              <div style={{ 
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div style={{ 
+                  display: 'flex',
+                  gap: '8px',
+                  overflowX: 'auto',
+                  scrollBehavior: 'smooth',
+                  paddingBottom: '8px',
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: '#cbd5e1 #f1f5f9'
+                }}>
+                  {productRecommendation?.products && productRecommendation.products.length > 0 ? (
+                    productRecommendation.products.slice(0, productRecommendation.maxProducts || 4).map((product: any, index: number) => (
+                      <div key={product.id} style={{ 
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '6px',
+                        padding: '8px',
+                        textAlign: 'center',
+                        minWidth: '120px',
+                        flexShrink: 0,
+                        backgroundColor: '#ffffff',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                        transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                      }}>
+                        {product.imageUrl ? (
+                          <img 
+                            src={product.imageUrl} 
+                            alt={product.title}
+                            style={{ 
+                              width: '100%', 
+                              height: '60px', 
+                              objectFit: 'cover',
+                              borderRadius: '4px',
+                              marginBottom: '6px'
+                            }} 
+                          />
+                        ) : (
+                          <div style={{ 
+                            width: '100%', 
+                            height: '60px', 
+                            backgroundColor: '#f3f4f6',
+                            borderRadius: '4px',
+                            marginBottom: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '24px'
+                          }}>📦</div>
+                        )}
+                        <div style={{ fontSize: '11px', fontWeight: '600', marginBottom: '4px', lineHeight: '1.3' }}>
+                          {product.title.length > 20 ? product.title.substring(0, 20) + '...' : product.title}
+                        </div>
+                        <div style={{ marginBottom: '4px' }}>
+                          {productRecommendation?.showDiscount && product.compareAtPrice && product.compareAtPrice > product.price ? (
+                            <>
+                              <span style={{ 
+                                textDecoration: 'line-through',
+                                color: '#9ca3af',
+                                fontSize: '10px',
+                                marginRight: '4px'
+                              }}>
+                                ₹{Math.round(product.compareAtPrice)}
+                              </span>
+                              <span style={{ fontWeight: '600', fontSize: '11px' }}>₹{Math.round(product.price)}</span>
+                            </>
+                          ) : (
+                            <span style={{ fontWeight: '600', fontSize: '11px' }}>₹{Math.round(product.price)}</span>
+                          )}
+                        </div>
+                        {productRecommendation?.showDiscountBadge && product.compareAtPrice && product.compareAtPrice > product.price && (
+                          <div style={{ 
+                            display: 'inline-block',
+                            backgroundColor: '#10b981',
+                            color: 'white',
+                            padding: '2px 6px',
+                            borderRadius: '10px',
+                            fontSize: '9px',
+                            marginBottom: '6px',
+                            fontWeight: '600'
+                          }}>
+                            {Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)}% off
+                          </div>
+                        )}
+                        {productRecommendation?.showAddButton && (
+                          <button style={{
+                            width: '100%',
+                            padding: '4px 8px',
+                            backgroundColor: '#f97316',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}>
+                            + Add
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    // Sample product recommendations when no real data
+                    [
+                      { id: 'sample1', title: 'Sample Product 1', price: 999, imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=60&h=60&fit=crop&crop=center' },
+                      { id: 'sample2', title: 'Sample Product 2', price: 1299, imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=60&h=60&fit=crop&crop=center' }
+                    ].map((product: any, index: number) => (
+                      <div key={product.id} style={{ 
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '6px',
+                        padding: '8px',
+                        textAlign: 'center',
+                        minWidth: '120px',
+                        flexShrink: 0,
+                        backgroundColor: '#ffffff',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                        transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                      }}>
                         <img 
                           src={product.imageUrl} 
                           alt={product.title}
                           style={{ 
                             width: '100%', 
-                            height: '40px', 
+                            height: '60px', 
                             objectFit: 'cover',
                             borderRadius: '4px',
-                            marginBottom: '4px'
-                          }} 
+                            marginBottom: '6px'
+                          }}
                         />
-                      ) : (
-                        <div style={{ 
-                          width: '100%', 
-                          height: '40px', 
-                          backgroundColor: '#f3f4f6',
-                          borderRadius: '4px',
-                          marginBottom: '4px'
-                        }} />
-                      )}
-                      <div style={{ fontSize: '10px', fontWeight: '500', marginBottom: '2px' }}>
-                        {product.title.length > 15 ? product.title.substring(0, 15) + '...' : product.title}
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '4px' }}>
-                        ₹{Math.round(product.price)}
-                      </div>
-                      {product.compareAtPrice && product.compareAtPrice > product.price && (
-                        <div style={{ fontSize: '9px', color: '#10b981', fontWeight: '600', marginBottom: '4px' }}>
-                          {Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)}% off
+                        <div style={{ fontSize: '11px', fontWeight: '600', marginBottom: '4px' }}>
+                          {product.title}
                         </div>
-                      )}
-                      <button style={{
-                        width: '100%',
-                        padding: '4px 8px',
-                        backgroundColor: '#f97316',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        fontSize: '10px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}>
-                        + Add
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  // Sample product recommendations when no real data
-                  [
-                    { id: 'sample1', title: 'Sample Product 1', price: 999, imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=60&h=60&fit=crop&crop=center' },
-                    { id: 'sample2', title: 'Sample Product 2', price: 1299, imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=60&h=60&fit=crop&crop=center' }
-                  ].map((product: any, index: number) => (
-                    <div key={product.id} style={{ 
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '6px',
-                      padding: '8px',
-                      textAlign: 'center'
-                    }}>
-                      <img 
-                        src={product.imageUrl} 
-                        alt={product.title}
-                        style={{ 
-                          width: '100%', 
-                          height: '60px', 
-                          objectFit: 'cover',
+                        <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '6px' }}>
+                          ₹{product.price}
+                        </div>
+                        <button style={{
+                          width: '100%',
+                          padding: '4px 8px',
+                          backgroundColor: '#f97316',
+                          color: 'white',
+                          border: 'none',
                           borderRadius: '4px',
-                          marginBottom: '6px'
-                        }}
-                      />
-                      <div style={{ fontSize: '11px', fontWeight: '600', marginBottom: '4px' }}>
-                        {product.title}
+                          fontSize: '10px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}>
+                          + Add
+                        </button>
                       </div>
-                      <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '6px' }}>
-                        ₹{product.price}
-                      </div>
-                      <button style={{
-                        width: '100%',
-                        padding: '4px 8px',
-                        backgroundColor: '#f97316',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        fontSize: '10px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}>
-                        + Add
-                      </button>
-                    </div>
-                  ))
+                    ))
+                  )}
+                </div>
+                {/* Scroll indicator */}
+                {((productRecommendation?.products && productRecommendation.products.length > 2) || (!productRecommendation?.products && 2 > 2)) && (
+                  <div style={{
+                    position: 'absolute',
+                    right: '0',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,1) 100%)',
+                    width: '20px',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <div style={{
+                      width: '4px',
+                      height: '20px',
+                      background: '#cbd5e1',
+                      borderRadius: '2px',
+                      opacity: '0.6'
+                    }}></div>
+                  </div>
                 )}
               </div>
             </div>
@@ -608,56 +679,171 @@ function MiniCartDrawerPreview({ cartDrawer, couponCodeField }: { cartDrawer: an
 
           {/* Coupon Code Field */}
           {cartDrawer?.couponCodeFieldEnabled && (
-            <div style={{ marginTop: '8px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ 
+              marginTop: '12px', 
+              padding: '16px', 
+              background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', 
+              borderRadius: '12px', 
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Subtle background pattern */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.03) 0%, transparent 50%)',
+                pointerEvents: 'none'
+              }} />
+              
               <div style={{ 
                 display: 'flex', 
-                gap: '8px',
+                gap: '10px',
                 alignItems: 'center',
-                marginBottom: couponCodeField?.enableAutoApply || couponCodeField?.showAllOffers ? '12px' : '0'
+                marginBottom: couponCodeField?.enableAutoApply || couponCodeField?.showAllOffers ? '16px' : '0',
+                position: 'relative',
+                zIndex: 1
               }}>
-                <input 
-                  type="text" 
-                  placeholder={couponCodeField?.placeholder || "Enter coupon code"}
-                  style={{
-                    flex: 1,
-                    padding: '10px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    backgroundColor: 'white'
-                  }}
-                />
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <input 
+                    type="text" 
+                    placeholder={couponCodeField?.placeholder || "Enter coupon code"}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '10px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      backgroundColor: 'white',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
+                      fontWeight: '500'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#3b82f6';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#e5e7eb';
+                      e.target.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.02)';
+                    }}
+                  />
+                  {/* Input focus indicator */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '16px',
+                    transform: 'translateY(-50%)',
+                    color: '#9ca3af',
+                    fontSize: '16px',
+                    pointerEvents: 'none',
+                    transition: 'all 0.3s ease'
+                  }}>🎫</div>
+                </div>
                 <button style={{
-                  padding: '10px 16px',
-                  backgroundColor: '#1f2937',
+                  padding: '12px 20px',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '6px',
+                  borderRadius: '10px',
                   fontSize: '14px',
-                  fontWeight: '500',
+                  fontWeight: '600',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
-                  transition: 'background-color 0.2s'
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => {
+                  const target = e.target as HTMLButtonElement;
+                  target.style.transform = 'translateY(-1px)';
+                  target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  const target = e.target as HTMLButtonElement;
+                  target.style.transform = 'translateY(0)';
+                  target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
                 }}>
-                  {couponCodeField?.buttonText || 'Apply'}
+                  <span style={{ position: 'relative', zIndex: 1 }}>
+                    {couponCodeField?.buttonText || 'Apply'}
+                  </span>
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'linear-gradient(45deg, rgba(255,255,255,0.2) 0%, transparent 50%)',
+                    pointerEvents: 'none'
+                  }} />
                 </button>
               </div>
               
               {/* Auto-Applied Discount Preview */}
               {couponCodeField?.enableAutoApply && (
                 <div style={{
-                  padding: '10px 12px',
-                  backgroundColor: '#ecfdf5',
-                  border: '1px solid #10b981',
-                  borderRadius: '6px',
-                  marginBottom: '8px'
+                  padding: '14px 16px',
+                  background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+                  border: '2px solid #10b981',
+                  borderRadius: '10px',
+                  marginBottom: '12px',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.15)'
                 }}>
-                  <div style={{ fontWeight: 600, color: '#059669', fontSize: '13px', marginBottom: '2px' }}>
-                    ✓ SUMMER20 - 20% OFF
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#047857' }}>
-                    Best offer automatically applied
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'linear-gradient(45deg, rgba(255,255,255,0.3) 0%, transparent 50%)',
+                    pointerEvents: 'none'
+                  }} />
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px',
+                    position: 'relative',
+                    zIndex: 1
+                  }}>
+                    <div style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
+                    }}>✓</div>
+                    <div>
+                      <div style={{ 
+                        fontWeight: '700', 
+                        color: '#047857', 
+                        fontSize: '14px', 
+                        marginBottom: '2px',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                      }}>
+                        SUMMER20 - 20% OFF
+                      </div>
+                      <div style={{ 
+                        fontSize: '12px', 
+                        color: '#065f46',
+                        fontWeight: '500'
+                      }}>
+                        Best offer automatically applied
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -666,20 +852,54 @@ function MiniCartDrawerPreview({ cartDrawer, couponCodeField }: { cartDrawer: an
               {couponCodeField?.showAllOffers && (
                 <button style={{
                   width: '100%',
-                  padding: '8px 10px',
-                  backgroundColor: 'white',
-                  color: '#1f2937',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: '500',
+                  padding: '12px 16px',
+                  background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                  color: '#374151',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: '600',
                   cursor: 'pointer',
                   display: 'flex',
                   justifyContent: 'space-between',
-                  alignItems: 'center'
+                  alignItems: 'center',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => {
+                  const target = e.target as HTMLButtonElement;
+                  target.style.borderColor = '#3b82f6';
+                  target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.15)';
+                  target.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  const target = e.target as HTMLButtonElement;
+                  target.style.borderColor = '#e5e7eb';
+                  target.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.04)';
+                  target.style.transform = 'translateY(0)';
                 }}>
-                  <span>{couponCodeField?.showAllOffersButtonText || 'Show all offers'} (3 available)</span>
-                  <span style={{ fontSize: '14px' }}>▼</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '16px' }}>🎁</span>
+                    <span>{couponCodeField?.showAllOffersButtonText || 'Show all offers'} (3 available)</span>
+                  </span>
+                  <span style={{ 
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    transition: 'transform 0.3s ease'
+                  }}>▼</span>
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'linear-gradient(45deg, rgba(59, 130, 246, 0.05) 0%, transparent 50%)',
+                    pointerEvents: 'none',
+                    opacity: 0,
+                    transition: 'opacity 0.3s ease'
+                  }} />
                 </button>
               )}
             </div>
@@ -702,26 +922,10 @@ function MiniCartDrawerPreview({ cartDrawer, couponCodeField }: { cartDrawer: an
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px',
             position: 'relative',
             overflow: 'hidden'
           }}>
             <span>Checkout</span>
-            <span style={{ 
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              padding: '4px 12px',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '600'
-            }}>
-              ₹{Math.round(sampleCart.total)}
-            </span>
-            <span style={{
-              position: 'absolute',
-              right: '16px',
-              fontSize: '18px',
-              opacity: '0.8'
-            }}>→</span>
           </button>
         </div>
       </div>
@@ -734,7 +938,6 @@ export default function CartDrawerIndex() {
   const submit = useSubmit();
 
   const handleToggleFeature = (featureId: string, currentEnabled: boolean) => {
-    console.log('Toggle Feature:', { featureId, currentEnabled, newEnabled: !currentEnabled });
     const formData = new FormData();
     formData.append("intent", "toggle-feature");
     formData.append("featureId", featureId);
