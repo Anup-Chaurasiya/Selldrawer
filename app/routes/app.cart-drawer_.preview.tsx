@@ -14,7 +14,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     where: { shop },
     include: {
       freeShippingBars: { where: { isActive: true }, orderBy: { priority: 'desc' } },
-      promotionalBanners: { where: { isActive: true }, orderBy: { priority: 'desc' } },
+      promotionalBanners: { 
+        where: { isActive: true }, 
+        orderBy: { priority: 'desc' },
+        include: {
+          images: { orderBy: { order: 'asc' } },
+          carouselSettings: true,
+        },
+      },
       productRecommendations: { 
         where: { isActive: true }, 
         orderBy: { priority: 'desc' },
@@ -24,6 +31,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       freeShippingMessages: { where: { isActive: true } },
     },
   });
+
+  console.log('Preview loader - Cart drawer config:', cartDrawer);
+  console.log('Preview loader - Free shipping bars:', cartDrawer?.freeShippingBars);
 
   return json({ cartDrawer });
 };
@@ -60,13 +70,13 @@ export default function CartDrawerPreview() {
     
     if (freeShippingBar.thresholdMode === "amount") {
       const threshold = Number(freeShippingBar.thresholdAmount);
-      // Show 60% progress for preview
-      sampleTotal = threshold * 0.6;
+      // Show 75% progress for preview (more realistic)
+      sampleTotal = threshold * 0.75;
       sampleItemCount = Math.max(1, Math.floor(sampleTotal / 1500)); // Assume average item price of ₹1500
     } else {
       const threshold = Number(freeShippingBar.thresholdCount);
-      // Show 60% progress for preview
-      sampleItemCount = Math.max(1, Math.floor(threshold * 0.6));
+      // Show 75% progress for preview (more realistic)
+      sampleItemCount = Math.max(1, Math.floor(threshold * 0.75));
       sampleTotal = sampleItemCount * 1500; // Assume average item price of ₹1500
     }
 
@@ -180,7 +190,7 @@ export default function CartDrawerPreview() {
               alignItems: 'center'
             }}>
               <h2 style={{ fontSize: '20px', fontWeight: '600', margin: 0 }}>
-                Your Cart ({sampleCart.itemCount} items)
+                Your Cart (<span className="cart-item-count">{sampleCart.itemCount}</span> items)
               </h2>
               <button style={{ 
                 background: 'none', 
@@ -247,75 +257,225 @@ export default function CartDrawerPreview() {
                       boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)',
                       position: 'relative'
                     }}>
-                      <div style={{ 
-                        width: `${calculateProgress()}%`, 
-                        height: '100%',
-                        display: 'block',
-                        background: calculateProgress() >= 100 
-                          ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                          : freeShippingBar.progressBarColor 
-                            ? `linear-gradient(135deg, ${freeShippingBar.progressBarColor} 0%, ${freeShippingBar.progressBarColor}dd 100%)`
-                            : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                        borderRadius: '8px',
-                        transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                        minWidth: '2px'
-                      }} />
+                      <div 
+                        className="progress-bar-fill"
+                        style={{ 
+                          width: `${calculateProgress()}%`, 
+                          height: '100%',
+                          display: 'block',
+                          background: calculateProgress() >= 100 
+                            ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                            : freeShippingBar.progressBarColor 
+                              ? `linear-gradient(135deg, ${freeShippingBar.progressBarColor} 0%, ${freeShippingBar.progressBarColor}dd 100%)`
+                              : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                          borderRadius: '8px',
+                          transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                          minWidth: '2px'
+                        }} 
+                      />
                     </div>
                   </div>
                 )}
 
-                {/* Promotional Banner */}
-                {cartDrawer?.promotionalBannerEnabled && promotionalBanner && (
-                  <div style={{ 
-                    backgroundColor: promotionalBanner.backgroundColor || '#fef3c7',
-                    color: promotionalBanner.textColor || '#92400e',
-                    padding: '16px',
-                    borderRadius: '6px',
-                    textAlign: 'center',
-                    border: '2px solid #f59e0b',
-                    boxShadow: '0 4px 8px rgba(245, 158, 11, 0.2)',
+                {/* Promotional Banner Carousel */}
+                {cartDrawer?.promotionalBannerEnabled && promotionalBanner?.images && promotionalBanner.images.length > 0 && (
+                  <div style={{
                     position: 'relative',
+                    borderRadius: '10px',
                     overflow: 'hidden',
-                    background: promotionalBanner.backgroundColor 
-                      ? `linear-gradient(135deg, ${promotionalBanner.backgroundColor} 0%, ${promotionalBanner.backgroundColor}dd 100%)`
-                      : 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'
+                    height: '140px',
+                    marginBottom: '8px',
+                    backgroundColor: '#000'
                   }}>
-                    <div style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      background: 'linear-gradient(45deg, rgba(255,255,255,0.3) 0%, transparent 50%)',
-                      pointerEvents: 'none'
-                    }} />
-                    <div style={{ 
-                      fontWeight: '700', 
-                      fontSize: '16px', 
-                      marginBottom: '4px',
-                      position: 'relative',
-                      zIndex: 1,
-                      textShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                    }}>
-                      {promotionalBanner.title}
-                    </div>
-                    {promotionalBanner.subtitle && (
-                      <div style={{ 
-                        fontSize: '14px',
-                        position: 'relative',
-                        zIndex: 1,
-                        textShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                      }}>
-                        {promotionalBanner.subtitle}
-                      </div>
-                    )}
+                    {(() => {
+                      const currentSlide = promotionalBanner.images[0] as any;
+                      return (
+                        <>
+                          {/* Background Image or Video */}
+                          {currentSlide.videoUrl && currentSlide.videoType === 'mp4' ? (
+                            <video 
+                              src={currentSlide.videoUrl}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              muted
+                              loop
+                              autoPlay
+                              playsInline
+                            />
+                          ) : (
+                            <img 
+                              src={currentSlide.imageUrl}
+                              alt="Promotional banner"
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          )}
+
+                          {/* Title & Description - Bottom RIGHT */}
+                          {(currentSlide.title || currentSlide.description) && (
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '8px',
+                              right: '8px',
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                              padding: '8px 10px',
+                              borderRadius: '6px',
+                              maxWidth: '45%',
+                              backdropFilter: 'blur(10px)',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                            }}>
+                              {currentSlide.title && (
+                                <div style={{ 
+                                  fontWeight: '700', 
+                                  fontSize: '11px', 
+                                  color: '#1a1a1a',
+                                  marginBottom: currentSlide.description ? '2px' : '0',
+                                  lineHeight: '1.2'
+                                }}>
+                                  {currentSlide.title}
+                                </div>
+                              )}
+                              {currentSlide.description && (
+                                <div style={{ 
+                                  fontSize: '9px', 
+                                  color: '#4a4a4a',
+                                  lineHeight: '1.3'
+                                }}>
+                                  {currentSlide.description}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* CTA Button - Bottom LEFT */}
+                          {currentSlide.ctaText && (
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '8px',
+                              left: '8px',
+                            }}>
+                              <button style={{
+                                backgroundColor: '#007bff',
+                                color: 'white',
+                                border: 'none',
+                                padding: '6px 12px',
+                                borderRadius: '5px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                fontSize: '10px',
+                                boxShadow: '0 2px 8px rgba(0, 123, 255, 0.4)',
+                                transition: 'all 0.2s ease'
+                              }}>
+                                {currentSlide.ctaText}
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Dot Indicators */}
+                          {promotionalBanner.images.length > 1 && (promotionalBanner.carouselSettings?.showDots !== false) && (
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '6px',
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              display: 'flex',
+                              gap: '4px',
+                              zIndex: 10
+                            }}>
+                              {promotionalBanner.images.map((_: any, index: number) => (
+                                <div 
+                                  key={index} 
+                                  style={{
+                                    width: '6px',
+                                    height: '6px',
+                                    borderRadius: '50%',
+                                    backgroundColor: index === 0 ? '#007bff' : 'rgba(255,255,255,0.6)',
+                                    border: '1px solid rgba(255,255,255,0.9)',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                                  }} 
+                                />
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Navigation Arrows */}
+                          {promotionalBanner.images.length > 1 && (promotionalBanner.carouselSettings?.showArrows !== false) && (
+                            <>
+                              <button style={{
+                                position: 'absolute',
+                                left: '4px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                backgroundColor: 'rgba(255,255,255,0.9)',
+                                borderRadius: '50%',
+                                width: '24px',
+                                height: '24px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                border: 'none',
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                color: '#333',
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                                transition: 'all 0.2s ease'
+                              }}>
+                                ‹
+                              </button>
+                              <button style={{
+                                position: 'absolute',
+                                right: '4px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                backgroundColor: 'rgba(255,255,255,0.9)',
+                                borderRadius: '50%',
+                                width: '24px',
+                                height: '24px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                border: 'none',
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                color: '#333',
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                                transition: 'all 0.2s ease'
+                              }}>
+                                ›
+                              </button>
+                            </>
+                          )}
+
+                          {/* 5% Preview Edges */}
+                          {promotionalBanner.images.length > 1 && (
+                            <div style={{
+                              position: 'absolute',
+                              right: 0,
+                              top: 0,
+                              height: '100%',
+                              width: '5%',
+                              overflow: 'hidden',
+                              opacity: 0.4,
+                              pointerEvents: 'none'
+                            }}>
+                              <img 
+                                src={promotionalBanner.images[1].imageUrl}
+                                alt="Next"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
 
                 {/* Cart Items with Enhanced Controls */}
                 <div>
                   {sampleCart.items.map((item) => (
-                    <div key={item.id} style={{ 
+                    <div key={item.id} className="cart-item" data-item-id={item.id} style={{ 
                       display: 'flex', 
                       gap: '12px',
                       padding: '12px 0',
@@ -365,59 +525,166 @@ export default function CartDrawerPreview() {
                             borderRadius: '6px',
                             background: 'white'
                           }}>
-                            <button style={{ 
-                              width: '32px', 
-                              height: '32px',
-                              border: 'none',
-                              background: '#f8f9fa',
-                              color: '#374151',
-                              fontSize: '16px',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              borderRadius: '4px',
-                              transition: 'all 0.2s ease'
-                            }}>−</button>
-                            <span style={{ 
-                              minWidth: '40px',
-                              textAlign: 'center',
-                              fontWeight: '600',
-                              fontSize: '14px',
-                              color: '#374151',
-                              padding: '0 8px'
-                            }}>{item.quantity}</span>
-                            <button style={{ 
-                              width: '32px', 
-                              height: '32px',
-                              border: 'none',
-                              background: '#f8f9fa',
-                              color: '#374151',
-                              fontSize: '16px',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              borderRadius: '4px',
-                              transition: 'all 0.2s ease'
-                            }}>+</button>
+                            <button 
+                              onClick={() => {
+                                const newQuantity = Math.max(1, item.quantity - 1);
+                                // Update the sample cart state
+                                const updatedItems = sampleCart.items.map(i => 
+                                  i.id === item.id ? { ...i, quantity: newQuantity } : i
+                                );
+                                const newTotal = updatedItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+                                const newOriginalTotal = updatedItems.reduce((sum, i) => sum + (i.originalPrice * i.quantity), 0);
+                                const newItemCount = updatedItems.reduce((sum, i) => sum + i.quantity, 0);
+                                
+                                // Update the display
+                                const quantitySpan = document.querySelector(`[data-item-id="${item.id}"] .quantity-display`);
+                                const totalSpan = document.querySelector('.cart-total');
+                                const itemCountSpan = document.querySelector('.cart-item-count');
+                                
+                                if (quantitySpan) quantitySpan.textContent = newQuantity.toString();
+                                if (totalSpan) totalSpan.textContent = `₹${Math.round(newTotal)}`;
+                                if (itemCountSpan) itemCountSpan.textContent = `${newItemCount} items`;
+                                
+                                // Update progress bar if it exists
+                                const progressBar = document.querySelector('.progress-bar-fill') as HTMLElement;
+                                if (progressBar && freeShippingBar) {
+                                  let progress;
+                                  if (freeShippingBar.thresholdMode === "amount") {
+                                    const threshold = Number(freeShippingBar.thresholdAmount);
+                                    progress = Math.min((newTotal / threshold) * 100, 100);
+                                  } else {
+                                    const threshold = Number(freeShippingBar.thresholdCount);
+                                    progress = Math.min((newItemCount / threshold) * 100, 100);
+                                  }
+                                  progressBar.style.width = `${progress}%`;
+                                }
+                              }}
+                              style={{ 
+                                width: '32px', 
+                                height: '32px',
+                                border: 'none',
+                                background: '#f8f9fa',
+                                color: '#374151',
+                                fontSize: '16px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '4px',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >−</button>
+                            <span 
+                              className="quantity-display"
+                              data-item-id={item.id}
+                              style={{ 
+                                minWidth: '40px',
+                                textAlign: 'center',
+                                fontWeight: '600',
+                                fontSize: '14px',
+                                color: '#374151',
+                                padding: '0 8px'
+                              }}
+                            >{item.quantity}</span>
+                            <button 
+                              onClick={() => {
+                                const newQuantity = item.quantity + 1;
+                                // Update the sample cart state
+                                const updatedItems = sampleCart.items.map(i => 
+                                  i.id === item.id ? { ...i, quantity: newQuantity } : i
+                                );
+                                const newTotal = updatedItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+                                const newOriginalTotal = updatedItems.reduce((sum, i) => sum + (i.originalPrice * i.quantity), 0);
+                                const newItemCount = updatedItems.reduce((sum, i) => sum + i.quantity, 0);
+                                
+                                // Update the display
+                                const quantitySpan = document.querySelector(`[data-item-id="${item.id}"] .quantity-display`);
+                                const totalSpan = document.querySelector('.cart-total');
+                                const itemCountSpan = document.querySelector('.cart-item-count');
+                                
+                                if (quantitySpan) quantitySpan.textContent = newQuantity.toString();
+                                if (totalSpan) totalSpan.textContent = `₹${Math.round(newTotal)}`;
+                                if (itemCountSpan) itemCountSpan.textContent = `${newItemCount} items`;
+                                
+                                // Update progress bar if it exists
+                                const progressBar = document.querySelector('.progress-bar-fill') as HTMLElement;
+                                if (progressBar && freeShippingBar) {
+                                  let progress;
+                                  if (freeShippingBar.thresholdMode === "amount") {
+                                    const threshold = Number(freeShippingBar.thresholdAmount);
+                                    progress = Math.min((newTotal / threshold) * 100, 100);
+                                  } else {
+                                    const threshold = Number(freeShippingBar.thresholdCount);
+                                    progress = Math.min((newItemCount / threshold) * 100, 100);
+                                  }
+                                  progressBar.style.width = `${progress}%`;
+                                }
+                              }}
+                              style={{ 
+                                width: '32px', 
+                                height: '32px',
+                                border: 'none',
+                                background: '#f8f9fa',
+                                color: '#374151',
+                                fontSize: '16px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '4px',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >+</button>
                           </div>
-                          <button style={{ 
-                            width: '32px', 
-                            height: '32px',
-                            border: 'none',
-                            background: '#ef4444',
-                            color: 'white',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '14px',
-                            transition: 'all 0.2s ease'
-                          }} title="Remove item">🗑</button>
+                          <button 
+                            onClick={() => {
+                              // Remove item from cart
+                              const updatedItems = sampleCart.items.filter(i => i.id !== item.id);
+                              const newTotal = updatedItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+                              const newOriginalTotal = updatedItems.reduce((sum, i) => sum + (i.originalPrice * i.quantity), 0);
+                              const newItemCount = updatedItems.reduce((sum, i) => sum + i.quantity, 0);
+                              
+                              // Update the display
+                              const totalSpan = document.querySelector('.cart-total');
+                              const itemCountSpan = document.querySelector('.cart-item-count');
+                              const cartItem = document.querySelector(`[data-item-id="${item.id}"]`)?.closest('.cart-item') as HTMLElement;
+                              
+                              if (totalSpan) totalSpan.textContent = `₹${Math.round(newTotal)}`;
+                              if (itemCountSpan) itemCountSpan.textContent = `${newItemCount} items`;
+                              if (cartItem) cartItem.style.display = 'none';
+                              
+                              // Update progress bar if it exists
+                              const progressBar = document.querySelector('.progress-bar-fill') as HTMLElement;
+                              if (progressBar && freeShippingBar) {
+                                let progress;
+                                if (freeShippingBar.thresholdMode === "amount") {
+                                  const threshold = Number(freeShippingBar.thresholdAmount);
+                                  progress = Math.min((newTotal / threshold) * 100, 100);
+                                } else {
+                                  const threshold = Number(freeShippingBar.thresholdCount);
+                                  progress = Math.min((newItemCount / threshold) * 100, 100);
+                                }
+                                progressBar.style.width = `${progress}%`;
+                              }
+                            }}
+                            style={{ 
+                              width: '32px', 
+                              height: '32px',
+                              border: 'none',
+                              background: '#ef4444',
+                              color: 'white',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '14px',
+                              transition: 'all 0.2s ease'
+                            }} 
+                            title="Remove item"
+                          >🗑</button>
                         </div>
                       </div>
                     </div>
@@ -666,7 +933,7 @@ export default function CartDrawerPreview() {
                       }}>
                         ₹{Math.round(sampleCart.originalTotal)}
                       </span>
-                      <span>₹{Math.round(sampleCart.total)}</span>
+                      <span className="cart-total">₹{Math.round(sampleCart.total)}</span>
                     </div>
                   </div>
                 </div>

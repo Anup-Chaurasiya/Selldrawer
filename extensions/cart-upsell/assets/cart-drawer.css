@@ -1,0 +1,1103 @@
+/**
+ * Upsellity Cart Drawer Styles
+ * Automatically integrates with any Shopify theme
+ */
+
+.upsellity-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.upsellity-drawer.open {
+  pointer-events: auto;
+}
+
+.upsellity-drawer-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0);
+  transition: background 0.3s ease;
+}
+
+.upsellity-drawer.open .upsellity-drawer-overlay {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.upsellity-drawer-content {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 420px;
+  background: white;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  overflow-y: auto;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.upsellity-drawer.open .upsellity-drawer-content {
+  transform: translateX(0);
+}
+
+.upsellity-drawer-inner {
+  padding: 20px;
+}
+
+.upsellity-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.upsellity-progress-bar {
+  margin-bottom: 20px;
+}
+
+.upsellity-progress-bar-text {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.upsellity-progress-bar-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.upsellity-progress-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.upsellity-banner {
+  padding: 16px;
+  border-radius: 6px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.upsellity-banner-title {
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.upsellity-banner-subtitle {
+  font-size: 14px;
+}
+
+.upsellity-banner-image {
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.upsellity-banner-img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+}
+
+.upsellity-banner-content {
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+}
+
+.upsellity-banner-carousel {
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.upsellity-carousel-container {
+  position: relative;
+  height: 120px;
+  overflow: hidden;
+}
+
+.upsellity-carousel-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.5s ease;
+}
+
+.upsellity-carousel-slide {
+  min-width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.upsellity-carousel-slide.active {
+  display: block;
+}
+
+.upsellity-carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.upsellity-carousel-prev {
+  left: 10px;
+}
+
+.upsellity-carousel-next {
+  right: 10px;
+}
+
+.upsellity-carousel-dots {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+}
+
+.upsellity-carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.upsellity-carousel-dot.active {
+  background-color: #007bff;
+}
+
+.upsellity-banner-cta {
+  margin-top: 12px;
+}
+
+.upsellity-cta-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+
+.upsellity-cta-button:hover {
+  background-color: #0056b3;
+}
+
+.upsellity-banner-content .upsellity-cta-button {
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+/* Enhanced Banner Styles */
+.upsellity-enhanced-banner {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.upsellity-enhanced-carousel {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.upsellity-banner-main-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+.upsellity-banner-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  padding: 20px;
+  color: white;
+}
+
+.upsellity-banner-overlay .upsellity-banner-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.upsellity-banner-overlay .upsellity-banner-subtitle {
+  font-size: 14px;
+  margin-bottom: 12px;
+  opacity: 0.9;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.upsellity-banner-overlay .upsellity-cta-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.upsellity-banner-overlay .upsellity-cta-button:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+/* Enhanced Carousel Styles */
+.upsellity-carousel-container {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+}
+
+.upsellity-carousel-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.5s ease;
+}
+
+.upsellity-carousel-slide {
+  min-width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.upsellity-carousel-dots {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+}
+
+.upsellity-carousel-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.upsellity-carousel-dot.active {
+  background-color: #007bff;
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .upsellity-banner-main-image {
+    height: 150px;
+  }
+  
+  .upsellity-banner-overlay {
+    padding: 16px;
+  }
+  
+  .upsellity-banner-overlay .upsellity-banner-title {
+    font-size: 18px;
+  }
+  
+  .upsellity-banner-overlay .upsellity-banner-subtitle {
+    font-size: 13px;
+  }
+  
+  .upsellity-banner-overlay .upsellity-cta-button {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+}
+
+.upsellity-cart-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f3f4f6;
+  position: relative;
+}
+
+.upsellity-cart-item-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.upsellity-cart-item-details {
+  flex: 1;
+}
+
+.upsellity-cart-item-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.upsellity-cart-item-variant {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.upsellity-cart-item-price {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.upsellity-cart-item-original-price {
+  text-decoration: line-through;
+  color: #9ca3af;
+  font-size: 14px;
+  margin-right: 8px;
+}
+
+.upsellity-cart-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.upsellity-quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  padding: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.upsellity-quantity-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: #f8f9fa;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.upsellity-quantity-btn:hover {
+  background: #e5e7eb;
+  transform: scale(1.05);
+}
+
+.upsellity-quantity-btn:active {
+  transform: scale(0.95);
+}
+
+.upsellity-quantity-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.upsellity-quantity-display {
+  min-width: 36px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 13px;
+  color: #374151;
+  padding: 0 6px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  margin: 0 2px;
+}
+
+.upsellity-remove-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: #ef4444;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.upsellity-remove-btn:hover {
+  background: #dc2626;
+  transform: scale(1.05);
+}
+
+.upsellity-remove-btn:active {
+  transform: scale(0.95);
+}
+
+.upsellity-progress-bar-enhanced {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.upsellity-progress-bar-text-enhanced {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.upsellity-progress-bar-message {
+  color: #374151;
+}
+
+.upsellity-progress-bar-percentage {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+
+.upsellity-progress-bar-track-enhanced {
+  width: 100%;
+  height: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #e5e7eb !important;
+  position: relative;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: block;
+}
+
+.upsellity-progress-bar-fill-enhanced {
+  height: 100% !important;
+  border-radius: 8px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  display: block;
+  min-width: 2px;
+}
+
+.upsellity-progress-bar-fill-enhanced::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.upsellity-progress-complete {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.upsellity-progress-incomplete {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.upsellity-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.upsellity-loading .upsellity-quantity-btn,
+.upsellity-loading .upsellity-remove-btn {
+  cursor: not-allowed;
+}
+
+.upsellity-recommendations {
+  margin: 20px 0;
+}
+
+.upsellity-recommendations-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.upsellity-recommendations-grid {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.upsellity-recommendations-grid::-webkit-scrollbar {
+  height: 6px;
+}
+
+.upsellity-recommendations-grid::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.upsellity-recommendations-grid::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.upsellity-recommendations-grid::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Product Recommendations Navigation Arrows */
+.upsellity-nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 16px;
+  color: #374151;
+  font-weight: bold;
+}
+
+.upsellity-nav-arrow:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.upsellity-nav-arrow:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.upsellity-nav-left {
+  left: 0;
+}
+
+.upsellity-nav-right {
+  right: 0;
+}
+
+.upsellity-recommendations-container {
+  position: relative;
+}
+
+.upsellity-recommendation-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px;
+  text-align: center;
+  min-width: 140px;
+  flex-shrink: 0;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.upsellity-recommendation-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.upsellity-recommendation-image {
+  width: 100%;
+  height: 80px;
+  background: #f3f4f6;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.upsellity-add-recommendation-btn:hover {
+  background: #f97316 !important;
+  color: white !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
+}
+
+.upsellity-add-recommendation-btn:active {
+  transform: translateY(0);
+}
+
+.upsellity-savings-display {
+  padding: 12px 16px;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 16px;
+  margin: 20px 0;
+}
+
+.upsellity-shipping-message {
+  padding: 12px 16px;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 14px;
+  margin: 20px 0;
+}
+
+.upsellity-checkout-btn {
+  width: 100%;
+  padding: 14px;
+  background: #1f2937;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 20px;
+}
+
+.upsellity-checkout-btn:hover {
+  background: #111827;
+}
+
+/* Modern Coupon Code Field Styles */
+.upsellity-coupon-field {
+  margin: 16px 0 !important;
+  padding: 16px !important;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  border-radius: 12px !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.upsellity-coupon-field::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.upsellity-coupon-field > * {
+  position: relative;
+  z-index: 1;
+}
+
+.upsellity-coupon-input-container {
+  display: flex !important;
+  gap: 10px !important;
+  align-items: center !important;
+  margin-bottom: 16px !important;
+}
+
+.upsellity-coupon-input-wrapper {
+  position: relative !important;
+  flex: 1 !important;
+}
+
+.upsellity-coupon-input {
+  width: 100% !important;
+  padding: 12px 16px !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  outline: none !important;
+  background: white !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+  font-weight: 500 !important;
+}
+
+.upsellity-coupon-input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+
+.upsellity-coupon-apply-btn {
+  padding: 12px 20px !important;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.upsellity-coupon-apply-btn:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4) !important;
+}
+
+.upsellity-coupon-apply-btn:active {
+  transform: translateY(0) !important;
+}
+
+.upsellity-coupon-apply-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.upsellity-coupon-message {
+  margin-top: 8px !important;
+  font-size: 12px !important;
+  min-height: 16px !important;
+  font-weight: 500 !important;
+}
+
+.upsellity-applied-discount {
+  padding: 14px 16px !important;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+  border: 2px solid #10b981 !important;
+  border-radius: 10px !important;
+  margin-bottom: 12px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15) !important;
+}
+
+.upsellity-applied-discount::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(255,255,255,0.3) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.upsellity-applied-discount-content {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.upsellity-discount-checkmark {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: white !important;
+  font-size: 12px !important;
+  font-weight: bold !important;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3) !important;
+  flex-shrink: 0 !important;
+}
+
+.upsellity-discount-info {
+  flex: 1 !important;
+}
+
+.upsellity-discount-title {
+  font-weight: 700 !important;
+  color: #047857 !important;
+  font-size: 14px !important;
+  margin-bottom: 2px !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+}
+
+.upsellity-discount-subtitle {
+  font-size: 12px !important;
+  color: #065f46 !important;
+  font-weight: 500 !important;
+}
+
+.upsellity-discount-remove {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  color: #374151 !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.upsellity-discount-remove:hover {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
+  transform: translateY(-1px) !important;
+}
+
+.upsellity-show-offers-btn {
+  width: 100% !important;
+  padding: 12px 16px !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  color: #374151 !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  margin-bottom: 12px !important;
+}
+
+.upsellity-show-offers-btn:hover {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
+  transform: translateY(-1px) !important;
+}
+
+.upsellity-show-offers-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.upsellity-show-offers-btn:hover::after {
+  opacity: 1;
+}
+
+.upsellity-offers-list {
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  padding: 12px !important;
+  margin-top: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+.upsellity-offer-item {
+  padding: 12px !important;
+  border: 2px solid #d1d5db !important;
+  border-radius: 8px !important;
+  margin-bottom: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  background: white !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.upsellity-offer-item:hover {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15) !important;
+  transform: translateY(-1px) !important;
+}
+
+.upsellity-offer-item.selected {
+  border-color: #10b981 !important;
+  background: #10b981 !important;
+  color: white !important;
+}
+
+.upsellity-offer-item:last-child {
+  margin-bottom: 0 !important;
+}
+
+.upsellity-offer-content {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.upsellity-offer-checkbox {
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 50% !important;
+  border: 2px solid #d1d5db !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  transition: all 0.3s ease !important;
+}
+
+.upsellity-offer-item.selected .upsellity-offer-checkbox {
+  background: white !important;
+  border-color: white !important;
+  color: #10b981 !important;
+}
+
+.upsellity-offer-details {
+  flex: 1 !important;
+}
+
+.upsellity-offer-code {
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  margin-bottom: 2px !important;
+}
+
+.upsellity-offer-description {
+  font-size: 12px !important;
+  opacity: 0.8 !important;
+}
+
+@media (max-width: 640px) {
+  .upsellity-drawer-content {
+    max-width: 100%;
+  }
+  
+  .upsellity-cart-item {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .upsellity-cart-item-image {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .upsellity-cart-item-controls {
+    justify-content: space-between;
+    width: 100%;
+  }
+  
+  .upsellity-quantity-controls {
+    flex: 1;
+    max-width: 120px;
+  }
+  
+  .upsellity-progress-bar-enhanced {
+    padding: 12px;
+  }
+  
+  .upsellity-progress-bar-text-enhanced {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .upsellity-progress-bar-percentage {
+    align-self: flex-end;
+  }
+}
+
+/* Notification Styles */
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
+}

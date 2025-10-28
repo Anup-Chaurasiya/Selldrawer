@@ -299,17 +299,6 @@ export default function CouponCode() {
                       e.target.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.02)';
                     }}
                   />
-                  {/* Input icon */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '16px',
-                    transform: 'translateY(-50%)',
-                    color: '#9ca3af',
-                    fontSize: '16px',
-                    pointerEvents: 'none',
-                    transition: 'all 0.3s ease'
-                  }}>🎫</div>
                 </div>
                 <button style={{
                   padding: '12px 20px',
