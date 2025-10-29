@@ -3,6 +3,56 @@
  * Automatically integrates with any Shopify theme
  */
 
+const FEATURE_ORDER_SENTINEL = '__cart-items__';
+const DEFAULT_FEATURE_ORDER = [
+  'free-shipping-bar',
+  'promotional-banner',
+  FEATURE_ORDER_SENTINEL,
+  'product-recommendations',
+  'savings-display',
+  'free-shipping-message',
+  'coupon-code',
+];
+
+function normalizeFeatureOrder(order) {
+  const allowed = new Set(DEFAULT_FEATURE_ORDER);
+  const raw = Array.isArray(order) ? order.filter((id) => allowed.has(id)) : [];
+  const missing = DEFAULT_FEATURE_ORDER.filter((id) => !raw.includes(id));
+  const normalized = raw.concat(missing);
+
+  const sentinelIndex = normalized.indexOf(FEATURE_ORDER_SENTINEL);
+  if (sentinelIndex === -1) {
+    const fallbackIndex = DEFAULT_FEATURE_ORDER.indexOf(FEATURE_ORDER_SENTINEL);
+    if (fallbackIndex === -1) {
+      normalized.push(FEATURE_ORDER_SENTINEL);
+    } else {
+      normalized.splice(fallbackIndex, 0, FEATURE_ORDER_SENTINEL);
+    }
+  } else {
+    for (let i = normalized.length - 1; i > sentinelIndex; i -= 1) {
+      if (normalized[i] === FEATURE_ORDER_SENTINEL) {
+        normalized.splice(i, 1);
+      }
+    }
+  }
+
+  return normalized;
+}
+
+function splitFeatureOrder(order) {
+  const normalized = normalizeFeatureOrder(order);
+  const sentinelIndex = normalized.indexOf(FEATURE_ORDER_SENTINEL);
+
+  if (sentinelIndex === -1) {
+    return { beforeItems: normalized, afterItems: [] };
+  }
+
+  return {
+    beforeItems: normalized.slice(0, sentinelIndex),
+    afterItems: normalized.slice(sentinelIndex + 1),
+  };
+}
+
 class UpsellityCartDrawer {
   constructor() {
     this.shop = window.Shopify?.shop || null;
@@ -391,6 +441,16 @@ class UpsellityCartDrawer {
       </h2>
     `;
 
+    const sections = {
+      'free-shipping-bar': '',
+      'promotional-banner': '',
+      [FEATURE_ORDER_SENTINEL]: '',
+      'product-recommendations': '',
+      'savings-display': '',
+      'free-shipping-message': '',
+      'coupon-code': '',
+    };
+
     // Enhanced Free Shipping Progress Bar - Only show if configured
     const bar = this.config?.features?.freeShippingProgressBar;
     
@@ -429,7 +489,7 @@ class UpsellityCartDrawer {
       const incompleteGradient = `linear-gradient(135deg, ${incompleteColor} 0%, ${incompleteColor}dd 100%)`;
       const percentageGradient = isComplete ? completeGradient : `linear-gradient(135deg, ${progressBarColor} 0%, ${progressBarColor}dd 100%)`;
       
-      html += `
+      sections['free-shipping-bar'] = `
         <div class="upsellity-progress-bar-enhanced" style="margin-bottom: 20px; padding: 16px; background: ${backgroundGradient}; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
           <div class="upsellity-progress-bar-text-enhanced" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; font-weight: 600;">
             <span class="upsellity-progress-bar-message" style="color: #374151;">
@@ -450,11 +510,12 @@ class UpsellityCartDrawer {
       const banner = this.config.features.promotionalBanner;
       const slides = banner.images || [];
       const carouselSettings = banner.carouselSettings || {};
+      let promoHtml = '';
       
       if (slides.length > 0) {
         const carouselId = `upsellity-promo-carousel-${Date.now()}`;
         
-        html += `
+        promoHtml = `
           <div class="upsellity-promo-carousel-wrapper" style="
             margin-bottom: 16px;
             border-radius: 10px;
@@ -689,12 +750,106 @@ class UpsellityCartDrawer {
         setTimeout(() => {
           this.initializePromoCarousel(carouselId, slides, carouselSettings);
         }, 100);
+      } else {
+        promoHtml = `
+          <div class="upsellity-promo-carousel-wrapper" style="
+            margin-bottom: 16px;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #fff;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          ">
+            <div style="
+              position: relative;
+              overflow: hidden;
+              height: 160px;
+              background-color: #000;
+            ">
+              <img 
+                src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=160&fit=crop&crop=center" 
+                alt="Sample promotional banner"
+                style="width: 100%; height: 100%; object-fit: cover;"
+              />
+              <div style="
+                position: absolute;
+                bottom: 6px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                gap: 4px;
+                z-index: 10;
+              ">
+                <div style="
+                  width: 6px;
+                  height: 6px;
+                  border-radius: 50%;
+                  background-color: #007bff;
+                  border: 1px solid rgba(255,255,255,0.9);
+                  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                "></div>
+                <div style="
+                  width: 6px;
+                  height: 6px;
+                  border-radius: 50%;
+                  background-color: rgba(255,255,255,0.6);
+                  border: 1px solid rgba(255,255,255,0.9);
+                  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                "></div>
+              </div>
+            </div>
+            <div style="
+              background-color: #fff;
+              padding: 10px 12px;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 12px;
+              min-height: 60px;
+              flex-wrap: wrap;
+            ">
+              <div style="flex-shrink: 0;">
+                <button style="
+                  background-color: #ff6b35;
+                  color: #ffffff;
+                  border: none;
+                  padding: 6px 14px;
+                  border-radius: 6px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  font-size: 14px;
+                  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                  transition: all 0.2s ease;
+                  min-width: 110px;
+                ">shop</button>
+              </div>
+              <div style="flex: 1; text-align: right; min-width: 0;">
+                <div style="
+                  font-weight: 700;
+                  font-size: 18px;
+                  color: #1f2937;
+                  margin-bottom: 2px;
+                  line-height: 1.2;
+                ">Summer Sale</div>
+                <div style="
+                  font-size: 14px;
+                  color: #6b7280;
+                  line-height: 1.4;
+                ">Get 20% Off on Summer Items</div>
+              </div>
+            </div>
+          </div>
+        `;
       }
+
+      sections['promotional-banner'] = promoHtml;
     }
 
     // Cart Items with Quantity Controls
+    let cartItemsHtml = '';
+
     this.cart.items.forEach(item => {
-      html += `
+      cartItemsHtml += `
         <div class="upsellity-cart-item" data-item-key="${item.key}">
           <img src="${item.featured_image?.url || item.image}" alt="${item.title}" class="upsellity-cart-item-image" />
           <div class="upsellity-cart-item-details">
@@ -724,6 +879,8 @@ class UpsellityCartDrawer {
       `;
     });
 
+    sections[FEATURE_ORDER_SENTINEL] = cartItemsHtml;
+
     // Product Recommendations
     if (this.config.features.productRecommendations) {
       const recommendations = this.config.features.productRecommendations;
@@ -733,7 +890,7 @@ class UpsellityCartDrawer {
       // Use actual recommended products from configuration
       const recommendedProducts = recommendations.products || [];
 
-      html += `
+      let recommendationsHtml = `
         <div class="upsellity-recommendations">
           <div class="upsellity-recommendations-title">${recommendations.title}</div>
           <div class="upsellity-recommendations-container" style="position: relative;">
@@ -796,6 +953,8 @@ class UpsellityCartDrawer {
           </div>
         </div>
       `;
+
+      sections['product-recommendations'] = recommendationsHtml;
     }
 
     // Savings Display
@@ -806,7 +965,7 @@ class UpsellityCartDrawer {
       }, 0);
 
       if (totalSavings > 0) {
-        html += `
+        sections['savings-display'] = `
           <div class="upsellity-savings-display" style="background-color: ${savings.backgroundColor}; color: ${savings.textColor}">
             ${savings.message.replace('{amount}', this.formatMoney(totalSavings))}
           </div>
@@ -828,7 +987,7 @@ class UpsellityCartDrawer {
         cartTotalInRupees: this.cart.total_price / 100
       });
 
-      html += `
+      sections['free-shipping-message'] = `
         <div class="upsellity-shipping-message" style="background-color: ${msg.backgroundColor}; color: ${msg.textColor}; border: 2px solid ${msg.textColor}; padding: 14px 18px; border-radius: 12px; display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 700; margin-bottom: 8px; box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1); position: relative; overflow: hidden;">
           <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(45deg, rgba(255,255,255,0.2) 0%, transparent 50%); pointer-events: none;"></div>
           <div style="font-size: 20px; flex-shrink: 0; position: relative; z-index: 1;">🚚</div>
@@ -846,7 +1005,7 @@ class UpsellityCartDrawer {
     if (this.config.features.couponCodeField) {
       const couponField = this.config.features.couponCodeField;
       
-      html += `
+      sections['coupon-code'] = `
         <div class="upsellity-coupon-field">
           <!-- Manual Coupon Input (Always at top) -->
           <div class="upsellity-coupon-input-container">
@@ -932,6 +1091,24 @@ class UpsellityCartDrawer {
         </div>
       `;
     }
+
+    const { beforeItems, afterItems } = splitFeatureOrder(this.config?.featureOrder);
+
+    beforeItems.forEach((id) => {
+      if (sections[id]) {
+        html += sections[id];
+      }
+    });
+
+    if (sections[FEATURE_ORDER_SENTINEL]) {
+      html += sections[FEATURE_ORDER_SENTINEL];
+    }
+
+    afterItems.forEach((id) => {
+      if (sections[id]) {
+        html += sections[id];
+      }
+    });
 
     // Cart Totals and Checkout
     const subtotal = this.cart.total_price;

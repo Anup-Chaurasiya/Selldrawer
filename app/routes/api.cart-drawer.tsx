@@ -2,6 +2,7 @@ import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { cors } from "remix-utils/cors";
 import prisma from "../db.server";
+import { normalizeFeatureOrder } from "../utils/featureOrder";
 
 /**
  * Public API endpoint for cart drawer data
@@ -58,6 +59,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       },
     });
 
+    const featureOrder = cartDrawer ? normalizeFeatureOrder(cartDrawer.featureOrder) : undefined;
+
     const couponCodeField = await prisma.couponCodeField.findUnique({
       where: { shop },
     });
@@ -78,6 +81,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       if (banner.endDate && new Date(banner.endDate) < now) return false;
       return true;
     });
+
+    if (cartDrawer) {
+      cartDrawer.featureOrder = featureOrder ?? cartDrawer.featureOrder;
+    }
 
     const features = {
       freeShippingProgressBar: cartDrawer.freeShippingProgressBarEnabled && cartDrawer.freeShippingBars[0]
@@ -110,6 +117,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       enabled: cartDrawer.isActive,
       theme: cartDrawer.theme,
       primaryColor: cartDrawer.primaryColor,
+      featureOrder: featureOrder ?? [],
       features,
     });
 
