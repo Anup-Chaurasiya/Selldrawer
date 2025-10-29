@@ -42,57 +42,24 @@ class UpsellityCartDrawer {
     try {
       const appUrl = document.querySelector('[data-upsellity-app-url]')?.dataset.upsellityAppUrl;
       if (!appUrl) {
-        console.warn('Upsellity: App URL not configured, using default config');
+        console.warn('Upsellity: App URL not configured');
         this.config = {
-          enabled: true,
-          features: {
-            freeShippingProgressBar: {
-              thresholdAmount: 5000,
-              currency: 'INR',
-              beforeThresholdMessage: 'Add {remaining} for FREE shipping',
-              achievedMessage: '🎉 You qualify for FREE shipping!',
-              showPercentage: true
-            },
-            productRecommendations: {
-              title: 'You may also like',
-              maxProducts: 4,
-              layout: 'grid',
-              recommendationType: 'manual',
-              showDiscount: true,
-              showDiscountBadge: true,
-              showAddButton: true
-            }
-          }
+          enabled: false,
+          features: {}
         };
         return;
       }
 
       const response = await fetch(`${appUrl}/api/cart-drawer?shop=${this.shop}`);
       this.config = await response.json();
-      console.log('Upsellity: Config loaded', this.config);
-      console.log('Upsellity: Promotional banner config', this.config.features?.promotionalBanner);
+      
+      console.log('Upsellity: Loaded config:', this.config);
+      console.log('Upsellity: Free shipping message config:', this.config.features?.freeShippingMessage);
     } catch (error) {
-      console.error('Upsellity: Failed to load config, using default', error);
+      console.error('Upsellity: Failed to load config', error);
       this.config = {
-        enabled: true,
-        features: {
-          freeShippingProgressBar: {
-            thresholdAmount: 5000,
-            currency: 'INR',
-            beforeThresholdMessage: 'Add {remaining} for FREE shipping',
-            achievedMessage: '🎉 You qualify for FREE shipping!',
-            showPercentage: true
-          },
-          productRecommendations: {
-            title: 'You may also like',
-            maxProducts: 4,
-            layout: 'grid',
-            recommendationType: 'manual',
-            showDiscount: true,
-            showDiscountBadge: true,
-            showAddButton: true
-          }
-        }
+        enabled: false,
+        features: {}
       };
     }
   }
@@ -101,7 +68,6 @@ class UpsellityCartDrawer {
     try {
       const response = await fetch('/cart.js');
       this.cart = await response.json();
-      console.log('Upsellity: Cart loaded', this.cart);
       
       // Load available discounts and auto-apply if enabled
       await this.loadAvailableDiscounts();
@@ -123,7 +89,6 @@ class UpsellityCartDrawer {
           featured_image: { url: 'https://via.placeholder.com/80' }
         }]
       };
-      console.log('Upsellity: Using mock cart for testing', this.cart);
       this.render();
     }
   }
@@ -131,29 +96,20 @@ class UpsellityCartDrawer {
   async loadAvailableDiscounts() {
     // Check if auto-apply or show all offers is enabled
     const couponField = this.config?.features?.couponCodeField;
-    console.log('Upsellity: loadAvailableDiscounts called', {
-      couponFieldExists: !!couponField,
-      enableAutoApply: couponField?.enableAutoApply,
-      showAllOffers: couponField?.showAllOffers,
-    });
     
     if (!couponField || (!couponField.enableAutoApply && !couponField.showAllOffers)) {
-      console.log('Upsellity: Skipping discount load - auto-apply and show-all-offers both disabled');
       return;
     }
 
     try {
       const appUrl = document.querySelector('[data-upsellity-app-url]')?.dataset.upsellityAppUrl || '';
-      console.log('Upsellity: Fetching discounts from:', `${appUrl}/api/available-discounts?shop=${this.shop}`);
       
       const response = await fetch(`${appUrl}/api/available-discounts?shop=${this.shop}`);
       const data = await response.json();
 
-      console.log('Upsellity: API response:', data);
 
       if (data.discounts && data.discounts.length > 0) {
         this.availableDiscounts = data.discounts;
-        console.log('Upsellity: Available discounts loaded', this.availableDiscounts);
 
         // Auto-apply best discount if enabled and no discount is already applied
         if (couponField.enableAutoApply && !this.appliedDiscount) {
@@ -207,7 +163,6 @@ class UpsellityCartDrawer {
 
     if (bestDiscount) {
       this.appliedDiscount = bestDiscount;
-      console.log('Upsellity: Auto-applied discount', bestDiscount);
     }
   }
 
@@ -285,7 +240,6 @@ class UpsellityCartDrawer {
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'C') {
         e.preventDefault();
-        console.log('Upsellity: Opening cart drawer via keyboard shortcut');
         this.open();
       }
     });
@@ -304,8 +258,8 @@ class UpsellityCartDrawer {
     
     document.body.appendChild(drawer);
 
-    // Add styles
-    this.injectStyles();
+    // Load external CSS file
+    this.loadStyles();
 
     // Close on overlay click
     drawer.querySelector('.upsellity-drawer-overlay').addEventListener('click', () => {
@@ -313,8 +267,32 @@ class UpsellityCartDrawer {
     });
   }
 
-  injectStyles() {
+  loadStyles() {
+    // Check if styles are already loaded
+    if (document.querySelector('#upsellity-cart-drawer-styles')) {
+      return;
+    }
+
+    // Create link element for external CSS
+    const link = document.createElement('link');
+    link.id = 'upsellity-cart-drawer-styles';
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = '/extensions/cart-upsell/assets/cart-drawer.css';
+    
+    // Fallback: if external CSS fails to load, inject inline styles
+    link.onerror = () => {
+      console.warn('Upsellity: Failed to load external CSS, using fallback');
+      this.injectFallbackStyles();
+    };
+    
+    document.head.appendChild(link);
+  }
+
+  injectFallbackStyles() {
+    // Minimal fallback styles if external CSS fails to load
     const style = document.createElement('style');
+    style.id = 'upsellity-cart-drawer-fallback-styles';
     style.textContent = `
       .upsellity-drawer {
         position: fixed;
@@ -383,633 +361,6 @@ class UpsellityCartDrawer {
         justify-content: center;
         z-index: 10;
       }
-      
-      .upsellity-progress-bar {
-        margin-bottom: 20px;
-      }
-      
-      .upsellity-progress-bar-text {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 8px;
-        font-size: 14px;
-      }
-      
-      .upsellity-progress-bar-track {
-        width: 100%;
-        height: 8px;
-        border-radius: 4px;
-        overflow: hidden;
-      }
-      
-      .upsellity-progress-bar-fill {
-        height: 100%;
-        transition: width 0.3s ease;
-      }
-      
-      .upsellity-banner {
-        padding: 16px;
-        border-radius: 6px;
-        text-align: center;
-        margin-bottom: 20px;
-      }
-      
-      .upsellity-banner-title {
-        font-weight: 700;
-        font-size: 16px;
-        margin-bottom: 4px;
-      }
-      
-      .upsellity-banner-subtitle {
-        font-size: 14px;
-      }
-      
-      .upsellity-banner-image {
-        border-radius: 6px;
-        overflow: hidden;
-        margin-bottom: 20px;
-        position: relative;
-      }
-      
-      .upsellity-banner-img {
-        width: 100%;
-        height: 120px;
-        object-fit: cover;
-        display: block;
-      }
-      
-      .upsellity-banner-content {
-        padding: 12px;
-        background-color: #f8f9fa;
-        border-top: 1px solid #e9ecef;
-      }
-      
-      .upsellity-banner-carousel {
-        border-radius: 6px;
-        overflow: hidden;
-        margin-bottom: 20px;
-        position: relative;
-      }
-      
-      .upsellity-carousel-container {
-        position: relative;
-        height: 120px;
-        overflow: hidden;
-      }
-      
-      .upsellity-carousel-track {
-        display: flex;
-        height: 100%;
-        transition: transform 0.5s ease;
-      }
-      
-      .upsellity-carousel-slide {
-        min-width: 100%;
-        height: 100%;
-        position: relative;
-      }
-      
-      .upsellity-carousel-slide.active {
-        display: block;
-      }
-      
-      .upsellity-carousel-arrow {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        background: rgba(0, 0, 0, 0.5);
-        color: white;
-        border: none;
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        cursor: pointer;
-        font-size: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 2;
-      }
-      
-      .upsellity-carousel-prev {
-        left: 10px;
-      }
-      
-      .upsellity-carousel-next {
-        right: 10px;
-      }
-      
-      .upsellity-carousel-dots {
-        position: absolute;
-        bottom: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        gap: 4px;
-        z-index: 2;
-      }
-      
-      .upsellity-carousel-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        border: none;
-        background-color: rgba(255, 255, 255, 0.5);
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-      }
-      
-      .upsellity-carousel-dot.active {
-        background-color: #007bff;
-      }
-      
-      .upsellity-banner-cta {
-        margin-top: 12px;
-      }
-      
-      .upsellity-cta-button {
-        background-color: #007bff;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 4px;
-        font-weight: 600;
-        cursor: pointer;
-        font-size: 14px;
-        transition: background-color 0.2s ease;
-      }
-      
-      .upsellity-cta-button:hover {
-        background-color: #0056b3;
-      }
-      
-      .upsellity-banner-content .upsellity-cta-button {
-        font-size: 12px;
-        padding: 6px 12px;
-      }
-      
-      /* Enhanced Banner Styles */
-      .upsellity-enhanced-banner {
-        position: relative;
-        border-radius: 8px;
-        overflow: hidden;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      }
-      
-      .upsellity-enhanced-carousel {
-        position: relative;
-        border-radius: 8px;
-        overflow: hidden;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      }
-      
-      .upsellity-banner-main-image {
-        width: 100%;
-        height: 200px;
-        object-fit: cover;
-        display: block;
-      }
-      
-      .upsellity-banner-overlay {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: linear-gradient(transparent, rgba(0,0,0,0.8));
-        padding: 20px;
-        color: white;
-      }
-      
-      .upsellity-banner-overlay .upsellity-banner-title {
-        font-size: 20px;
-        font-weight: 700;
-        margin-bottom: 8px;
-        text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-      }
-      
-      .upsellity-banner-overlay .upsellity-banner-subtitle {
-        font-size: 14px;
-        margin-bottom: 12px;
-        opacity: 0.9;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-      }
-      
-      .upsellity-banner-overlay .upsellity-cta-button {
-        background: #007bff;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 6px;
-        font-weight: 600;
-        cursor: pointer;
-        font-size: 14px;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      }
-      
-      .upsellity-banner-overlay .upsellity-cta-button:hover {
-        background: #0056b3;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-      }
-      
-      /* Enhanced Carousel Styles */
-      .upsellity-carousel-container {
-        position: relative;
-        height: 200px;
-        overflow: hidden;
-      }
-      
-      .upsellity-carousel-track {
-        display: flex;
-        height: 100%;
-        transition: transform 0.5s ease;
-      }
-      
-      .upsellity-carousel-slide {
-        min-width: 100%;
-        height: 100%;
-        position: relative;
-      }
-      
-      .upsellity-carousel-dots {
-        position: absolute;
-        bottom: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        gap: 6px;
-        z-index: 10;
-      }
-      
-      .upsellity-carousel-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        border: none;
-        background-color: rgba(255, 255, 255, 0.5);
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-      }
-      
-      .upsellity-carousel-dot.active {
-        background-color: #007bff;
-      }
-      
-      /* Mobile Responsive */
-      @media (max-width: 640px) {
-        .upsellity-banner-main-image {
-          height: 150px;
-        }
-        
-        .upsellity-banner-overlay {
-          padding: 16px;
-        }
-        
-        .upsellity-banner-overlay .upsellity-banner-title {
-          font-size: 18px;
-        }
-        
-        .upsellity-banner-overlay .upsellity-banner-subtitle {
-          font-size: 13px;
-        }
-        
-        .upsellity-banner-overlay .upsellity-cta-button {
-          padding: 8px 16px;
-          font-size: 13px;
-        }
-      }
-      
-      .upsellity-cart-item {
-        display: flex;
-        gap: 12px;
-        padding: 12px 0;
-        border-bottom: 1px solid #f3f4f6;
-        position: relative;
-      }
-      
-      .upsellity-cart-item-image {
-        width: 80px;
-        height: 80px;
-        object-fit: cover;
-        border-radius: 4px;
-      }
-      
-      .upsellity-cart-item-details {
-        flex: 1;
-      }
-      
-      .upsellity-cart-item-title {
-        font-weight: 600;
-        margin-bottom: 4px;
-      }
-      
-      .upsellity-cart-item-variant {
-        font-size: 14px;
-        color: #6b7280;
-        margin-bottom: 8px;
-      }
-      
-      .upsellity-cart-item-price {
-        font-weight: 600;
-        font-size: 16px;
-      }
-      
-      .upsellity-cart-item-original-price {
-        text-decoration: line-through;
-        color: #9ca3af;
-        font-size: 14px;
-        margin-right: 8px;
-      }
-      
-      .upsellity-cart-item-controls {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-top: 8px;
-      }
-      
-      .upsellity-quantity-controls {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
-        background: white;
-      }
-      
-      .upsellity-quantity-btn {
-        width: 32px;
-        height: 32px;
-        border: none;
-        background: #f8f9fa;
-        color: #374151;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        border-radius: 4px;
-      }
-      
-      .upsellity-quantity-btn:hover {
-        background: #e5e7eb;
-        transform: scale(1.05);
-      }
-      
-      .upsellity-quantity-btn:active {
-        transform: scale(0.95);
-      }
-      
-      .upsellity-quantity-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-      }
-      
-      .upsellity-quantity-display {
-        min-width: 40px;
-        text-align: center;
-        font-weight: 600;
-        font-size: 14px;
-        color: #374151;
-        padding: 0 8px;
-      }
-      
-      .upsellity-remove-btn {
-        width: 32px;
-        height: 32px;
-        border: none;
-        background: #ef4444;
-        color: white;
-        border-radius: 6px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        transition: all 0.2s ease;
-      }
-      
-      .upsellity-remove-btn:hover {
-        background: #dc2626;
-        transform: scale(1.05);
-      }
-      
-      .upsellity-remove-btn:active {
-        transform: scale(0.95);
-      }
-      
-      .upsellity-progress-bar-enhanced {
-        margin-bottom: 20px;
-        padding: 16px;
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-      }
-      
-      .upsellity-progress-bar-text-enhanced {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-        font-size: 14px;
-        font-weight: 600;
-      }
-      
-      .upsellity-progress-bar-message {
-        color: #374151;
-      }
-      
-      .upsellity-progress-bar-percentage {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        color: white;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 700;
-        box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
-      }
-      
-      .upsellity-progress-bar-track-enhanced {
-        width: 100%;
-        height: 12px;
-        border-radius: 8px;
-        overflow: hidden;
-        background: #e5e7eb !important;
-        position: relative;
-        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-        display: block;
-      }
-      
-      .upsellity-progress-bar-fill-enhanced {
-        height: 100% !important;
-        border-radius: 8px;
-        transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
-        display: block;
-        min-width: 2px;
-      }
-      
-      .upsellity-progress-bar-fill-enhanced::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
-        animation: shimmer 2s infinite;
-      }
-      
-      @keyframes shimmer {
-        0% { transform: translateX(-100%); }
-        100% { transform: translateX(100%); }
-      }
-      
-      .upsellity-progress-complete {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      }
-      
-      .upsellity-progress-incomplete {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-      }
-      
-      .upsellity-loading {
-        opacity: 0.6;
-        pointer-events: none;
-      }
-      
-      .upsellity-loading .upsellity-quantity-btn,
-      .upsellity-loading .upsellity-remove-btn {
-        cursor: not-allowed;
-      }
-      
-      .upsellity-recommendations {
-        margin: 20px 0;
-      }
-      
-      .upsellity-recommendations-title {
-        font-size: 16px;
-        font-weight: 600;
-        margin-bottom: 12px;
-      }
-      
-      .upsellity-recommendations-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-      }
-      
-      .upsellity-recommendation-card {
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
-        padding: 12px;
-        text-align: center;
-      }
-      
-      .upsellity-recommendation-image {
-        width: 100%;
-        height: 100px;
-        background: #f3f4f6;
-        border-radius: 4px;
-        margin-bottom: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 32px;
-      }
-      
-      .upsellity-add-recommendation-btn:hover {
-        background: #f97316 !important;
-        color: white !important;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
-      }
-      
-      .upsellity-add-recommendation-btn:active {
-        transform: translateY(0);
-      }
-      
-      .upsellity-savings-display {
-        padding: 12px 16px;
-        border-radius: 6px;
-        text-align: center;
-        font-weight: 600;
-        font-size: 16px;
-        margin: 20px 0;
-      }
-      
-      .upsellity-shipping-message {
-        padding: 12px 16px;
-        border-radius: 6px;
-        text-align: center;
-        font-size: 14px;
-        margin: 20px 0;
-      }
-      
-      .upsellity-checkout-btn {
-        width: 100%;
-        padding: 14px;
-        background: #1f2937;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        margin-top: 20px;
-      }
-      
-      .upsellity-checkout-btn:hover {
-        background: #111827;
-      }
-      
-      @media (max-width: 640px) {
-        .upsellity-drawer-content {
-          max-width: 100%;
-        }
-        
-        .upsellity-cart-item {
-          flex-direction: column;
-          gap: 8px;
-        }
-        
-        .upsellity-cart-item-image {
-          width: 60px;
-          height: 60px;
-        }
-        
-        .upsellity-cart-item-controls {
-          justify-content: space-between;
-          width: 100%;
-        }
-        
-        .upsellity-quantity-controls {
-          flex: 1;
-          max-width: 120px;
-        }
-        
-        .upsellity-progress-bar-enhanced {
-          padding: 12px;
-        }
-        
-        .upsellity-progress-bar-text-enhanced {
-          flex-direction: column;
-          gap: 8px;
-          align-items: flex-start;
-        }
-        
-        .upsellity-progress-bar-percentage {
-          align-self: flex-end;
-        }
-      }
     `;
     
     document.head.appendChild(style);
@@ -1017,7 +368,6 @@ class UpsellityCartDrawer {
 
   render() {
     if (!this.cart) {
-      console.log('Upsellity: No cart data available');
       return;
     }
 
@@ -1033,11 +383,6 @@ class UpsellityCartDrawer {
       return;
     }
     
-    console.log('Upsellity: Rendering cart drawer', {
-      cart: this.cart,
-      config: this.config,
-      enabled: this.config?.enabled
-    });
     
     let html = `
       <button class="upsellity-close-btn" onclick="window.upsellityDrawer.close()">×</button>
@@ -1046,164 +391,304 @@ class UpsellityCartDrawer {
       </h2>
     `;
 
-    // Enhanced Free Shipping Progress Bar - Always show with default config if no config exists
-    const bar = this.config?.features?.freeShippingProgressBar || {
-      thresholdMode: 'amount',
-      thresholdAmount: 5000,
-      thresholdCount: 5,
-      currency: 'INR',
-      beforeThresholdMessage: 'Add {remaining} for FREE shipping',
-      afterThresholdMessage: '🎉 You qualify for FREE shipping!',
-      showPercentage: true
-    };
+    // Enhanced Free Shipping Progress Bar - Only show if configured
+    const bar = this.config?.features?.freeShippingProgressBar;
     
-    let threshold, progress, remaining, isComplete, message;
-    
-    if (bar.thresholdMode === 'count') {
-      // Count-based mode
-      threshold = parseInt(bar.thresholdCount);
-      progress = Math.min((this.cart.item_count / threshold) * 100, 100);
-      remaining = Math.max(threshold - this.cart.item_count, 0);
-      isComplete = progress >= 100;
-      message = isComplete 
-        ? (bar.afterThresholdMessage || '🎉 You qualify for FREE shipping!')
-        : bar.beforeThresholdMessage.replace('{remaining}', `${remaining} more items`);
-    } else {
-      // Amount-based mode (default)
-      threshold = parseFloat(bar.thresholdAmount);
-      progress = Math.min((this.cart.total_price / 100 / threshold) * 100, 100);
-      remaining = Math.max(threshold - (this.cart.total_price / 100), 0);
-      isComplete = progress >= 100;
-      message = isComplete 
-        ? (bar.afterThresholdMessage || '🎉 You qualify for FREE shipping!')
-        : bar.beforeThresholdMessage.replace('{remaining}', `${bar.currency === 'INR' ? '₹' : '$'}${Math.round(remaining)}`);
+    if (bar) {
+      let threshold, progress, remaining, isComplete, message;
+      
+      if (bar.thresholdMode === 'count') {
+        // Count-based mode
+        threshold = parseInt(bar.thresholdCount);
+        progress = Math.min((this.cart.item_count / threshold) * 100, 100);
+        remaining = Math.max(threshold - this.cart.item_count, 0);
+        isComplete = progress >= 100;
+        message = isComplete 
+          ? (bar.afterThresholdMessage || '🎉 You qualify for FREE shipping!')
+          : bar.beforeThresholdMessage.replace('{remaining}', `${remaining} more items`);
+      } else {
+        // Amount-based mode (default)
+        threshold = parseFloat(bar.thresholdAmount);
+        progress = Math.min((this.cart.total_price / 100 / threshold) * 100, 100);
+        remaining = Math.max(threshold - (this.cart.total_price / 100), 0);
+        isComplete = progress >= 100;
+        message = isComplete 
+          ? (bar.afterThresholdMessage || '🎉 You qualify for FREE shipping!')
+          : bar.beforeThresholdMessage.replace('{remaining}', `${bar.currency === 'INR' ? '₹' : '$'}${Math.round(remaining)}`);
+      }
+      
+
+      // Get colors from configuration
+      const backgroundColor = bar.backgroundColor || '#f8fafc';
+      const progressBarColor = bar.progressBarColor || '#10b981';
+      const incompleteColor = bar.progressBarColor || '#f59e0b';
+      
+      // Create gradient backgrounds
+      const backgroundGradient = `linear-gradient(135deg, ${backgroundColor} 0%, ${backgroundColor}dd 100%)`;
+      const completeGradient = `linear-gradient(135deg, #10b981 0%, #059669 100%)`;
+      const incompleteGradient = `linear-gradient(135deg, ${incompleteColor} 0%, ${incompleteColor}dd 100%)`;
+      const percentageGradient = isComplete ? completeGradient : `linear-gradient(135deg, ${progressBarColor} 0%, ${progressBarColor}dd 100%)`;
+      
+      html += `
+        <div class="upsellity-progress-bar-enhanced" style="margin-bottom: 20px; padding: 16px; background: ${backgroundGradient}; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+          <div class="upsellity-progress-bar-text-enhanced" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; font-weight: 600;">
+            <span class="upsellity-progress-bar-message" style="color: #374151;">
+              ${message}
+            </span>
+            ${bar.showPercentage ? `<span class="upsellity-progress-bar-percentage" style="background: ${percentageGradient}; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; box-shadow: 0 2px 4px ${progressBarColor}40;">${progress.toFixed(0)}%</span>` : ''}
+          </div>
+          <div class="upsellity-progress-bar-track-enhanced" style="width: 100%; height: 12px; border-radius: 8px; overflow: hidden; background: ${backgroundColor}; position: relative; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);">
+            <div class="upsellity-progress-bar-fill-enhanced ${isComplete ? 'upsellity-progress-complete' : 'upsellity-progress-incomplete'}" 
+                 style="width: ${progress}%; height: 100%; display: block; background: ${isComplete ? completeGradient : incompleteGradient}; border-radius: 8px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+          </div>
+        </div>
+      `;
     }
-    
-    console.log('Upsellity: Progress bar calculation', {
-      mode: bar.thresholdMode,
-      cartTotal: this.cart.total_price,
-      cartItemCount: this.cart.item_count,
-      threshold,
-      progress: progress.toFixed(2) + '%',
-      remaining: remaining.toFixed(2),
-      isComplete,
-      message,
-      bar,
-      willRender: true
-    });
 
-    html += `
-      <div class="upsellity-progress-bar-enhanced" style="margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
-        <div class="upsellity-progress-bar-text-enhanced" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; font-weight: 600;">
-          <span class="upsellity-progress-bar-message" style="color: #374151;">
-            ${message}
-          </span>
-          ${bar.showPercentage ? `<span class="upsellity-progress-bar-percentage" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);">${progress.toFixed(0)}%</span>` : ''}
-        </div>
-        <div class="upsellity-progress-bar-track-enhanced" style="width: 100%; height: 12px; border-radius: 8px; overflow: hidden; background: #e5e7eb; position: relative; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);">
-          <div class="upsellity-progress-bar-fill-enhanced ${isComplete ? 'upsellity-progress-complete' : 'upsellity-progress-incomplete'}" 
-               style="width: ${progress}%; height: 100%; display: block; background: ${isComplete ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}; border-radius: 8px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);"></div>
-        </div>
-      </div>
-    `;
-
-    // Enhanced Promotional Banner
+    // Promotional Banner Carousel - Matches Configuration Preview
     if (this.config.features.promotionalBanner) {
       const banner = this.config.features.promotionalBanner;
-      console.log('Upsellity: Rendering promotional banner', banner);
+      const slides = banner.images || [];
+      const carouselSettings = banner.carouselSettings || {};
       
-      // Check if banner has images
-      if (banner.imageUrls && banner.imageUrls.length > 0) {
-        if (banner.bannerType === 'image') {
-          // Single Image Banner
-          html += `
-            <div class="upsellity-enhanced-banner" style="cursor: ${banner.ctaEnabled ? 'pointer' : 'default'}" ${banner.ctaEnabled ? `onclick="window.upsellityDrawer.handleBannerClick('${banner.id}')"` : ''}>
-              <img src="${banner.imageUrls[0]}" alt="Promotional Banner" class="upsellity-banner-main-image" />
-              <div class="upsellity-banner-overlay">
-                <div class="upsellity-banner-title">${banner.title}</div>
-                ${banner.subtitle ? `<div class="upsellity-banner-subtitle">${banner.subtitle}</div>` : ''}
-                ${banner.ctaEnabled ? `
-                  <button class="upsellity-cta-button" onclick="window.upsellityDrawer.handleBannerClick('${banner.id}')">
-                    ${banner.ctaButtonText}
-                  </button>
-                ` : ''}
-              </div>
-            </div>
-          `;
-        } else if (banner.bannerType === 'carousel' && banner.imageUrls.length > 1) {
-          // Image Carousel Banner
-          const carouselId = `upsellity-carousel-${Date.now()}`;
-          html += `
-            <div class="upsellity-enhanced-carousel" id="${carouselId}" style="cursor: ${banner.ctaEnabled ? 'pointer' : 'default'}" ${banner.ctaEnabled ? `onclick="window.upsellityDrawer.handleBannerClick('${banner.id}')"` : ''}>
-              <div class="upsellity-carousel-container">
-                <div class="upsellity-carousel-track">
-                  ${banner.imageUrls.map((url, index) => `
-                    <div class="upsellity-carousel-slide ${index === 0 ? 'active' : ''}" data-index="${index}">
-                      <img src="${url}" alt="Banner image ${index + 1}" class="upsellity-banner-main-image" />
-                    </div>
-                  `).join('')}
-                </div>
-                <div class="upsellity-carousel-dots">
-                  ${banner.imageUrls.map((_, index) => `
-                    <button class="upsellity-carousel-dot ${index === 0 ? 'active' : ''}" onclick="window.upsellityDrawer.carouselGoTo('${carouselId}', ${index})"></button>
-                  `).join('')}
-                </div>
-              </div>
-              <div class="upsellity-banner-overlay">
-                <div class="upsellity-banner-title">${banner.title}</div>
-                ${banner.subtitle ? `<div class="upsellity-banner-subtitle">${banner.subtitle}</div>` : ''}
-                ${banner.ctaEnabled ? `
-                  <button class="upsellity-cta-button" onclick="window.upsellityDrawer.handleBannerClick('${banner.id}')">
-                    ${banner.ctaButtonText}
-                  </button>
-                ` : ''}
-              </div>
-            </div>
-          `;
-          
-          // Initialize carousel auto-rotation
-          setTimeout(() => {
-            this.initializeEnhancedCarousel(carouselId, banner.imageUrls.length);
-          }, 100);
-        }
-      } else {
-        // Text-only banner (fallback when no images)
+      if (slides.length > 0) {
+        const carouselId = `upsellity-promo-carousel-${Date.now()}`;
+        
         html += `
-          <div class="upsellity-text-banner" style="
-            background-color: ${banner.backgroundColor || '#FF6B35'};
-            color: ${banner.textColor || '#FFFFFF'};
-            padding: 16px;
-            border-radius: 8px;
-            text-align: center;
+          <div class="upsellity-promo-carousel-wrapper" style="
             margin-bottom: 16px;
-            cursor: ${banner.ctaEnabled ? 'pointer' : 'default'};
-            ${banner.ctaEnabled ? `onclick="window.upsellityDrawer.handleBannerClick('${banner.id}')"` : ''}
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #fff;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
           ">
-            <div style="font-weight: 700; font-size: 16px; margin-bottom: 4px;">
-              ${banner.title}
-            </div>
-            ${banner.subtitle ? `
-              <div style="font-size: 14px; margin-bottom: ${banner.ctaEnabled ? '12px' : '0'};">
-                ${banner.subtitle}
+            <!-- Media Section -->
+            <div class="upsellity-promo-carousel" id="${carouselId}" style="
+              position: relative;
+              overflow: hidden;
+              height: 160px;
+              background-color: #000;
+            ">
+              <!-- Carousel Track -->
+              <div class="upsellity-promo-carousel-track" style="
+                display: flex;
+                height: 100%;
+                transition: transform 0.5s ease;
+              ">
+                ${slides.map((slide, index) => `
+                  <div class="upsellity-promo-slide" data-slide-index="${index}" style="
+                    min-width: 100%;
+                    height: 100%;
+                    position: relative;
+                  ">
+                    ${slide.videoUrl && slide.videoType === 'mp4' ? `
+                      <video 
+                        src="${slide.videoUrl}"
+                        style="width: 100%; height: 100%; object-fit: cover;"
+                        muted
+                        loop
+                        autoplay
+                        playsinline
+                      ></video>
+                    ` : `
+                      <img 
+                        src="${slide.imageUrl}" 
+                        alt="Promotional slide ${index + 1}"
+                        style="width: 100%; height: 100%; object-fit: cover;"
+                      />
+                    `}
+                  </div>
+                `).join('')}
               </div>
-            ` : ''}
-            ${banner.ctaEnabled ? `
-              <button style="
-                background-color: ${banner.textColor || '#FFFFFF'};
-                color: ${banner.backgroundColor || '#FF6B35'};
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-                font-weight: 600;
-                cursor: pointer;
-                font-size: 14px;
-                margin-top: 8px;
-              " onclick="window.upsellityDrawer.handleBannerClick('${banner.id}')">
-                ${banner.ctaButtonText}
-              </button>
-            ` : ''}
+              
+              <!-- Navigation Arrows -->
+              ${slides.length > 1 && carouselSettings.showArrows !== false ? `
+                <button 
+                  onclick="window.upsellityDrawer.promoCarouselPrev('${carouselId}')"
+                  style="
+                    position: absolute;
+                    left: 12px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    background-color: rgba(255,255,255,0.9);
+                    border-radius: 50%;
+                    width: 32px;
+                    height: 32px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    border: none;
+                    font-size: 18px;
+                    font-weight: bold;
+                    color: #333;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                    transition: all 0.2s ease;
+                    z-index: 10;
+                  "
+                >‹</button>
+                <button 
+                  onclick="window.upsellityDrawer.promoCarouselNext('${carouselId}')"
+                  style="
+                    position: absolute;
+                    right: 12px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    background-color: rgba(255,255,255,0.9);
+                    border-radius: 50%;
+                    width: 32px;
+                    height: 32px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    border: none;
+                    font-size: 18px;
+                    font-weight: bold;
+                    color: #333;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                    transition: all 0.2s ease;
+                    z-index: 10;
+                  "
+                >›</button>
+              ` : ''}
+              
+              <!-- Dot Indicators -->
+              ${slides.length > 1 && carouselSettings.showDots !== false ? `
+                <div style="
+                  position: absolute;
+                  bottom: 12px;
+                  left: 50%;
+                  transform: translateX(-50%);
+                  display: flex;
+                  gap: 8px;
+                  z-index: 10;
+                ">
+                  ${slides.map((_, index) => `
+                    <button 
+                      onclick="window.upsellityDrawer.promoCarouselGoTo('${carouselId}', ${index})"
+                      data-dot-index="${index}"
+                      style="
+                        width: 12px;
+                        height: 12px;
+                        border-radius: 50%;
+                        background-color: ${index === 0 ? '#007bff' : 'rgba(255,255,255,0.6)'};
+                        border: 2px solid rgba(255,255,255,0.9);
+                        transition: all 0.3s ease;
+                        cursor: pointer;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                        padding: 0;
+                      "
+                    ></button>
+                  `).join('')}
+                </div>
+              ` : ''}
+              
+              <!-- 5% Edge Previews -->
+              ${slides.length > 1 ? `
+                <div class="upsellity-promo-prev-edge" style="
+                  position: absolute;
+                  left: 0;
+                  top: 0;
+                  height: 100%;
+                  width: 5%;
+                  overflow: hidden;
+                  opacity: 0.5;
+                  pointer-events: none;
+                  display: none;
+                "></div>
+                <div class="upsellity-promo-next-edge" style="
+                  position: absolute;
+                  right: 0;
+                  top: 0;
+                  height: 100%;
+                  width: 5%;
+                  overflow: hidden;
+                  opacity: 0.5;
+                  pointer-events: none;
+                  display: ${slides.length > 1 ? 'block' : 'none'};
+                ">
+                  <img src="${slides[1].imageUrl}" alt="Next" style="width: 100%; height: 100%; object-fit: cover;" />
+                </div>
+              ` : ''}
+            </div>
+            
+            <!-- Text Content Section (Below Image) -->
+            <div class="upsellity-promo-text-section" style="
+              background-color: #fff;
+              padding: 10px 12px;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 12px;
+              min-height: 60px;
+            ">
+              <!-- CTA Button - Left Side -->
+              <div class="upsellity-promo-cta-container" style="flex-shrink: 0;">
+                ${slides.map((slide, index) => `
+                  <button 
+                    class="upsellity-promo-cta-btn"
+                    data-slide-cta="${index}"
+                    onclick="window.upsellityDrawer.handleSlideCtaClick('${slide.ctaUrl || ''}')"
+                    style="
+                      display: ${index === 0 ? 'block' : 'none'};
+                      background-color: #ff6b35;
+                      color: #ffffff;
+                      border: none;
+                      padding: 8px 16px;
+                      border-radius: 6px;
+                      font-weight: 600;
+                      cursor: pointer;
+                      font-size: 14px;
+                      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                      transition: all 0.2s ease;
+                      min-width: 110px;
+                      ${!slide.ctaText ? 'visibility: hidden;' : ''}
+                    "
+                  >${slide.ctaText || 'Shop Now'}</button>
+                `).join('')}
+              </div>
+              
+              <!-- Title & Description - Right Side -->
+              <div class="upsellity-promo-text-container" style="
+                flex: 1;
+                text-align: right;
+                min-width: 0;
+              ">
+                ${slides.map((slide, index) => `
+                  <div 
+                    class="upsellity-promo-text-content"
+                    data-slide-text="${index}"
+                    style="display: ${index === 0 ? 'block' : 'none'};"
+                  >
+                    ${slide.title ? `
+                      <div style="
+                        font-weight: 700;
+                        font-size: 18px;
+                        color: #1f2937;
+                        margin-bottom: ${slide.description ? '2px' : '0'};
+                        line-height: 1.2;
+                      ">${slide.title}</div>
+                    ` : ''}
+                    ${slide.description ? `
+                      <div style="
+                        font-size: 14px;
+                        color: #6b7280;
+                        line-height: 1.4;
+                      ">${slide.description}</div>
+                    ` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
           </div>
         `;
+        
+        // Initialize carousel with auto-rotation
+        setTimeout(() => {
+          this.initializePromoCarousel(carouselId, slides, carouselSettings);
+        }, 100);
       }
     }
 
@@ -1225,7 +710,14 @@ class UpsellityCartDrawer {
                 <span class="upsellity-quantity-display">${item.quantity}</span>
                 <button class="upsellity-quantity-btn" onclick="window.upsellityDrawer.updateQuantity('${item.key}', ${item.quantity + 1})">+</button>
               </div>
-              <button class="upsellity-remove-btn" onclick="window.upsellityDrawer.removeItem('${item.key}')" title="Remove item">🗑</button>
+              <button class="upsellity-remove-btn" onclick="window.upsellityDrawer.removeItem('${item.key}')" title="Remove item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3,6 5,6 21,6"></polyline>
+                  <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -1244,43 +736,63 @@ class UpsellityCartDrawer {
       html += `
         <div class="upsellity-recommendations">
           <div class="upsellity-recommendations-title">${recommendations.title}</div>
-          <div class="upsellity-recommendations-grid">
-            ${recommendedProducts.slice(0, recommendations.maxProducts || 4).map(product => {
-              const originalPrice = product.compareAtPrice || product.price;
-              const discount = product.compareAtPrice && product.compareAtPrice > product.price 
-                ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100) 
-                : 0;
-              return `
-                <div class="upsellity-recommendation-card">
-                  <div class="upsellity-recommendation-image" style="position: relative;">
-                    <img src="${product.imageUrl || 'https://via.placeholder.com/100'}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />
-                    ${recommendations.showDiscountBadge && discount > 0 ? `
-                      <div style="position: absolute; top: 8px; right: 8px; background-color: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; z-index: 10;">
-                        ${discount}% off
-                      </div>
+          <div class="upsellity-recommendations-container" style="position: relative;">
+            <!-- Left Arrow -->
+            <button class="upsellity-nav-arrow upsellity-nav-left" 
+                    onclick="window.upsellityDrawer.scrollRecommendations('left')"
+                    style="display: none;">
+              <span>‹</span>
+            </button>
+            
+            <!-- Right Arrow -->
+            <button class="upsellity-nav-arrow upsellity-nav-right" 
+                    onclick="window.upsellityDrawer.scrollRecommendations('right')"
+                    style="display: none;">
+              <span>›</span>
+            </button>
+            
+            <div class="upsellity-recommendations-grid">
+              ${recommendedProducts.slice(0, recommendations.maxProducts || 4).map(product => {
+                const originalPrice = product.compareAtPrice || product.price;
+                const discount = product.compareAtPrice && product.compareAtPrice > product.price 
+                  ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100) 
+                  : 0;
+                return `
+                  <div class="upsellity-recommendation-card">
+                    <div class="upsellity-recommendation-image" style="position: relative;">
+                      ${product.imageUrl ? `
+                        <img src="${product.imageUrl}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />
+                      ` : `
+                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 24px;">📦</div>
+                      `}
+                      ${recommendations.showDiscountBadge && discount > 0 ? `
+                        <div style="position: absolute; top: 8px; right: 8px; background-color: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; z-index: 10;">
+                          ${discount}% off
+                        </div>
+                      ` : ''}
+                    </div>
+                    <div style="font-size: 13px; font-weight: 500; margin-bottom: 4px; line-height: 1.3;">
+                      ${product.title.length > 20 ? product.title.substring(0, 20) + '...' : product.title}
+                    </div>
+                    <div style="margin-bottom: 4px;">
+                      ${recommendations.showDiscount && product.compareAtPrice && product.compareAtPrice > product.price ? `
+                        <span style="text-decoration: line-through; color: #9ca3af; font-size: 12px; margin-right: 4px;">
+                          ₹${Math.round(product.compareAtPrice)}
+                        </span>
+                      ` : ''}
+                      <span style="font-weight: 600; font-size: 12px;">₹${Math.round(product.price)}</span>
+                    </div>
+                    ${recommendations.showAddButton ? `
+                      <button class="upsellity-add-recommendation-btn" 
+                              onclick="window.upsellityDrawer.addProductToCart('${product.shopifyVariantId || product.shopifyProductId}')"
+                              style="width: 100%; padding: 4px 8px; border: 1px solid #f97316; background: white; color: #f97316; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s ease;">
+                        + Add
+                      </button>
                     ` : ''}
                   </div>
-                  <div style="font-size: 14px; font-weight: 500; margin-bottom: 4px;">
-                    ${product.title}
-                  </div>
-                  <div style="margin-bottom: 4px;">
-                    ${recommendations.showDiscount && product.compareAtPrice && product.compareAtPrice > product.price ? `
-                      <span style="text-decoration: line-through; color: #9ca3af; font-size: 12px; margin-right: 4px;">
-                        ₹${Math.round(product.compareAtPrice)}
-                      </span>
-                    ` : ''}
-                    <span style="font-weight: 600;">₹${Math.round(product.price)}</span>
-                  </div>
-                  ${recommendations.showAddButton ? `
-                    <button class="upsellity-add-recommendation-btn" 
-                            onclick="window.upsellityDrawer.addProductToCart('${product.shopifyProductId}')"
-                            style="width: 100%; padding: 6px; border: 1px solid #f97316; background: white; color: #f97316; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s ease;">
-                      + Add
-                    </button>
-                  ` : ''}
-                </div>
-              `;
-            }).join('')}
+                `;
+              }).join('')}
+            </div>
           </div>
         </div>
       `;
@@ -1308,12 +820,24 @@ class UpsellityCartDrawer {
       const threshold = parseFloat(msg.thresholdAmount);
       const remaining = Math.max(threshold - (this.cart.total_price / 100), 0);
 
+      console.log('Upsellity: Free shipping message debug:', {
+        msg,
+        threshold,
+        remaining,
+        cartTotal: this.cart.total_price,
+        cartTotalInRupees: this.cart.total_price / 100
+      });
+
       html += `
-        <div class="upsellity-shipping-message" style="background-color: ${msg.backgroundColor}; color: ${msg.textColor}">
-          ${remaining > 0 
-            ? msg.beforeThresholdMessage.replace('{threshold}', `${msg.currency === 'INR' ? '₹' : '$'}${Math.round(threshold)}`).replace('{remaining}', `${msg.currency === 'INR' ? '₹' : '$'}${Math.round(remaining)}`)
-            : msg.achievedMessage
-          }
+        <div class="upsellity-shipping-message" style="background-color: ${msg.backgroundColor}; color: ${msg.textColor}; border: 2px solid ${msg.textColor}; padding: 14px 18px; border-radius: 12px; display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 700; margin-bottom: 8px; box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1); position: relative; overflow: hidden;">
+          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(45deg, rgba(255,255,255,0.2) 0%, transparent 50%); pointer-events: none;"></div>
+          <div style="font-size: 20px; flex-shrink: 0; position: relative; z-index: 1;">🚚</div>
+          <span style="position: relative; z-index: 1; text-shadow: 0 1px 2px rgba(0,0,0,0.1); flex: 1;">
+            ${remaining > 0 
+              ? msg.beforeThresholdMessage.replace('{threshold}', `${msg.currency === 'INR' ? '₹' : '$'}${Math.round(threshold)}`).replace('{remaining}', `${msg.currency === 'INR' ? '₹' : '$'}${Math.round(remaining)}`)
+              : msg.achievedMessage
+            }
+          </span>
         </div>
       `;
     }
@@ -1321,80 +845,45 @@ class UpsellityCartDrawer {
     // Coupon Code Field
     if (this.config.features.couponCodeField) {
       const couponField = this.config.features.couponCodeField;
-      console.log('Upsellity: Rendering coupon code field', couponField);
       
       html += `
-        <div class="upsellity-coupon-field" style="margin: 16px 0; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <div class="upsellity-coupon-field">
           <!-- Manual Coupon Input (Always at top) -->
-          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: ${this.appliedDiscount || (couponField.showAllOffers && this.availableDiscounts.length > 0) ? '12px' : '0'};">
-            <input 
-              type="text" 
-              id="upsellity-coupon-input" 
-              placeholder="${couponField.placeholder || 'Enter coupon code'}"
-              style="
-                flex: 1;
-                padding: 10px 12px;
-                border: 1px solid #d1d5db;
-                border-radius: 6px;
-                font-size: 14px;
-                background: white;
-                outline: none;
-                transition: border-color 0.2s ease;
-              "
-              onfocus="this.style.borderColor='#3b82f6'"
-              onblur="this.style.borderColor='#d1d5db'"
-              onkeypress="if(event.key === 'Enter') window.upsellityDrawer.applyCoupon()"
-            />
+          <div class="upsellity-coupon-input-container">
+            <div class="upsellity-coupon-input-wrapper">
+              <input 
+                type="text" 
+                id="upsellity-coupon-input" 
+                class="upsellity-coupon-input"
+                placeholder="${couponField.placeholder || 'Enter coupon code'}"
+                onkeypress="if(event.key === 'Enter') window.upsellityDrawer.applyCoupon()"
+              />
+            </div>
             <button 
               class="upsellity-coupon-apply-btn"
               onclick="window.upsellityDrawer.applyCoupon()"
-              style="
-                padding: 10px 16px;
-                background: #1f2937;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: background-color 0.2s ease;
-                white-space: nowrap;
-              "
-              onmouseover="this.style.backgroundColor='#374151'"
-              onmouseout="this.style.backgroundColor='#1f2937'"
             >
               ${couponField.buttonText || 'Apply'}
             </button>
           </div>
-          <div id="upsellity-coupon-message" style="margin-top: 4px; font-size: 12px; min-height: 16px;"></div>
+          <div id="upsellity-coupon-message" class="upsellity-coupon-message"></div>
 
           <!-- Auto-Applied Discount Section -->
           ${this.appliedDiscount ? `
-            <div style="padding: 12px; background: #ecfdf5; border: 1px solid #10b981; border-radius: 6px; margin-top: 8px;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="flex: 1;">
-                  <div style="font-weight: 600; color: #059669; margin-bottom: 4px; font-size: 14px;">
-                    ✓ ${this.appliedDiscount.code} - ${this.appliedDiscount.description}
+            <div class="upsellity-applied-discount">
+              <div class="upsellity-applied-discount-content">
+                <div class="upsellity-discount-checkmark">✓</div>
+                <div class="upsellity-discount-info">
+                  <div class="upsellity-discount-title">
+                    ${this.appliedDiscount.code} - ${this.appliedDiscount.description}
                   </div>
-                  <div style="font-size: 12px; color: #047857;">
+                  <div class="upsellity-discount-subtitle">
                     ${couponField.enableAutoApply ? 'Best offer automatically applied' : 'Applied'}
                   </div>
                 </div>
                 <button 
+                  class="upsellity-discount-remove"
                   onclick="window.upsellityDrawer.removeDiscount()"
-                  style="
-                    padding: 6px 12px;
-                    background: transparent;
-                    color: #059669;
-                    border: 1px solid #10b981;
-                    border-radius: 4px;
-                    font-size: 12px;
-                    font-weight: 500;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                  "
-                  onmouseover="this.style.backgroundColor='#d1fae5'"
-                  onmouseout="this.style.backgroundColor='transparent'"
                 >
                   Remove
                 </button>
@@ -1404,67 +893,35 @@ class UpsellityCartDrawer {
 
           <!-- Show All Offers Button & Dropdown -->
           ${couponField.showAllOffers && this.availableDiscounts.length > 0 ? `
-            <div style="margin-top: 12px;">
-              <button 
-                onclick="window.upsellityDrawer.toggleAllOffers()"
-                style="
-                  width: 100%;
-                  padding: 10px 12px;
-                  background: white;
-                  color: #1f2937;
-                  border: 1px solid #d1d5db;
-                  border-radius: 6px;
-                  font-size: 13px;
-                  font-weight: 500;
-                  cursor: pointer;
-                  transition: all 0.2s ease;
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-                "
-                onmouseover="this.style.backgroundColor='#f9fafb'; this.style.borderColor='#9ca3af'"
-                onmouseout="this.style.backgroundColor='white'; this.style.borderColor='#d1d5db'"
-              >
+            <button 
+              class="upsellity-show-offers-btn"
+              onclick="window.upsellityDrawer.toggleAllOffers()"
+            >
+              <span style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 16px;">🎁</span>
                 <span>${couponField.showAllOffersButtonText || 'Show all offers'} (${this.availableDiscounts.length} available)</span>
-                <span style="font-size: 18px; transition: transform 0.2s ease;" id="upsellity-offers-arrow">${this.showingAllOffers ? '▲' : '▼'}</span>
-              </button>
+              </span>
+              <span style="font-size: 12px; color: #6b7280; transition: transform 0.3s ease;" id="upsellity-offers-arrow">${this.showingAllOffers ? '▲' : '▼'}</span>
+            </button>
 
               <!-- Offers Dropdown -->
-              <div id="upsellity-all-offers-dropdown" style="display: ${this.showingAllOffers ? 'block' : 'none'}; margin-top: 8px; border: 1px solid #e5e7eb; border-radius: 6px; background: white; max-height: 200px; overflow-y: auto;">
+              <div id="upsellity-all-offers-dropdown" class="upsellity-offers-list" style="display: ${this.showingAllOffers ? 'block' : 'none'};">
                 ${this.availableDiscounts.map(discount => `
                   <div 
+                    class="upsellity-offer-item ${this.appliedDiscount?.code === discount.code ? 'selected' : ''}"
                     onclick="window.upsellityDrawer.switchDiscount('${discount.code}')"
-                    style="
-                      padding: 10px 12px;
-                      border-bottom: 1px solid #f3f4f6;
-                      cursor: pointer;
-                      transition: background-color 0.2s ease;
-                      display: flex;
-                      align-items: center;
-                      gap: 10px;
-                    "
-                    onmouseover="this.style.backgroundColor='#f9fafb'"
-                    onmouseout="this.style.backgroundColor='white'"
                   >
-                    <div style="
-                      width: 20px;
-                      height: 20px;
-                      border-radius: 50%;
-                      border: 2px solid ${this.appliedDiscount?.code === discount.code ? '#10b981' : '#d1d5db'};
-                      background: ${this.appliedDiscount?.code === discount.code ? '#10b981' : 'white'};
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
-                      flex-shrink: 0;
-                    ">
-                      ${this.appliedDiscount?.code === discount.code ? '<span style="color: white; font-size: 12px;">✓</span>' : '<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent;"></span>'}
-                    </div>
-                    <div style="flex: 1;">
-                      <div style="font-weight: 600; font-size: 13px; color: #111827; margin-bottom: 2px;">
-                        ${discount.code} - ${discount.description}
+                    <div class="upsellity-offer-content">
+                      <div class="upsellity-offer-checkbox">
+                        ${this.appliedDiscount?.code === discount.code ? '✓' : ''}
                       </div>
-                      <div style="font-size: 11px; color: #6b7280;">
-                        ${discount.title}
+                      <div class="upsellity-offer-details">
+                        <div class="upsellity-offer-code">
+                          ${discount.code} - ${discount.description}
+                        </div>
+                        <div class="upsellity-offer-description">
+                          ${discount.title}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1518,13 +975,10 @@ class UpsellityCartDrawer {
 
     inner.innerHTML = html;
     
-    console.log('Upsellity: HTML rendered successfully', {
-      hasProgressBar: html.includes('upsellity-progress-bar-enhanced'),
-      hasRecommendations: html.includes('upsellity-recommendations'),
-      hasAddButtons: html.includes('upsellity-add-recommendation-btn'),
-      progressBarWidth: html.match(/width: (\d+\.?\d*)%/)?.[1] + '%',
-      htmlLength: html.length
-    });
+    // Initialize product recommendations navigation after rendering
+    setTimeout(() => {
+      this.initializeRecommendationsNavigation();
+    }, 100);
   }
 
   formatMoney(cents) {
@@ -1684,6 +1138,131 @@ class UpsellityCartDrawer {
     };
   }
 
+  // Initialize promotional banner carousel
+  initializePromoCarousel(carouselId, slides, settings) {
+    const carousel = document.getElementById(carouselId);
+    if (!carousel || slides.length <= 1) return;
+
+    const track = carousel.querySelector('.upsellity-promo-carousel-track');
+    const dots = carousel.querySelectorAll('[data-dot-index]');
+    const prevEdge = carousel.querySelector('.upsellity-promo-prev-edge');
+    const nextEdge = carousel.querySelector('.upsellity-promo-next-edge');
+    
+    // Get text content and CTA elements
+    const textContents = document.querySelectorAll('[data-slide-text]');
+    const ctaButtons = document.querySelectorAll('[data-slide-cta]');
+    
+    if (!track) return;
+
+    let currentIndex = 0;
+    let autoRotateInterval;
+
+    const updateCarousel = () => {
+      const translateX = -currentIndex * 100;
+      track.style.transform = `translateX(${translateX}%)`;
+      
+      // Update dot indicators
+      dots.forEach((dot, index) => {
+        if (index === currentIndex) {
+          dot.style.backgroundColor = '#007bff';
+        } else {
+          dot.style.backgroundColor = 'rgba(255,255,255,0.6)';
+        }
+      });
+
+      // Update text content visibility
+      textContents.forEach((content, index) => {
+        content.style.display = index === currentIndex ? 'block' : 'none';
+      });
+
+      // Update CTA button visibility
+      ctaButtons.forEach((button, index) => {
+        button.style.display = index === currentIndex ? 'block' : 'none';
+      });
+
+      // Update edge previews
+      if (prevEdge && nextEdge) {
+        const prevIndex = (currentIndex - 1 + slides.length) % slides.length;
+        const nextIndex = (currentIndex + 1) % slides.length;
+        
+        if (currentIndex > 0) {
+          prevEdge.style.display = 'block';
+          prevEdge.innerHTML = `<img src="${slides[prevIndex].imageUrl}" alt="Previous" style="width: 100%; height: 100%; object-fit: cover;" />`;
+        } else {
+          prevEdge.style.display = 'none';
+        }
+        
+        if (currentIndex < slides.length - 1) {
+          nextEdge.style.display = 'block';
+          nextEdge.innerHTML = `<img src="${slides[nextIndex].imageUrl}" alt="Next" style="width: 100%; height: 100%; object-fit: cover;" />`;
+        } else {
+          nextEdge.style.display = 'none';
+        }
+      }
+    };
+
+    const nextSlide = () => {
+      currentIndex = (currentIndex + 1) % slides.length;
+      updateCarousel();
+    };
+
+    const prevSlide = () => {
+      currentIndex = (currentIndex - 1 + slides.length) % slides.length;
+      updateCarousel();
+    };
+
+    const goToSlide = (index) => {
+      currentIndex = index;
+      updateCarousel();
+    };
+
+    // Store methods globally for onclick handlers
+    window.upsellityDrawer.promoCarouselNext = (id) => {
+      if (id === carouselId) nextSlide();
+    };
+    
+    window.upsellityDrawer.promoCarouselPrev = (id) => {
+      if (id === carouselId) prevSlide();
+    };
+    
+    window.upsellityDrawer.promoCarouselGoTo = (id, index) => {
+      if (id === carouselId) goToSlide(index);
+    };
+
+    // Auto-rotate if enabled
+    if (settings.autoRotate !== false) {
+      const rotationSpeed = settings.rotationSpeed || 5000;
+      autoRotateInterval = setInterval(nextSlide, rotationSpeed);
+      
+      // Pause on hover
+      carousel.addEventListener('mouseenter', () => {
+        if (autoRotateInterval) {
+          clearInterval(autoRotateInterval);
+        }
+      });
+      
+      carousel.addEventListener('mouseleave', () => {
+        if (settings.autoRotate !== false) {
+          autoRotateInterval = setInterval(nextSlide, rotationSpeed);
+        }
+      });
+    }
+
+    // Store cleanup function
+    carousel._cleanup = () => {
+      if (autoRotateInterval) {
+        clearInterval(autoRotateInterval);
+      }
+    };
+  }
+
+  // Handle slide CTA button clicks
+  handleSlideCtaClick(url) {
+    if (url) {
+      window.location.href = url;
+    }
+  }
+
   // Handle banner CTA clicks
   handleBannerClick(bannerId) {
     if (!this.config?.features?.promotionalBanner) return;
@@ -1827,29 +1406,34 @@ class UpsellityCartDrawer {
 
   async addProductToCart(variantId, quantity = 1) {
     try {
-      console.log('Adding product to cart with variant ID:', variantId);
       
       if (!variantId) {
         throw new Error('No variant ID provided');
       }
 
-      const formData = new FormData();
-      formData.append('id', variantId);
-      formData.append('quantity', quantity.toString());
+      // Check if variantId is a numeric ID or a product handle
+      if (/^\d+$/.test(variantId)) {
+        // It's a numeric variant ID - use it directly
+        const formData = new FormData();
+        formData.append('id', variantId);
+        formData.append('quantity', quantity.toString());
 
-      const response = await fetch('/cart/add.js', {
-        method: 'POST',
-        body: formData
-      });
+        const response = await fetch('/cart/add.js', {
+          method: 'POST',
+          body: formData
+        });
 
-      if (response.ok) {
-        // Reload cart and show success message
-        await this.loadCart();
-        this.showNotification('Product added to cart!', 'success');
+        if (response.ok) {
+          await this.loadCart();
+          this.showNotification('Product added to cart!', 'success');
+        } else {
+          const error = await response.json();
+          console.error('Cart add error:', error);
+          this.showNotification(error.description || 'Failed to add product to cart', 'error');
+        }
       } else {
-        const error = await response.json();
-        console.error('Cart add error:', error);
-        this.showNotification(error.description || 'Failed to add product to cart', 'error');
+        // It's a product handle - fetch product and use first variant
+        await this.addProductToCartByHandle(variantId, null, quantity);
       }
     } catch (error) {
       console.error('Error adding product to cart:', error);
@@ -1859,13 +1443,11 @@ class UpsellityCartDrawer {
 
   async addProductToCartByHandle(productHandle, variantId, quantity = 1) {
     try {
-      console.log('Adding product to cart by handle:', productHandle);
       
       // Check if productHandle is a numeric ID (legacy data) or a handle
       let productResponse;
       if (/^\d+$/.test(productHandle)) {
         // It's a numeric ID, try to use it directly as variant ID
-        console.log('Detected numeric ID, using as variant ID:', productHandle);
         const formData = new FormData();
         formData.append('id', productHandle);
         formData.append('quantity', quantity.toString());
@@ -1893,7 +1475,6 @@ class UpsellityCartDrawer {
       }
       
       const product = await productResponse.json();
-      console.log('Product data:', product);
       
       // Use the first variant if no specific variant ID provided
       const variant = variantId ? 
@@ -1905,13 +1486,11 @@ class UpsellityCartDrawer {
         throw new Error('Variant not found');
       }
 
-      console.log('Using variant:', variant);
 
       const formData = new FormData();
       formData.append('id', variant.id);
       formData.append('quantity', quantity.toString());
 
-      console.log('Sending to cart/add.js with variant ID:', variant.id);
 
       const response = await fetch('/cart/add.js', {
         method: 'POST',
@@ -2041,6 +1620,62 @@ class UpsellityCartDrawer {
     this.showNotification(`${discount.code} applied!`, 'success');
   }
 
+  // Initialize product recommendations navigation
+  initializeRecommendationsNavigation() {
+    const grid = document.querySelector('.upsellity-recommendations-grid');
+    const leftArrow = document.querySelector('.upsellity-nav-left');
+    const rightArrow = document.querySelector('.upsellity-nav-right');
+    
+    if (!grid || !leftArrow || !rightArrow) return;
+    
+    // Check if scrolling is needed
+    const needsScrolling = grid.scrollWidth > grid.clientWidth;
+    
+    const updateArrows = () => {
+      const maxScrollLeft = grid.scrollWidth - grid.clientWidth;
+      const currentScroll = grid.scrollLeft;
+      
+      // Show/hide arrows based on scroll position
+      const showLeft = currentScroll > 0;
+      const showRight = currentScroll < maxScrollLeft;
+      
+      leftArrow.style.display = showLeft ? 'flex' : 'none';
+      rightArrow.style.display = showRight ? 'flex' : 'none';
+      
+      // Update padding to prevent content overlap
+      grid.style.paddingLeft = showLeft ? '40px' : '0';
+      grid.style.paddingRight = showRight ? '40px' : '0';
+    };
+    
+    if (needsScrolling) {
+      // Show right arrow initially
+      updateArrows();
+      
+      // Add scroll event listener
+      grid.addEventListener('scroll', updateArrows);
+    } else {
+      // Hide both arrows if no scrolling needed
+      leftArrow.style.display = 'none';
+      rightArrow.style.display = 'none';
+      grid.style.paddingLeft = '0';
+      grid.style.paddingRight = '0';
+    }
+  }
+
+  // Scroll product recommendations
+  scrollRecommendations(direction) {
+    const grid = document.querySelector('.upsellity-recommendations-grid');
+    if (!grid) return;
+    
+    const scrollAmount = 140; // Width of one product card + gap
+    
+    if (direction === 'left') {
+      grid.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    } else if (direction === 'right') {
+      grid.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  }
+
   showNotification(message, type = 'info') {
     // Create notification element
     const notification = document.createElement('div');
@@ -2062,22 +1697,7 @@ class UpsellityCartDrawer {
       animation: slideIn 0.3s ease;
     `;
 
-    // Add animation styles if not already added
-    if (!document.querySelector('#upsellity-notification-styles')) {
-      const style = document.createElement('style');
-      style.id = 'upsellity-notification-styles';
-      style.textContent = `
-        @keyframes slideIn {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideOut {
-          from { transform: translateX(0); opacity: 1; }
-          to { transform: translateX(100%); opacity: 0; }
-        }
-      `;
-      document.head.appendChild(style);
-    }
+    // Animation styles are now in the external CSS file
 
     document.body.appendChild(notification);
 
@@ -2102,16 +1722,4 @@ if (document.readyState === 'loading') {
   window.upsellityDrawer = new UpsellityCartDrawer();
 }
 
-// Add test function for debugging
-window.testUpsellityDrawer = function() {
-  console.log('Testing Upsellity Cart Drawer...');
-  if (window.upsellityDrawer) {
-    console.log('Cart Drawer instance:', window.upsellityDrawer);
-    console.log('Cart data:', window.upsellityDrawer.cart);
-    console.log('Config:', window.upsellityDrawer.config);
-    window.upsellityDrawer.open();
-  } else {
-    console.error('Upsellity Cart Drawer not initialized');
-  }
-};
 

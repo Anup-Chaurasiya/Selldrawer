@@ -30,6 +30,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         promotionalBanners: {
           where: { isActive: true },
           orderBy: { priority: 'desc' },
+          include: {
+            images: {
+              orderBy: { order: 'asc' },
+            },
+            carouselSettings: true,
+          },
         },
         productRecommendations: {
           where: { isActive: true },
@@ -72,71 +78,39 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       if (banner.endDate && new Date(banner.endDate) < now) return false;
       return true;
     });
-    
-    console.log('Upsellity API: Promotional banners data', {
-      totalBanners: cartDrawer.promotionalBanners.length,
-      activeBanners: activePromotionalBanners.length,
-      enabled: cartDrawer.promotionalBannerEnabled,
-      banners: activePromotionalBanners
-    });
-    
-    console.log('Upsellity API: Coupon code field data', {
-      enabled: cartDrawer.couponCodeFieldEnabled,
-      couponField: couponCodeField,
-      isActive: couponCodeField?.isActive
-    });
 
-    // Create default progress bar configuration if none exists
-    const defaultProgressBar = {
-      id: 'default',
-      thresholdMode: 'amount',
-      thresholdAmount: 5000,
-      thresholdCount: 5,
-      currency: 'INR',
-      beforeThresholdMessage: 'Add {remaining} for FREE shipping',
-      afterThresholdMessage: '🎉 You qualify for FREE shipping!',
-      progressBarColor: '#10b981',
-      backgroundColor: '#f3f4f6',
-      showPercentage: true,
+    const features = {
+      freeShippingProgressBar: cartDrawer.freeShippingProgressBarEnabled && cartDrawer.freeShippingBars[0]
+        ? cartDrawer.freeShippingBars[0]
+        : null,
+      promotionalBanner: cartDrawer.promotionalBannerEnabled
+        ? activePromotionalBanners[0]
+        : null,
+      productRecommendations: cartDrawer.productRecommendationsEnabled && cartDrawer.productRecommendations[0]
+        ? cartDrawer.productRecommendations[0]
+        : null,
+      couponCodeField: cartDrawer.couponCodeFieldEnabled && couponCodeField?.isActive
+        ? couponCodeField
+        : null,
+      savingsDisplay: cartDrawer.savingsDisplayEnabled
+        ? cartDrawer.savingsDisplays[0]
+        : null,
+      freeShippingMessage: cartDrawer.freeShippingMessageEnabled
+        ? cartDrawer.freeShippingMessages[0]
+        : null,
     };
 
-    // Create default product recommendations configuration if none exists
-    const defaultProductRecommendations = {
-      id: 'default',
-      title: 'You may also like',
-      maxProducts: 4,
-      layout: 'grid',
-      recommendationType: 'manual',
-      showDiscount: true,
-      showDiscountBadge: true,
-      showAddButton: true,
-      products: [], // Empty products array for default
-    };
+    console.log('API Debug - Free Shipping Message:', {
+      enabled: cartDrawer.freeShippingMessageEnabled,
+      messages: cartDrawer.freeShippingMessages,
+      result: features.freeShippingMessage
+    });
 
     const response = json({
       enabled: cartDrawer.isActive,
       theme: cartDrawer.theme,
       primaryColor: cartDrawer.primaryColor,
-      features: {
-        freeShippingProgressBar: cartDrawer.freeShippingProgressBarEnabled
-          ? (cartDrawer.freeShippingBars[0] || defaultProgressBar)
-          : null,
-        promotionalBanner: cartDrawer.promotionalBannerEnabled
-          ? activePromotionalBanners[0]
-          : null,
-        productRecommendations: cartDrawer.productRecommendationsEnabled
-          ? (cartDrawer.productRecommendations[0] || defaultProductRecommendations)
-          : null,
-        couponCodeField: cartDrawer.couponCodeFieldEnabled && couponCodeField?.isActive
-          ? couponCodeField
-          : null,
-        savingsDisplay: cartDrawer.savingsDisplayEnabled
-          ? cartDrawer.savingsDisplays[0]
-          : null,
-        freeShippingMessage: cartDrawer.freeShippingMessageEnabled
-          ? cartDrawer.freeShippingMessages[0]
-          : null,
-      },
+      features,
     });
 
     return cors(request, response);

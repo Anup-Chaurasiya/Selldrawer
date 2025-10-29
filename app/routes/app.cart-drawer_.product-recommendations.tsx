@@ -23,7 +23,7 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -106,7 +106,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         };
       });
       
-      console.log('Successfully fetched', shopProducts.length, 'products from Shopify');
     } else {
       console.error('No products found in GraphQL response:', responseJson);
     }
@@ -115,7 +114,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     throw new Error('Failed to fetch products from your store. Please check your Shopify connection.');
   }
 
-  console.log('Successfully loaded', shopProducts.length, 'products from your Shopify store');
   
   return json({ cartDrawer, productRecommendation, shopProducts });
 };
@@ -187,12 +185,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Add new recommended products
     if (selectedProducts.length > 0) {
-      console.log('Saving selected products:', selectedProducts);
       const { admin } = await authenticate.admin(request);
       
       for (let i = 0; i < selectedProducts.length; i++) {
         const productId = selectedProducts[i];
-        console.log(`Processing product ${i + 1}/${selectedProducts.length}:`, productId);
         
         try {
           // Use GraphQL to fetch product details by handle
@@ -236,12 +232,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             
             if (variant) {
               const variantId = variant.id.replace('gid://shopify/ProductVariant/', '');
-              console.log(`Saving product: ${product.title}, variant ID: ${variantId}`);
               
               await prisma.recommendedProduct.create({
                 data: {
                   recommendationId: recommendation.id,
-                  shopifyProductId: variantId, // Store variant ID
+                  shopifyProductId: productId, // Store product handle (which is the frontend ID)
+                  shopifyVariantId: variantId, // Store the variant ID for add to cart functionality
                   title: product.title,
                   price: parseFloat(variant.price),
                   compareAtPrice: variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
@@ -250,7 +246,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 },
               });
               
-              console.log(`Successfully saved product: ${product.title}`);
             } else {
               console.error(`No variant found for product: ${product.title}`);
             }
@@ -283,10 +278,22 @@ export default function ProductRecommendations() {
     showAddButton: productRecommendation?.showAddButton ?? true,
   });
 
-  const [selectedProducts, setSelectedProducts] = useState<string[]>(
-    productRecommendation?.products?.map(p => p.shopifyProductId) || []
-  );
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Initialize selected products when data is loaded
+  useEffect(() => {
+    if (productRecommendation?.products && shopProducts.length > 0) {
+      const savedProducts = productRecommendation.products.map(p => {
+        // Find the matching product by title since we have variant IDs but need product handles
+        const matchingProduct = shopProducts.find(sp => sp.title === p.title);
+        return matchingProduct?.id || '';
+      }).filter(id => id !== '');
+      
+      
+      setSelectedProducts(savedProducts);
+    }
+  }, [productRecommendation?.products, shopProducts]);
 
   const handleToggle = useCallback(() => {
     const formData = new FormData();
@@ -321,8 +328,6 @@ export default function ProductRecommendations() {
     product.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Log product loading status
-  console.log('Loaded', shopProducts.length, 'products from your store');
 
   return (
     <Page
@@ -728,109 +733,147 @@ export default function ProductRecommendations() {
                   {formState.title}
                 </div>
                 <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '12px'
+                  position: 'relative',
+                  overflow: 'hidden'
                 }}>
-                  {selectedProducts.length > 0 ? (
-                    selectedProducts.slice(0, parseInt(formState.maxProducts)).map((productId, idx) => {
-                      const product = shopProducts.find((p: any) => p.id === productId);
-                      if (!product) return null;
-                      
-                      const variant = product.variants?.[0];
-                      const price = variant ? parseFloat(variant.price) : 0;
-                      const comparePrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null;
-                      const discountPercent = comparePrice && comparePrice > price ? Math.round(((comparePrice - price) / comparePrice) * 100) : 0;
-                      
-                      return (
-                        <div key={productId} style={{ 
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '6px',
-                          padding: '12px',
-                          textAlign: 'center'
-                        }}>
-                          {product.images?.[0]?.src ? (
-                            <img 
-                              src={product.images[0].src} 
-                              alt={product.title}
-                              style={{ 
+                  <div style={{ 
+                    display: 'flex',
+                    gap: '12px',
+                    overflowX: 'auto',
+                    scrollBehavior: 'smooth',
+                    paddingBottom: '8px',
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: '#cbd5e1 #f1f5f9'
+                  }}>
+                    {selectedProducts.length > 0 ? (
+                      selectedProducts.slice(0, parseInt(formState.maxProducts)).map((productId, idx) => {
+                        const product = shopProducts.find((p: any) => p.id === productId);
+                        if (!product) return null;
+                        
+                        const variant = product.variants?.[0];
+                        const price = variant ? parseFloat(variant.price) : 0;
+                        const comparePrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null;
+                        const discountPercent = comparePrice && comparePrice > price ? Math.round(((comparePrice - price) / comparePrice) * 100) : 0;
+                        
+                        return (
+                          <div key={productId} style={{ 
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '6px',
+                            padding: '12px',
+                            textAlign: 'center',
+                            minWidth: '140px',
+                            flexShrink: 0,
+                            backgroundColor: '#ffffff',
+                            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                            transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                          }}>
+                            {product.images?.[0]?.src ? (
+                              <img 
+                                src={product.images[0].src} 
+                                alt={product.title}
+                                style={{ 
+                                  width: '100%',
+                                  height: '80px',
+                                  objectFit: 'cover',
+                                  borderRadius: '4px',
+                                  marginBottom: '8px'
+                                }} 
+                              />
+                            ) : (
+                              <div style={{ 
                                 width: '100%',
                                 height: '80px',
-                                objectFit: 'cover',
+                                backgroundColor: '#f3f4f6',
                                 borderRadius: '4px',
+                                marginBottom: '8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '24px'
+                              }}>
+                                📦
+                              </div>
+                            )}
+                            <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '4px', lineHeight: '1.3' }}>
+                              {product.title.length > 20 ? product.title.substring(0, 20) + '...' : product.title}
+                            </div>
+                            {formState.showDiscount && comparePrice && (
+                              <div style={{ marginBottom: '4px', fontSize: '12px' }}>
+                                <span style={{ textDecoration: 'line-through', color: '#9ca3af', marginRight: '4px' }}>
+                                  ₹{Math.round(comparePrice)}
+                                </span>
+                                <span style={{ fontWeight: '600' }}>₹{Math.round(price)}</span>
+                              </div>
+                            )}
+                            {!formState.showDiscount && (
+                              <div style={{ marginBottom: '4px', fontSize: '12px', fontWeight: '600' }}>
+                                ₹{Math.round(price)}
+                              </div>
+                            )}
+                            {formState.showDiscountBadge && discountPercent > 0 && (
+                              <div style={{ 
+                                display: 'inline-block',
+                                backgroundColor: '#10b981',
+                                color: 'white',
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                fontSize: '10px',
                                 marginBottom: '8px'
-                              }} 
-                            />
-                          ) : (
-                            <div style={{ 
-                              width: '100%',
-                              height: '80px',
-                              backgroundColor: '#f3f4f6',
-                              borderRadius: '4px',
-                              marginBottom: '8px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '24px'
-                            }}>
-                              📦
-                            </div>
-                          )}
-                          <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '4px' }}>
-                            {product.title.length > 20 ? product.title.substring(0, 20) + '...' : product.title}
+                              }}>
+                                {discountPercent}% off
+                              </div>
+                            )}
+                            {formState.showAddButton && (
+                              <div style={{ 
+                                width: '100%',
+                                padding: '4px',
+                                border: '1px solid #f97316',
+                                background: 'white',
+                                color: '#f97316',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                fontWeight: '500'
+                              }}>
+                                + Add
+                              </div>
+                            )}
                           </div>
-                          {formState.showDiscount && comparePrice && (
-                            <div style={{ marginBottom: '4px', fontSize: '12px' }}>
-                              <span style={{ textDecoration: 'line-through', color: '#9ca3af', marginRight: '4px' }}>
-                                ₹{Math.round(comparePrice)}
-                              </span>
-                              <span style={{ fontWeight: '600' }}>₹{Math.round(price)}</span>
-                            </div>
-                          )}
-                          {!formState.showDiscount && (
-                            <div style={{ marginBottom: '4px', fontSize: '12px', fontWeight: '600' }}>
-                              ₹{Math.round(price)}
-                            </div>
-                          )}
-                          {formState.showDiscountBadge && discountPercent > 0 && (
-                            <div style={{ 
-                              display: 'inline-block',
-                              backgroundColor: '#10b981',
-                              color: 'white',
-                              padding: '2px 8px',
-                              borderRadius: '12px',
-                              fontSize: '10px',
-                              marginBottom: '8px'
-                            }}>
-                              {discountPercent}% off
-                            </div>
-                          )}
-                          {formState.showAddButton && (
-                            <div style={{ 
-                              width: '100%',
-                              padding: '4px',
-                              border: '1px solid #f97316',
-                              background: 'white',
-                              color: '#f97316',
-                              borderRadius: '4px',
-                              fontSize: '12px',
-                              fontWeight: '500'
-                            }}>
-                              + Add
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div style={{ 
-                      gridColumn: '1 / -1',
-                      textAlign: 'center',
-                      padding: '40px 20px',
-                      color: '#6b7280',
-                      fontSize: '14px'
+                        );
+                      })
+                    ) : (
+                      <div style={{ 
+                        minWidth: '100%',
+                        textAlign: 'center',
+                        padding: '40px 20px',
+                        color: '#6b7280',
+                        fontSize: '14px'
+                      }}>
+                        No products selected. Choose products above to see preview.
+                      </div>
+                    )}
+                  </div>
+                  {/* Scroll indicator */}
+                  {selectedProducts.length > 2 && (
+                    <div style={{
+                      position: 'absolute',
+                      right: '0',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,1) 100%)',
+                      width: '20px',
+                      height: '100%',
+                      pointerEvents: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}>
-                      No products selected. Choose products above to see preview.
+                      <div style={{
+                        width: '4px',
+                        height: '20px',
+                        background: '#cbd5e1',
+                        borderRadius: '2px',
+                        opacity: '0.6'
+                      }}></div>
                     </div>
                   )}
                 </div>

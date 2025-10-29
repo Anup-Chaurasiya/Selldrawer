@@ -225,13 +225,41 @@ export default function FreeShippingMessage() {
               <div style={{ 
                 backgroundColor: formState.backgroundColor,
                 color: formState.textColor,
-                padding: '12px 16px',
-                borderRadius: '6px',
-                textAlign: 'center',
-                fontSize: '14px'
+                padding: '16px 20px',
+                borderRadius: '12px',
+                border: `2px solid ${formState.textColor}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                fontSize: '16px',
+                fontWeight: '600',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+                position: 'relative',
+                overflow: 'hidden'
               }}>
-                {formState.beforeThresholdMessage.replace('{threshold}', `₹${formState.thresholdAmount}`)}<br/>
-                <strong>{formState.afterThresholdMessage.replace('{remaining}', '₹2301.00')}</strong>
+                {/* Delivery truck icon */}
+                <div style={{
+                  fontSize: '24px',
+                  flexShrink: 0
+                }}>
+                  🚚
+                </div>
+                
+                {/* Message text */}
+                <div style={{ flex: 1 }}>
+                  {formState.beforeThresholdMessage.replace('{threshold}', `₹${formState.thresholdAmount}`)}
+                </div>
+                
+                {/* Subtle background pattern */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'linear-gradient(45deg, rgba(255,255,255,0.2) 0%, transparent 50%)',
+                  pointerEvents: 'none'
+                }} />
               </div>
 
               <Text as="p" variant="bodyMd" tone="subdued">

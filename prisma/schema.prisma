@@ -86,9 +86,7 @@ model FreeShippingProgressBar {
   shop                   String
   isActive               Boolean    @default(true)
   priority               Int        @default(0)
-  thresholdMode          String     @default("amount") // "amount" or "count"
   thresholdAmount        Decimal?
-  thresholdCount         Int?
   currency               String     @default("INR")
   beforeThresholdMessage String     @default("Add {remaining} for FREE shipping")
   afterThresholdMessage  String     @default("You've unlocked FREE shipping!")
@@ -97,6 +95,8 @@ model FreeShippingProgressBar {
   showPercentage         Boolean    @default(true)
   createdAt              DateTime   @default(now())
   updatedAt              DateTime   @updatedAt
+  thresholdMode          String     @default("amount")
+  thresholdCount         Int?
   cartDrawer             CartDrawer @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
 
   @@index([cartDrawerId])
@@ -119,15 +119,15 @@ model PromotionalBanner {
   maxCartValue     Decimal?
   createdAt        DateTime                           @default(now())
   updatedAt        DateTime                           @updatedAt
-  displayType      String                             @default("text")
+  bannerType       String                             @default("image")
   ctaButtonText    String?
   ctaEnabled       Boolean                            @default(false)
+  ctaProductHandle String?
   ctaQuantity      Int                                @default(1)
   ctaType          String?
   ctaUrl           String?
   ctaVariantId     String?
-  bannerType       String                             @default("image")
-  ctaProductHandle String?
+  displayType      String                             @default("text")
   imageUrls        String[]
   cartDrawer       CartDrawer                         @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
   carouselSettings PromotionalBannerCarouselSettings?
@@ -151,14 +151,20 @@ model PromotionalBannerCondition {
 }
 
 model PromotionalBannerImage {
-  id        String            @id @default(cuid())
-  bannerId  String
-  imageUrl  String
-  altText   String?
-  order     Int               @default(0)
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  banner    PromotionalBanner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+  id          String            @id @default(cuid())
+  bannerId    String
+  imageUrl    String
+  altText     String?
+  order       Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  ctaText     String?
+  ctaUrl      String?
+  description String?
+  title       String?
+  videoType   String?
+  videoUrl    String?
+  banner      PromotionalBanner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
 
   @@index([bannerId])
 }
@@ -213,12 +219,12 @@ model RecommendedProduct {
   id               String                @id @default(cuid())
   recommendationId String
   shopifyProductId String
-  shopifyVariantId String?
   title            String
   price            Decimal
   compareAtPrice   Decimal?
   imageUrl         String?
   position         Int                   @default(0)
+  shopifyVariantId String?
   recommendation   ProductRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
 
   @@index([recommendationId])
@@ -277,12 +283,12 @@ model CouponCodeField {
   position                String   @default("above_checkout")
   successMessage          String   @default("Coupon applied successfully!")
   errorMessage            String   @default("Invalid coupon code")
-  enableAutoApply         Boolean  @default(false)
-  autoApplyStrategy       String   @default("best_value") // "best_value", "highest_percentage", "first_available"
-  showAllOffers           Boolean  @default(false)
-  showAllOffersButtonText String   @default("Show all offers")
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
+  autoApplyStrategy       String   @default("best_value")
+  enableAutoApply         Boolean  @default(false)
+  showAllOffers           Boolean  @default(false)
+  showAllOffersButtonText String   @default("Show all offers")
 
   @@index([shop])
 }

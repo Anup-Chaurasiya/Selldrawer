@@ -117,9 +117,6 @@
   
   // Fetch cart configurations from our app
   function fetchCartConfigurations(cart) {
-    console.log('🛒 Cart data:', cart);
-    console.log('🌐 App URL:', APP_URL);
-    console.log('🏪 Shop domain:', SHOP_DOMAIN);
     
     const cartItems = cart.items.map(item => ({
       product_id: item.product_id,
@@ -130,7 +127,6 @@
       variant_title: item.variant_title
     }));
     
-    console.log('📦 Cart items:', cartItems);
     
     const params = new URLSearchParams({
       shop: SHOP_DOMAIN,
@@ -138,23 +134,18 @@
     });
     
     const apiUrl = `${APP_URL}/api/cart-config?${params}`;
-    console.log('🔗 API URL:', apiUrl);
     
     fetch(apiUrl)
       .then(response => {
-        console.log('📡 API Response status:', response.status);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         return response.json();
       })
       .then(data => {
-        console.log('📊 API Response data:', data);
         if (data.configurations && data.configurations.length > 0) {
-          console.log('✅ Found configurations, displaying offers');
           displayUpsellOffers(data.configurations, data.cartAnalysis, cart);
         } else {
-          console.log('❌ No configurations found or no matching conditions');
         }
       })
       .catch(error => {
@@ -164,7 +155,6 @@
   
   // Display upsell offers based on configurations
   function displayUpsellOffers(configurations, cartAnalysis, cart) {
-    console.log('🎨 Displaying upsell offers');
     const widget = document.getElementById('upsellity-cart-widget');
     if (!widget) {
       console.error('❌ Widget element not found!');
@@ -177,7 +167,6 @@
     
     // Find the best configuration to display
     const config = configurations[0]; // For now, show the first matching config
-    console.log('⚙️ Using configuration:', config);
     
     if (config.conditionType === 'cart_value' && config.conditionOperator === 'less_than') {
       // Show progress towards discount threshold
@@ -212,14 +201,11 @@
           `;
         }
         
-        console.log('✅ Showing widget for less_than condition');
         widget.style.display = 'block';
       } else {
-        console.log('❌ Condition not met for less_than (remaining <= 0)');
       }
     } else if (config.conditionOperator === 'greater_than') {
       // Show achieved offer
-      console.log('✅ Showing widget for greater_than condition');
       messageEl.innerHTML = `🎉 ${config.actionMessage}`;
       
       if (config.actionType === 'free_shipping') {
@@ -232,7 +218,6 @@
       
       widget.style.display = 'block';
     } else {
-      console.log('❌ Unsupported condition operator:', config.conditionOperator);
     }
   }
   

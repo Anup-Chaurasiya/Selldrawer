@@ -14,6 +14,13 @@
 
   <script>
     (function() {
+      // Load the cart drawer CSS
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = '{{ 'cart-drawer.css' | asset_url }}';
+      document.head.appendChild(link);
+      
       // Load the cart drawer script
       var script = document.createElement('script');
       script.src = '{{ 'cart-drawer.js' | asset_url }}';

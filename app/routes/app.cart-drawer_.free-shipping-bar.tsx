@@ -45,7 +45,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "toggle") {
     const enabled = formData.get("enabled") === "true";
-    
+
     await prisma.cartDrawer.update({
       where: { shop },
       data: { freeShippingProgressBarEnabled: enabled },
@@ -75,6 +75,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       backgroundColor: formData.get("backgroundColor") as string,
       showPercentage: formData.get("showPercentage") === "true",
     };
+
+    console.log('Saving free shipping bar configuration:', data);
 
     const existingBar = cartDrawer.freeShippingBars[0];
 
@@ -160,7 +162,7 @@ export default function FreeShippingBar() {
                     {cartDrawer?.freeShippingProgressBarEnabled ? "Disable" : "Enable"}
                   </Button>
                 </InlineStack>
-                
+
                 {!cartDrawer?.freeShippingProgressBarEnabled && (
                   <Banner tone="warning">
                     This feature is currently disabled. Enable it to show the progress bar in your cart.
@@ -219,8 +221,8 @@ export default function FreeShippingBar() {
                     label="Before Threshold Message"
                     value={formState.beforeThresholdMessage}
                     onChange={(value) => setFormState({ ...formState, beforeThresholdMessage: value })}
-                    helpText={formState.thresholdMode === "amount" 
-                      ? "Use {remaining} to show remaining amount" 
+                    helpText={formState.thresholdMode === "amount"
+                      ? "Use {remaining} to show remaining amount"
                       : "Use {remaining} to show remaining items"}
                     autoComplete="off"
                   />
@@ -232,6 +234,7 @@ export default function FreeShippingBar() {
                     helpText="Message shown when threshold is reached"
                     autoComplete="off"
                   />
+
 
                   <TextField
                     label="Progress Bar Color"
@@ -266,37 +269,114 @@ export default function FreeShippingBar() {
               <Text as="h3" variant="headingMd">
                 Preview
               </Text>
-              
-              {/* Preview Component */}
-              <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
-                <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text as="p" variant="bodySm">
-                    {formState.beforeThresholdMessage.replace('{remaining}', 
-                      formState.thresholdMode === "amount" 
-                        ? `₹${formState.thresholdAmount}` 
-                        : `${formState.thresholdCount} more items`
-                    )}
-                  </Text>
-                  {formState.showPercentage && (
-                    <Text as="span" variant="bodySm" tone="success">
-                      54%
-                    </Text>
-                  )}
-                </div>
-                <div style={{ 
-                  width: '100%', 
-                  height: '8px', 
-                  backgroundColor: formState.backgroundColor,
-                  borderRadius: '4px',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{ 
-                    width: '54%', 
-                    height: '100%',
-                    backgroundColor: formState.progressBarColor,
-                    transition: 'width 0.3s ease'
-                  }} />
-                </div>
+
+              {/* Preview Component - Dynamic calculation based on form state */}
+              <div style={{
+                padding: '16px',
+                backgroundColor: formState.backgroundColor || '#f9fafb',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
+              }}>
+                {(() => {
+                  // Sample cart data for realistic preview
+                  const sampleCart = {
+                    total: formState.thresholdMode === "amount"
+                      ? (parseFloat(formState.thresholdAmount) || 5000) * 0.6  // 60% of threshold
+                      : 0,
+                    itemCount: formState.thresholdMode === "count"
+                      ? Math.floor((parseInt(formState.thresholdCount) || 5) * 0.6)  // 60% of threshold
+                      : 0
+                  };
+
+                  // Calculate progress dynamically
+                  const calculateProgress = () => {
+                    if (formState.thresholdMode === "amount") {
+                      const threshold = parseFloat(formState.thresholdAmount) || 0;
+                      return Math.min((sampleCart.total / threshold) * 100, 100);
+                    } else {
+                      const threshold = parseInt(formState.thresholdCount) || 0;
+                      return Math.min((sampleCart.itemCount / threshold) * 100, 100);
+                    }
+                  };
+
+                  const calculateRemaining = () => {
+                    if (formState.thresholdMode === "amount") {
+                      const threshold = parseFloat(formState.thresholdAmount) || 0;
+                      return Math.max(threshold - sampleCart.total, 0);
+                    } else {
+                      const threshold = parseInt(formState.thresholdCount) || 0;
+                      return Math.max(threshold - sampleCart.itemCount, 0);
+                    }
+                  };
+
+                  const progressPercent = calculateProgress();
+                  const remainingValue = calculateRemaining();
+                  const isComplete = progressPercent >= 100;
+
+                  const message = isComplete
+                    ? formState.afterThresholdMessage
+                    : formState.beforeThresholdMessage.replace(
+                      '{remaining}',
+                      formState.thresholdMode === "amount"
+                        ? `₹${Math.round(remainingValue)}`
+                        : `${Math.round(remainingValue)} more items`
+                    );
+
+                  // Create gradient backgrounds
+                  const backgroundGradient = `linear-gradient(135deg, ${formState.backgroundColor || '#f8fafc'} 0%, ${formState.backgroundColor || '#f8fafc'}dd 100%)`;
+                  const completeGradient = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                  const incompleteGradient = `linear-gradient(135deg, ${formState.progressBarColor} 0%, ${formState.progressBarColor}dd 100%)`;
+                  const percentageGradient = isComplete ? completeGradient : incompleteGradient;
+
+                  return (
+                    <>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '12px',
+                        fontSize: '14px',
+                        fontWeight: '600'
+                      }}>
+                        <span style={{ color: '#374151' }}>
+                          {message}
+                        </span>
+                        {formState.showPercentage && (
+                          <span style={{
+                            background: percentageGradient,
+                            color: 'white',
+                            padding: '4px 12px',
+                            borderRadius: '20px',
+                            fontSize: '12px',
+                            fontWeight: '700',
+                            boxShadow: `0 2px 4px ${formState.progressBarColor}40`
+                          }}>
+                            {Math.round(progressPercent)}%
+                          </span>
+                        )}
+                      </div>
+                      <div style={{
+                        width: '100%',
+                        height: '12px',
+                        backgroundColor: formState.backgroundColor || '#e5e7eb',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)',
+                        position: 'relative'
+                      }}>
+                        <div style={{
+                          width: `${progressPercent}%`,
+                          height: '100%',
+                          background: isComplete ? completeGradient : incompleteGradient,
+                          borderRadius: '8px',
+                          transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                          minWidth: '2px'
+                        }} />
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               <Text as="p" variant="bodyMd" tone="subdued">

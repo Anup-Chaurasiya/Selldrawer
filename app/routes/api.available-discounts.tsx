@@ -159,7 +159,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     const discountData = await graphqlResponse.json();
     
-    console.log("Shopify API Response:", JSON.stringify(discountData, null, 2));
     
     if (discountData.errors) {
       console.error("GraphQL errors:", JSON.stringify(discountData.errors, null, 2));
@@ -172,47 +171,36 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
 
     const edges = discountData?.data?.codeDiscountNodes?.edges || [];
-    console.log(`Found ${edges.length} total discount codes from Shopify`);
     const now = new Date();
 
     // Process and filter discounts
     const activeDiscounts = edges
       .map((edge: any, index: number) => {
         const discount = edge.node.codeDiscount;
-        console.log(`Processing discount ${index + 1}:`, {
-          title: discount.title,
-          status: discount.status,
-          typename: discount.__typename,
-        });
         
         // Check if discount is currently valid
         if (discount.status !== "ACTIVE") {
-          console.log(`  - Skipped: Status is ${discount.status}`);
           return null;
         }
         
         // Check start date
         if (discount.startsAt && new Date(discount.startsAt) > now) {
-          console.log(`  - Skipped: Hasn't started yet (starts: ${discount.startsAt})`);
           return null;
         }
         
         // Check end date
         if (discount.endsAt && new Date(discount.endsAt) < now) {
-          console.log(`  - Skipped: Already ended (ended: ${discount.endsAt})`);
           return null;
         }
         
         // Check usage limit
         if (discount.usageLimit && discount.asyncUsageCount >= discount.usageLimit) {
-          console.log(`  - Skipped: Usage limit reached (${discount.asyncUsageCount}/${discount.usageLimit})`);
           return null;
         }
 
         // Get the first code
         const code = discount.codes?.edges?.[0]?.node?.code;
         if (!code) {
-          console.log(`  - Skipped: No code found`);
           return null;
         }
 
@@ -251,12 +239,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           summary: discount.summary || description,
         };
         
-        console.log(`  ✓ Added discount:`, result);
         return result;
       })
       .filter((d: any) => d !== null);
 
-    console.log(`Returning ${activeDiscounts.length} active discounts`);
 
     const response = json({
       discounts: activeDiscounts,

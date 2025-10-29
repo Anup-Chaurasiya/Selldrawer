@@ -14,7 +14,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     where: { shop },
     include: {
       freeShippingBars: { where: { isActive: true }, orderBy: { priority: 'desc' } },
-      promotionalBanners: { where: { isActive: true }, orderBy: { priority: 'desc' } },
+      promotionalBanners: { 
+        where: { isActive: true }, 
+        orderBy: { priority: 'desc' },
+        include: {
+          images: { orderBy: { order: 'asc' } },
+          carouselSettings: true,
+        },
+      },
       productRecommendations: { 
         where: { isActive: true }, 
         orderBy: { priority: 'desc' },
@@ -25,30 +32,74 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     },
   });
 
+  console.log('Preview loader - Cart drawer config:', cartDrawer);
+  console.log('Preview loader - Free shipping bars:', cartDrawer?.freeShippingBars);
+
   return json({ cartDrawer });
 };
 
 export default function CartDrawerPreview() {
   const { cartDrawer } = useLoaderData<typeof loader>();
 
-  // Sample cart data for preview
-  const sampleCart = {
-    items: [
-      {
-        id: 1,
-        title: "Classic Runner",
-        variant: "8 / Beige and Brown",
-        price: 2699.00,
-        originalPrice: 5999.00,
-        quantity: 1,
-        image: "https://via.placeholder.com/80",
-      }
-    ],
-    total: 2699.00,
-    originalTotal: 5999.00,
-    savings: 3300.00,
-    itemCount: 1,
+  // Dynamic sample cart data based on configuration
+  const getSampleCart = () => {
+    const freeShippingBar = cartDrawer?.freeShippingBars[0];
+    
+    if (!freeShippingBar) {
+      return {
+        items: [
+          {
+            id: 1,
+            title: "Premium Running Shoes",
+            variant: "Size 8 / Navy Blue",
+            price: 2999.00,
+            originalPrice: 4999.00,
+            quantity: 1,
+            image: "https://via.placeholder.com/80",
+          }
+        ],
+        total: 2999.00,
+        originalTotal: 4999.00,
+        savings: 2000.00,
+        itemCount: 1,
+      };
+    }
+
+    // Create realistic sample data based on configuration
+    let sampleTotal, sampleItemCount;
+    
+    if (freeShippingBar.thresholdMode === "amount") {
+      const threshold = Number(freeShippingBar.thresholdAmount);
+      // Show 75% progress for preview (more realistic)
+      sampleTotal = threshold * 0.75;
+      sampleItemCount = Math.max(1, Math.floor(sampleTotal / 1500)); // Assume average item price of ₹1500
+    } else {
+      const threshold = Number(freeShippingBar.thresholdCount);
+      // Show 75% progress for preview (more realistic)
+      sampleItemCount = Math.max(1, Math.floor(threshold * 0.75));
+      sampleTotal = sampleItemCount * 1500; // Assume average item price of ₹1500
+    }
+
+    return {
+      items: [
+        {
+          id: 1,
+          title: "Premium Running Shoes",
+          variant: "Size 8 / Navy Blue",
+          price: sampleTotal / sampleItemCount,
+          originalPrice: (sampleTotal / sampleItemCount) * 1.67, // 40% discount
+          quantity: sampleItemCount,
+          image: "https://via.placeholder.com/80",
+        }
+      ],
+      total: sampleTotal,
+      originalTotal: sampleTotal * 1.67,
+      savings: sampleTotal * 0.67,
+      itemCount: sampleItemCount,
+    };
   };
+
+  const sampleCart = getSampleCart();
 
   const freeShippingBar = cartDrawer?.freeShippingBars[0];
   const promotionalBanner = cartDrawer?.promotionalBanners[0];
@@ -59,14 +110,47 @@ export default function CartDrawerPreview() {
   // Calculate free shipping progress
   const calculateProgress = () => {
     if (!freeShippingBar) return 0;
-    const threshold = Number(freeShippingBar.thresholdAmount);
-    return Math.min((sampleCart.total / threshold) * 100, 100);
+    
+    if (freeShippingBar.thresholdMode === "amount") {
+      const threshold = Number(freeShippingBar.thresholdAmount);
+      return Math.min((sampleCart.total / threshold) * 100, 100);
+    } else {
+      const threshold = Number(freeShippingBar.thresholdCount);
+      return Math.min((sampleCart.itemCount / threshold) * 100, 100);
+    }
   };
 
   const calculateRemaining = () => {
     if (!freeShippingBar) return 0;
-    const threshold = Number(freeShippingBar.thresholdAmount);
-    return Math.max(threshold - sampleCart.total, 0);
+    
+    if (freeShippingBar.thresholdMode === "amount") {
+      const threshold = Number(freeShippingBar.thresholdAmount);
+      return Math.max(threshold - sampleCart.total, 0);
+    } else {
+      const threshold = Number(freeShippingBar.thresholdCount);
+      return Math.max(threshold - sampleCart.itemCount, 0);
+    }
+  };
+
+  const getProgressMessage = () => {
+    if (!freeShippingBar) {
+      return null; // Don't show free shipping bar if not configured
+    }
+    
+    const progress = calculateProgress();
+    const remaining = calculateRemaining();
+    
+    if (progress >= 100) {
+      return freeShippingBar.afterThresholdMessage || "You've unlocked FREE shipping!";
+    } else {
+      let message = freeShippingBar.beforeThresholdMessage || "Add {remaining} for FREE shipping";
+      if (freeShippingBar.thresholdMode === "amount") {
+        message = message.replace('{remaining}', `₹${Math.round(remaining)}`);
+      } else {
+        message = message.replace('{remaining}', `${Math.round(remaining)} more items`);
+      }
+      return message;
+    }
   };
 
   return (
@@ -82,6 +166,7 @@ export default function CartDrawerPreview() {
               <Text as="p" variant="bodyMd" tone="subdued">
                 This is how your cart drawer will look to customers
               </Text>
+              
             </BlockStack>
           </Card>
         </Layout.Section>
@@ -105,7 +190,7 @@ export default function CartDrawerPreview() {
               alignItems: 'center'
             }}>
               <h2 style={{ fontSize: '20px', fontWeight: '600', margin: 0 }}>
-                Your Cart ({sampleCart.itemCount} items)
+                Your Cart (<span className="cart-item-count">{sampleCart.itemCount}</span> items)
               </h2>
               <button style={{ 
                 background: 'none', 
@@ -119,84 +204,278 @@ export default function CartDrawerPreview() {
             <div style={{ padding: '16px 20px' }}>
               <BlockStack gap="400">
                 {/* Enhanced Free Shipping Progress Bar */}
-                <div style={{ 
-                  marginBottom: '20px',
-                  padding: '16px',
-                  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-                  borderRadius: '12px',
-                  border: '1px solid #e2e8f0',
-                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
-                }}>
+                {cartDrawer?.freeShippingProgressBarEnabled && freeShippingBar && getProgressMessage() && (
                   <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    marginBottom: '12px',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>
-                    <span style={{ color: '#374151' }}>
-                      Add ₹{Math.round(calculateRemaining())} for FREE shipping
-                    </span>
-                    <span style={{ 
-                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      color: 'white',
-                      padding: '4px 12px',
-                      borderRadius: '20px',
-                      fontSize: '12px',
-                      fontWeight: '700',
-                      boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
-                    }}>
-                      {calculateProgress().toFixed(0)}%
-                    </span>
-                  </div>
-                  <div style={{ 
-                    width: '100%', 
-                    height: '12px', 
-                    backgroundColor: '#e5e7eb',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)',
-                    position: 'relative'
+                    marginBottom: '20px',
+                    padding: '16px',
+                    background: freeShippingBar.backgroundColor 
+                      ? `linear-gradient(135deg, ${freeShippingBar.backgroundColor} 0%, ${freeShippingBar.backgroundColor}dd 100%)`
+                      : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
                   }}>
                     <div style={{ 
-                      width: `${calculateProgress()}%`, 
-                      height: '100%',
-                      display: 'block',
-                      background: calculateProgress() >= 100 
-                        ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                        : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                      borderRadius: '8px',
-                      transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                      minWidth: '2px'
-                    }} />
-                  </div>
-                </div>
-
-                {/* Promotional Banner */}
-                {cartDrawer?.promotionalBannerEnabled && promotionalBanner && (
-                  <div style={{ 
-                    backgroundColor: promotionalBanner.backgroundColor,
-                    color: promotionalBanner.textColor,
-                    padding: '16px',
-                    borderRadius: '6px',
-                    textAlign: 'center'
-                  }}>
-                    <div style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>
-                      {promotionalBanner.title}
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '12px',
+                      fontSize: '14px',
+                      fontWeight: '600'
+                    }}>
+                      <span style={{ color: '#374151' }}>
+                        {getProgressMessage()}
+                      </span>
+                      {(freeShippingBar.showPercentage ?? true) && (
+                        <span style={{ 
+                          background: calculateProgress() >= 100 
+                            ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                            : freeShippingBar.progressBarColor 
+                              ? `linear-gradient(135deg, ${freeShippingBar.progressBarColor} 0%, ${freeShippingBar.progressBarColor}dd 100%)`
+                              : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                          color: 'white',
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          boxShadow: calculateProgress() >= 100 
+                            ? '0 2px 4px rgba(16, 185, 129, 0.3)'
+                            : freeShippingBar.progressBarColor 
+                              ? `0 2px 4px ${freeShippingBar.progressBarColor}40`
+                              : '0 2px 4px rgba(245, 158, 11, 0.3)'
+                        }}>
+                          {calculateProgress().toFixed(0)}%
+                        </span>
+                      )}
                     </div>
-                    {promotionalBanner.subtitle && (
-                      <div style={{ fontSize: '14px' }}>
-                        {promotionalBanner.subtitle}
-                      </div>
-                    )}
+                    <div style={{ 
+                      width: '100%', 
+                      height: '12px', 
+                      backgroundColor: freeShippingBar.backgroundColor || '#e5e7eb',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)',
+                      position: 'relative'
+                    }}>
+                      <div 
+                        className="progress-bar-fill"
+                        style={{ 
+                          width: `${calculateProgress()}%`, 
+                          height: '100%',
+                          display: 'block',
+                          background: calculateProgress() >= 100 
+                            ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                            : freeShippingBar.progressBarColor 
+                              ? `linear-gradient(135deg, ${freeShippingBar.progressBarColor} 0%, ${freeShippingBar.progressBarColor}dd 100%)`
+                              : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                          borderRadius: '8px',
+                          transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                          minWidth: '2px'
+                        }} 
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Promotional Banner Carousel */}
+                {cartDrawer?.promotionalBannerEnabled && promotionalBanner?.images && promotionalBanner.images.length > 0 && (
+                  <div style={{
+                    position: 'relative',
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    height: '140px',
+                    marginBottom: '8px',
+                    backgroundColor: '#000'
+                  }}>
+                    {(() => {
+                      const currentSlide = promotionalBanner.images[0] as any;
+                      return (
+                        <>
+                          {/* Background Image or Video */}
+                          {currentSlide.videoUrl && currentSlide.videoType === 'mp4' ? (
+                            <video 
+                              src={currentSlide.videoUrl}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              muted
+                              loop
+                              autoPlay
+                              playsInline
+                            />
+                          ) : (
+                            <img 
+                              src={currentSlide.imageUrl}
+                              alt="Promotional banner"
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          )}
+
+                          {/* Title & Description - Bottom RIGHT */}
+                          {(currentSlide.title || currentSlide.description) && (
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '8px',
+                              right: '8px',
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                              padding: '8px 10px',
+                              borderRadius: '6px',
+                              maxWidth: '45%',
+                              backdropFilter: 'blur(10px)',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                            }}>
+                              {currentSlide.title && (
+                                <div style={{ 
+                                  fontWeight: '700', 
+                                  fontSize: '11px', 
+                                  color: '#1a1a1a',
+                                  marginBottom: currentSlide.description ? '2px' : '0',
+                                  lineHeight: '1.2'
+                                }}>
+                                  {currentSlide.title}
+                                </div>
+                              )}
+                              {currentSlide.description && (
+                                <div style={{ 
+                                  fontSize: '9px', 
+                                  color: '#4a4a4a',
+                                  lineHeight: '1.3'
+                                }}>
+                                  {currentSlide.description}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* CTA Button - Bottom LEFT */}
+                          {currentSlide.ctaText && (
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '8px',
+                              left: '8px',
+                            }}>
+                              <button style={{
+                                backgroundColor: '#007bff',
+                                color: 'white',
+                                border: 'none',
+                                padding: '6px 12px',
+                                borderRadius: '5px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                fontSize: '10px',
+                                boxShadow: '0 2px 8px rgba(0, 123, 255, 0.4)',
+                                transition: 'all 0.2s ease'
+                              }}>
+                                {currentSlide.ctaText}
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Dot Indicators */}
+                          {promotionalBanner.images.length > 1 && (promotionalBanner.carouselSettings?.showDots !== false) && (
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '6px',
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              display: 'flex',
+                              gap: '4px',
+                              zIndex: 10
+                            }}>
+                              {promotionalBanner.images.map((_: any, index: number) => (
+                                <div 
+                                  key={index} 
+                                  style={{
+                                    width: '6px',
+                                    height: '6px',
+                                    borderRadius: '50%',
+                                    backgroundColor: index === 0 ? '#007bff' : 'rgba(255,255,255,0.6)',
+                                    border: '1px solid rgba(255,255,255,0.9)',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                                  }} 
+                                />
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Navigation Arrows */}
+                          {promotionalBanner.images.length > 1 && (promotionalBanner.carouselSettings?.showArrows !== false) && (
+                            <>
+                              <button style={{
+                                position: 'absolute',
+                                left: '4px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                backgroundColor: 'rgba(255,255,255,0.9)',
+                                borderRadius: '50%',
+                                width: '24px',
+                                height: '24px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                border: 'none',
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                color: '#333',
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                                transition: 'all 0.2s ease'
+                              }}>
+                                ‹
+                              </button>
+                              <button style={{
+                                position: 'absolute',
+                                right: '4px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                backgroundColor: 'rgba(255,255,255,0.9)',
+                                borderRadius: '50%',
+                                width: '24px',
+                                height: '24px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                border: 'none',
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                color: '#333',
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                                transition: 'all 0.2s ease'
+                              }}>
+                                ›
+                              </button>
+                            </>
+                          )}
+
+                          {/* 5% Preview Edges */}
+                          {promotionalBanner.images.length > 1 && (
+                            <div style={{
+                              position: 'absolute',
+                              right: 0,
+                              top: 0,
+                              height: '100%',
+                              width: '5%',
+                              overflow: 'hidden',
+                              opacity: 0.4,
+                              pointerEvents: 'none'
+                            }}>
+                              <img 
+                                src={promotionalBanner.images[1].imageUrl}
+                                alt="Next"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
 
                 {/* Cart Items with Enhanced Controls */}
                 <div>
                   {sampleCart.items.map((item) => (
-                    <div key={item.id} style={{ 
+                    <div key={item.id} className="cart-item" data-item-id={item.id} style={{ 
                       display: 'flex', 
                       gap: '12px',
                       padding: '12px 0',
@@ -246,59 +525,166 @@ export default function CartDrawerPreview() {
                             borderRadius: '6px',
                             background: 'white'
                           }}>
-                            <button style={{ 
-                              width: '32px', 
-                              height: '32px',
-                              border: 'none',
-                              background: '#f8f9fa',
-                              color: '#374151',
-                              fontSize: '16px',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              borderRadius: '4px',
-                              transition: 'all 0.2s ease'
-                            }}>−</button>
-                            <span style={{ 
-                              minWidth: '40px',
-                              textAlign: 'center',
-                              fontWeight: '600',
-                              fontSize: '14px',
-                              color: '#374151',
-                              padding: '0 8px'
-                            }}>{item.quantity}</span>
-                            <button style={{ 
-                              width: '32px', 
-                              height: '32px',
-                              border: 'none',
-                              background: '#f8f9fa',
-                              color: '#374151',
-                              fontSize: '16px',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              borderRadius: '4px',
-                              transition: 'all 0.2s ease'
-                            }}>+</button>
+                            <button 
+                              onClick={() => {
+                                const newQuantity = Math.max(1, item.quantity - 1);
+                                // Update the sample cart state
+                                const updatedItems = sampleCart.items.map(i => 
+                                  i.id === item.id ? { ...i, quantity: newQuantity } : i
+                                );
+                                const newTotal = updatedItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+                                const newOriginalTotal = updatedItems.reduce((sum, i) => sum + (i.originalPrice * i.quantity), 0);
+                                const newItemCount = updatedItems.reduce((sum, i) => sum + i.quantity, 0);
+                                
+                                // Update the display
+                                const quantitySpan = document.querySelector(`[data-item-id="${item.id}"] .quantity-display`);
+                                const totalSpan = document.querySelector('.cart-total');
+                                const itemCountSpan = document.querySelector('.cart-item-count');
+                                
+                                if (quantitySpan) quantitySpan.textContent = newQuantity.toString();
+                                if (totalSpan) totalSpan.textContent = `₹${Math.round(newTotal)}`;
+                                if (itemCountSpan) itemCountSpan.textContent = `${newItemCount} items`;
+                                
+                                // Update progress bar if it exists
+                                const progressBar = document.querySelector('.progress-bar-fill') as HTMLElement;
+                                if (progressBar && freeShippingBar) {
+                                  let progress;
+                                  if (freeShippingBar.thresholdMode === "amount") {
+                                    const threshold = Number(freeShippingBar.thresholdAmount);
+                                    progress = Math.min((newTotal / threshold) * 100, 100);
+                                  } else {
+                                    const threshold = Number(freeShippingBar.thresholdCount);
+                                    progress = Math.min((newItemCount / threshold) * 100, 100);
+                                  }
+                                  progressBar.style.width = `${progress}%`;
+                                }
+                              }}
+                              style={{ 
+                                width: '32px', 
+                                height: '32px',
+                                border: 'none',
+                                background: '#f8f9fa',
+                                color: '#374151',
+                                fontSize: '16px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '4px',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >−</button>
+                            <span 
+                              className="quantity-display"
+                              data-item-id={item.id}
+                              style={{ 
+                                minWidth: '40px',
+                                textAlign: 'center',
+                                fontWeight: '600',
+                                fontSize: '14px',
+                                color: '#374151',
+                                padding: '0 8px'
+                              }}
+                            >{item.quantity}</span>
+                            <button 
+                              onClick={() => {
+                                const newQuantity = item.quantity + 1;
+                                // Update the sample cart state
+                                const updatedItems = sampleCart.items.map(i => 
+                                  i.id === item.id ? { ...i, quantity: newQuantity } : i
+                                );
+                                const newTotal = updatedItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+                                const newOriginalTotal = updatedItems.reduce((sum, i) => sum + (i.originalPrice * i.quantity), 0);
+                                const newItemCount = updatedItems.reduce((sum, i) => sum + i.quantity, 0);
+                                
+                                // Update the display
+                                const quantitySpan = document.querySelector(`[data-item-id="${item.id}"] .quantity-display`);
+                                const totalSpan = document.querySelector('.cart-total');
+                                const itemCountSpan = document.querySelector('.cart-item-count');
+                                
+                                if (quantitySpan) quantitySpan.textContent = newQuantity.toString();
+                                if (totalSpan) totalSpan.textContent = `₹${Math.round(newTotal)}`;
+                                if (itemCountSpan) itemCountSpan.textContent = `${newItemCount} items`;
+                                
+                                // Update progress bar if it exists
+                                const progressBar = document.querySelector('.progress-bar-fill') as HTMLElement;
+                                if (progressBar && freeShippingBar) {
+                                  let progress;
+                                  if (freeShippingBar.thresholdMode === "amount") {
+                                    const threshold = Number(freeShippingBar.thresholdAmount);
+                                    progress = Math.min((newTotal / threshold) * 100, 100);
+                                  } else {
+                                    const threshold = Number(freeShippingBar.thresholdCount);
+                                    progress = Math.min((newItemCount / threshold) * 100, 100);
+                                  }
+                                  progressBar.style.width = `${progress}%`;
+                                }
+                              }}
+                              style={{ 
+                                width: '32px', 
+                                height: '32px',
+                                border: 'none',
+                                background: '#f8f9fa',
+                                color: '#374151',
+                                fontSize: '16px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '4px',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >+</button>
                           </div>
-                          <button style={{ 
-                            width: '32px', 
-                            height: '32px',
-                            border: 'none',
-                            background: '#ef4444',
-                            color: 'white',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '14px',
-                            transition: 'all 0.2s ease'
-                          }} title="Remove item">🗑</button>
+                          <button 
+                            onClick={() => {
+                              // Remove item from cart
+                              const updatedItems = sampleCart.items.filter(i => i.id !== item.id);
+                              const newTotal = updatedItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+                              const newOriginalTotal = updatedItems.reduce((sum, i) => sum + (i.originalPrice * i.quantity), 0);
+                              const newItemCount = updatedItems.reduce((sum, i) => sum + i.quantity, 0);
+                              
+                              // Update the display
+                              const totalSpan = document.querySelector('.cart-total');
+                              const itemCountSpan = document.querySelector('.cart-item-count');
+                              const cartItem = document.querySelector(`[data-item-id="${item.id}"]`)?.closest('.cart-item') as HTMLElement;
+                              
+                              if (totalSpan) totalSpan.textContent = `₹${Math.round(newTotal)}`;
+                              if (itemCountSpan) itemCountSpan.textContent = `${newItemCount} items`;
+                              if (cartItem) cartItem.style.display = 'none';
+                              
+                              // Update progress bar if it exists
+                              const progressBar = document.querySelector('.progress-bar-fill') as HTMLElement;
+                              if (progressBar && freeShippingBar) {
+                                let progress;
+                                if (freeShippingBar.thresholdMode === "amount") {
+                                  const threshold = Number(freeShippingBar.thresholdAmount);
+                                  progress = Math.min((newTotal / threshold) * 100, 100);
+                                } else {
+                                  const threshold = Number(freeShippingBar.thresholdCount);
+                                  progress = Math.min((newItemCount / threshold) * 100, 100);
+                                }
+                                progressBar.style.width = `${progress}%`;
+                              }
+                            }}
+                            style={{ 
+                              width: '32px', 
+                              height: '32px',
+                              border: 'none',
+                              background: '#ef4444',
+                              color: 'white',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '14px',
+                              transition: 'all 0.2s ease'
+                            }} 
+                            title="Remove item"
+                          >🗑</button>
                         </div>
                       </div>
                     </div>
@@ -316,81 +702,144 @@ export default function CartDrawerPreview() {
                       {productRecommendation.title}
                     </div>
                     <div style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: '1fr 1fr',
-                      gap: '12px'
+                      position: 'relative',
+                      overflow: 'hidden'
                     }}>
-                      {/* Sample recommendations */}
-                      {[
-                        { title: 'Sport Elite', price: 2699, originalPrice: 5999, discount: '55% off' },
-                        { title: 'Urban Style', price: 2699, originalPrice: 5999, discount: '55% off' },
-                      ].map((product, idx) => (
-                        <div key={idx} style={{ 
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '6px',
-                          padding: '12px',
-                          textAlign: 'center'
-                        }}>
-                          <div style={{ 
-                            width: '100%',
-                            height: '100px',
-                            backgroundColor: '#f3f4f6',
-                            borderRadius: '4px',
-                            marginBottom: '8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '32px',
-                            position: 'relative'
+                      <div style={{ 
+                        display: 'flex',
+                        gap: '12px',
+                        overflowX: 'auto',
+                        scrollBehavior: 'smooth',
+                        paddingBottom: '8px',
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: '#cbd5e1 #f1f5f9'
+                      }}>
+                        {/* Actual selected products */}
+                        {productRecommendation.products.length > 0 ? (
+                          productRecommendation.products.slice(0, productRecommendation.maxProducts).map((product, idx) => {
+                            const compareAtPrice = Number(product.compareAtPrice);
+                            const price = Number(product.price);
+                            const discountPercent = product.compareAtPrice && compareAtPrice > price 
+                              ? Math.round(((compareAtPrice - price) / compareAtPrice) * 100) 
+                              : 0;
+                            
+                            return (
+                          <div key={idx} style={{ 
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '6px',
+                            padding: '12px',
+                            textAlign: 'center',
+                            minWidth: '140px',
+                            flexShrink: 0,
+                            backgroundColor: '#ffffff',
+                            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                            transition: 'transform 0.2s ease, box-shadow 0.2s ease'
                           }}>
-                            👟
-                            {productRecommendation.showDiscountBadge && (
-                              <div style={{ 
-                                position: 'absolute',
-                                top: '8px',
-                                right: '8px',
-                                backgroundColor: '#10b981',
-                                color: 'white',
-                                padding: '2px 8px',
-                                borderRadius: '12px',
-                                fontSize: '11px',
-                                zIndex: 10
+                            <div style={{ 
+                              width: '100%',
+                              height: '100px',
+                              backgroundColor: '#f3f4f6',
+                              borderRadius: '4px',
+                              marginBottom: '8px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '32px',
+                              position: 'relative',
+                              backgroundImage: product.imageUrl ? `url(${product.imageUrl})` : 'none',
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center'
+                            }}>
+                              {!product.imageUrl && '📦'}
+                              {productRecommendation.showDiscountBadge && discountPercent > 0 && (
+                                <div style={{ 
+                                  position: 'absolute',
+                                  top: '8px',
+                                  right: '8px',
+                                  backgroundColor: '#10b981',
+                                  color: 'white',
+                                  padding: '2px 8px',
+                                  borderRadius: '12px',
+                                  fontSize: '11px',
+                                  zIndex: 10
+                                }}>
+                                  {discountPercent}% off
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '4px', lineHeight: '1.3' }}>
+                              {product.title}
+                            </div>
+                            <div style={{ marginBottom: '4px' }}>
+                              {productRecommendation.showDiscount && product.compareAtPrice && compareAtPrice > price ? (
+                                <>
+                                  <span style={{ 
+                                    textDecoration: 'line-through',
+                                    color: '#9ca3af',
+                                    fontSize: '12px',
+                                    marginRight: '4px'
+                                  }}>
+                                    ₹{Math.round(compareAtPrice)}
+                                  </span>
+                                  <span style={{ fontWeight: '600' }}>₹{Math.round(price)}</span>
+                                </>
+                              ) : (
+                                <span style={{ fontWeight: '600' }}>₹{Math.round(price)}</span>
+                              )}
+                            </div>
+                            {productRecommendation.showAddButton && (
+                              <button style={{ 
+                                width: '100%',
+                                padding: '6px',
+                                border: '1px solid #f97316',
+                                background: 'white',
+                                color: '#f97316',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: '500',
+                                transition: 'all 0.2s ease'
                               }}>
-                                {product.discount}
-                              </div>
+                                + Add
+                              </button>
                             )}
                           </div>
-                          <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '4px' }}>
-                            {product.title}
+                            );
+                          })
+                        ) : (
+                          <div style={{ 
+                            minWidth: '100%',
+                            textAlign: 'center',
+                            padding: '40px 20px',
+                            color: '#6b7280',
+                            fontSize: '14px'
+                          }}>
+                            No products selected. Configure product recommendations to see them here.
                           </div>
-                          <div style={{ marginBottom: '4px' }}>
-                            <span style={{ 
-                              textDecoration: 'line-through',
-                              color: '#9ca3af',
-                              fontSize: '12px',
-                              marginRight: '4px'
-                            }}>
-                              ₹{product.originalPrice}
-                            </span>
-                            <span style={{ fontWeight: '600' }}>₹{product.price}</span>
-                          </div>
-                          {productRecommendation.showAddButton && (
-                            <button style={{ 
-                              width: '100%',
-                              padding: '6px',
-                              border: '1px solid #f97316',
-                              background: 'white',
-                              color: '#f97316',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '13px',
-                              fontWeight: '500'
-                            }}>
-                              + Add
-                            </button>
-                          )}
-                        </div>
-                      ))}
+                        )}
+                      </div>
+                      {/* Scroll indicator */}
+                      <div style={{
+                        position: 'absolute',
+                        right: '0',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,1) 100%)',
+                        width: '20px',
+                        height: '100%',
+                        pointerEvents: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <div style={{
+                          width: '4px',
+                          height: '20px',
+                          background: '#cbd5e1',
+                          borderRadius: '2px',
+                          opacity: '0.6'
+                        }}></div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -484,7 +933,7 @@ export default function CartDrawerPreview() {
                       }}>
                         ₹{Math.round(sampleCart.originalTotal)}
                       </span>
-                      <span>₹{Math.round(sampleCart.total)}</span>
+                      <span className="cart-total">₹{Math.round(sampleCart.total)}</span>
                     </div>
                   </div>
                 </div>
@@ -499,9 +948,14 @@ export default function CartDrawerPreview() {
                   borderRadius: '6px',
                   fontSize: '16px',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px -2px rgba(31, 41, 55, 0.3)',
+                  transition: 'all 0.2s'
                 }}>
-                  Checkout →
+                  <span>Checkout</span>
                 </button>
 
                 {/* Footer */}
