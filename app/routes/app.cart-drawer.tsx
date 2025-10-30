@@ -35,8 +35,30 @@ import {
 } from "../utils/featureOrder";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
+
+  // Check if app embed is enabled
+  let appEmbedEnabled = false;
+  try {
+    // Query to check if theme app extension is enabled
+    const response = await admin.graphql(
+      `#graphql
+        query {
+          app {
+            installation {
+              launchUrl
+            }
+          }
+        }
+      `
+    );
+    // In a real implementation, you'd need to check the specific theme settings
+    // For now, we'll default to false - the merchant needs to enable it manually
+    appEmbedEnabled = false;
+  } catch (error) {
+    console.error("Error checking app embed status:", error);
+  }
 
   // Get or create cart drawer configuration
   let cartDrawer = await prisma.cartDrawer.findUnique({
@@ -97,7 +119,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     where: { shop },
   });
 
-  return json({ cartDrawer, couponCodeField, shop });
+  return json({ 
+    cartDrawer, 
+    couponCodeField, 
+    shop, 
+    appEmbedEnabled,
+    shopDomain: process.env.SHOPIFY_SHOP_DOMAIN || shop,
+  });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -1570,7 +1598,7 @@ function MiniCartDrawerPreview({
 }
 
 export default function CartDrawerIndex() {
-  const { cartDrawer, couponCodeField } = useLoaderData<typeof loader>();
+  const { cartDrawer, couponCodeField, appEmbedEnabled, shopDomain } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const fetcher = useFetcher();
 
@@ -1748,9 +1776,14 @@ export default function CartDrawerIndex() {
               <BlockStack gap="400">
                 <InlineStack align="space-between" blockAlign="center">
                   <BlockStack gap="100">
-                    <Text as="h2" variant="headingLg">
-                      Customize Your Cart Experience
-                    </Text>
+                    <InlineStack gap="200" blockAlign="center">
+                      <Text as="h2" variant="headingLg">
+                        Customize Your Cart Drawer
+                      </Text>
+                      <Badge tone={appEmbedEnabled ? "success" : "warning"}>
+                        {appEmbedEnabled ? "Enabled" : "Disabled"}
+                      </Badge>
+                    </InlineStack>
                     <Text as="p" variant="bodyMd" tone="subdued">
                       Enable and configure features to enhance your cart drawer. Toggle features on/off to see how they enhance the shopping experience.
                     </Text>
@@ -1764,6 +1797,55 @@ export default function CartDrawerIndex() {
                 </InlineStack>
               </BlockStack>
             </Card>
+
+            {/* App Embed Activation Banner */}
+            {!appEmbedEnabled && (
+              <Card>
+                <BlockStack gap="400">
+                  <InlineStack gap="200" blockAlign="start">
+                    <Box>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        backgroundColor: '#FEF3C7',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '20px'
+                      }}>
+                        ⚠️
+                      </div>
+                    </Box>
+                    <BlockStack gap="200">
+                      <Text as="h3" variant="headingMd">
+                        Please connect Upsellity Bridge
+                      </Text>
+                      <Text as="p" variant="bodyMd" tone="subdued">
+                        Now that you've installed Upsellity, you need to enable the <strong>Upsellity Bridge</strong> in your Shopify theme. This will not set your cart live yet.
+                      </Text>
+                      <BlockStack gap="200">
+                        <Text as="p" variant="bodyMd">
+                          <strong>1.</strong> Click the button below to enable the Upsellity Bridge from your theme editor.
+                        </Text>
+                        <Text as="p" variant="bodyMd">
+                          <strong>2.</strong> Ensure the Upsellity Bridge is toggled on and click <strong>save</strong>.
+                        </Text>
+                      </BlockStack>
+                      <Box paddingBlockStart="200">
+                        <Button
+                          variant="primary"
+                          url={`https://admin.shopify.com/store/${shopDomain.split('.')[0]}/themes/current/editor?context=apps`}
+                          target="_blank"
+                        >
+                          Click here to enable the Upsellity Bridge
+                        </Button>
+                      </Box>
+                    </BlockStack>
+                  </InlineStack>
+                </BlockStack>
+              </Card>
+            )}
 
             {/* Feature Configuration Cards */}
             <BlockStack gap="400">

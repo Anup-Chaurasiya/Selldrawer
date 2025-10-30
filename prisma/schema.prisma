@@ -308,3 +308,25 @@ model CartDrawerAnalytics {
   @@index([shop, createdAt])
   @@index([eventType])
 }
+
+model AppSubscription {
+  id                   String    @id @default(cuid())
+  shop                 String    @unique
+  planId               String
+  planName             String
+  status               String    @default("ACTIVE")
+  amount               Decimal
+  currencyCode         String
+  interval             String
+  trialDays            Int?
+  trialEndsAt          DateTime?
+  billingOn            DateTime?
+  shopifyChargeId      String?
+  shopifyConfirmationUrl String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  cancelledAt          DateTime?
+
+  @@index([shop])
+  @@index([status])
+}

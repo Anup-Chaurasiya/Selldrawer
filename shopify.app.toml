@@ -12,19 +12,23 @@ automatically_update_urls_on_dev = true
 api_version = "2025-07"
 
   [[webhooks.subscriptions]]
-  topics = [ "app/uninstalled" ]
-  uri = "/webhooks/app/uninstalled"
-
-  [[webhooks.subscriptions]]
   topics = [ "app/scopes_update" ]
   uri = "/webhooks/app/scopes_update"
 
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products,read_products,read_product_listings,write_checkouts,read_checkouts,read_discounts"
+scopes = "read_checkouts,read_product_listings,read_products,write_checkouts,write_products"
 
 [auth]
-redirect_urls = ["https://clearly-myself-displaying-close.trycloudflare.com/auth/callback", "https://clearly-myself-displaying-close.trycloudflare.com/auth/shopify/callback", "https://clearly-myself-displaying-close.trycloudflare.com/api/auth/callback"]
+redirect_urls = [
+  "https://clearly-myself-displaying-close.trycloudflare.com/auth/callback",
+  "https://clearly-myself-displaying-close.trycloudflare.com/auth/shopify/callback",
+  "https://clearly-myself-displaying-close.trycloudflare.com/api/auth/callback"
+]
 
 [pos]
 embedded = false
