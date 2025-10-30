@@ -120,9 +120,6 @@ export default function CartConfigurations() {
     formatCondition(config),
     formatAction(config),
     formatTargeting(config),
-    <Badge key={config.id} tone={config.isActive ? "success" : "critical"}>
-      {config.isActive ? "Active" : "Inactive"}
-    </Badge>,
     <InlineStack key={config.id} gap="200">
       <Button
         size="micro"
@@ -183,14 +180,12 @@ export default function CartConfigurations() {
                   "text",
                   "text",
                   "text",
-                  "text",
                 ]}
                 headings={[
                   "Name",
                   "Condition", 
                   "Action",
                   "Targeting",
-                  "Status",
                   "Actions",
                 ]}
                 rows={rows}
