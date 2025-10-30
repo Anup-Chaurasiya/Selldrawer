@@ -1578,6 +1578,7 @@ export default function CartDrawerIndex() {
     normalizeFeatureOrder(cartDrawer.featureOrder)
   );
   const [draggedFeatureId, setDraggedFeatureId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   React.useEffect(() => {
     setFeatureOrder(normalizeFeatureOrder(cartDrawer.featureOrder));
@@ -1631,12 +1632,14 @@ export default function CartDrawerIndex() {
         return next;
       });
       setDraggedFeatureId(null);
+      setDragOverId(null);
     },
     [arraysEqual, draggedFeatureId, persistFeatureOrder]
   );
 
   const handleDragEnd = React.useCallback(() => {
     setDraggedFeatureId(null);
+    setDragOverId(null);
   }, []);
 
   const handleToggleFeature = (featureId: string, currentEnabled: boolean) => {
@@ -1764,6 +1767,28 @@ export default function CartDrawerIndex() {
 
             {/* Feature Configuration Cards */}
             <BlockStack gap="400">
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '4px 8px',
+                margin: '4px 0 -4px 0',
+                color: '#6b7280',
+                fontSize: '12px',
+                fontWeight: 600
+              }}>
+                <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style={{ opacity: 0.7 }}>
+                    <circle cx="5" cy="5" r="1.5"/>
+                    <circle cx="10" cy="5" r="1.5"/>
+                    <circle cx="15" cy="5" r="1.5"/>
+                    <circle cx="5" cy="10" r="1.5"/>
+                    <circle cx="10" cy="10" r="1.5"/>
+                    <circle cx="15" cy="10" r="1.5"/>
+                  </svg>
+                </span>
+                <span>Drag to reorder features</span>
+              </div>
               {orderedFeatureCards.map((feature) => (
                 <div
                   key={feature.id}
@@ -1772,12 +1797,49 @@ export default function CartDrawerIndex() {
                   onDragOver={handleDragOver}
                   onDrop={handleDrop(feature.id)}
                   onDragEnd={handleDragEnd}
-                  style={{ cursor: 'grab', opacity: draggedFeatureId === feature.id ? 0.6 : 1 }}
+                  onDragEnter={() => setDragOverId(feature.id)}
+                  onDragLeave={(e) => {
+                    if (e.currentTarget === e.target) {
+                      setDragOverId((current) => (current === feature.id ? null : current));
+                    }
+                  }}
+                  style={{
+                    cursor: 'grab',
+                    opacity: draggedFeatureId === feature.id ? 0.6 : 1,
+                    transition: 'box-shadow 0.15s ease, transform 0.15s ease, background-color 0.15s ease',
+                    boxShadow: dragOverId === feature.id ? '0 0 0 2px #93c5fd inset, 0 2px 8px rgba(59,130,246,0.15)' : 'none',
+                    backgroundColor: dragOverId === feature.id ? '#f8fafc' : 'transparent',
+                    borderRadius: '12px'
+                  }}
                 >
                   <Card>
                   <BlockStack gap="400">
                     <InlineStack align="space-between" blockAlign="center">
-                      <InlineStack gap="400" blockAlign="center">
+                      <InlineStack gap="300" blockAlign="center">
+                        <Box>
+                          <div
+                            aria-label="Drag to reorder"
+                            title="Drag to reorder"
+                            style={{
+                              width: '20px',
+                              height: '28px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#9ca3af',
+                              cursor: 'grab',
+                            }}
+                          >
+                            <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
+                              <circle cx="3" cy="3" r="1.3"/>
+                              <circle cx="9" cy="3" r="1.3"/>
+                              <circle cx="3" cy="8" r="1.3"/>
+                              <circle cx="9" cy="8" r="1.3"/>
+                              <circle cx="3" cy="13" r="1.3"/>
+                              <circle cx="9" cy="13" r="1.3"/>
+                            </svg>
+                          </div>
+                        </Box>
                         <Box>
                           <Icon source={feature.icon} tone="base" />
                         </Box>
@@ -1786,11 +1848,6 @@ export default function CartDrawerIndex() {
                             <Text as="h3" variant="headingMd">
                               {feature.title}
                             </Text>
-                            {feature.enabled ? (
-                              <Badge tone="success">Enabled</Badge>
-                            ) : (
-                              <Badge>Disabled</Badge>
-                            )}
                           </InlineStack>
                           <Text as="p" variant="bodyMd" tone="subdued">
                             {feature.description}
