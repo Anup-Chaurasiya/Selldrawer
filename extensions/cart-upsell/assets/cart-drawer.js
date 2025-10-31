@@ -685,36 +685,10 @@ class UpsellityCartDrawer {
               gap: 12px;
               min-height: 60px;
             ">
-              <!-- CTA Button - Left Side -->
-              <div class="upsellity-promo-cta-container" style="flex-shrink: 0;">
-                ${slides.map((slide, index) => `
-                  <button 
-                    class="upsellity-promo-cta-btn"
-                    data-slide-cta="${index}"
-                    onclick="window.upsellityDrawer.handleSlideCtaClick('${slide.ctaUrl || ''}')"
-                    style="
-                      display: ${index === 0 ? 'block' : 'none'};
-                      background-color: #ff6b35;
-                      color: #ffffff;
-                      border: none;
-                      padding: 8px 16px;
-                      border-radius: 6px;
-                      font-weight: 600;
-                      cursor: pointer;
-                      font-size: 14px;
-                      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-                      transition: all 0.2s ease;
-                      min-width: 110px;
-                      ${!slide.ctaText ? 'visibility: hidden;' : ''}
-                    "
-                  >${slide.ctaText || 'Shop Now'}</button>
-                `).join('')}
-              </div>
-              
-              <!-- Title & Description - Right Side -->
+              <!-- Title & Description - Left Side -->
               <div class="upsellity-promo-text-container" style="
                 flex: 1;
-                text-align: right;
+                text-align: left;
                 min-width: 0;
               ">
                 ${slides.map((slide, index) => `
@@ -740,6 +714,32 @@ class UpsellityCartDrawer {
                       ">${slide.description}</div>
                     ` : ''}
                   </div>
+                `).join('')}
+              </div>
+              
+              <!-- CTA Button - Right Side -->
+              <div class="upsellity-promo-cta-container" style="flex-shrink: 0;">
+                ${slides.map((slide, index) => `
+                  <button 
+                    class="upsellity-promo-cta-btn"
+                    data-slide-cta="${index}"
+                    onclick="window.upsellityDrawer.handleSlideCtaClick('${slide.ctaUrl || ''}')"
+                    style="
+                      display: ${index === 0 ? 'block' : 'none'};
+                      background-color: #ff6b35;
+                      color: #ffffff;
+                      border: none;
+                      padding: 8px 16px;
+                      border-radius: 6px;
+                      font-weight: 600;
+                      cursor: pointer;
+                      font-size: 14px;
+                      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                      transition: all 0.2s ease;
+                      min-width: 110px;
+                      ${!slide.ctaText ? 'visibility: hidden;' : ''}
+                    "
+                  >${slide.ctaText || 'Shop Now'}</button>
                 `).join('')}
               </div>
             </div>
@@ -808,6 +808,20 @@ class UpsellityCartDrawer {
               min-height: 60px;
               flex-wrap: wrap;
             ">
+              <div style="flex: 1; text-align: left; min-width: 0;">
+                <div style="
+                  font-weight: 700;
+                  font-size: 18px;
+                  color: #1f2937;
+                  margin-bottom: 2px;
+                  line-height: 1.2;
+                ">Summer Sale</div>
+                <div style="
+                  font-size: 14px;
+                  color: #6b7280;
+                  line-height: 1.4;
+                ">Get 20% Off on Summer Items</div>
+              </div>
               <div style="flex-shrink: 0;">
                 <button style="
                   background-color: #ff6b35;
@@ -822,20 +836,6 @@ class UpsellityCartDrawer {
                   transition: all 0.2s ease;
                   min-width: 110px;
                 ">shop</button>
-              </div>
-              <div style="flex: 1; text-align: right; min-width: 0;">
-                <div style="
-                  font-weight: 700;
-                  font-size: 18px;
-                  color: #1f2937;
-                  margin-bottom: 2px;
-                  line-height: 1.2;
-                ">Summer Sale</div>
-                <div style="
-                  font-size: 14px;
-                  color: #6b7280;
-                  line-height: 1.4;
-                ">Get 20% Off on Summer Items</div>
               </div>
             </div>
           </div>

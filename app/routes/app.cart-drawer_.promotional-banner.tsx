@@ -27,6 +27,8 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback, useEffect, useRef } from "react";
+import { ChevronLeftIcon, ChevronRightIcon } from '@shopify/polaris-icons';
+import { PromotionalBannerCard } from "./app.cart-drawer";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -406,7 +408,7 @@ function SlideEditor({
   );
 }
 
-// Carousel Preview Component
+// Carousel Preview Component - now using the shared PromotionalBannerCard
 function CarouselPreview({ slides, currentIndex, carouselSettings, onPrevious, onNext, onDotClick }: { 
   slides: any[]; 
   currentIndex: number; 
@@ -430,313 +432,16 @@ function CarouselPreview({ slides, currentIndex, carouselSettings, onPrevious, o
       </div>
     );
   }
-
-  const currentSlide = slides[currentIndex] || slides[0];
-
+  
   return (
-    <div style={{ 
-      borderRadius: '8px',
-      overflow: 'hidden',
-      backgroundColor: '#fff',
-      border: '1px solid #e5e7eb',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-    }}>
-      {/* Media Section - Fixed 160px height */}
-      <div style={{ 
-        position: 'relative',
-        height: '160px',
-        backgroundColor: '#000',
-        overflow: 'hidden',
-        borderRadius: '8px 8px 0 0'
-      }}>
-        {/* Background Image/Video */}
-        {currentSlide.videoUrl && currentSlide.videoType !== "none" ? (
-          <div style={{ 
-            width: '100%', 
-            height: '100%', 
-            position: 'relative',
-            backgroundColor: '#1a1a1a'
-          }}>
-            {currentSlide.videoType === "mp4" ? (
-              <video 
-                src={currentSlide.videoUrl}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px 8px 0 0' }}
-                muted
-                loop
-                autoPlay
-              />
-            ) : (
-              <div style={{ 
-                width: '100%', 
-                height: '100%', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                color: '#fff',
-                fontSize: '14px'
-              }}>
-                📹 {currentSlide.videoType?.toUpperCase() || 'VIDEO'} Video
-              </div>
-            )}
-            {/* Fallback overlay */}
-            <img 
-              src={currentSlide.imageUrl}
-              alt="Slide background"
-              style={{ 
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%', 
-                height: '100%', 
-                objectFit: 'cover',
-                zIndex: -1
-              }}
-            />
-          </div>
-        ) : (
-          <img 
-            src={currentSlide.imageUrl}
-            alt="Slide background"
-            style={{ 
-              width: '100%', 
-              height: '100%', 
-              objectFit: 'cover',
-              borderRadius: '8px 8px 0 0'
-            }}
-          />
-        )}
-
-        {/* Navigation Arrows */}
-        {slides.length > 1 && (carouselSettings?.showArrows !== false) && (
-          <>
-            <button 
-              onClick={onPrevious}
-              style={{
-                position: 'absolute',
-                left: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                backgroundColor: 'rgba(255,255,255,0.9)',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                color: '#333',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                border: 'none',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,1)';
-                e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.9)';
-                e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-              }}
-            >
-              ‹
-            </button>
-            <button 
-              onClick={onNext}
-              style={{
-                position: 'absolute',
-                right: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                backgroundColor: 'rgba(255,255,255,0.9)',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                color: '#333',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                border: 'none',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,1)';
-                e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.9)';
-                e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-              }}
-            >
-              ›
-            </button>
-          </>
-        )}
-
-        {/* Dot Indicators */}
-        {slides.length > 1 && (carouselSettings?.showDots !== false) && (
-          <div style={{
-            position: 'absolute',
-            bottom: '12px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            gap: '8px',
-            zIndex: 10
-          }}>
-            {slides.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => onDotClick(index)}
-                style={{
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
-                  backgroundColor: index === currentIndex ? '#007bff' : 'rgba(255,255,255,0.6)',
-                  border: '2px solid rgba(255,255,255,0.9)',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                  cursor: 'pointer',
-                  padding: 0
-                }}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* 5% Preview Edges */}
-        {slides.length > 1 && (
-          <>
-            {currentIndex > 0 && (
-              <div style={{
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                height: '100%',
-                width: '5%',
-                overflow: 'hidden',
-                opacity: 0.5
-              }}>
-                <img 
-                  src={slides[currentIndex - 1].imageUrl}
-                  alt="Previous"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              </div>
-            )}
-            {currentIndex < slides.length - 1 && (
-              <div style={{
-                position: 'absolute',
-                right: 0,
-                top: 0,
-                height: '100%',
-                width: '5%',
-                overflow: 'hidden',
-                opacity: 0.5
-              }}>
-                <img 
-                  src={slides[currentIndex + 1].imageUrl}
-                  alt="Next"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Text Section - Below Media */
-      }
-      {(currentSlide.title || currentSlide.description || currentSlide.ctaText) && (
-        <div className="carousel-text-section" style={{
-          backgroundColor: '#fff',
-          padding: '10px 12px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-          minHeight: '60px',
-          flexWrap: 'wrap'
-        }}>
-          {/* CTA Button - Left side */}
-          {currentSlide.ctaText && (
-            <div style={{ flexShrink: 0 }}>
-              <button style={{
-                backgroundColor: '#ff6b35',
-                color: '#ffffff',
-                border: 'none',
-                padding: '6px 14px',
-                borderRadius: '6px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                fontSize: '14px',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                transition: 'all 0.2s ease',
-                minWidth: '110px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#e85d2f';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#ff6b35';
-              }}
-              >
-                {currentSlide.ctaText}
-              </button>
-            </div>
-          )}
-
-          {/* Title & Description - Right side */}
-          {(currentSlide.title || currentSlide.description) && (
-            <div style={{ 
-              flex: 1,
-              textAlign: 'right',
-              minWidth: 0
-            }}>
-              {currentSlide.title && (
-                <div style={{ 
-                  fontWeight: '700', 
-                  fontSize: '18px', 
-                  color: '#1f2937',
-                  marginBottom: currentSlide.description ? '2px' : '0',
-                  lineHeight: '1.2'
-                }}>
-                  {currentSlide.title}
-                </div>
-              )}
-              {currentSlide.description && (
-                <div style={{ 
-                  fontSize: '14px', 
-                  color: '#6b7280',
-                  lineHeight: '1.4'
-                }}>
-                  {currentSlide.description}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Mobile Responsive Styles */}
-      <style>{`
-        @media (max-width: 768px) {
-          .carousel-text-section {
-            flex-direction: column !important;
-            text-align: center !important;
-            gap: 16px !important;
-          }
-          .carousel-text-section > div:last-child {
-            text-align: center !important;
-          }
-        }
-      `}</style>
-    </div>
+    <PromotionalBannerCard 
+      slides={slides}
+      carouselIndex={currentIndex}
+      carouselSettings={carouselSettings}
+      onPrevious={onPrevious}
+      onNext={onNext}
+      onDotClick={onDotClick}
+    />
   );
 }
 
@@ -762,7 +467,7 @@ export default function PromotionalBanner() {
   useEffect(() => {
     if (slides.length > 1 && carouselSettings.autoRotate && !editingSlide && !isAddingSlide) {
       const interval = setInterval(() => {
-        setPreviewIndex((prev) => (prev + 1) % slides.length);
+        setPreviewIndex((prev) => (typeof prev === 'number' ? (prev < (slides.length - 1) ? prev + 1 : prev) : 0));
       }, carouselSettings.rotationSpeed);
       return () => clearInterval(interval);
     }
@@ -963,7 +668,7 @@ export default function PromotionalBanner() {
                       <RangeSlider
                         label="Rotation speed (seconds)"
                         value={carouselSettings.rotationSpeed / 1000}
-                        onChange={(value) => setCarouselSettings({ ...carouselSettings, rotationSpeed: value * 1000 })}
+                        onChange={(value: number) => setCarouselSettings({ ...carouselSettings, rotationSpeed: value * 1000 })}
                         min={2}
                         max={10}
                         step={1}
@@ -1001,13 +706,13 @@ export default function PromotionalBanner() {
                 slides={slides} 
                 currentIndex={previewIndex}
                 carouselSettings={carouselSettings}
-                onPrevious={() => setPreviewIndex((prev) => (prev - 1 + slides.length) % slides.length)}
-                onNext={() => setPreviewIndex((prev) => (prev + 1) % slides.length)}
+                onPrevious={() => setPreviewIndex(prev => (typeof prev === 'number' ? (prev > 0 ? prev - 1 : prev) : 0))}
+                onNext={() => setPreviewIndex(prev => (typeof prev === 'number' ? (prev < (slides.length - 1) ? prev + 1 : prev) : 0))}
                 onDotClick={(index) => setPreviewIndex(index)}
               />
 
               <Text as="p" variant="bodySm" tone="subdued">
-                Features: Fixed 300px media container, separate white text section below, CTA button (left), title/description (right), responsive mobile layout, auto-rotate, navigation arrows, dot indicators, and 5% edge previews.
+                Features: Fixed 200px media container, separate white text section below, title/description (left), CTA button (right), responsive mobile layout, auto-rotate, navigation arrows, and dot indicators.
               </Text>
             </BlockStack>
           </Card>

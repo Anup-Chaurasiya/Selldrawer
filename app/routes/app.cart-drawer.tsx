@@ -34,6 +34,380 @@ import {
   splitFeatureOrder,
 } from "../utils/featureOrder";
 
+// Reusable Promotional Banner Component
+export function PromotionalBannerCard({ 
+  slides, 
+  carouselIndex, 
+  carouselSettings,
+  onPrevious,
+  onNext,
+  onDotClick
+}: { 
+  slides: any[]; 
+  carouselIndex: number;
+  carouselSettings?: any;
+  onPrevious?: () => void;
+  onNext?: () => void;
+  onDotClick?: (index: number) => void;
+}) {
+  if (!slides || slides.length === 0) {
+    return (
+      <div style={{
+        marginBottom: '16px',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        backgroundColor: '#fff',
+        border: '1px solid #e5e7eb',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+      }}>
+        {/* Media Section */}
+        <div style={{
+          position: 'relative',
+          overflow: 'hidden',
+          height: '200px',
+          backgroundColor: '#f9fafb'
+        }}>
+          <img 
+            src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=200&fit=crop&crop=center"
+            alt="Sample promotional banner"
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              objectFit: 'cover'
+            }}
+          />
+          
+          {/* Dot Indicators */}
+          <div style={{
+            position: 'absolute',
+            bottom: '6px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            gap: '4px',
+            zIndex: 10
+          }}>
+            <div style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: '#007bff',
+              border: '1px solid rgba(255,255,255,0.9)',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+            }} />
+            <div style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255,255,255,0.6)',
+              border: '1px solid rgba(255,255,255,0.9)',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+            }} />
+          </div>
+
+          {/* Navigation Arrows */}
+          <button
+            style={{
+              position: 'absolute',
+              left: '4px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              backgroundColor: 'rgba(255,255,255,0.9)',
+              borderRadius: '50%',
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              border: 'none',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              color: '#333',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            ‹
+          </button>
+          <button
+            style={{
+              position: 'absolute',
+              right: '4px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              backgroundColor: 'rgba(255,255,255,0.9)',
+              borderRadius: '50%',
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              border: 'none',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              color: '#333',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            ›
+          </button>
+        </div>
+        
+        {/* Text Content Section */}
+        <div style={{
+          backgroundColor: '#fff',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          minHeight: '70px'
+        }}>
+          {/* Title & Description - Left Side */}
+          <div style={{ 
+            flex: 1,
+            textAlign: 'left',
+            minWidth: 0
+          }}>
+            <div style={{ 
+              fontWeight: '700', 
+              fontSize: '15px', 
+              color: '#111827',
+              marginBottom: '4px',
+              lineHeight: '1.3',
+              wordBreak: 'break-word'
+            }}>
+              Summer Sale
+            </div>
+            <div style={{ 
+              fontSize: '12px', 
+              color: '#6b7280',
+              lineHeight: '1.4',
+              wordBreak: 'break-word'
+            }}>
+              Get 20% Off on Summer Items
+            </div>
+          </div>
+
+          {/* CTA Button - Right Side */}
+          <div style={{ flexShrink: 0 }}>
+            <button style={{
+              backgroundColor: '#f3f4f6',
+              color: '#374151',
+              border: '1px solid #e5e7eb',
+              padding: '8px 20px',
+              borderRadius: '8px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              fontSize: '13px',
+              transition: 'all 0.2s ease',
+              minWidth: '80px'
+            }}>
+              shop
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const currentSlide = slides[carouselIndex] || slides[0];
+
+  return (
+    <div style={{
+      marginBottom: '16px',
+      borderRadius: '12px',
+      overflow: 'hidden',
+      backgroundColor: '#fff',
+      border: '1px solid #e5e7eb',
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+    }}>
+      {/* Media Section */}
+      <div style={{
+        position: 'relative',
+        overflow: 'hidden',
+        height: '200px',
+        backgroundColor: '#f9fafb'
+      }}>
+        {/* Background Image */}
+        <img 
+          src={currentSlide.imageUrl}
+          alt="Promotional banner"
+          style={{ 
+            width: '100%', 
+            height: '100%', 
+            objectFit: 'cover'
+          }}
+        />
+
+        {/* Dot Indicators */}
+        {slides.length > 1 && (carouselSettings?.showDots !== false) && (
+          <div style={{
+            position: 'absolute',
+            bottom: '6px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            gap: '4px',
+            zIndex: 10
+          }}>
+            {slides.map((_: any, index: number) => (
+              <div 
+                key={index} 
+                onClick={() => onDotClick?.(index)}
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: index === carouselIndex ? '#007bff' : 'rgba(255,255,255,0.6)',
+                  border: '1px solid rgba(255,255,255,0.9)',
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                }} 
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Navigation Arrows */}
+        {slides.length > 1 && (carouselSettings?.showArrows !== false) && (
+          <>
+            <button
+              onClick={() => onPrevious?.()}
+              style={{
+                position: 'absolute',
+                left: '4px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                borderRadius: '50%',
+                width: '24px',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                border: 'none',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                color: '#333',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+              }}
+            >
+              ‹
+            </button>
+            <button
+              onClick={() => onNext?.()}
+              style={{
+                position: 'absolute',
+                right: '4px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                borderRadius: '50%',
+                width: '24px',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                border: 'none',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                color: '#333',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+              }}
+            >
+              ›
+            </button>
+          </>
+        )}
+      </div>
+      
+      {/* Text Content Section (Below Image) */}
+      <div style={{
+        backgroundColor: '#fff',
+        padding: '12px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
+        minHeight: '70px'
+      }}>
+        {/* Title & Description - Left Side */}
+        {(currentSlide.title || currentSlide.description) && (
+          <div style={{ 
+            flex: 1,
+            textAlign: 'left',
+            minWidth: 0
+          }}>
+            {currentSlide.title && (
+              <div style={{ 
+                fontWeight: '700', 
+                fontSize: '15px', 
+                color: '#111827',
+                marginBottom: currentSlide.description ? '4px' : '0',
+                lineHeight: '1.3',
+                wordBreak: 'break-word'
+              }}>
+                {currentSlide.title}
+              </div>
+            )}
+            {currentSlide.description && (
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#6b7280',
+                lineHeight: '1.4',
+                wordBreak: 'break-word'
+              }}>
+                {currentSlide.description}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* CTA Button - Right Side */}
+        {currentSlide.ctaText && (
+          <div style={{ flexShrink: 0 }}>
+            <button style={{
+              backgroundColor: '#f3f4f6',
+              color: '#374151',
+              border: '1px solid #e5e7eb',
+              padding: '8px 20px',
+              borderRadius: '8px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              fontSize: '13px',
+              transition: 'all 0.2s ease',
+              minWidth: '80px'
+            }}>
+              {currentSlide.ctaText}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
@@ -435,411 +809,14 @@ function MiniCartDrawerPreview({
       case 'promotional-banner':
         return (
           cartDrawer?.promotionalBannerEnabled && (
-            promotionalBanner?.images && promotionalBanner.images.length > 0 ? (
-            <div style={{
-              marginBottom: '12px',
-              borderRadius: '10px',
-              overflow: 'hidden',
-              backgroundColor: '#fff',
-              border: '1px solid #e5e7eb',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-            }}>
-              {/* Media Section */}
-              <div style={{
-                position: 'relative',
-                overflow: 'hidden',
-                height: '140px',
-                backgroundColor: '#000'
-              }}>
-                {(() => {
-                  const currentSlide = promotionalBanner.images[carouselIndex] || promotionalBanner.images[0];
-                  return (
-                    <>
-                      {/* Background Image */}
-                      <img 
-                        src={currentSlide.imageUrl}
-                        alt="Promotional banner"
-                        style={{ 
-                          width: '100%', 
-                          height: '100%', 
-                          objectFit: 'cover'
-                        }}
-                      />
-
-                      {/* Dot Indicators */}
-                      {promotionalBanner.images.length > 1 && (promotionalBanner.carouselSettings?.showDots !== false) && (
-                        <div style={{
-                          position: 'absolute',
-                          bottom: '6px',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          display: 'flex',
-                          gap: '4px',
-                          zIndex: 10
-                        }}>
-                          {promotionalBanner.images.map((_: any, index: number) => (
-                            <div 
-                              key={index} 
-                              onClick={() => setCarouselIndex(index)}
-                              style={{
-                                width: '6px',
-                                height: '6px',
-                                borderRadius: '50%',
-                                backgroundColor: index === carouselIndex ? '#007bff' : 'rgba(255,255,255,0.6)',
-                                border: '1px solid rgba(255,255,255,0.9)',
-                                transition: 'all 0.2s ease',
-                                cursor: 'pointer',
-                                boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
-                              }} 
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Navigation Arrows */}
-                      {promotionalBanner.images.length > 1 && (promotionalBanner.carouselSettings?.showArrows !== false) && (
-                        <>
-                          <button
-                            onClick={() => setCarouselIndex((prev) => (prev - 1 + promotionalBanner.images.length) % promotionalBanner.images.length)}
-                            style={{
-                              position: 'absolute',
-                              left: '4px',
-                              top: '50%',
-                              transform: 'translateY(-50%)',
-                              backgroundColor: 'rgba(255,255,255,0.9)',
-                              borderRadius: '50%',
-                              width: '24px',
-                              height: '24px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer',
-                              border: 'none',
-                              fontSize: '14px',
-                              fontWeight: 'bold',
-                              color: '#333',
-                              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                              transition: 'all 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-                            }}
-                          >
-                            ‹
-                          </button>
-                          <button
-                            onClick={() => setCarouselIndex((prev) => (prev + 1) % promotionalBanner.images.length)}
-                            style={{
-                              position: 'absolute',
-                              right: '4px',
-                              top: '50%',
-                              transform: 'translateY(-50%)',
-                              backgroundColor: 'rgba(255,255,255,0.9)',
-                              borderRadius: '50%',
-                              width: '24px',
-                              height: '24px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer',
-                              border: 'none',
-                              fontSize: '14px',
-                              fontWeight: 'bold',
-                              color: '#333',
-                              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                              transition: 'all 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-                            }}
-                          >
-                            ›
-                          </button>
-                        </>
-                      )}
-
-                      {/* 5% Preview Edges */}
-                      {promotionalBanner.images.length > 1 && (
-                        <>
-                          {carouselIndex > 0 && (
-                            <div style={{
-                              position: 'absolute',
-                              left: 0,
-                              top: 0,
-                              height: '100%',
-                              width: '5%',
-                              overflow: 'hidden',
-                              opacity: 0.4,
-                              pointerEvents: 'none'
-                            }}>
-                              <img 
-                                src={promotionalBanner.images[carouselIndex - 1].imageUrl}
-                                alt="Previous"
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              />
-                            </div>
-                          )}
-                          {carouselIndex < promotionalBanner.images.length - 1 && (
-                            <div style={{
-                              position: 'absolute',
-                              right: 0,
-                              top: 0,
-                              height: '100%',
-                              width: '5%',
-                              overflow: 'hidden',
-                              opacity: 0.4,
-                              pointerEvents: 'none'
-                            }}>
-                              <img 
-                                src={promotionalBanner.images[carouselIndex + 1].imageUrl}
-                                alt="Next"
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              />
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-              
-              {/* Text Content Section (Below Image) */}
-              {(() => {
-                const currentSlide = promotionalBanner.images[carouselIndex] || promotionalBanner.images[0];
-                return (
-                  <div style={{
-                    backgroundColor: '#fff',
-                    padding: '10px 12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '12px',
-                    minHeight: '60px',
-                    flexWrap: 'wrap'
-                  }}>
-                    {/* CTA Button - Left Side */}
-                    {currentSlide.ctaText && (
-                      <div style={{ flexShrink: 0 }}>
-                        <button style={{
-                          backgroundColor: '#ff6b35',
-                          color: '#ffffff',
-                          border: 'none',
-                          padding: '6px 14px',
-                          borderRadius: '6px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                          transition: 'all 0.2s ease',
-                          minWidth: '110px'
-                        }}>
-                          {currentSlide.ctaText}
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Title & Description - Right Side */}
-                    {(currentSlide.title || currentSlide.description) && (
-                      <div style={{ 
-                        flex: 1,
-                        textAlign: 'right',
-                        minWidth: 0
-                      }}>
-                        {currentSlide.title && (
-                          <div style={{ 
-                            fontWeight: '700', 
-                            fontSize: '18px', 
-                            color: '#1f2937',
-                            marginBottom: currentSlide.description ? '2px' : '0',
-                            lineHeight: '1.2'
-                          }}>
-                            {currentSlide.title}
-                          </div>
-                        )}
-                        {currentSlide.description && (
-                          <div style={{ 
-                            fontSize: '14px', 
-                            color: '#6b7280',
-                            lineHeight: '1.4'
-                          }}>
-                            {currentSlide.description}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-            ) : (
-              // Sample promotional banner when no real data exists
-              <div style={{
-                marginBottom: '12px',
-                borderRadius: '10px',
-                overflow: 'hidden',
-                backgroundColor: '#fff',
-                border: '1px solid #e5e7eb',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-              }}>
-                {/* Media Section */}
-                <div style={{
-                  position: 'relative',
-                  overflow: 'hidden',
-                  height: '140px',
-                  backgroundColor: '#000'
-                }}>
-                  <img 
-                    src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=140&fit=crop&crop=center"
-                    alt="Sample promotional banner"
-                    style={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      objectFit: 'cover'
-                    }}
-                  />
-                  
-                  {/* Dot Indicators */}
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '6px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    display: 'flex',
-                    gap: '4px',
-                    zIndex: 10
-                  }}>
-                    <div style={{
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      backgroundColor: '#007bff',
-                      border: '1px solid rgba(255,255,255,0.9)',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
-                    }} />
-                    <div style={{
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      backgroundColor: 'rgba(255,255,255,0.6)',
-                      border: '1px solid rgba(255,255,255,0.9)',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
-                    }} />
-                  </div>
-
-                  {/* Navigation Arrows */}
-                  <button
-                    style={{
-                      position: 'absolute',
-                      left: '4px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      backgroundColor: 'rgba(255,255,255,0.9)',
-                      borderRadius: '50%',
-                      width: '24px',
-                      height: '24px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      border: 'none',
-                      fontSize: '14px',
-                      fontWeight: 'bold',
-                      color: '#333',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    ‹
-                  </button>
-                  <button
-                    style={{
-                      position: 'absolute',
-                      right: '4px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      backgroundColor: 'rgba(255,255,255,0.9)',
-                      borderRadius: '50%',
-                      width: '24px',
-                      height: '24px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      border: 'none',
-                      fontSize: '14px',
-                      fontWeight: 'bold',
-                      color: '#333',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    ›
-                  </button>
-                </div>
-                
-                {/* Text Content Section */}
-                <div style={{
-                  backgroundColor: '#fff',
-                  padding: '10px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  minHeight: '60px',
-                  flexWrap: 'wrap'
-                }}>
-                  {/* CTA Button - Left Side */}
-                  <div style={{ flexShrink: 0 }}>
-                    <button style={{
-                      backgroundColor: '#ff6b35',
-                      color: '#ffffff',
-                      border: 'none',
-                      padding: '6px 14px',
-                      borderRadius: '6px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                      transition: 'all 0.2s ease',
-                      minWidth: '110px'
-                    }}>
-                      shop
-                    </button>
-                  </div>
-
-                  {/* Title & Description - Right Side */}
-                  <div style={{ 
-                    flex: 1,
-                    textAlign: 'right',
-                    minWidth: 0
-                  }}>
-                    <div style={{ 
-                      fontWeight: '700', 
-                      fontSize: '18px', 
-                      color: '#1f2937',
-                      marginBottom: '2px',
-                      lineHeight: '1.2'
-                    }}>
-                      Summer Sale
-                    </div>
-                    <div style={{ 
-                      fontSize: '14px', 
-                      color: '#6b7280',
-                      lineHeight: '1.4'
-                    }}>
-                      Get 20% Off on Summer Items
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
+            <PromotionalBannerCard 
+              slides={promotionalBanner?.images || []}
+              carouselIndex={carouselIndex}
+              carouselSettings={promotionalBanner?.carouselSettings}
+              onPrevious={() => setCarouselIndex((prev) => (prev - 1 + (promotionalBanner?.images?.length || 1)) % (promotionalBanner?.images?.length || 1))}
+              onNext={() => setCarouselIndex((prev) => (prev + 1) % (promotionalBanner?.images?.length || 1))}
+              onDotClick={(index) => setCarouselIndex(index)}
+            />
           )
         );
 
@@ -1746,11 +1723,15 @@ export default function CartDrawerIndex() {
   const orderedFeatureCards = React.useMemo(() => {
     const normalized = normalizeFeatureOrder(featureOrder);
     const ordered = normalized
-      .filter((id) => id !== FEATURE_ORDER_SENTINEL)
-      .map((id) => featureLookup.get(id))
-      .filter((feature): feature is (typeof features)[number] => Boolean(feature));
+      .map((id) => {
+        if (id === FEATURE_ORDER_SENTINEL) {
+          return { id: FEATURE_ORDER_SENTINEL, isCartItems: true };
+        }
+        return featureLookup.get(id);
+      })
+      .filter((item): item is (typeof features)[number] | { id: string; isCartItems: boolean } => Boolean(item));
 
-    const missing = features.filter((feature) => !ordered.includes(feature));
+    const missing = features.filter((feature) => !ordered.some(item => 'isCartItems' in item ? false : item.id === feature.id));
     return [...ordered, ...missing];
   }, [featureLookup, featureOrder, features]);
 
@@ -1871,90 +1852,101 @@ export default function CartDrawerIndex() {
                 </span>
                 <span>Drag to reorder features</span>
               </div>
-              {orderedFeatureCards.map((feature) => (
-                <div
-                  key={feature.id}
-                  draggable
-                  onDragStart={handleDragStart(feature.id)}
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop(feature.id)}
-                  onDragEnd={handleDragEnd}
-                  onDragEnter={() => setDragOverId(feature.id)}
-                  onDragLeave={(e) => {
-                    if (e.currentTarget === e.target) {
-                      setDragOverId((current) => (current === feature.id ? null : current));
-                    }
-                  }}
-                  style={{
-                    cursor: 'grab',
-                    opacity: draggedFeatureId === feature.id ? 0.6 : 1,
-                    transition: 'box-shadow 0.15s ease, transform 0.15s ease, background-color 0.15s ease',
-                    boxShadow: dragOverId === feature.id ? '0 0 0 2px #93c5fd inset, 0 2px 8px rgba(59,130,246,0.15)' : 'none',
-                    backgroundColor: dragOverId === feature.id ? '#f8fafc' : 'transparent',
-                    borderRadius: '12px'
-                  }}
-                >
-                  <Card>
-                  <BlockStack gap="400">
-                    <InlineStack align="space-between" blockAlign="center">
-                      <InlineStack gap="300" blockAlign="center">
-                        <Box>
-                          <div
-                            aria-label="Drag to reorder"
-                            title="Drag to reorder"
-                            style={{
-                              width: '20px',
-                              height: '28px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#9ca3af',
-                              cursor: 'grab',
-                            }}
-                          >
-                            <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
-                              <circle cx="3" cy="3" r="1.3"/>
-                              <circle cx="9" cy="3" r="1.3"/>
-                              <circle cx="3" cy="8" r="1.3"/>
-                              <circle cx="9" cy="8" r="1.3"/>
-                              <circle cx="3" cy="13" r="1.3"/>
-                              <circle cx="9" cy="13" r="1.3"/>
-                            </svg>
-                          </div>
-                        </Box>
-                        <Box>
-                          <Icon source={feature.icon} tone="base" />
-                        </Box>
-                        <BlockStack gap="100">
-                          <InlineStack gap="200" blockAlign="center">
-                            <Text as="h3" variant="headingMd">
-                              {feature.title}
-                            </Text>
+              {orderedFeatureCards.map((item) => {
+                const isCartItems = 'isCartItems' in item && item.isCartItems;
+                const feature = isCartItems ? null : item as (typeof features)[number];
+                const itemId = isCartItems ? FEATURE_ORDER_SENTINEL : feature!.id;
+
+                return (
+                  <div
+                    key={itemId}
+                    draggable
+                    onDragStart={handleDragStart(itemId)}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop(itemId)}
+                    onDragEnd={handleDragEnd}
+                    onDragEnter={() => setDragOverId(itemId)}
+                    onDragLeave={(e) => {
+                      if (e.currentTarget === e.target) {
+                        setDragOverId((current) => (current === itemId ? null : current));
+                      }
+                    }}
+                    style={{
+                      cursor: 'grab',
+                      opacity: draggedFeatureId === itemId ? 0.6 : 1,
+                      transition: 'box-shadow 0.15s ease, transform 0.15s ease, background-color 0.15s ease',
+                      boxShadow: dragOverId === itemId ? '0 0 0 2px #93c5fd inset, 0 2px 8px rgba(59,130,246,0.15)' : 'none',
+                      backgroundColor: dragOverId === itemId ? '#f8fafc' : 'transparent',
+                      borderRadius: '12px'
+                    }}
+                  >
+                    <Card>
+                      <BlockStack gap="400">
+                        <InlineStack align="space-between" blockAlign="center">
+                          <InlineStack gap="300" blockAlign="center">
+                            <Box>
+                              <div
+                                aria-label="Drag to reorder"
+                                title="Drag to reorder"
+                                style={{
+                                  width: '20px',
+                                  height: '28px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: '#9ca3af',
+                                  cursor: 'grab',
+                                }}
+                              >
+                                <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
+                                  <circle cx="3" cy="3" r="1.3"/>
+                                  <circle cx="9" cy="3" r="1.3"/>
+                                  <circle cx="3" cy="8" r="1.3"/>
+                                  <circle cx="9" cy="8" r="1.3"/>
+                                  <circle cx="3" cy="13" r="1.3"/>
+                                  <circle cx="9" cy="13" r="1.3"/>
+                                </svg>
+                              </div>
+                            </Box>
+                            <Box>
+                              <Icon source={isCartItems ? ProductIcon : feature!.icon} tone="base" />
+                            </Box>
+                            <BlockStack gap="100">
+                              <InlineStack gap="200" blockAlign="center">
+                                <Text as="h3" variant="headingMd">
+                                  {isCartItems ? 'Selected Items' : feature!.title}
+                                </Text>
+                                {isCartItems && (
+                                  <Badge tone="info">Cart Items</Badge>
+                                )}
+                              </InlineStack>
+                              <Text as="p" variant="bodyMd" tone="subdued">
+                                {isCartItems ? 'Products added to cart by the customer' : feature!.description}
+                              </Text>
+                            </BlockStack>
                           </InlineStack>
-                          <Text as="p" variant="bodyMd" tone="subdued">
-                            {feature.description}
-                          </Text>
-                        </BlockStack>
-                      </InlineStack>
-                      <InlineStack gap="200">
-                        <Button
-                          onClick={() => handleToggleFeature(feature.id, feature.enabled)}
-                          variant={feature.enabled ? "secondary" : "primary"}
-                        >
-                          {feature.enabled ? "Disable" : "Enable"}
-                        </Button>
-                        <Button
-                          url={feature.path}
-                          variant="primary"
-                        >
-                          Configure
-                        </Button>
-                      </InlineStack>
-                    </InlineStack>
-                  </BlockStack>
-                </Card>
-                </div>
-              ))}
+                          {!isCartItems && (
+                            <InlineStack gap="200">
+                              <Button
+                                onClick={() => handleToggleFeature(feature!.id, feature!.enabled)}
+                                variant={feature!.enabled ? "secondary" : "primary"}
+                              >
+                                {feature!.enabled ? "Disable" : "Enable"}
+                              </Button>
+                              <Button
+                                url={feature!.path}
+                                variant="primary"
+                              >
+                                Configure
+                              </Button>
+                            </InlineStack>
+                          )}
+                        </InlineStack>
+                      </BlockStack>
+                    </Card>
+                  </div>
+                );
+              })}
             </BlockStack>
           </BlockStack>
         </div>
