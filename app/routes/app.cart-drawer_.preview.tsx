@@ -309,12 +309,12 @@ export default function CartDrawerPreview() {
                             />
                           )}
 
-                          {/* Title & Description - Bottom RIGHT */}
+                          {/* Title & Description - Bottom LEFT */}
                           {(currentSlide.title || currentSlide.description) && (
                             <div style={{
                               position: 'absolute',
                               bottom: '8px',
-                              right: '8px',
+                              left: '8px',
                               backgroundColor: 'rgba(255, 255, 255, 0.95)',
                               padding: '8px 10px',
                               borderRadius: '6px',
@@ -345,12 +345,12 @@ export default function CartDrawerPreview() {
                             </div>
                           )}
 
-                          {/* CTA Button - Bottom LEFT */}
+                          {/* CTA Button - Bottom RIGHT */}
                           {currentSlide.ctaText && (
                             <div style={{
                               position: 'absolute',
                               bottom: '8px',
-                              left: '8px',
+                              right: '8px',
                             }}>
                               <button style={{
                                 backgroundColor: '#007bff',

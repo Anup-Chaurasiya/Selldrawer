@@ -25,8 +25,6 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/cart-drawer">Cart Drawer</Link>
-        <Link to="/app/cart-configurations">Cart Configurations</Link>
-        <Link to="/app/additional">Additional page</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>

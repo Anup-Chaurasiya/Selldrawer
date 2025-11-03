@@ -69,26 +69,19 @@ export function reorderFeatureOrder(
     return current;
   }
 
-  const sentinelIndex = current.indexOf(FEATURE_ORDER_SENTINEL);
-  const featuresOnly = current.filter((id) => id !== FEATURE_ORDER_SENTINEL);
-
-  const sourceIndex = featuresOnly.indexOf(draggedId);
-  const destinationIndex = featuresOnly.indexOf(targetId);
+  // Find indices in the full array (including sentinel)
+  const sourceIndex = current.indexOf(draggedId);
+  const destinationIndex = current.indexOf(targetId);
 
   if (sourceIndex === -1 || destinationIndex === -1) {
     return current;
   }
 
-  const updated = [...featuresOnly];
-  updated.splice(sourceIndex, 1);
-  updated.splice(destinationIndex, 0, draggedId);
+  // Create a copy and perform the reorder
+  const updated = [...current];
+  const [removed] = updated.splice(sourceIndex, 1);
+  updated.splice(destinationIndex, 0, removed);
 
-  if (sentinelIndex === -1) {
-    return updated;
-  }
-
-  const before = updated.slice(0, sentinelIndex);
-  const after = updated.slice(sentinelIndex);
-  return [...before, FEATURE_ORDER_SENTINEL, ...after];
+  return updated;
 }
 
