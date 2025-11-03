@@ -62,6 +62,7 @@ class UpsellityCartDrawer {
     this.appliedDiscount = null; // Store applied discount info
     this.availableDiscounts = []; // Store all available discounts
     this.showingAllOffers = false; // Track if showing all offers dropdown
+    this.productAvailability = {}; // Cache product availability by product handle
     
     this.init();
   }
@@ -122,6 +123,9 @@ class UpsellityCartDrawer {
       // Load available discounts and auto-apply if enabled
       await this.loadAvailableDiscounts();
       
+      // Load product availability for recommendations
+      await this.loadProductAvailability();
+      
       this.render();
     } catch (error) {
       console.error('Upsellity: Failed to load cart', error);
@@ -140,6 +144,55 @@ class UpsellityCartDrawer {
         }]
       };
       this.render();
+    }
+  }
+
+  async loadProductAvailability() {
+    // Check if product recommendations are enabled
+    const recommendations = this.config?.features?.productRecommendations;
+    if (!recommendations || !recommendations.products) {
+      return;
+    }
+
+    // Fetch availability for each recommended product
+    const products = recommendations.products || [];
+    
+    for (const product of products) {
+      try {
+        // Use shopifyProductId (which is the product handle) to fetch product data
+        const handle = product.shopifyProductId || product.handle;
+        if (!handle) continue;
+
+        // Fetch product data to check availability
+        const response = await fetch(`/products/${handle}.js`);
+        if (response.ok) {
+          const productData = await response.json();
+          
+          // Get the first variant or the specific variant if provided
+          const variantId = product.shopifyVariantId;
+          const variant = variantId
+            ? productData.variants.find(v => v.id.toString() === variantId.toString())
+            : productData.variants[0];
+
+          // Store availability info
+          this.productAvailability[handle] = {
+            available: variant ? variant.available : false,
+            inventoryQuantity: variant?.inventory_quantity || 0,
+            inventoryManagement: variant?.inventory_management || null,
+            product: productData
+          };
+        } else {
+          // Product not found or error
+          this.productAvailability[handle] = {
+            available: false,
+            inventoryQuantity: 0,
+            inventoryManagement: null,
+            product: null
+          };
+        }
+      } catch (error) {
+        console.warn('Failed to load availability for product:', product.title, error);
+      }
     }
   }
 
@@ -914,15 +967,26 @@ class UpsellityCartDrawer {
                 const discount = product.compareAtPrice && product.compareAtPrice > product.price 
                   ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100) 
                   : 0;
+                
+                // Check product availability
+                const handle = product.shopifyProductId || product.handle;
+                const availability = this.productAvailability[handle];
+                const isAvailable = availability ? availability.available : true; // Default to true if not checked yet
+                const isOutOfStock = !isAvailable;
+                
                 return `
                   <div class="upsellity-recommendation-card">
                     <div class="upsellity-recommendation-image" style="position: relative;">
                       ${product.imageUrl ? `
-                        <img src="${product.imageUrl}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />
+                        <img src="${product.imageUrl}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px; ${isOutOfStock ? 'opacity: 0.5; filter: grayscale(50%);' : ''}" />
                       ` : `
-                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 24px;">📦</div>
+                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 24px; ${isOutOfStock ? 'opacity: 0.5;' : ''}">📦</div>
                       `}
-                      ${recommendations.showDiscountBadge && discount > 0 ? `
+                      ${isOutOfStock ? `
+                        <div style="position: absolute; top: 8px; left: 8px; background-color: #ef4444; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; z-index: 10;">
+                          Sold Out
+                        </div>
+                      ` : recommendations.showDiscountBadge && discount > 0 ? `
                         <div style="position: absolute; top: 8px; right: 8px; background-color: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; z-index: 10;">
                           ${discount}% off
                         </div>
@@ -939,13 +1003,21 @@ class UpsellityCartDrawer {
                       ` : ''}
                       <span style="font-weight: 600; font-size: 12px;">₹${Math.round(product.price)}</span>
                     </div>
-                    ${recommendations.showAddButton ? `
-                      <button class="upsellity-add-recommendation-btn" 
-                              onclick="window.upsellityDrawer.addProductToCart('${product.shopifyVariantId || product.shopifyProductId}')"
-                              style="width: 100%; padding: 4px 8px; border: 1px solid #f97316; background: white; color: #f97316; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s ease;">
-                        + Add
-                      </button>
-                    ` : ''}
+                    ${recommendations.showAddButton ? (
+                      isOutOfStock ? `
+                        <button class="upsellity-add-recommendation-btn" 
+                                disabled
+                                style="width: 100%; padding: 4px 8px; border: 1px solid #d1d5db; background: #f3f4f6; color: #9ca3af; border-radius: 4px; cursor: not-allowed; font-size: 12px; font-weight: 500;">
+                          Sold Out
+                        </button>
+                      ` : `
+                        <button class="upsellity-add-recommendation-btn" 
+                                onclick="window.upsellityDrawer.addProductToCart('${product.shopifyVariantId || product.shopifyProductId}')"
+                                style="width: 100%; padding: 4px 8px; border: 1px solid #f97316; background: white; color: #f97316; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s ease;">
+                          + Add
+                        </button>
+                      `
+                    ) : ''}
                   </div>
                 `;
               }).join('')}
@@ -959,15 +1031,19 @@ class UpsellityCartDrawer {
 
     // Savings Display
     if (this.config.features.savingsDisplay) {
-      const savings = this.config.features.savingsDisplay;
-      const totalSavings = this.cart.items.reduce((sum, item) => {
-        return sum + (item.original_price - item.final_price) * item.quantity;
+      const savingsCfg = this.config.features.savingsDisplay;
+      // Sum of item-level savings in cart (if any)
+      const itemLevelSavings = this.cart.items.reduce((sum, item) => {
+        return sum + Math.max(0, (item.original_price - item.final_price)) * item.quantity;
       }, 0);
+      // If a discount is applied via coupon flow, include that estimate too
+      const discountSavings = this.appliedDiscount ? this.calculateEstimatedDiscount() : 0;
+      const totalSavings = Math.max(itemLevelSavings, discountSavings);
 
       if (totalSavings > 0) {
         sections['savings-display'] = `
-          <div class="upsellity-savings-display" style="background-color: ${savings.backgroundColor}; color: ${savings.textColor}">
-            ${savings.message.replace('{amount}', this.formatMoney(totalSavings))}
+          <div class="upsellity-savings-display" style="background-color: ${savingsCfg.backgroundColor}; color: ${savingsCfg.textColor}">
+            ${savingsCfg.message.replace('{amount}', this.formatMoney(totalSavings))}
           </div>
         `;
       }
@@ -1639,8 +1715,11 @@ class UpsellityCartDrawer {
           this.showNotification('Product added to cart!', 'success');
           return;
         } else {
-          console.error('Failed to add product with numeric ID:', productHandle);
-          throw new Error('Product not found');
+          const error = await response.json();
+          console.error('Failed to add product with numeric ID:', productHandle, error);
+          // Show specific error message from Shopify
+          this.showNotification(error.description || error.message || 'Product not found', 'error');
+          throw new Error(error.description || error.message || 'Product not found');
         }
       } else {
         // It's a product handle, fetch the product data
@@ -1663,6 +1742,19 @@ class UpsellityCartDrawer {
         throw new Error('Variant not found');
       }
 
+      // Check if variant is available for purchase
+      if (!variant.available) {
+        console.warn('Product is not available:', product.title);
+        this.showNotification(`The product '${product.title}' is already sold out`, 'error');
+        return;
+      }
+
+      // Check inventory quantity if available
+      if (variant.inventory_management && variant.inventory_quantity !== null && variant.inventory_quantity <= 0) {
+        console.warn('Product is out of stock:', product.title);
+        this.showNotification(`The product '${product.title}' is already sold out`, 'error');
+        return;
+      }
 
       const formData = new FormData();
       formData.append('id', variant.id);
@@ -1681,11 +1773,15 @@ class UpsellityCartDrawer {
       } else {
         const error = await response.json();
         console.error('Cart add failed:', error);
-        this.showNotification(error.description || 'Failed to add product to cart', 'error');
+        this.showNotification(error.description || error.message || 'Failed to add product to cart', 'error');
       }
     } catch (error) {
       console.error('Error adding product to cart:', error);
-      this.showNotification('Failed to add product to cart', 'error');
+      if (error.message && !error.message.includes('Failed to add')) {
+        this.showNotification(error.message, 'error');
+      } else {
+        this.showNotification('Failed to add product to cart', 'error');
+      }
     }
   }
 
@@ -1711,15 +1807,47 @@ class UpsellityCartDrawer {
       });
 
       if (response.ok) {
+        const result = await response.json();
         await this.loadCart();
-        this.showNotification('Cart updated!', 'success');
+        
+        // Check if the item was actually updated or if it's out of stock
+        if (result.items) {
+          const updatedItem = result.items.find(item => item.key === itemKey);
+          if (!updatedItem && newQuantity > 0) {
+            // Item was removed because it's no longer available
+            this.showNotification('This item is no longer available and has been removed from your cart', 'error');
+          } else {
+            this.showNotification('Cart updated!', 'success');
+          }
+        } else {
+          this.showNotification('Cart updated!', 'success');
+        }
       } else {
         const error = await response.json();
-        this.showNotification(error.description || 'Failed to update cart', 'error');
+        console.error('Cart update error:', error);
+        
+        // Reload cart to reflect actual state
+        await this.loadCart();
+        
+        // Show specific error message
+        if (error.description && error.description.includes('sold out')) {
+          this.showNotification(error.description, 'error');
+          // Optionally remove the out-of-stock item
+          if (newQuantity === 0) {
+            // User is trying to remove it, that's fine
+          } else {
+            // Product is out of stock, suggest removal
+            this.showNotification('This product is out of stock. Please remove it from your cart.', 'error');
+          }
+        } else {
+          this.showNotification(error.description || error.message || 'Failed to update cart', 'error');
+        }
       }
     } catch (error) {
       console.error('Error updating quantity:', error);
       this.showNotification('Failed to update cart', 'error');
+      // Reload cart to ensure consistency
+      await this.loadCart();
     } finally {
       if (cartItem) {
         cartItem.classList.remove('upsellity-loading');
