@@ -175,8 +175,33 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       console.log("Billing request successful, confirmationUrl:", confirmationUrl);
     } catch (billingError: any) {
       console.error("Billing request error:", billingError);
-      // Shopify billing API returns 401 with the confirmation URL in headers
-      if (billingError.status === 401 && billingError.headers) {
+      
+      // Handle 302 redirect response (normal for embedded apps)
+      if (billingError.status === 302 && billingError.headers) {
+        const location = billingError.headers.get?.('Location') || billingError.headers.get?.('location');
+        console.log("Got 302 redirect, Location header:", location);
+        
+        if (location) {
+          // If it's an exit-iframe URL, extract the exitIframe parameter
+          if (location.includes('/auth/exit-iframe')) {
+            const exitIframeMatch = location.match(/exitIframe=([^&]+)/);
+            if (exitIframeMatch) {
+              confirmationUrl = decodeURIComponent(exitIframeMatch[1]);
+              console.log("Extracted confirmation URL from exitIframe:", confirmationUrl);
+            } else {
+              // Use the full location URL as-is
+              confirmationUrl = `${appUrl}${location}`;
+              console.log("Using full exit-iframe URL:", confirmationUrl);
+            }
+          } else {
+            confirmationUrl = location;
+          }
+        } else {
+          throw new Error("No Location header found in 302 response");
+        }
+      }
+      // Shopify billing API may also return 401 with the confirmation URL in headers
+      else if (billingError.status === 401 && billingError.headers) {
         const reauthorizeUrl = billingError.headers.get?.('X-Shopify-API-Request-Failure-Reauthorize-Url');
         
         if (reauthorizeUrl) {
