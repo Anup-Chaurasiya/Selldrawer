@@ -1,0 +1,362 @@
+/* Frequently Bought Together Widget Styles */
+
+.upsellity-fbt-container {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.upsellity-fbt-loading {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+}
+
+.upsellity-fbt-spinner {
+  border: 3px solid #f3f4f6;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: upsellity-spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes upsellity-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.upsellity-fbt-hidden {
+  display: none !important;
+}
+
+.upsellity-fbt-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.upsellity-fbt-content {
+  width: 100%;
+}
+
+.upsellity-fbt-products {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.upsellity-fbt-products.layout-horizontal {
+  flex-direction: row;
+}
+
+.upsellity-fbt-products.layout-vertical {
+  flex-direction: column;
+}
+
+.upsellity-fbt-products.layout-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.upsellity-fbt-product {
+  flex: 1;
+  min-width: 150px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 1rem;
+  background: #ffffff;
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.upsellity-fbt-product:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.upsellity-fbt-product.main-product {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.upsellity-fbt-checkbox {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.upsellity-fbt-product-image {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+  background: #f3f4f6;
+}
+
+.upsellity-fbt-product-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #111827;
+  line-height: 1.25;
+  min-height: 2.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.upsellity-fbt-product-price {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  margin-top: auto;
+}
+
+.upsellity-fbt-product-compare-price {
+  text-decoration: line-through;
+  color: #9ca3af;
+  margin-right: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.upsellity-fbt-discount-badge {
+  display: inline-block;
+  background: #10b981;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+.upsellity-fbt-plus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #6b7280;
+  font-weight: 600;
+  min-width: 40px;
+  flex-shrink: 0;
+}
+
+.upsellity-fbt-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  border: 1px solid #e5e7eb;
+}
+
+.upsellity-fbt-total-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.upsellity-fbt-total-price {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.upsellity-fbt-total-original {
+  text-decoration: line-through;
+  color: #9ca3af;
+  margin-right: 0.5rem;
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.upsellity-fbt-button {
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.upsellity-fbt-button:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.upsellity-fbt-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.upsellity-fbt-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.upsellity-fbt-reviews {
+  font-size: 0.75rem;
+  color: #f59e0b;
+  margin-top: 0.25rem;
+}
+
+.upsellity-fbt-label {
+  font-size: 0.75rem;
+  color: #3b82f6;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+/* Success Message */
+.upsellity-fbt-success {
+  text-align: center;
+  padding: 2rem;
+}
+
+.upsellity-fbt-success-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #10b981;
+}
+
+.upsellity-fbt-success-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #10b981;
+  margin-bottom: 0.5rem;
+}
+
+.upsellity-fbt-success-text {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .upsellity-fbt-container {
+    padding: 1rem;
+    margin: 1rem 0;
+  }
+
+  .upsellity-fbt-title {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .upsellity-fbt-products {
+    flex-direction: column;
+  }
+
+  .upsellity-fbt-products.layout-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .upsellity-fbt-product {
+    min-width: 100%;
+  }
+
+  .upsellity-fbt-plus {
+    display: none;
+  }
+
+  .upsellity-fbt-total {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+
+  .upsellity-fbt-button {
+    padding: 0.875rem;
+    font-size: 0.9375rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .upsellity-fbt-container {
+    padding: 0.75rem;
+  }
+
+  .upsellity-fbt-title {
+    font-size: 1.125rem;
+  }
+
+  .upsellity-fbt-product {
+    padding: 0.75rem;
+  }
+
+  .upsellity-fbt-product-image {
+    height: 120px;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .upsellity-fbt-container {
+    display: none;
+  }
+}
+
+/* Accessibility */
+.upsellity-fbt-checkbox:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.upsellity-fbt-button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Animation for adding items */
+@keyframes upsellity-fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.upsellity-fbt-content {
+  animation: upsellity-fadeIn 0.3s ease-out;
+}
+
+/* Loading skeleton */
+.upsellity-fbt-skeleton {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: upsellity-shimmer 1.5s infinite;
+}
+
+@keyframes upsellity-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+

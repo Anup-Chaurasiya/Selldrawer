@@ -331,3 +331,68 @@ model AppSubscription {
   @@index([shop])
   @@index([status])
 }
+
+model FrequentlyBoughtTogether {
+  id                        String    @id @default(cuid())
+  shop                      String    @unique
+  isActive                  Boolean   @default(true)
+  title                     String    @default("Frequently Bought Together")
+  recommendationType        String    @default("manual")
+  algorithm                 String    @default("related")
+  useAI                     Boolean   @default(false)
+  useSmartVariantMatching   Boolean   @default(false)
+  showOfferIfInCart         Boolean   @default(false)
+  limitUpsellsInCart        Boolean   @default(false)
+  maxUpsellsInCart          Int       @default(3)
+  showProductReviews        Boolean   @default(false)
+  layout                    String    @default("horizontal")
+  buttonText                String    @default("Add selected items")
+  buttonColor               String    @default("#000000")
+  buttonTextColor           String    @default("#FFFFFF")
+  showDiscount              Boolean   @default(true)
+  showTotalPrice            Boolean   @default(true)
+  showIndividualPrices      Boolean   @default(true)
+  showCheckboxes            Boolean   @default(true)
+  discountType              String    @default("percentage")
+  discountValue             Decimal?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  rules                     FBTRule[]
+
+  @@index([shop, isActive])
+}
+
+model FBTRule {
+  id                String       @id @default(cuid())
+  fbtId             String
+  triggerType       String
+  triggerValue      String
+  triggerProductId  String?
+  triggerTitle      String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  fbt               FrequentlyBoughtTogether @relation(fields: [fbtId], references: [id], onDelete: Cascade)
+  products          FBTProduct[]
+
+  @@index([fbtId])
+  @@index([triggerProductId])
+}
+
+model FBTProduct {
+  id               String   @id @default(cuid())
+  ruleId           String
+  shopifyProductId String
+  shopifyVariantId String?
+  title            String
+  price            Decimal
+  compareAtPrice   Decimal?
+  imageUrl         String?
+  handle           String
+  position         Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  rule             FBTRule  @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([position])
+}
