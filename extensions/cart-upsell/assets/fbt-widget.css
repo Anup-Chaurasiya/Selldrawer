@@ -46,6 +46,23 @@
   width: 100%;
 }
 
+/* Two-column layout to match preview (products left, totals/button right) */
+.upsellity-fbt-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.25rem;
+  align-items: center;
+}
+
+.upsellity-fbt-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: stretch;
+  justify-content: center;
+  min-height: 100%;
+}
+
 .upsellity-fbt-products {
   display: flex;
   gap: 1rem;
@@ -78,7 +95,7 @@
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.upsellity-fbt-product:hover {
+.upsellity-fbt-product:hover:not(.upsellity-fbt-product-disabled) {
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
@@ -86,6 +103,16 @@
 .upsellity-fbt-product.main-product {
   border-color: #3b82f6;
   background: #f0f9ff;
+}
+
+.upsellity-fbt-product-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.upsellity-fbt-product-disabled .upsellity-fbt-product-image {
+  filter: grayscale(50%);
 }
 
 .upsellity-fbt-checkbox {
@@ -266,6 +293,14 @@
 
   .upsellity-fbt-products {
     flex-direction: column;
+  }
+
+  .upsellity-fbt-layout {
+    display: block;
+  }
+
+  .upsellity-fbt-sidebar {
+    margin-top: 0.75rem;
   }
 
   .upsellity-fbt-products.layout-grid {

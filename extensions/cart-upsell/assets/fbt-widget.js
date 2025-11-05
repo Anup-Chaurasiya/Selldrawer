@@ -11,6 +11,7 @@
       this.shop = this.container.dataset.shop;
       this.selectedProducts = new Set();
       this.config = null;
+      this.enabled = false;
       this.recommendations = [];
       this.currentProduct = null;
 
@@ -20,7 +21,7 @@
     async init() {
       try {
         await this.loadConfig();
-        if (this.config && this.config.enabled) {
+        if (this.enabled && this.config) {
           await this.loadCurrentProduct();
           await this.loadRecommendations();
           this.render();
@@ -53,8 +54,15 @@
         }
         
         const data = await response.json();
-        this.config = data.config;
+        console.log("FBT Widget Data:", data);
+        
+        this.enabled = data.enabled || false;
+        this.config = data.config || null;
         this.recommendations = data.recommendations || [];
+        
+        if (!this.enabled || !this.config) {
+          console.warn('FBT Widget: Feature is disabled or config is missing');
+        }
         
         return data;
       } catch (error) {
@@ -69,50 +77,120 @@
         if (!response.ok) throw new Error('Failed to load product');
         
         this.currentProduct = await response.json();
-        // Auto-select current product
-        this.selectedProducts.add(this.productId);
+        // Don't auto-select current product - we only show upsell products
       } catch (error) {
         console.error('Error loading current product:', error);
       }
     }
 
     async loadRecommendations() {
-      // If no manual recommendations and AI/auto is enabled, fetch from Shopify
-      if (this.recommendations.length === 0 && (this.config.useAI || this.config.algorithm)) {
+      const recommendationType = this.config.recommendationType || 'manual';
+      const manualRecommendations = [...this.recommendations];
+      let aiRecommendations = [];
+
+      // Fetch AI recommendations if needed
+      if (recommendationType === 'ai' || recommendationType === 'hybrid') {
         try {
-          const intent = this.config.algorithm === 'related' ? 'related' :
-                        this.config.algorithm === 'complementary' ? 'complementary' : 'related';
+          // Get product ID from current product or dataset
+          const rawProductId = this.currentProduct?.id || this.productId;
+          const productId = this.extractProductId(rawProductId);
           
-          const response = await fetch(
-            `/recommendations/products.json?product_id=${this.productId}&intent=${intent}&limit=3`
-          );
-          
-          if (response.ok) {
-            const data = await response.json();
-            this.recommendations = data.products?.map(product => ({
-              id: product.id.toString(),
-              variantId: product.variants?.[0]?.id?.toString(),
-              title: product.title,
-              handle: product.handle,
-              price: product.variants?.[0]?.price ? parseFloat(product.variants[0].price) / 100 : 0,
-              compareAtPrice: product.variants?.[0]?.compare_at_price ? 
-                parseFloat(product.variants[0].compare_at_price) / 100 : null,
-              imageUrl: product.featured_image
-            })) || [];
+          if (!productId) {
+            console.warn('FBT Widget: Product ID not available for AI recommendations', {
+              currentProductId: this.currentProduct?.id,
+              datasetProductId: this.productId
+            });
+          } else {
+            const intent = this.config.algorithm === 'complementary' ? 'complementary' : 'related';
+            const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=3`;
+            
+            console.log('FBT Widget: Fetching AI recommendations', { productId, intent, url: recommendationsUrl });
+            
+            const response = await fetch(recommendationsUrl);
+            
+            if (response.ok) {
+              const data = await response.json();
+              aiRecommendations = data.products?.map(product => ({
+                id: product.id.toString(),
+                variantId: product.variants?.[0]?.id?.toString(),
+                title: product.title,
+                handle: product.handle,
+                price: product.variants?.[0]?.price ? parseFloat(product.variants[0].price) / 100 : 0,
+                compareAtPrice: product.variants?.[0]?.compare_at_price ? 
+                  parseFloat(product.variants[0].compare_at_price) / 100 : null,
+                imageUrl: product.featured_image,
+                source: 'ai'
+              })) || [];
+              
+              // Limit AI recommendations if limitUpsellsInCart is enabled
+              const maxUpsells = this.config.limitUpsellsInCart && this.config.maxUpsellsInCart 
+                ? this.config.maxUpsellsInCart 
+                : null;
+              if (maxUpsells && aiRecommendations.length > maxUpsells) {
+                aiRecommendations = aiRecommendations.slice(0, maxUpsells);
+              }
+              
+              console.log(`FBT Widget: Loaded ${aiRecommendations.length} AI recommendations`);
+            } else {
+              console.warn(`FBT Widget: Failed to fetch AI recommendations (${response.status} ${response.statusText}). Shopify recommendations may not be enabled for your store.`);
+            }
           }
         } catch (error) {
           console.error('Error loading Shopify recommendations:', error);
         }
       }
 
-      // Auto-select all recommendations by default
-      this.recommendations.forEach(rec => {
+      // Combine recommendations based on recommendation type
+      let allRecommendations = [];
+      
+      if (recommendationType === 'ai') {
+        // AI only mode: use only AI recommendations
+        allRecommendations = aiRecommendations;
+        if (aiRecommendations.length === 0) {
+          console.warn('FBT Widget: No AI recommendations found. Make sure Shopify recommendations are enabled for your store.');
+        }
+      } else if (recommendationType === 'hybrid') {
+        // Hybrid mode: combine manual and AI, manual takes priority
+        // Remove duplicates by handle
+        const manualHandles = new Set(manualRecommendations.map(r => r.handle));
+        const uniqueAI = aiRecommendations.filter(r => !manualHandles.has(r.handle));
+        allRecommendations = [...manualRecommendations, ...uniqueAI];
+      } else {
+        // Manual mode: use only manual recommendations
+        allRecommendations = manualRecommendations;
+      }
+
+      // Filter out the current product from recommendations (don't show it as an upsell)
+      const currentProductHandle = this.productHandle;
+      this.recommendations = allRecommendations.filter(rec => {
+        // Filter by handle to avoid showing the current product
+        return rec.handle !== currentProductHandle;
+      });
+
+      // Limit displayed recommendations if limitUpsellsInCart is enabled
+      const maxUpsells = this.config.limitUpsellsInCart && this.config.maxUpsellsInCart 
+        ? this.config.maxUpsellsInCart 
+        : null;
+      
+      if (maxUpsells && this.recommendations.length > maxUpsells) {
+        console.log(`FBT Widget: Limiting recommendations from ${this.recommendations.length} to ${maxUpsells}`);
+        this.recommendations = this.recommendations.slice(0, maxUpsells);
+      }
+
+      // Auto-select up to maxUpsellsInCart recommendations by default
+      const limitToSelect = maxUpsells || this.recommendations.length;
+      this.recommendations.slice(0, limitToSelect).forEach(rec => {
         this.selectedProducts.add(rec.variantId || rec.id);
       });
+
+      console.log(`FBT Widget: Loaded ${this.recommendations.length} recommendations (Type: ${recommendationType}, Filtered from ${allRecommendations.length} total, Max: ${maxUpsells || 'unlimited'})`);
     }
 
     render() {
+      // Hide widget if no recommendations found
       if (this.recommendations.length === 0) {
+        const recommendationType = this.config?.recommendationType || 'manual';
+        console.warn(`FBT Widget: No recommendations found (Type: ${recommendationType}). Hiding widget.`);
         this.container.style.display = 'none';
         return;
       }
@@ -122,15 +200,15 @@
       let html = `
         <div class="upsellity-fbt-content">
           <h2 class="upsellity-fbt-title">${this.escapeHtml(this.config.title)}</h2>
-          
-          <div class="upsellity-fbt-products layout-${layout}">
-            ${this.renderCurrentProduct()}
-            ${this.renderPlusSeparator()}
-            ${this.renderRecommendations()}
+          <div class="upsellity-fbt-layout">
+            <div class="upsellity-fbt-products layout-${layout}">
+              ${this.renderRecommendations()}
+            </div>
+            <div class="upsellity-fbt-sidebar">
+              ${this.config.showTotalPrice ? this.renderTotal() : ''}
+              ${this.renderButton()}
+            </div>
           </div>
-          
-          ${this.config.showTotalPrice ? this.renderTotal() : ''}
-          ${this.renderButton()}
         </div>
       `;
       
@@ -138,61 +216,29 @@
       this.attachEventListeners();
     }
 
-    renderCurrentProduct() {
-      if (!this.currentProduct) return '';
-
-      const variant = this.currentProduct.variants?.[0];
-      const price = variant?.price ? parseFloat(variant.price) / 100 : 0;
-      const compareAtPrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) / 100 : null;
-      
-      return `
-        <div class="upsellity-fbt-product main-product" data-product-id="${this.productId}">
-          ${this.config.showCheckboxes ? `
-            <input 
-              type="checkbox" 
-              class="upsellity-fbt-checkbox" 
-              data-variant-id="${this.productId}"
-              checked 
-              disabled
-            />
-          ` : ''}
-          <img 
-            src="${this.currentProduct.featured_image || 'https://via.placeholder.com/150'}" 
-            alt="${this.escapeHtml(this.currentProduct.title)}"
-            class="upsellity-fbt-product-image"
-          />
-          <h3 class="upsellity-fbt-product-title">${this.escapeHtml(this.currentProduct.title)}</h3>
-          ${this.config.showIndividualPrices ? `
-            <div class="upsellity-fbt-product-price">
-              ${compareAtPrice && this.config.showDiscount ? 
-                `<span class="upsellity-fbt-product-compare-price">$${compareAtPrice.toFixed(2)}</span>` : ''}
-              $${price.toFixed(2)}
-            </div>
-          ` : ''}
-          <div class="upsellity-fbt-label" style="font-size: 0.75rem; color: #3b82f6; margin-top: 0.5rem;">This item</div>
-        </div>
-      `;
-    }
-
-    renderPlusSeparator() {
-      return '<div class="upsellity-fbt-plus">+</div>';
-    }
-
     renderRecommendations() {
+      const maxUpsells = this.config.limitUpsellsInCart && this.config.maxUpsellsInCart 
+        ? this.config.maxUpsellsInCart 
+        : null;
+      const selectedCount = this.selectedProducts.size;
+      const isAtLimit = maxUpsells !== null && selectedCount >= maxUpsells;
+
       return this.recommendations.map((product, index) => {
         const variantId = product.variantId || product.id;
         const isSelected = this.selectedProducts.has(variantId);
+        const isDisabled = isAtLimit && !isSelected; // Disable if limit reached and not selected
         const discountPercent = product.compareAtPrice && product.price < product.compareAtPrice ?
           Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100) : 0;
 
-        return `
-          <div class="upsellity-fbt-product" data-variant-id="${variantId}">
+        const card = `
+          <div class="upsellity-fbt-product ${isDisabled ? 'upsellity-fbt-product-disabled' : ''}" data-variant-id="${variantId}">
             ${this.config.showCheckboxes ? `
               <input 
                 type="checkbox" 
                 class="upsellity-fbt-checkbox" 
                 data-variant-id="${variantId}"
                 ${isSelected ? 'checked' : ''}
+                ${isDisabled ? 'disabled' : ''}
               />
             ` : ''}
             <img 
@@ -212,8 +258,10 @@
               `<div class="upsellity-fbt-discount-badge">Save ${discountPercent}%</div>` : ''}
             ${this.config.showProductReviews ? this.renderReviews(product) : ''}
           </div>
-          ${index < this.recommendations.length - 1 ? this.renderPlusSeparator() : ''}
         `;
+        // Insert a plus separator between cards to match the design
+        const needsPlus = index < this.recommendations.length - 1;
+        return needsPlus ? `${card}<div class="upsellity-fbt-plus">+</div>` : card;
       }).join('');
     }
 
@@ -256,11 +304,21 @@
 
     attachEventListeners() {
       // Checkbox listeners
-      const checkboxes = this.container.querySelectorAll('.upsellity-fbt-checkbox:not([disabled])');
+      const checkboxes = this.container.querySelectorAll('.upsellity-fbt-checkbox');
       checkboxes.forEach(checkbox => {
         checkbox.addEventListener('change', (e) => {
           const variantId = e.target.dataset.variantId;
+          const maxUpsells = this.config.limitUpsellsInCart && this.config.maxUpsellsInCart 
+            ? this.config.maxUpsellsInCart 
+            : null;
+          
           if (e.target.checked) {
+            // Check if we're at the limit
+            if (maxUpsells !== null && this.selectedProducts.size >= maxUpsells) {
+              e.target.checked = false;
+              this.showLimitMessage(maxUpsells);
+              return;
+            }
             this.selectedProducts.add(variantId);
           } else {
             this.selectedProducts.delete(variantId);
@@ -293,18 +351,66 @@
           newButton.addEventListener('click', () => this.addToCart());
         }
       }
+
+      // Update checkboxes - enable/disable based on limit
+      const maxUpsells = this.config.limitUpsellsInCart && this.config.maxUpsellsInCart 
+        ? this.config.maxUpsellsInCart 
+        : null;
+      const selectedCount = this.selectedProducts.size;
+      const isAtLimit = maxUpsells !== null && selectedCount >= maxUpsells;
+
+      const checkboxes = this.container.querySelectorAll('.upsellity-fbt-checkbox');
+      const products = this.container.querySelectorAll('.upsellity-fbt-product');
+      
+      checkboxes.forEach((checkbox, index) => {
+        const variantId = checkbox.dataset.variantId;
+        const isSelected = this.selectedProducts.has(variantId);
+        const shouldDisable = isAtLimit && !isSelected;
+        
+        checkbox.disabled = shouldDisable;
+        const product = products[index];
+        if (product) {
+          if (shouldDisable) {
+            product.classList.add('upsellity-fbt-product-disabled');
+          } else {
+            product.classList.remove('upsellity-fbt-product-disabled');
+          }
+        }
+      });
+    }
+
+    showLimitMessage(maxUpsells) {
+      // Create a temporary message element
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'upsellity-fbt-limit-message';
+      messageDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #fef3c7;
+        border: 1px solid #f59e0b;
+        color: #92400e;
+        padding: 12px 16px;
+        border-radius: 6px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 10000;
+        font-size: 14px;
+        font-weight: 500;
+      `;
+      messageDiv.textContent = `Maximum ${maxUpsells} upsell product${maxUpsells > 1 ? 's' : ''} can be selected.`;
+      
+      document.body.appendChild(messageDiv);
+      
+      // Remove after 3 seconds
+      setTimeout(() => {
+        messageDiv.remove();
+      }, 3000);
     }
 
     calculateTotal() {
       let total = 0;
-      
-      // Add current product
-      if (this.currentProduct && this.selectedProducts.has(this.productId)) {
-        const variant = this.currentProduct.variants?.[0];
-        total += variant?.price ? parseFloat(variant.price) / 100 : 0;
-      }
 
-      // Add selected recommendations
+      // Only add selected recommendations (not the current product)
       this.recommendations.forEach(product => {
         const variantId = product.variantId || product.id;
         if (this.selectedProducts.has(variantId)) {
@@ -326,16 +432,8 @@
 
     calculateOriginalTotal() {
       let total = 0;
-      
-      // Add current product
-      if (this.currentProduct && this.selectedProducts.has(this.productId)) {
-        const variant = this.currentProduct.variants?.[0];
-        const compareAtPrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) / 100 : null;
-        const price = variant?.price ? parseFloat(variant.price) / 100 : 0;
-        total += compareAtPrice || price;
-      }
 
-      // Add selected recommendations
+      // Only add selected recommendations (not the current product)
       this.recommendations.forEach(product => {
         const variantId = product.variantId || product.id;
         if (this.selectedProducts.has(variantId)) {
@@ -356,15 +454,7 @@
       try {
         const items = [];
 
-        // Add current product if selected
-        if (this.currentProduct && this.selectedProducts.has(this.productId)) {
-          items.push({
-            id: this.currentProduct.variants?.[0]?.id,
-            quantity: 1
-          });
-        }
-
-        // Add selected recommendations
+        // Only add selected recommendations (not the current product)
         for (const product of this.recommendations) {
           const variantId = product.variantId || product.id;
           if (this.selectedProducts.has(variantId)) {
@@ -440,6 +530,16 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    extractProductId(productId) {
+      // Handle GID format: gid://shopify/Product/123456 -> 123456
+      if (typeof productId === 'string' && productId.includes('/')) {
+        const parts = productId.split('/');
+        return parts[parts.length - 1];
+      }
+      // Handle numeric string or number
+      return productId?.toString();
     }
   }
 

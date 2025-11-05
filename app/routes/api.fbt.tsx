@@ -42,28 +42,61 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       return cors(request, response);
     }
 
-    // Find matching rule for the product
+    // Find matching rule for the product based on recommendation type
     let recommendations: any[] = [];
+    const recommendationType = fbtConfig.recommendationType || "manual";
     
-    if (productHandle && fbtConfig.recommendationType === "manual") {
-      // Find rule that matches the current product
-      const matchingRule = fbtConfig.rules.find(
-        (rule: any) => rule.triggerValue === productHandle
-      );
+    // Only fetch manual recommendations if recommendation type is manual or hybrid
+    if (recommendationType === "manual" || recommendationType === "hybrid") {
+      if (productHandle) {
+        // Find rules that match the current product
+        // Priority: specific_product > collection > all_products
+        
+        // 1. Check for specific product rule
+        let matchingRule = fbtConfig.rules.find(
+          (rule: any) => rule.triggerType === "specific_product" && rule.triggerValue === productHandle
+        );
 
-      if (matchingRule) {
-        recommendations = matchingRule.products.map((product: any) => ({
-          id: product.shopifyProductId,
-          variantId: product.shopifyVariantId,
-          title: product.title,
-          handle: product.handle,
-          price: product.price,
-          compareAtPrice: product.compareAtPrice,
-          imageUrl: product.imageUrl,
-          position: product.position
-        }));
+        // 2. If no specific product rule, check for collection rule
+        // Note: We would need the product's collection info to match this properly
+        // For now, we'll skip collection matching on the API side
+        // Collections would need to be resolved in the theme extension
+
+        // 3. If no specific or collection rule, check for all_products rule
+        if (!matchingRule) {
+          matchingRule = fbtConfig.rules.find(
+            (rule: any) => rule.triggerType === "all_products"
+          );
+        }
+
+        if (matchingRule) {
+          recommendations = matchingRule.products.map((product: any) => ({
+            id: product.shopifyProductId,
+            variantId: product.shopifyVariantId,
+            title: product.title,
+            handle: product.handle,
+            price: typeof product.price === 'number' ? product.price : parseFloat(product.price.toString()),
+            compareAtPrice: product.compareAtPrice ? (typeof product.compareAtPrice === 'number' ? product.compareAtPrice : parseFloat(product.compareAtPrice.toString())) : null,
+            imageUrl: product.imageUrl,
+            position: product.position
+          }));
+          
+          // Limit recommendations if limitUpsellsInCart is enabled
+          if (fbtConfig.limitUpsellsInCart && fbtConfig.maxUpsellsInCart) {
+            recommendations = recommendations.slice(0, fbtConfig.maxUpsellsInCart);
+          }
+          
+          console.log(`FBT API: Found matching rule for ${productHandle}, returning ${recommendations.length} manual recommendations`);
+        } else {
+          console.log(`FBT API: No matching rule found for product handle: ${productHandle}. Available rules:`, 
+            fbtConfig.rules.map((r: any) => ({ type: r.triggerType, value: r.triggerValue }))
+          );
+        }
       }
     }
+    
+    // For AI mode, recommendations will be fetched by the widget from Shopify's API
+    // For hybrid mode, manual recommendations are included above, AI will be added by widget
 
     // Return configuration with recommendations
     const response = json({
@@ -81,8 +114,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         showProductReviews: fbtConfig.showProductReviews,
         discountType: fbtConfig.discountType,
         discountValue: fbtConfig.discountValue,
+        recommendationType: recommendationType,
         useAI: fbtConfig.useAI,
         algorithm: fbtConfig.algorithm,
+        useSmartVariantMatching: fbtConfig.useSmartVariantMatching,
         showOfferIfInCart: fbtConfig.showOfferIfInCart,
         limitUpsellsInCart: fbtConfig.limitUpsellsInCart,
         maxUpsellsInCart: fbtConfig.maxUpsellsInCart,
