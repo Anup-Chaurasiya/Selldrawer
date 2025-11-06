@@ -216,6 +216,90 @@ export function PromotionalBannerCard({
 
   const currentSlide = slides[carouselIndex] || slides[0];
 
+  // Helper function to get YouTube embed URL
+  const getYouTubeEmbedUrl = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    const videoId = (match && match[2].length === 11) ? match[2] : null;
+    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0` : null;
+  };
+
+  // Helper function to get Vimeo embed URL
+  const getVimeoEmbedUrl = (url: string) => {
+    const regExp = /(?:vimeo)\.com.*(?:videos|video|channels|)\/([\d]+)/i;
+    const match = url.match(regExp);
+    const videoId = match ? match[1] : null;
+    return videoId ? `https://player.vimeo.com/video/${videoId}?autoplay=1&loop=1&muted=1&background=1` : null;
+  };
+
+  // Determine what to render
+  const renderMedia = () => {
+    if (currentSlide.videoUrl && currentSlide.videoType) {
+      if (currentSlide.videoType === 'youtube') {
+        const embedUrl = getYouTubeEmbedUrl(currentSlide.videoUrl);
+        if (embedUrl) {
+          return (
+            <iframe
+              src={embedUrl}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                objectFit: 'cover'
+              }}
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+            />
+          );
+        }
+      } else if (currentSlide.videoType === 'vimeo') {
+        const embedUrl = getVimeoEmbedUrl(currentSlide.videoUrl);
+        if (embedUrl) {
+          return (
+            <iframe
+              src={embedUrl}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                objectFit: 'cover'
+              }}
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+            />
+          );
+        }
+      } else if (currentSlide.videoType === 'mp4') {
+        return (
+          <video
+            src={currentSlide.videoUrl}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
+        );
+      }
+    }
+    // Fallback to image
+    return (
+      <img 
+        src={currentSlide.imageUrl || 'https://via.placeholder.com/400x200'}
+        alt="Promotional banner"
+        style={{ 
+          width: '100%', 
+          height: '100%', 
+          objectFit: 'cover'
+        }}
+      />
+    );
+  };
+
   return (
     <div style={{
       marginBottom: '16px',
@@ -232,16 +316,8 @@ export function PromotionalBannerCard({
         height: '200px',
         backgroundColor: '#f9fafb'
       }}>
-        {/* Background Image */}
-        <img 
-          src={currentSlide.imageUrl}
-          alt="Promotional banner"
-          style={{ 
-            width: '100%', 
-            height: '100%', 
-            objectFit: 'cover'
-          }}
-        />
+        {/* Media (Image or Video) */}
+        {renderMedia()}
 
         {/* Dot Indicators */}
         {slides.length > 1 && (carouselSettings?.showDots !== false) && (
@@ -1077,18 +1153,18 @@ function MiniCartDrawerPreview({
         
       case 'savings-display':
         return (
-          cartDrawer?.savingsDisplayEnabled && (
+          cartDrawer?.savingsDisplayEnabled && savingsDisplay && (
             <div style={{
-              padding: '8px 12px',
-              backgroundColor: '#f0fdf4',
-              border: '1px solid #bbf7d0',
+              padding: '12px 16px',
+              backgroundColor: savingsDisplay.backgroundColor || '#10B981',
+              border: `1px solid ${savingsDisplay.highlightColor || savingsDisplay.textColor || '#FFFFFF'}`,
               borderRadius: '6px',
               textAlign: 'center',
-              fontSize: '12px',
+              fontSize: '16px',
               fontWeight: '600',
-              color: '#166534'
+              color: savingsDisplay.textColor || '#FFFFFF'
             }}>
-              You saved ₹{Math.round(sampleCart.savings)}!
+              {(savingsDisplay.message || '{amount} Saved so far!').replace('{amount}', `₹${Math.round(sampleCart.savings)}`)}
             </div>
           )
         );
@@ -1534,6 +1610,21 @@ function MiniCartDrawerPreview({
                       color: '#374151',
                       transition: 'all 0.2s'
                     }}>+</button>
+                     <button style={{
+                      width: '28px',
+                      height: '28px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      background: '#ffffff',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151',
+                      transition: 'all 0.2s'
+                    }}>🗑</button>
                   </div>
                 </div>
               </div>

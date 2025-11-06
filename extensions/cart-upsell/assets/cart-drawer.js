@@ -565,6 +565,64 @@ class UpsellityCartDrawer {
       const carouselSettings = banner.carouselSettings || {};
       let promoHtml = '';
       
+      // Helper function to get YouTube embed URL
+      const getYouTubeEmbedUrl = (url) => {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = url.match(regExp);
+        const videoId = (match && match[2].length === 11) ? match[2] : null;
+        return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0` : null;
+      };
+
+      // Helper function to get Vimeo embed URL
+      const getVimeoEmbedUrl = (url) => {
+        const regExp = /(?:vimeo)\.com.*(?:videos|video|channels|)\/([\d]+)/i;
+        const match = url.match(regExp);
+        const videoId = match ? match[1] : null;
+        return videoId ? `https://player.vimeo.com/video/${videoId}?autoplay=1&loop=1&muted=1&background=1` : null;
+      };
+
+      // Helper function to render media for a slide
+      const renderSlideMedia = (slide) => {
+        if (slide.videoUrl && slide.videoType) {
+          if (slide.videoType === 'youtube') {
+            const embedUrl = getYouTubeEmbedUrl(slide.videoUrl);
+            if (embedUrl) {
+              return `<iframe
+                src="${embedUrl}"
+                style="width: 100%; height: 100%; border: none; object-fit: cover;"
+                allow="autoplay; encrypted-media"
+                allowfullscreen
+              ></iframe>`;
+            }
+          } else if (slide.videoType === 'vimeo') {
+            const embedUrl = getVimeoEmbedUrl(slide.videoUrl);
+            if (embedUrl) {
+              return `<iframe
+                src="${embedUrl}"
+                style="width: 100%; height: 100%; border: none; object-fit: cover;"
+                allow="autoplay; encrypted-media"
+                allowfullscreen
+              ></iframe>`;
+            }
+          } else if (slide.videoType === 'mp4') {
+            return `<video 
+              src="${slide.videoUrl}"
+              style="width: 100%; height: 100%; object-fit: cover;"
+              muted
+              loop
+              autoplay
+              playsinline
+            ></video>`;
+          }
+        }
+        // Fallback to image
+        return `<img 
+          src="${slide.imageUrl || 'https://via.placeholder.com/400x200'}" 
+          alt="Promotional slide"
+          style="width: 100%; height: 100%; object-fit: cover;"
+        />`;
+      };
+      
       if (slides.length > 0) {
         const carouselId = `upsellity-promo-carousel-${Date.now()}`;
         
@@ -596,22 +654,7 @@ class UpsellityCartDrawer {
                     height: 100%;
                     position: relative;
                   ">
-                    ${slide.videoUrl && slide.videoType === 'mp4' ? `
-                      <video 
-                        src="${slide.videoUrl}"
-                        style="width: 100%; height: 100%; object-fit: cover;"
-                        muted
-                        loop
-                        autoplay
-                        playsinline
-                      ></video>
-                    ` : `
-                      <img 
-                        src="${slide.imageUrl}" 
-                        alt="Promotional slide ${index + 1}"
-                        style="width: 100%; height: 100%; object-fit: cover;"
-                      />
-                    `}
+                    ${renderSlideMedia(slide)}
                   </div>
                 `).join('')}
               </div>
@@ -721,9 +764,9 @@ class UpsellityCartDrawer {
                   overflow: hidden;
                   opacity: 0.5;
                   pointer-events: none;
-                  display: ${slides.length > 1 ? 'block' : 'none'};
+                  display: block;
                 ">
-                  <img src="${slides[1].imageUrl}" alt="Next" style="width: 100%; height: 100%; object-fit: cover;" />
+                  ${renderSlideMedia(slides[1])}
                 </div>
               ` : ''}
             </div>
@@ -779,9 +822,9 @@ class UpsellityCartDrawer {
                     onclick="window.upsellityDrawer.handleSlideCtaClick('${slide.ctaUrl || ''}')"
                     style="
                       display: ${index === 0 ? 'block' : 'none'};
-                      background-color: #ff6b35;
-                      color: #ffffff;
-                      border: none;
+                      background-color: #f3f4f6;
+                      color: #374151;
+                      border: 1px solid #e5e7eb;
                       padding: 8px 16px;
                       border-radius: 6px;
                       font-weight: 600;
