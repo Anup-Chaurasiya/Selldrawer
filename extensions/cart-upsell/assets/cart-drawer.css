@@ -14,7 +14,7 @@
 }
 
 .upsellity-drawer.open {
-  pointer-events: auto;
+  pointer-events: none; /* Changed: Allow clicks to pass through */
 }
 
 .upsellity-drawer-overlay {
@@ -25,10 +25,12 @@
   bottom: 0;
   background: rgba(0, 0, 0, 0);
   transition: background 0.3s ease;
+  pointer-events: none; /* Changed: Allow clicks to pass through overlay */
 }
 
 .upsellity-drawer.open .upsellity-drawer-overlay {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.3); /* Slightly lighter for better visibility of page behind */
+  pointer-events: none; /* Changed: Allow clicks to pass through */
 }
 
 .upsellity-drawer-content {
@@ -43,6 +45,7 @@
   transition: transform 0.3s ease;
   overflow-y: auto;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  pointer-events: auto; /* Changed: Keep drawer content interactive */
 }
 
 .upsellity-drawer.open .upsellity-drawer-content {
@@ -478,7 +481,7 @@
   width: 28px;
   height: 28px;
   border: none;
-  background: #ef4444;
+  background: #666362;
   color: white;
   border-radius: 6px;
   cursor: pointer;

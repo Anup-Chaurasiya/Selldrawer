@@ -63,6 +63,7 @@ class UpsellityCartDrawer {
     this.availableDiscounts = []; // Store all available discounts
     this.showingAllOffers = false; // Track if showing all offers dropdown
     this.productAvailability = {}; // Cache product availability by product handle
+    this.productCompareAtPrices = {}; // Cache product compare_at_price by variant ID
     
     this.init();
   }
@@ -120,8 +121,14 @@ class UpsellityCartDrawer {
       const response = await fetch('/cart.js');
       this.cart = await response.json();
       
+      // Load product compare_at_price data for items that don't have original_line_price
+      await this.loadProductCompareAtPrices();
+      
       // Load available discounts and auto-apply if enabled
       await this.loadAvailableDiscounts();
+      
+      // Load Shopify recommendations if needed (for related/complementary types)
+      await this.loadShopifyRecommendations();
       
       // Load product availability for recommendations
       await this.loadProductAvailability();
@@ -144,6 +151,187 @@ class UpsellityCartDrawer {
         }]
       };
       this.render();
+    }
+  }
+
+  async loadProductCompareAtPrices() {
+    if (!this.cart || !this.cart.items) {
+      return;
+    }
+
+    // Fetch compare_at_price for items that don't have original_line_price
+    const itemsToFetch = this.cart.items.filter(item => {
+      const linePrice = item.line_price || (item.price * item.quantity);
+      const hasOriginalLinePrice = item.original_line_price && item.original_line_price > linePrice;
+      // Only fetch if we don't have original_line_price and we have a way to identify the product
+      return !hasOriginalLinePrice && (item.handle || item.product_id) && item.variant_id;
+    });
+
+    // Fetch product data for items that need compare_at_price
+    for (const item of itemsToFetch) {
+      try {
+        // Try to get product handle from item properties
+        let productHandle = item.handle;
+        
+        // If no handle, try to get it from product_id via product URL
+        // Note: Shopify product.js requires handle, not product_id
+        // We'll need to use the product handle from the item if available
+        if (!productHandle) {
+          // Try to extract handle from product URL if available
+          if (item.url) {
+            const urlMatch = item.url.match(/\/products\/([^\/]+)/);
+            if (urlMatch) {
+              productHandle = urlMatch[1];
+            }
+          }
+        }
+        
+        if (productHandle) {
+          // Fetch product data using handle
+          const productResponse = await fetch(`/products/${productHandle}.js`);
+          if (productResponse.ok) {
+            const product = await productResponse.json();
+            // Find the variant by variant_id
+            const variant = product.variants.find(v => {
+              // Handle both numeric and GID formats
+              const variantId = v.id.toString();
+              const itemVariantId = item.variant_id.toString();
+              return variantId === itemVariantId || 
+                     variantId.replace('gid://shopify/ProductVariant/', '') === itemVariantId ||
+                     variantId === itemVariantId.replace('gid://shopify/ProductVariant/', '');
+            });
+            
+            if (variant && variant.compare_at_price) {
+              // Store compare_at_price in cents
+              // Shopify product.js returns compare_at_price as a string in cents (e.g., "88595" for ₹885.95)
+              let compareAtPrice;
+              if (typeof variant.compare_at_price === 'string') {
+                compareAtPrice = parseInt(variant.compare_at_price, 10);
+              } else if (typeof variant.compare_at_price === 'number') {
+                // If it's a number, check if it's already in cents (large number) or in dollars (small number)
+                // Prices in cents are typically > 100, prices in dollars are < 1000
+                compareAtPrice = variant.compare_at_price > 1000 
+                  ? Math.round(variant.compare_at_price) 
+                  : Math.round(variant.compare_at_price * 100);
+              } else {
+                compareAtPrice = Math.round(parseFloat(variant.compare_at_price) * 100);
+              }
+              
+              if (compareAtPrice > 0) {
+                this.productCompareAtPrices[item.variant_id] = compareAtPrice;
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load compare_at_price for product:', item.title, error);
+      }
+    }
+  }
+
+  async loadShopifyRecommendations() {
+    const recommendations = this.config?.features?.productRecommendations;
+    if (!recommendations) {
+      return;
+    }
+
+    const recommendationType = recommendations.recommendationType;
+    
+    // Only fetch Shopify recommendations for "related" or "complementary" types
+    if (recommendationType !== 'related' && recommendationType !== 'complementary') {
+      return;
+    }
+
+    // Need at least one product in cart to get recommendations
+    if (!this.cart || !this.cart.items || this.cart.items.length === 0) {
+      console.log('Upsellity: No items in cart, skipping Shopify recommendations');
+      return;
+    }
+
+    try {
+      // Use the first product in the cart to get recommendations
+      const firstItem = this.cart.items[0];
+      const productId = firstItem.product_id;
+      
+      if (!productId) {
+        console.warn('Upsellity: Product ID not found in cart item');
+        return;
+      }
+
+      // Map recommendationType to Shopify intent
+      const intent = recommendationType === 'complementary' ? 'complementary' : 'related';
+      const maxProducts = recommendations.maxProducts || 4;
+      
+      // Fetch recommendations from Shopify
+      const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=${maxProducts}`;
+      console.log('Upsellity: Fetching Shopify recommendations', { productId, intent, url: recommendationsUrl });
+      
+      const response = await fetch(recommendationsUrl);
+      
+      if (response.ok) {
+        const data = await response.json();
+        const shopifyRecommendations = (data.products || []).map(product => {
+          // Extract variant ID - handle both GID format and numeric ID
+          let variantId = null;
+          if (product.variants?.[0]?.id) {
+            const idStr = product.variants[0].id.toString();
+            // If it's a GID, extract the numeric part
+            if (idStr.includes('gid://')) {
+              variantId = idStr.replace('gid://shopify/ProductVariant/', '');
+            } else {
+              variantId = idStr;
+            }
+          }
+          
+          return {
+            shopifyProductId: product.handle,
+            shopifyVariantId: variantId,
+            title: product.title,
+            handle: product.handle,
+            price: product.variants?.[0]?.price ? parseFloat(product.variants[0].price) / 100 : 0,
+            compareAtPrice: product.variants?.[0]?.compare_at_price 
+              ? parseFloat(product.variants[0].compare_at_price) / 100 
+              : null,
+            imageUrl: product.featured_image,
+            position: 0
+          };
+        });
+
+        // Filter out products that are already in the cart
+        const cartProductIds = new Set(this.cart.items.map(item => item.product_id.toString()));
+        const filteredRecommendations = shopifyRecommendations.filter(rec => {
+          // Try to match by product ID if available, otherwise by handle
+          // Since we're using handles, we'll filter by handle
+          const productInCart = this.cart.items.some(item => {
+            // Try to match by product handle if available in cart item
+            if (item.handle && item.handle === rec.handle) {
+              return true;
+            }
+            // Fallback: check if the recommendation's product ID matches any cart item's product ID
+            // This is a best-effort check since we might not have the product ID
+            return false;
+          });
+          return !productInCart;
+        });
+
+        // Store recommendations in the config for rendering
+        if (!recommendations.products) {
+          recommendations.products = [];
+        }
+        recommendations.products = filteredRecommendations.slice(0, maxProducts);
+        
+        console.log(`Upsellity: Loaded ${filteredRecommendations.length} Shopify recommendations (${intent}), filtered from ${shopifyRecommendations.length} total`);
+      } else {
+        console.warn(`Upsellity: Failed to fetch Shopify recommendations (${response.status} ${response.statusText}). Shopify recommendations may not be enabled for your store.`);
+        // Set empty array to avoid errors
+        recommendations.products = [];
+      }
+    } catch (error) {
+      console.error('Upsellity: Error loading Shopify recommendations:', error);
+      // Set empty array to avoid errors
+      if (recommendations) {
+        recommendations.products = [];
+      }
     }
   }
 
@@ -364,10 +552,8 @@ class UpsellityCartDrawer {
     // Load external CSS file
     this.loadStyles();
 
-    // Close on overlay click
-    drawer.querySelector('.upsellity-drawer-overlay').addEventListener('click', () => {
-      this.close();
-    });
+    // Note: Overlay click to close is disabled to allow access to pages behind the drawer
+    // Users can close the drawer using the close button (×) in the drawer header
   }
 
   loadStyles() {
@@ -408,7 +594,7 @@ class UpsellityCartDrawer {
       }
       
       .upsellity-drawer.open {
-        pointer-events: auto;
+        pointer-events: none; /* Allow clicks to pass through to page behind */
       }
       
       .upsellity-drawer-overlay {
@@ -419,10 +605,12 @@ class UpsellityCartDrawer {
         bottom: 0;
         background: rgba(0, 0, 0, 0);
         transition: background 0.3s ease;
+        pointer-events: none; /* Allow clicks to pass through overlay */
       }
       
       .upsellity-drawer.open .upsellity-drawer-overlay {
-        background: rgba(0, 0, 0, 0.5);
+        background: rgba(0, 0, 0, 0.3); /* Light overlay for visual separation */
+        pointer-events: none; /* Allow clicks to pass through */
       }
       
       .upsellity-drawer-content {
@@ -437,6 +625,7 @@ class UpsellityCartDrawer {
         transition: transform 0.3s ease;
         overflow-y: auto;
         box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+        pointer-events: auto; /* Keep drawer content interactive */
       }
       
       .upsellity-drawer.open .upsellity-drawer-content {
@@ -945,6 +1134,66 @@ class UpsellityCartDrawer {
     let cartItemsHtml = '';
 
     this.cart.items.forEach(item => {
+      // Calculate item-level discount
+      // Shopify cart items have: price, line_price, original_line_price
+      // Check for discount using original_line_price (if available) or compare_at_price from variant
+      const linePrice = item.line_price || (item.price * item.quantity);
+      const itemPrice = item.price || item.final_price || 0;
+      
+      // Try to get original price from multiple sources
+      let originalLinePrice = null;
+      
+      // First, check if original_line_price is available and indicates a discount
+      if (item.original_line_price && item.original_line_price > linePrice) {
+        originalLinePrice = item.original_line_price;
+      }
+      
+      // If original_line_price is not available or doesn't show a discount, try compare_at_price
+      if (!originalLinePrice) {
+        const compareAtPrice = this.productCompareAtPrices[item.variant_id];
+        if (compareAtPrice && compareAtPrice > itemPrice) {
+          // Use compare_at_price * quantity as original line price
+          originalLinePrice = compareAtPrice * item.quantity;
+        }
+      }
+      
+      // Fallback to item.original_price if still not available
+      if (!originalLinePrice && item.original_price) {
+        const originalItemPrice = item.original_price;
+        if (originalItemPrice > itemPrice) {
+          originalLinePrice = originalItemPrice * item.quantity;
+        }
+      }
+      
+      // If no discount found, set original to current price
+      if (!originalLinePrice || originalLinePrice <= linePrice) {
+        originalLinePrice = linePrice;
+      }
+      
+      const originalItemPrice = originalLinePrice / item.quantity;
+      
+      // Check if there's a discount (original price is higher than current price)
+      const hasItemDiscount = originalItemPrice > itemPrice && originalLinePrice > linePrice;
+      const itemDiscountAmount = hasItemDiscount ? (originalLinePrice - linePrice) : 0;
+      const itemDiscountPercent = hasItemDiscount && originalLinePrice > 0 
+        ? Math.round(((originalLinePrice - linePrice) / originalLinePrice) * 100) 
+        : 0;
+      
+      // Calculate price with coupon discount applied (if any)
+      const itemSubtotal = linePrice;
+      let itemPriceWithCoupon = itemSubtotal;
+      
+      if (this.appliedDiscount && this.appliedDiscount.type === 'percentage') {
+        itemPriceWithCoupon = Math.round(itemSubtotal * (1 - this.appliedDiscount.value / 100));
+      } else if (this.appliedDiscount && this.appliedDiscount.type === 'fixed') {
+        // For fixed discounts, distribute proportionally across all items
+        const itemProportion = itemSubtotal / this.cart.total_price;
+        const itemCouponDiscount = Math.round((this.appliedDiscount.value * 100) * itemProportion);
+        itemPriceWithCoupon = Math.max(0, itemSubtotal - itemCouponDiscount);
+      }
+      
+      const hasCouponDiscount = this.appliedDiscount && (this.appliedDiscount.type === 'percentage' || this.appliedDiscount.type === 'fixed');
+      
       cartItemsHtml += `
         <div class="upsellity-cart-item" data-item-key="${item.key}">
           <img src="${item.featured_image?.url || item.image}" alt="${item.title}" class="upsellity-cart-item-image" />
@@ -952,8 +1201,49 @@ class UpsellityCartDrawer {
             <div class="upsellity-cart-item-title">${item.title}</div>
             <div class="upsellity-cart-item-variant">${item.variant_title || ''}</div>
             <div class="upsellity-cart-item-price">
-              ${item.original_price > item.final_price ? `<span class="upsellity-cart-item-original-price">${this.formatMoney(item.original_price * item.quantity)}</span>` : ''}
-              ${this.formatMoney(item.final_price * item.quantity)}
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                ${hasItemDiscount && !hasCouponDiscount ? `
+                  <!-- Show original price with strikethrough and discounted price when item has discount but no coupon -->
+                  <span style="text-decoration: line-through; color: #9ca3af; font-size: 13px;">
+                    ${this.formatMoney(originalLinePrice)}
+                  </span>
+                  <span style="font-weight: 700; font-size: 16px; color: #f59e0b;">
+                    ${this.formatMoney(itemSubtotal)}
+                  </span>
+                  <span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;">
+                    ${itemDiscountPercent}% OFF
+                  </span>
+                ` : hasCouponDiscount ? `
+                  <!-- Show price with coupon discount applied -->
+                  <span style="text-decoration: line-through; color: #9ca3af; font-size: 13px;">
+                    ${this.formatMoney(itemSubtotal)}
+                  </span>
+                  <span style="font-weight: 700; font-size: 16px; color: #059669;">
+                    ${this.formatMoney(itemPriceWithCoupon)}
+                  </span>
+                ` : hasItemDiscount ? `
+                  <!-- Show original price with strikethrough and discounted price when item has discount (fallback) -->
+                  <span style="text-decoration: line-through; color: #9ca3af; font-size: 13px;">
+                    ${this.formatMoney(originalLinePrice)}
+                  </span>
+                  <span style="font-weight: 700; font-size: 16px; color: #f59e0b;">
+                    ${this.formatMoney(itemSubtotal)}
+                  </span>
+                  <span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;">
+                    ${itemDiscountPercent}% OFF
+                  </span>
+                ` : `
+                  <!-- No discount, show regular price -->
+                  <span style="font-weight: 700; font-size: 16px; color: #111827;">
+                    ${this.formatMoney(itemSubtotal)}
+                  </span>
+                `}
+              </div>
+              ${hasCouponDiscount ? `
+                <div style="font-size: 11px; color: #059669; margin-top: 2px;">
+                  Coupon discount applied
+                </div>
+              ` : ''}
             </div>
             <div class="upsellity-cart-item-controls">
               <div class="upsellity-quantity-controls">
@@ -1230,42 +1520,86 @@ class UpsellityCartDrawer {
     });
 
     // Cart Totals and Checkout
+    // Calculate original total (before any discounts)
+    const originalTotal = this.cart.items.reduce((sum, item) => {
+      return sum + (item.original_price * item.quantity);
+    }, 0);
+    
+    // Calculate subtotal (after item-level discounts, before coupon)
     const subtotal = this.cart.total_price;
-    const estimatedDiscount = this.calculateEstimatedDiscount();
-    const estimatedTotal = Math.max(0, subtotal - estimatedDiscount);
+    
+    // Calculate item-level savings
+    const itemLevelSavings = originalTotal - subtotal;
+    
+    // Calculate coupon discount
+    const couponDiscount = this.calculateEstimatedDiscount();
+    
+    // Calculate final total
+    const estimatedTotal = Math.max(0, subtotal - couponDiscount);
+    
+    // Calculate total savings
+    const totalSavings = itemLevelSavings + couponDiscount;
     
     html += `
       <div style="border-top: 2px solid #e5e7eb; padding-top: 16px; margin-top: 20px;">
-        <div style="font-size: 16px; margin-bottom: 12px; display: flex; justify-content: space-between;">
-          <span style="color: #6b7280;">Subtotal</span>
-          <span>${this.formatMoney(subtotal)}</span>
+        ${itemLevelSavings > 0 || couponDiscount > 0 ? `
+          <div style="font-size: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; color: #6b7280;">
+            <span>Original Price</span>
+            <span style="text-decoration: line-through;">${this.formatMoney(originalTotal)}</span>
+          </div>
+        ` : ''}
+        
+        ${itemLevelSavings > 0 ? `
+          <div style="font-size: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; color: #f59e0b;">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <span>Item Discounts</span>
+              <span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;">
+                SALE
+              </span>
+            </span>
+            <span style="font-weight: 600;">-${this.formatMoney(itemLevelSavings)}</span>
+          </div>
+        ` : ''}
+        
+        <div style="font-size: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; ${itemLevelSavings > 0 ? 'font-weight: 600;' : ''}">
+          <span style="color: #374151;">Subtotal</span>
+          <span style="color: #111827;">${this.formatMoney(subtotal)}</span>
         </div>
-        ${this.appliedDiscount && estimatedDiscount > 0 ? `
-          <div style="font-size: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; color: #059669;">
-            <span>Discount (${this.appliedDiscount.code})</span>
-            <span>-${this.formatMoney(estimatedDiscount)}</span>
+        
+        ${this.appliedDiscount && couponDiscount > 0 ? `
+          <div style="font-size: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; color: #059669;">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <span>Coupon (${this.appliedDiscount.code})</span>
+              <span style="background: #d1fae5; color: #065f46; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;">
+                ${this.appliedDiscount.type === 'percentage' ? `${this.appliedDiscount.value}%` : 'FIXED'}
+              </span>
+            </span>
+            <span style="font-weight: 600;">-${this.formatMoney(couponDiscount)}</span>
           </div>
-          <div style="font-size: 18px; font-weight: 600; padding-top: 12px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between;">
-            <span>Estimated Total</span>
-            <span>${this.formatMoney(estimatedTotal)}</span>
-          </div>
-        ` : `
-          <div style="font-size: 18px; font-weight: 600; padding-top: 12px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between;">
-            <span>Total</span>
-            <span>${this.formatMoney(subtotal)}</span>
-          </div>
-        `}
+        ` : ''}
+        
+        <div style="font-size: 20px; font-weight: 700; padding-top: 12px; border-top: 2px solid #e5e7eb; display: flex; justify-content: space-between; color: #111827;">
+          <span>Total</span>
+          <span style="color: ${totalSavings > 0 ? '#059669' : '#111827'};">${this.formatMoney(estimatedTotal)}</span>
+        </div>
+        
+        <div style="font-size: 12px; color: #6b7280; margin-top: 8px; text-align: right;">
+          Taxes and shipping calculated at checkout
+        </div>
       </div>
       <button class="upsellity-checkout-btn" onclick="window.location.href='${this.getCheckoutUrl()}'">
-        Checkout →
+        Checkout
       </button>
-      ${this.appliedDiscount ? `
-        <div style="text-align: center; font-size: 11px; color: #6b7280; margin-top: 8px; font-style: italic;">
-          Final discount will be applied at checkout
-        </div>
-      ` : ''}
-      <div style="text-align: center; font-size: 12px; color: #6b7280; margin-top: 8px;">
-        Secure Checkout • Free Returns
+      <div style="text-align: center; font-size: 12px; color: #6b7280; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 12px;">
+        <span style="display: flex; align-items: center; gap: 4px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          Secure Checkout
+        </span>
+        <span>•</span>
+        <span>Free Returns</span>
       </div>
     `;
 
@@ -1286,14 +1620,16 @@ class UpsellityCartDrawer {
   open() {
     const drawer = document.getElementById('upsellity-cart-drawer');
     drawer.classList.add('open');
-    document.body.style.overflow = 'hidden';
+    // Don't prevent body scroll - allow users to scroll the page behind the drawer
+    // document.body.style.overflow = 'hidden';
     this.isOpen = true;
   }
 
   close() {
     const drawer = document.getElementById('upsellity-cart-drawer');
     drawer.classList.remove('open');
-    document.body.style.overflow = '';
+    // No need to restore body scroll since we're not preventing it
+    // document.body.style.overflow = '';
     this.isOpen = false;
   }
 
@@ -1607,10 +1943,11 @@ class UpsellityCartDrawer {
       const data = await response.json();
 
       if (data.valid) {
-        // Store the discount info
+        // Store the discount info with full details
         this.appliedDiscount = {
           code: data.code,
           title: data.title,
+          description: data.description || this.getDiscountDescription(data.type, data.value),
           type: data.type,
           value: data.value
         };
@@ -1623,8 +1960,11 @@ class UpsellityCartDrawer {
         // Clear input
         couponInput.value = '';
         
-        // Re-render to show discount and updated checkout button
+        // Re-render to show discount and updated prices
         this.render();
+        
+        // Show notification
+        this.showNotification(`Coupon ${data.code} applied! You're saving ${this.formatMoney(this.calculateEstimatedDiscount())}`, 'success');
       } else {
         // Show error message
         const couponField = this.config.features.couponCodeField;
@@ -1649,10 +1989,14 @@ class UpsellityCartDrawer {
   }
 
   // Get human-readable discount description
-  getDiscountDescription() {
-    if (!this.appliedDiscount) return '';
+  getDiscountDescription(type = null, value = null) {
+    // If no parameters provided, use appliedDiscount
+    if (!type && this.appliedDiscount) {
+      type = this.appliedDiscount.type;
+      value = this.appliedDiscount.value;
+    }
     
-    const { type, value } = this.appliedDiscount;
+    if (!type) return '';
     
     switch (type) {
       case 'percentage':
@@ -1720,6 +2064,7 @@ class UpsellityCartDrawer {
         });
 
         if (response.ok) {
+          // Reload cart to get updated data with new item
           await this.loadCart();
           this.showNotification('Product added to cart!', 'success');
         } else {
@@ -1851,7 +2196,12 @@ class UpsellityCartDrawer {
 
       if (response.ok) {
         const result = await response.json();
-        await this.loadCart();
+        
+        // Update cart data
+        this.cart = result;
+        
+        // Re-render to show updated prices
+        this.render();
         
         // Check if the item was actually updated or if it's out of stock
         if (result.items) {
@@ -1918,7 +2268,14 @@ class UpsellityCartDrawer {
       });
 
       if (response.ok) {
-        await this.loadCart();
+        const result = await response.json();
+        
+        // Update cart data
+        this.cart = result;
+        
+        // Re-render to show updated cart
+        this.render();
+        
         this.showNotification('Item removed from cart', 'success');
       } else {
         const error = await response.json();
@@ -1960,6 +2317,9 @@ class UpsellityCartDrawer {
 
     // Apply the selected discount
     this.appliedDiscount = discount;
+    
+    // Close the dropdown when a coupon is selected
+    this.showingAllOffers = false;
     
     // Re-render to update UI
     this.render();
