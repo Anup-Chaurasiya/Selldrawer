@@ -1,0 +1,272 @@
+{% comment %}
+  Frequently Bought Together Widget
+  Displays product bundles on product pages
+{% endcomment %}
+
+{{ 'fbt-widget.css' | asset_url | stylesheet_tag }}
+
+{% comment %} Get app URL from settings or use default {% endcomment %}
+{% assign app_url = "https://foods-andrew-investigation-occupation.trycloudflare.com" %}
+
+<div 
+  id="upsellity-fbt-widget" 
+  class="upsellity-fbt-container"
+  data-product-handle="{{ product.handle }}"
+  data-product-id="{{ product.id }}"
+  data-shop="{{ shop.permanent_domain }}"
+  data-app-url="{{ app_url }}"
+>
+  <div class="upsellity-fbt-loading">
+    <div class="upsellity-fbt-spinner"></div>
+    <p>Loading recommendations...</p>
+  </div>
+</div>
+
+<script src="{{ 'fbt-widget.js' | asset_url }}" defer></script>
+
+<style>
+.upsellity-fbt-container {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.upsellity-fbt-loading {
+  text-align: center;
+  padding: 2rem;
+}
+
+.upsellity-fbt-spinner {
+  border: 3px solid #f3f4f6;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.upsellity-fbt-hidden {
+  display: none !important;
+}
+
+.upsellity-fbt-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #111827;
+}
+
+.upsellity-fbt-products {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.upsellity-fbt-products.layout-horizontal {
+  flex-direction: row;
+}
+
+.upsellity-fbt-products.layout-vertical {
+  flex-direction: column;
+}
+
+.upsellity-fbt-products.layout-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.upsellity-fbt-product {
+  flex: 1;
+  min-width: 150px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 1rem;
+  background: #ffffff;
+  position: relative;
+}
+
+.upsellity-fbt-product.main-product {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.upsellity-fbt-checkbox {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.upsellity-fbt-product-image {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+}
+
+.upsellity-fbt-product-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #111827;
+  line-height: 1.25;
+}
+
+.upsellity-fbt-product-price {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.upsellity-fbt-product-compare-price {
+  text-decoration: line-through;
+  color: #9ca3af;
+  margin-right: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.upsellity-fbt-discount-badge {
+  display: inline-block;
+  background: #10b981;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.upsellity-fbt-plus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.upsellity-fbt-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.upsellity-fbt-total-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.upsellity-fbt-total-price {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.upsellity-fbt-total-original {
+  text-decoration: line-through;
+  color: #9ca3af;
+  margin-right: 0.5rem;
+  font-size: 1rem;
+}
+
+.upsellity-fbt-button {
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.upsellity-fbt-button:hover {
+  opacity: 0.9;
+}
+
+.upsellity-fbt-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.upsellity-fbt-reviews {
+  font-size: 0.75rem;
+  color: #f59e0b;
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .upsellity-fbt-products {
+    flex-direction: column;
+  }
+  
+  .upsellity-fbt-product {
+    min-width: 100%;
+  }
+}
+</style>
+
+{% schema %}
+{
+  "name": "FBT Widget",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Widget Title",
+      "default": "Frequently Bought Together"
+    },
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "Enable Widget",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Layout",
+      "options": [
+        {
+          "value": "horizontal",
+          "label": "Horizontal"
+        },
+        {
+          "value": "vertical",
+          "label": "Vertical"
+        },
+        {
+          "value": "grid",
+          "label": "Grid"
+        }
+      ],
+      "default": "horizontal"
+    },
+    {
+      "type": "text",
+      "id": "app_url",
+      "label": "App URL",
+      "default": "https://app.upsellity.com",
+      "info": "The URL of your Upsellity app (leave default if unsure)"
+    }
+  ]
+}
+{% endschema %}
+

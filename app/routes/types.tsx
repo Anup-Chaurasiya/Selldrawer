@@ -49,3 +49,90 @@ export interface ConfigurationResponse {
   targetType: string;
   targets: CartConfigurationTarget[];
 }
+
+// FBT Types
+export interface FBTProduct {
+  id: string;
+  ruleId: string;
+  shopifyProductId: string;
+  shopifyVariantId: string | null;
+  title: string;
+  price: number;
+  compareAtPrice: number | null;
+  imageUrl: string | null;
+  handle: string;
+  position: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface FBTRule {
+  id: string;
+  fbtId: string;
+  triggerType: string;
+  triggerValue: string;
+  triggerProductId: string | null;
+  triggerTitle: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  products: FBTProduct[];
+}
+
+export interface FrequentlyBoughtTogether {
+  id: string;
+  shop: string;
+  isActive: boolean;
+  title: string;
+  recommendationType: string;
+  algorithm: string;
+  useAI: boolean;
+  useSmartVariantMatching: boolean;
+  showOfferIfInCart: boolean;
+  limitUpsellsInCart: boolean;
+  maxUpsellsInCart: number;
+  showProductReviews: boolean;
+  layout: string;
+  buttonText: string;
+  buttonColor: string;
+  buttonTextColor: string;
+  showDiscount: boolean;
+  showTotalPrice: boolean;
+  showIndividualPrices: boolean;
+  showCheckboxes: boolean;
+  discountType: string;
+  discountValue: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+  rules: FBTRule[];
+}
+
+export interface FBTConfig {
+  title: string;
+  layout: string;
+  buttonText: string;
+  buttonColor: string;
+  buttonTextColor: string;
+  showDiscount: boolean;
+  showTotalPrice: boolean;
+  showIndividualPrices: boolean;
+  showCheckboxes: boolean;
+  showProductReviews: boolean;
+  discountType: string;
+  discountValue: number | null;
+  useAI: boolean;
+  algorithm: string;
+  showOfferIfInCart: boolean;
+  limitUpsellsInCart: boolean;
+  maxUpsellsInCart: number;
+}
+
+export interface FBTRecommendation {
+  id: string;
+  variantId: string | null;
+  title: string;
+  handle: string;
+  price: number;
+  compareAtPrice: number | null;
+  imageUrl: string | null;
+  position: number;
+}
