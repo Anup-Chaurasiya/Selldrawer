@@ -25,9 +25,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
 
-  const cartDrawer = await prisma.cartDrawer.findUnique({
+  // Ensure CartDrawer exists
+  let cartDrawer = await prisma.cartDrawer.findUnique({
     where: { shop },
   });
+
+  if (!cartDrawer) {
+    cartDrawer = await prisma.cartDrawer.create({
+      data: { shop, isActive: true },
+    });
+  }
 
   let couponCodeField = await prisma.couponCodeField.findUnique({
     where: { shop },
@@ -53,9 +60,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "toggle") {
     const enabled = formData.get("enabled") === "true";
     
-    await prisma.cartDrawer.update({
+    // Ensure CartDrawer exists
+    await prisma.cartDrawer.upsert({
       where: { shop },
-      data: { couponCodeFieldEnabled: enabled },
+      update: { couponCodeFieldEnabled: enabled },
+      create: { shop, couponCodeFieldEnabled: enabled, isActive: true },
     });
 
     await prisma.couponCodeField.upsert({
@@ -77,7 +86,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       autoApplyStrategy: formData.get("autoApplyStrategy") as string,
       showAllOffers: formData.get("showAllOffers") === "true",
       showAllOffersButtonText: formData.get("showAllOffersButtonText") as string,
+      isActive: true, // Ensure isActive is set to true when saving configuration
     };
+
+    // Ensure CartDrawer exists and enable coupon code field
+    await prisma.cartDrawer.upsert({
+      where: { shop },
+      update: { couponCodeFieldEnabled: true },
+      create: { shop, couponCodeFieldEnabled: true, isActive: true },
+    });
 
     await prisma.couponCodeField.upsert({
       where: { shop },

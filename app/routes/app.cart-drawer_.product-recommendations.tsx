@@ -392,13 +392,11 @@ export default function ProductRecommendations() {
                     options={[
                       { label: "Manual Selection", value: "manual" },
                       { label: "Related Products", value: "related" },
-                      { label: "Frequently Bought Together", value: "frequently_bought" },
-                      { label: "Best Sellers", value: "bestsellers" },
-                      { label: "AI Powered", value: "ai" },
+                      { label: "Complementary Products", value: "complementary" },
                     ]}
                     value={formState.recommendationType}
                     onChange={(value) => setFormState({ ...formState, recommendationType: value })}
-                    helpText="How to select products to recommend"
+                    helpText="How to select products to recommend. Related and Complementary use Shopify's recommendation engine."
                   />
 
                   <Checkbox
@@ -712,6 +710,21 @@ export default function ProductRecommendations() {
                           </div>
                         </div>
                       )}
+                    </BlockStack>
+                  </Card>
+                )}
+
+                {/* Info message for Shopify recommendation types */}
+                {(formState.recommendationType === "related" || formState.recommendationType === "complementary") && (
+                  <Card>
+                    <BlockStack gap="400">
+                      <Banner tone="info">
+                        <Text as="p" variant="bodyMd">
+                          {formState.recommendationType === "related" 
+                            ? "Related Products" 
+                            : "Complementary Products"} will be automatically fetched from Shopify's recommendation engine based on the products in the customer's cart. No manual product selection is needed.
+                        </Text>
+                      </Banner>
                     </BlockStack>
                   </Card>
                 )}

@@ -216,6 +216,90 @@ export function PromotionalBannerCard({
 
   const currentSlide = slides[carouselIndex] || slides[0];
 
+  // Helper function to get YouTube embed URL
+  const getYouTubeEmbedUrl = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    const videoId = (match && match[2].length === 11) ? match[2] : null;
+    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0` : null;
+  };
+
+  // Helper function to get Vimeo embed URL
+  const getVimeoEmbedUrl = (url: string) => {
+    const regExp = /(?:vimeo)\.com.*(?:videos|video|channels|)\/([\d]+)/i;
+    const match = url.match(regExp);
+    const videoId = match ? match[1] : null;
+    return videoId ? `https://player.vimeo.com/video/${videoId}?autoplay=1&loop=1&muted=1&background=1` : null;
+  };
+
+  // Determine what to render
+  const renderMedia = () => {
+    if (currentSlide.videoUrl && currentSlide.videoType) {
+      if (currentSlide.videoType === 'youtube') {
+        const embedUrl = getYouTubeEmbedUrl(currentSlide.videoUrl);
+        if (embedUrl) {
+          return (
+            <iframe
+              src={embedUrl}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                objectFit: 'cover'
+              }}
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+            />
+          );
+        }
+      } else if (currentSlide.videoType === 'vimeo') {
+        const embedUrl = getVimeoEmbedUrl(currentSlide.videoUrl);
+        if (embedUrl) {
+          return (
+            <iframe
+              src={embedUrl}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                objectFit: 'cover'
+              }}
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+            />
+          );
+        }
+      } else if (currentSlide.videoType === 'mp4') {
+        return (
+          <video
+            src={currentSlide.videoUrl}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
+        );
+      }
+    }
+    // Fallback to image
+    return (
+      <img 
+        src={currentSlide.imageUrl || 'https://via.placeholder.com/400x200'}
+        alt="Promotional banner"
+        style={{ 
+          width: '100%', 
+          height: '100%', 
+          objectFit: 'cover'
+        }}
+      />
+    );
+  };
+
   return (
     <div style={{
       marginBottom: '16px',
@@ -232,16 +316,8 @@ export function PromotionalBannerCard({
         height: '200px',
         backgroundColor: '#f9fafb'
       }}>
-        {/* Background Image */}
-        <img 
-          src={currentSlide.imageUrl}
-          alt="Promotional banner"
-          style={{ 
-            width: '100%', 
-            height: '100%', 
-            objectFit: 'cover'
-          }}
-        />
+        {/* Media (Image or Video) */}
+        {renderMedia()}
 
         {/* Dot Indicators */}
         {slides.length > 1 && (carouselSettings?.showDots !== false) && (
@@ -1077,18 +1153,18 @@ function MiniCartDrawerPreview({
         
       case 'savings-display':
         return (
-          cartDrawer?.savingsDisplayEnabled && (
+          cartDrawer?.savingsDisplayEnabled && savingsDisplay && (
             <div style={{
-              padding: '8px 12px',
-              backgroundColor: '#f0fdf4',
-              border: '1px solid #bbf7d0',
+              padding: '12px 16px',
+              backgroundColor: savingsDisplay.backgroundColor || '#10B981',
+              border: `1px solid ${savingsDisplay.highlightColor || savingsDisplay.textColor || '#FFFFFF'}`,
               borderRadius: '6px',
               textAlign: 'center',
-              fontSize: '12px',
+              fontSize: '16px',
               fontWeight: '600',
-              color: '#166534'
+              color: savingsDisplay.textColor || '#FFFFFF'
             }}>
-              You saved ₹{Math.round(sampleCart.savings)}!
+              {(savingsDisplay.message || '{amount} Saved so far!').replace('{amount}', `₹${Math.round(sampleCart.savings)}`)}
             </div>
           )
         );
@@ -1493,47 +1569,149 @@ function MiniCartDrawerPreview({
                     display: 'flex', 
                     alignItems: 'center', 
                     gap: '8px',
-                    marginTop: '6px'
+                    marginTop: '8px'
                   }}>
-                    <button style={{
-                      width: '28px',
-                      height: '28px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      background: '#ffffff',
-                      cursor: 'pointer',
+                    {/* Quantity Controls Container */}
+                    <div style={{
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151',
-                      transition: 'all 0.2s'
-                    }}>-</button>
-                    <span style={{ 
-                      fontSize: '14px', 
-                      fontWeight: '600', 
-                      minWidth: '20px', 
-                      textAlign: 'center',
-                      color: '#111827'
+                      gap: '2px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      background: 'white',
+                      padding: '2px',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
                     }}>
-                      {item.quantity}
-                    </span>
-                    <button style={{
-                      width: '28px',
-                      height: '28px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      background: '#ffffff',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151',
-                      transition: 'all 0.2s'
-                    }}>+</button>
+                      <button 
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          border: '1px solid #e5e7eb',
+                          background: '#f8f9fa',
+                          color: '#374151',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s ease',
+                          borderRadius: '6px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#e5e7eb';
+                          e.currentTarget.style.transform = 'scale(1.05)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#f8f9fa';
+                          e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                        onMouseDown={(e) => {
+                          e.currentTarget.style.transform = 'scale(0.95)';
+                        }}
+                        onMouseUp={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.05)';
+                        }}
+                      >
+                        −
+                      </button>
+                      <span style={{ 
+                        minWidth: '36px',
+                        textAlign: 'center',
+                        fontWeight: '600',
+                        fontSize: '13px',
+                        color: '#374151',
+                        padding: '0 6px',
+                        background: '#ffffff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '4px',
+                        margin: '0 2px'
+                      }}>
+                      {1}
+                      </span>
+                      <button 
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          border: '1px solid #e5e7eb',
+                          background: '#f8f9fa',
+                          color: '#374151',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s ease',
+                          borderRadius: '6px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#e5e7eb';
+                          e.currentTarget.style.transform = 'scale(1.05)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#f8f9fa';
+                          e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                        onMouseDown={(e) => {
+                          e.currentTarget.style.transform = 'scale(0.95)';
+                        }}
+                        onMouseUp={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.05)';
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                    {/* Remove Button */}
+                    <button 
+                      title="Remove item"
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        border: 'none',
+                        borderRadius: '6px',
+                        background: '#666362',
+                        color: 'white',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        transition: 'all 0.2s ease',
+                        position: 'relative'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#dc2626';
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = '#666362';
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                      onMouseDown={(e) => {
+                        e.currentTarget.style.transform = 'scale(0.95)';
+                      }}
+                      onMouseUp={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                      }}
+                    >
+                      <svg 
+                        width="14" 
+                        height="14" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="2" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="3,6 5,6 21,6"></polyline>
+                        <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                      </svg>
+                    </button>
                   </div>
                 </div>
               </div>
