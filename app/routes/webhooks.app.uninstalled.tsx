@@ -1,16 +1,27 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
-import db from "../db.server";
+import { deleteShopData } from "../services/compliance.server";
+import { verifyShopifyWebhookSignature } from "../utils/verifyWebhook.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { shop, session, topic } = await authenticate.webhook(request);
+  const rawBody = await request.clone().arrayBuffer();
+  const valid = verifyShopifyWebhookSignature(rawBody, request.headers);
 
-
-  // Webhook requests can trigger multiple times and after an app has already been uninstalled.
-  // If this webhook already ran, the session may have been deleted previously.
-  if (session) {
-    await db.session.deleteMany({ where: { shop } });
+  if (!valid) {
+    return new Response("Invalid webhook signature", { status: 401 });
   }
 
-  return new Response();
+  try {
+    const { shop } = await authenticate.webhook(request);
+
+    await deleteShopData(shop);
+
+    return new Response();
+  } catch (error) {
+    if (error instanceof Response && error.status === 401) {
+      return error;
+    }
+
+    throw error;
+  }
 };
