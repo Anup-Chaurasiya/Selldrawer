@@ -396,3 +396,78 @@ model FBTProduct {
   @@index([ruleId])
   @@index([position])
 }
+
+model NudgePopup {
+  id                        String      @id @default(cuid())
+  shop                      String      @unique
+  isActive                  Boolean     @default(true)
+  title                     String      @default("You might also like")
+  subtitle                  String      @default("Select a product to replace your choice")
+  recommendationType        String      @default("manual")
+  algorithm                 String      @default("related")
+  useAI                     Boolean     @default(false)
+  showOnAddToCart           Boolean     @default(true)
+  popupDelay                Int         @default(0)
+  overlayColor              String      @default("#000000")
+  overlayOpacity            Int         @default(50)
+  popupBackgroundColor      String      @default("#FFFFFF")
+  popupBorderRadius         Int         @default(8)
+  titleColor                String      @default("#000000")
+  subtitleColor             String      @default("#666666")
+  continueButtonText        String      @default("Continue with original")
+  continueButtonColor       String      @default("#000000")
+  continueButtonTextColor   String      @default("#FFFFFF")
+  selectButtonText          String      @default("Select this product")
+  selectButtonColor         String      @default("#4F46E5")
+  selectButtonTextColor     String      @default("#FFFFFF")
+  closeButtonColor          String      @default("#999999")
+  showProductImage          Boolean     @default(true)
+  showProductPrice          Boolean     @default(true)
+  showProductComparePrice   Boolean     @default(true)
+  showProductDescription    Boolean     @default(false)
+  maxProducts               Int         @default(4)
+  layout                    String      @default("grid")
+  enableAnimation           Boolean     @default(true)
+  animationType             String      @default("fade")
+  createdAt                 DateTime    @default(now())
+  updatedAt                 DateTime    @updatedAt
+  rules                     NudgeRule[]
+
+  @@index([shop, isActive])
+}
+
+model NudgeRule {
+  id                String         @id @default(cuid())
+  nudgeId           String
+  triggerType       String
+  triggerValue      String
+  triggerProductId  String?
+  triggerTitle      String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  nudge             NudgePopup     @relation(fields: [nudgeId], references: [id], onDelete: Cascade)
+  products          NudgeProduct[]
+
+  @@index([nudgeId])
+  @@index([triggerProductId])
+}
+
+model NudgeProduct {
+  id               String     @id @default(cuid())
+  ruleId           String
+  shopifyProductId String
+  shopifyVariantId String?
+  title            String
+  price            Decimal
+  compareAtPrice   Decimal?
+  imageUrl         String?
+  handle           String
+  description      String?
+  position         Int        @default(0)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  rule             NudgeRule  @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([position])
+}

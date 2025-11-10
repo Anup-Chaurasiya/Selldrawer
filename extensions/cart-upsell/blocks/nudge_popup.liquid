@@ -1,0 +1,47 @@
+{% comment %}
+  Nudge Popup Widget
+  Shows alternative products in a popup when "Add to Cart" is clicked
+{% endcomment %}
+
+{{ 'nudge-popup.css' | asset_url | stylesheet_tag }}
+
+{% comment %} Get app URL from settings {% endcomment %}
+{% assign app_url = "https://listen-docs-covering-tex.trycloudflare.com" %}
+
+{% comment %} Add meta tag for shop domain {% endcomment %}
+<meta name="shopify-shop" content="{{ shop.permanent_domain }}">
+
+{% comment %} Load the script with app URL as data attribute {% endcomment %}
+<script 
+  src="{{ 'nudge-popup.js' | asset_url }}" 
+  defer
+  data-nudge-app-url="{{ app_url }}"
+></script>
+
+{% schema %}
+{
+  "name": "Nudge Popup",
+  "target": "section",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "This widget shows alternative product recommendations in a popup when customers click 'Add to Cart'. Configure the popup settings in the Upsellity admin panel."
+    },
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "Enable Nudge Popup",
+      "default": true,
+      "info": "You can also enable/disable from the Upsellity admin panel"
+    },
+    {
+      "type": "text",
+      "id": "app_url",
+      "label": "App URL",
+      "default": "https://app.upsellity.com",
+      "info": "The URL of your Upsellity app (leave default if unsure)"
+    }
+  ]
+}
+{% endschema %}
+
