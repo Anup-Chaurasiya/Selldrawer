@@ -12,6 +12,7 @@
       this.selectedProduct = null;
       this.isOpen = false;
       this.originalAddToCartButton = null;
+      this.originalProductVariantId = null;
       
       this.init();
     }
@@ -83,11 +84,6 @@
         this.config = data.config || null;
         this.recommendations = data.recommendations || [];
         
-        // If AI recommendations are enabled, fetch them
-        if (this.enabled && this.config && (this.config.recommendationType === 'ai' || this.config.recommendationType === 'hybrid')) {
-          await this.loadAIRecommendations();
-        }
-        
       } catch (error) {
         console.error('Error loading Nudge config:', error);
         this.enabled = false;
@@ -114,71 +110,6 @@
       return null;
     }
 
-    async loadAIRecommendations() {
-      try {
-        const productHandle = this.getCurrentProductHandle();
-        if (!productHandle) return;
-
-        const productId = this.getProductIdFromHandle(productHandle);
-        if (!productId) return;
-
-        const algorithm = this.config.algorithm || 'related';
-        const intent = algorithm === 'complementary' ? 'complementary' : 'related';
-        
-        const response = await fetch(
-          `/recommendations/products.json?product_id=${productId}&limit=${this.config.maxProducts || 4}&intent=${intent}`
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.products && data.products.length > 0) {
-            const aiRecommendations = data.products.map((product, index) => ({
-              id: product.id.toString(),
-              variantId: product.variants[0]?.id?.toString() || null,
-              title: product.title,
-              handle: product.handle,
-              price: parseFloat(product.variants[0]?.price || 0),
-              compareAtPrice: product.variants[0]?.compare_at_price ? parseFloat(product.variants[0].compare_at_price) : null,
-              imageUrl: product.featured_image || null,
-              description: product.body_html || null,
-              position: index
-            }));
-
-            // Combine or replace with manual recommendations
-            if (this.config.recommendationType === 'hybrid') {
-              // Add AI recommendations to manual ones, avoiding duplicates
-              const existingIds = new Set(this.recommendations.map(r => r.handle));
-              aiRecommendations.forEach(rec => {
-                if (!existingIds.has(rec.handle)) {
-                  this.recommendations.push(rec);
-                }
-              });
-            } else {
-              // AI only, replace manual
-              this.recommendations = aiRecommendations;
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error loading AI recommendations:', error);
-      }
-    }
-
-    getProductIdFromHandle(handle) {
-      // Try to get from meta tag
-      const metaTag = document.querySelector('meta[property="og:product:id"]');
-      if (metaTag) {
-        return metaTag.content;
-      }
-      
-      // Try to get from product JSON
-      if (typeof window.ShopifyAnalytics !== 'undefined' && window.ShopifyAnalytics.meta?.product?.id) {
-        return window.ShopifyAnalytics.meta.product.id;
-      }
-      
-      return null;
-    }
-
     setupAddToCartInterceptor() {
       // Intercept all "Add to Cart" buttons
       const addToCartButtons = document.querySelectorAll('[name="add"], [data-add-to-cart], button[type="submit"][name="add"], form[action*="/cart/add"] button[type="submit"]');
@@ -192,6 +123,19 @@
             
             this.originalAddToCartButton = button;
             this.currentProduct = await this.getCurrentProductData();
+            
+            // Capture the variant ID from the form
+            const form = button.closest('form');
+            if (form) {
+              const formData = new FormData(form);
+              const variantId = formData.get('id') || formData.get('variant_id') || form.querySelector('[name="id"]')?.value;
+              if (variantId) {
+                this.originalProductVariantId = variantId.toString();
+              } else if (this.currentProduct && this.currentProduct.variants && this.currentProduct.variants.length > 0) {
+                // Fallback to first variant if no ID in form
+                this.originalProductVariantId = this.currentProduct.variants[0].id.toString();
+              }
+            }
             
             // Show popup with delay
             if (this.config.popupDelay > 0) {
@@ -267,29 +211,55 @@
 
       // Products container
       const productsContainer = document.createElement('div');
-      productsContainer.className = `upsellity-nudge-products upsellity-nudge-layout-${this.config.layout}`;
-
+      
       // Limit products shown
       const productsToShow = this.recommendations.slice(0, this.config.maxProducts);
+      
+      // Add layout class and product count class for better styling
+      productsContainer.className = `upsellity-nudge-products upsellity-nudge-layout-${this.config.layout} upsellity-nudge-products-${productsToShow.length}`;
       
       productsToShow.forEach(product => {
         const productCard = this.createProductCard(product);
         productsContainer.appendChild(productCard);
       });
 
-      // Continue button
+      // Bottom action section - split layout
+      const bottomSection = document.createElement('div');
+      bottomSection.className = 'upsellity-nudge-bottom-section';
+
+      // Left half - Continue button
+      const continueSection = document.createElement('div');
+      continueSection.className = 'upsellity-nudge-continue-section';
       const continueButton = document.createElement('button');
       continueButton.className = 'upsellity-nudge-continue-btn';
       continueButton.textContent = this.config.continueButtonText;
       continueButton.style.backgroundColor = this.config.continueButtonColor;
       continueButton.style.color = this.config.continueButtonTextColor;
       continueButton.addEventListener('click', () => this.continueWithOriginal());
+      continueSection.appendChild(continueButton);
+
+      // Right half - Select all upsell products button
+      const selectionSection = document.createElement('div');
+      selectionSection.className = 'upsellity-nudge-selection-section';
+      
+      if (productsToShow.length > 0) {
+        const selectAllButton = document.createElement('button');
+        selectAllButton.className = 'upsellity-nudge-select-all-btn';
+        selectAllButton.textContent = this.config.selectButtonText || 'Select all alternatives';
+        selectAllButton.style.backgroundColor = this.config.selectButtonColor;
+        selectAllButton.style.color = this.config.selectButtonTextColor;
+        selectAllButton.addEventListener('click', () => this.selectAllProducts(productsToShow));
+        selectionSection.appendChild(selectAllButton);
+      }
+
+      bottomSection.appendChild(continueSection);
+      bottomSection.appendChild(selectionSection);
 
       popup.appendChild(closeButton);
       popup.appendChild(title);
       popup.appendChild(subtitle);
       popup.appendChild(productsContainer);
-      popup.appendChild(continueButton);
+      popup.appendChild(bottomSection);
 
       overlay.appendChild(popup);
 
@@ -306,6 +276,12 @@
     createProductCard(product) {
       const card = document.createElement('div');
       card.className = 'upsellity-nudge-product-card';
+      card.style.cursor = 'pointer';
+      
+      // Make card clickable to select this product
+      card.addEventListener('click', () => {
+        this.selectProduct(product);
+      });
 
       if (this.config.showProductImage && product.imageUrl) {
         const img = document.createElement('img');
@@ -349,14 +325,6 @@
         details.appendChild(priceContainer);
       }
 
-      const selectButton = document.createElement('button');
-      selectButton.className = 'upsellity-nudge-select-btn';
-      selectButton.textContent = this.config.selectButtonText;
-      selectButton.style.backgroundColor = this.config.selectButtonColor;
-      selectButton.style.color = this.config.selectButtonTextColor;
-      selectButton.addEventListener('click', () => this.selectProduct(product));
-
-      details.appendChild(selectButton);
       card.appendChild(details);
 
       return card;
@@ -397,6 +365,205 @@
         }
       } catch (error) {
         console.error('Error adding product to cart:', error);
+      }
+    }
+
+    async selectAllProducts(products) {
+      // Close popup
+      this.closePopup();
+      
+      try {
+        // First, get the current cart to find and remove the original product
+        const cartResponse = await fetch('/cart.js');
+        if (cartResponse.ok) {
+          const cart = await cartResponse.json();
+          
+          // Find the line item with the original variant ID
+          let originalLineItemKey = null;
+          if (this.originalProductVariantId && cart.items) {
+            // Normalize the original variant ID (remove GID prefix if present)
+            const normalizedOriginalId = this.originalProductVariantId.replace('gid://shopify/ProductVariant/', '');
+            
+            const matchingItem = cart.items.find(item => {
+              const itemVariantId = item.variant_id?.toString();
+              // Match by numeric ID
+              return itemVariantId === normalizedOriginalId || itemVariantId === this.originalProductVariantId;
+            });
+            
+            if (matchingItem) {
+              originalLineItemKey = matchingItem.key;
+            }
+          }
+          
+          // Remove original product from cart if it exists
+          if (originalLineItemKey) {
+            try {
+              await fetch('/cart/change.js', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  updates: {
+                    [originalLineItemKey]: 0
+                  }
+                })
+              });
+            } catch (error) {
+              console.error('Error removing original product from cart:', error);
+            }
+          }
+        }
+        
+        // Fetch variant IDs from Shopify for each product
+        const itemsToAdd = [];
+        
+        for (const product of products) {
+          try {
+            // Fetch product data from Shopify to get the correct variant ID
+            const productResponse = await fetch(`/products/${product.handle}.js`);
+            if (!productResponse.ok) {
+              console.warn('Failed to fetch product:', product.handle);
+              continue;
+            }
+            
+            const productData = await productResponse.json();
+            console.log('Fetched product data for:', product.handle, 'variants:', productData.variants);
+            
+            // Get the first available variant (or match by stored variant ID if possible)
+            let variant = null;
+            if (product.variantId && productData.variants) {
+              // Try to find the variant by ID
+              const storedVariantId = product.variantId.toString().replace('gid://shopify/ProductVariant/', '').replace(/\D/g, '');
+              variant = productData.variants.find(v => {
+                const vId = v.id.toString().replace('gid://shopify/ProductVariant/', '').replace(/\D/g, '');
+                return vId === storedVariantId;
+              });
+            }
+            
+            // Fallback to first variant if not found
+            if (!variant && productData.variants && productData.variants.length > 0) {
+              variant = productData.variants[0];
+            }
+            
+            if (!variant) {
+              console.warn('No variant found for product:', product.title);
+              continue;
+            }
+            
+            // Extract numeric variant ID
+            // Shopify's product JSON API returns variant.id as a number
+            let variantId = variant.id;
+            console.log('Variant ID for', product.title, ':', variantId, 'type:', typeof variantId);
+            
+            // Handle different formats
+            if (typeof variantId === 'number') {
+              // Already a number, use it directly
+              console.log('Using numeric variant ID:', variantId);
+              itemsToAdd.push({
+                id: variantId,
+                quantity: 1
+              });
+            } else if (typeof variantId === 'string') {
+              // Remove GID prefix if present
+              if (variantId.includes('gid://shopify/ProductVariant/')) {
+                variantId = variantId.replace('gid://shopify/ProductVariant/', '');
+              }
+              // Extract numeric part
+              const numericId = parseInt(variantId.replace(/\D/g, ''), 10);
+              if (isNaN(numericId)) {
+                console.warn('Invalid variant ID for product:', product.title, 'variantId:', variant.id);
+                continue;
+              }
+              console.log('Converted variant ID to number:', numericId);
+              itemsToAdd.push({
+                id: numericId,
+                quantity: 1
+              });
+            } else {
+              console.warn('Unexpected variant ID type for product:', product.title, 'variantId:', variant.id, 'type:', typeof variantId);
+              continue;
+            }
+          } catch (error) {
+            console.error('Error fetching product variant for:', product.title, error);
+          }
+        }
+        
+        if (itemsToAdd.length === 0) {
+          console.error('No valid products to add to cart');
+          return;
+        }
+        
+        console.log('Adding products to cart:', itemsToAdd);
+        
+        const addResponse = await fetch('/cart/add.js', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            items: itemsToAdd
+          })
+        });
+        
+        if (!addResponse.ok) {
+          const errorText = await addResponse.text();
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch (e) {
+            errorData = { description: errorText };
+          }
+          console.error('Error adding upsell products to cart:', errorData);
+          // Show error to user if possible
+          if (errorData.description) {
+            alert('Error adding products: ' + errorData.description);
+          }
+          return;
+        }
+        
+        const responseData = await addResponse.json();
+        console.log('Products added successfully:', responseData);
+        
+        // Wait a moment to ensure cart is fully updated
+        await new Promise(resolve => setTimeout(resolve, 150));
+        
+        // Trigger cart update events
+        document.dispatchEvent(new CustomEvent('cart:updated'));
+        
+        // Also trigger Shopify's native cart events if available
+        if (typeof window.dispatchEvent !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('cart:refresh'));
+          window.dispatchEvent(new CustomEvent('cart:build'));
+        }
+        
+        // Trigger additional events that some themes listen to
+        if (typeof document !== 'undefined') {
+          document.dispatchEvent(new Event('cart:updated', { bubbles: true }));
+        }
+        
+        // Try to open cart drawer if Shopify theme supports it
+        setTimeout(() => {
+          // Try multiple selectors that different themes might use
+          const cartDrawerToggle = document.querySelector('[data-cart-drawer-toggle]') || 
+                                   document.querySelector('.cart-drawer-toggle') ||
+                                   document.querySelector('[aria-controls*="cart"]') ||
+                                   document.querySelector('[data-drawer-toggle="cart"]') ||
+                                   document.querySelector('.js-cart-drawer-toggle') ||
+                                   document.querySelector('#cart-icon-bubble') ||
+                                   document.querySelector('.cart-count-bubble');
+          
+          if (cartDrawerToggle) {
+            cartDrawerToggle.click();
+          } else {
+            // If no toggle found, try to trigger cart update manually
+            // Some themes auto-open on cart updates
+            const cartUpdateEvent = new CustomEvent('cart:updated', { bubbles: true });
+            document.dispatchEvent(cartUpdateEvent);
+          }
+        }, 200);
+      } catch (error) {
+        console.error('Error in selectAllProducts:', error);
       }
     }
 

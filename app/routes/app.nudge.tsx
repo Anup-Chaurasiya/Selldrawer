@@ -207,9 +207,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const data = {
       title: formData.get("title") as string,
       subtitle: formData.get("subtitle") as string,
-      recommendationType: formData.get("recommendationType") as string,
-      algorithm: formData.get("algorithm") as string,
-      useAI: formData.get("useAI") === "true",
+      recommendationType: "manual",
       showOnAddToCart: formData.get("showOnAddToCart") === "true",
       popupDelay: parseInt(formData.get("popupDelay") as string || "0"),
       overlayColor: formData.get("overlayColor") as string,
@@ -345,14 +343,10 @@ export default function NudgePopup() {
   const isLoading = navigation.state === "submitting";
 
   const [formState, setFormState] = useState(() => {
-    const recommendationType = nudgeConfig?.recommendationType || "manual";
-    const useAI = recommendationType === "ai" || recommendationType === "hybrid";
     return {
       title: nudgeConfig?.title || "You might also like",
       subtitle: nudgeConfig?.subtitle || "Select a product to replace your choice",
-      recommendationType: recommendationType,
-      algorithm: nudgeConfig?.algorithm || "related",
-      useAI: nudgeConfig?.useAI ?? useAI,
+      recommendationType: "manual",
       showOnAddToCart: nudgeConfig?.showOnAddToCart ?? true,
       popupDelay: nudgeConfig?.popupDelay?.toString() || "0",
       overlayColor: nudgeConfig?.overlayColor || "#000000",
@@ -477,28 +471,40 @@ export default function NudgePopup() {
   );
 
   return (
-    <Page
-      title="Nudge Popup"
-      primaryAction={{
-        content: nudgeConfig?.isActive ? "Disable" : "Enable",
-        onAction: handleToggle,
-        loading: isLoading,
-        tone: nudgeConfig?.isActive ? "critical" : "success",
-      }}
-    >
-      <TitleBar title="Nudge Popup" />
+    <Page title="Nudge Upsell">
+      <TitleBar title="Nudge Upsell" />
       
       <Layout>
         {!nudgeConfig?.isActive && (
           <Layout.Section>
             <Banner
-              title="Nudge Popup is currently disabled"
+              title="Nudge Upsell is currently disabled"
               tone="warning"
             >
-              <p>Enable the Nudge Popup to start showing product alternatives when customers click "Add to Cart".</p>
+              <p>Enable the Nudge Upsell to start showing product alternatives when customers click "Add to Cart".</p>
             </Banner>
           </Layout.Section>
         )}
+
+        <Layout.Section>
+          <InlineStack align="space-between" blockAlign="center">
+            <Button
+              variant={nudgeConfig?.isActive ? "primary" : "secondary"}
+              tone={nudgeConfig?.isActive ? "critical" : "success"}
+              onClick={handleToggle}
+              loading={isLoading}
+            >
+              {nudgeConfig?.isActive ? "Disable" : "Enable"}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSaveSettings}
+              loading={isLoading}
+            >
+              Save Settings
+            </Button>
+          </InlineStack>
+        </Layout.Section>
 
         <Layout.Section>
           <Card>
@@ -520,35 +526,6 @@ export default function NudgePopup() {
                   autoComplete="off"
                   helpText="Optional description text shown below the title"
                 />
-                <Select
-                  label="Recommendation Type"
-                  options={[
-                    { label: "Manual (Configure rules manually)", value: "manual" },
-                    { label: "AI Powered (Use Shopify's recommendations)", value: "ai" },
-                    { label: "Hybrid (Combine manual and AI)", value: "hybrid" },
-                  ]}
-                  value={formState.recommendationType}
-                  onChange={(value) => setFormState({ ...formState, recommendationType: value })}
-                />
-                {(formState.recommendationType === "ai" || formState.recommendationType === "hybrid") && (
-                  <>
-                    <Checkbox
-                      label="Use AI Recommendations"
-                      checked={formState.useAI}
-                      onChange={(value) => setFormState({ ...formState, useAI: value })}
-                      helpText="Leverage Shopify's product recommendation engine"
-                    />
-                    <Select
-                      label="AI Algorithm"
-                      options={[
-                        { label: "Related Products", value: "related" },
-                        { label: "Complementary Products", value: "complementary" },
-                      ]}
-                      value={formState.algorithm}
-                      onChange={(value) => setFormState({ ...formState, algorithm: value })}
-                    />
-                  </>
-                )}
                 <TextField
                   label="Maximum Products to Show"
                   type="number"
@@ -751,24 +728,11 @@ export default function NudgePopup() {
         </Layout.Section>
 
         <Layout.Section>
-          <InlineStack align="end">
-            <Button
-              variant="primary"
-              onClick={handleSaveSettings}
-              loading={isLoading}
-            >
-              Save Settings
-            </Button>
-          </InlineStack>
-        </Layout.Section>
-
-        {formState.recommendationType !== "ai" && (
-          <Layout.Section>
             <Card>
               <BlockStack gap="400">
                 <InlineStack align="space-between" blockAlign="center">
                   <Text as="h2" variant="headingMd">
-                    Manual Rules
+                    Manual Rules 
                   </Text>
                   <Button onClick={() => setShowManualModal(true)}>
                     Add Rule
@@ -780,28 +744,66 @@ export default function NudgePopup() {
                     resourceName={{ singular: 'rule', plural: 'rules' }}
                     items={nudgeConfig.rules}
                     renderItem={(rule) => {
-                      const { id, triggerType, triggerTitle, products } = rule;
+                      const { id, triggerType, triggerTitle, triggerValue, products } = rule;
+                      const triggerProduct = triggerType === 'product' && triggerValue && triggerValue !== 'all'
+                        ? shopProducts.find(p => p.handle === triggerValue)
+                        : null;
                       return (
                         <ResourceItem
                           id={id}
                           accessibilityLabel={`View details for ${triggerTitle}`}
+                          onClick={() => {}}
                         >
-                          <InlineStack align="space-between" blockAlign="center">
-                            <BlockStack gap="200">
-                              <Text as="h3" variant="headingMd">
-                                {triggerTitle || "Unknown"}
-                              </Text>
-                              <Text as="p" variant="bodySm" tone="subdued">
-                                Trigger: {triggerType} | {products.length} products
-                              </Text>
-                            </BlockStack>
-                            <Button
-                              icon={DeleteIcon}
-                              variant="plain"
-                              tone="critical"
-                              onClick={() => handleDeleteRule(id)}
-                            />
-                          </InlineStack>
+                          <BlockStack gap="300">
+                            <InlineStack align="space-between" blockAlign="center">
+                              <InlineStack gap="300" blockAlign="center">
+                                {triggerProduct && (
+                                  <Thumbnail
+                                    source={triggerProduct.images[0]?.src || ''}
+                                    alt={triggerProduct.title}
+                                    size="medium"
+                                  />
+                                )}
+                                <BlockStack gap="100">
+                                  <Text as="h3" variant="headingMd">
+                                    {triggerTitle || "Unknown"}
+                                  </Text>
+                                  <Text as="p" variant="bodySm" tone="subdued">
+                                    Trigger: {triggerType} | {products.length} upsell {products.length === 1 ? 'product' : 'products'}
+                                  </Text>
+                                </BlockStack>
+                              </InlineStack>
+                              <Button
+                                icon={DeleteIcon}
+                                variant="plain"
+                                tone="critical"
+                                onClick={() => handleDeleteRule(id)}
+                              />
+                            </InlineStack>
+                            {products.length > 0 && (
+                              <Box paddingBlockStart="200">
+                                <BlockStack gap="200">
+                                  <Text as="p" variant="bodySm" fontWeight="semibold">
+                                    Upsell Products:
+                                  </Text>
+                                  <InlineStack gap="200" wrap>
+                                    {products.map((product: any) => (
+                                      <InlineStack key={product.id} gap="200" blockAlign="center">
+                                        <Thumbnail
+                                          source={product.imageUrl || ''}
+                                          alt={product.title}
+                                          size="small"
+                                        />
+                                        <Text as="p" variant="bodySm" tone="subdued">
+                                          {product.title}
+                                        </Text>
+                                      </InlineStack>
+                                    ))}
+                                  </InlineStack>
+                                </BlockStack>
+                              </Box>
+                            )}
+                          </BlockStack>
                         </ResourceItem>
                       );
                     }}
@@ -817,7 +819,6 @@ export default function NudgePopup() {
               </BlockStack>
             </Card>
           </Layout.Section>
-        )}
       </Layout>
 
       {/* Add Rule Modal */}
@@ -855,11 +856,22 @@ export default function NudgePopup() {
               {modalConfig.triggerType === "specific_product" && (
                 <Box>
                   <BlockStack gap="200">
-                    <Text as="p" variant="bodyMd">
-                      Selected Product: {modalConfig.selectedTriggerProduct ? 
-                        shopProducts.find(p => p.handle === modalConfig.selectedTriggerProduct)?.title : 
-                        "None"}
-                    </Text>
+                    {modalConfig.selectedTriggerProduct ? (
+                      <InlineStack gap="300" blockAlign="center">
+                        <Thumbnail
+                          source={shopProducts.find(p => p.handle === modalConfig.selectedTriggerProduct)?.images[0]?.src || ''}
+                          alt={shopProducts.find(p => p.handle === modalConfig.selectedTriggerProduct)?.title || ''}
+                          size="small"
+                        />
+                        <Text as="p" variant="bodyMd">
+                          {shopProducts.find(p => p.handle === modalConfig.selectedTriggerProduct)?.title}
+                        </Text>
+                      </InlineStack>
+                    ) : (
+                      <Text as="p" variant="bodyMd">
+                        Selected Product: None
+                      </Text>
+                    )}
                     <Button onClick={() => setModalConfig({ ...modalConfig, showTriggerModal: true })}>
                       Select Product
                     </Button>
@@ -898,12 +910,19 @@ export default function NudgePopup() {
                   </Text>
                   {modalConfig.selectedUpsellProducts.length > 0 && (
                     <Box>
-                      <BlockStack gap="100">
+                      <BlockStack gap="200">
                         {modalConfig.selectedUpsellProducts.map(handle => {
                           const product = shopProducts.find(p => p.handle === handle);
                           return product ? (
-                            <InlineStack key={handle} align="space-between" blockAlign="center">
-                              <Text as="p" variant="bodySm">{product.title}</Text>
+                            <InlineStack key={handle} align="space-between" blockAlign="center" gap="300">
+                              <InlineStack gap="300" blockAlign="center">
+                                <Thumbnail
+                                  source={product.images[0]?.src || ''}
+                                  alt={product.title}
+                                  size="small"
+                                />
+                                <Text as="p" variant="bodySm">{product.title}</Text>
+                              </InlineStack>
                               <Button
                                 size="micro"
                                 onClick={() => setModalConfig({

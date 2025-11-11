@@ -5,8 +5,12 @@
 
 {{ 'nudge-popup.css' | asset_url | stylesheet_tag }}
 
-{% comment %} Get app URL from settings {% endcomment %}
-{% assign app_url = "https://listen-docs-covering-tex.trycloudflare.com" %}
+{% comment %} Get app URL from settings or use default {% endcomment %}
+{% if block.settings.app_url != blank %}
+  {% assign app_url = block.settings.app_url %}
+{% else %}
+  {% assign app_url = "https://app.upsellity.com" %}
+{% endif %}
 
 {% comment %} Add meta tag for shop domain {% endcomment %}
 <meta name="shopify-shop" content="{{ shop.permanent_domain }}">

@@ -42,92 +42,127 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       return cors(request, response);
     }
 
-    // Find matching rule for the product
+    // Find matching rule for the product (manual recommendations only)
+    // Priority: specific product > collection > all products
     let recommendations: any[] = [];
-    const recommendationType = nudgeConfig.recommendationType || "manual";
+    let matchingRule: any = null;
     
-    // Only fetch manual recommendations if recommendation type is manual or hybrid
-    if (recommendationType === "manual" || recommendationType === "hybrid") {
-      if (productHandle) {
-        // Try to find a specific product rule first
-        const matchingRule = nudgeConfig.rules.find((rule: any) => {
-          if (rule.triggerType === "product") {
-            // For product handle matching
-            return rule.triggerValue === productHandle;
-          }
-          return false;
-        });
+    if (productHandle) {
+      // 1. Check for specific product rule first (highest priority)
+      matchingRule = nudgeConfig.rules.find((rule: any) => 
+        rule.triggerType === "product" && rule.triggerValue === productHandle
+      );
 
-        if (matchingRule && matchingRule.products.length > 0) {
-          recommendations = matchingRule.products.map((product: any) => ({
-            id: product.shopifyProductId,
-            variantId: product.shopifyVariantId,
-            title: product.title,
-            handle: product.handle,
-            price: parseFloat(product.price.toString()),
-            compareAtPrice: product.compareAtPrice ? parseFloat(product.compareAtPrice.toString()) : null,
-            imageUrl: product.imageUrl,
-            description: product.description,
-            position: product.position
-          }));
-        } else {
-          // Check for collection or all-products rules
-          const collectionOrAllRule = nudgeConfig.rules.find((rule: any) => 
-            rule.triggerType === "collection" || rule.triggerType === "all"
-          );
-
-          if (collectionOrAllRule && collectionOrAllRule.products.length > 0) {
-            recommendations = collectionOrAllRule.products.map((product: any) => ({
-              id: product.shopifyProductId,
-              variantId: product.shopifyVariantId,
-              title: product.title,
-              handle: product.handle,
-              price: parseFloat(product.price.toString()),
-              compareAtPrice: product.compareAtPrice ? parseFloat(product.compareAtPrice.toString()) : null,
-              imageUrl: product.imageUrl,
-              description: product.description,
-              position: product.position
-            }));
+      // 2. If no specific product rule, check for collection rules
+      if (!matchingRule) {
+        // Get all collection rules
+        const collectionRules = nudgeConfig.rules.filter((rule: any) => 
+          rule.triggerType === "collection"
+        );
+        
+        if (collectionRules.length > 0) {
+          // Fetch product data to check collections
+          try {
+            // Shop parameter is in format "example.myshopify.com"
+            // Build the product JSON API URL
+            const shopDomain = shop.replace(/^https?:\/\//, '').replace(/\/$/, '');
+            const productUrl = `https://${shopDomain}/products/${productHandle}.js`;
+            const productResponse = await fetch(productUrl, {
+              headers: {
+                'Accept': 'application/json',
+              },
+            });
+            
+            if (productResponse.ok) {
+              const productData = await productResponse.json();
+              // Handle different collection formats from Shopify JSON API
+              const productCollections = productData.collections || [];
+              const productCollectionHandles: string[] = [];
+              
+              productCollections.forEach((c: any) => {
+                if (typeof c === 'string') {
+                  productCollectionHandles.push(c);
+                } else if (c && typeof c === 'object') {
+                  // Collection object with handle property
+                  if (c.handle) {
+                    productCollectionHandles.push(c.handle);
+                  } else if (c.id) {
+                    // Fallback: try to extract handle from ID or use collection title
+                    const collectionId = c.id.toString().replace('gid://shopify/Collection/', '');
+                    // Store might use collection ID, but we store handles in rules
+                    // So we'll match by stored triggerValue (which is handle)
+                  }
+                }
+              });
+              
+              // Find collection rule that matches one of the product's collections
+              matchingRule = collectionRules.find((rule: any) => 
+                productCollectionHandles.includes(rule.triggerValue)
+              );
+            } else {
+              console.warn(`Failed to fetch product data for collection matching: ${productResponse.status}`);
+            }
+          } catch (error) {
+            console.error('Error fetching product data for collection matching:', error);
+            // Continue to check all-products rule even if collection check fails
           }
         }
       }
+
+      // 3. If no specific or collection rule, check for all-products rule (lowest priority)
+      if (!matchingRule) {
+        matchingRule = nudgeConfig.rules.find((rule: any) => 
+          rule.triggerType === "all"
+        );
+      }
+
+      // Map recommendations from matching rule
+      if (matchingRule && matchingRule.products.length > 0) {
+        recommendations = matchingRule.products.map((product: any) => ({
+          id: product.shopifyProductId,
+          variantId: product.shopifyVariantId,
+          title: product.title,
+          handle: product.handle,
+          price: typeof product.price === 'number' ? product.price : parseFloat(product.price.toString()),
+          compareAtPrice: product.compareAtPrice ? (typeof product.compareAtPrice === 'number' ? product.compareAtPrice : parseFloat(product.compareAtPrice.toString())) : null,
+          imageUrl: product.imageUrl,
+          description: product.description || null,
+          position: product.position
+        }));
+      }
     }
-    
-    // For AI mode, recommendations will be fetched by the widget from Shopify's API
-    // For hybrid mode, manual recommendations are included above, AI will be added by widget
 
     // Return configuration with recommendations
+    // Ensure all config values have proper defaults
     const response = json({
       enabled: true,
       config: {
-        title: nudgeConfig.title,
-        subtitle: nudgeConfig.subtitle,
-        layout: nudgeConfig.layout,
-        overlayColor: nudgeConfig.overlayColor,
-        overlayOpacity: nudgeConfig.overlayOpacity,
-        popupBackgroundColor: nudgeConfig.popupBackgroundColor,
-        popupBorderRadius: nudgeConfig.popupBorderRadius,
-        titleColor: nudgeConfig.titleColor,
-        subtitleColor: nudgeConfig.subtitleColor,
-        continueButtonText: nudgeConfig.continueButtonText,
-        continueButtonColor: nudgeConfig.continueButtonColor,
-        continueButtonTextColor: nudgeConfig.continueButtonTextColor,
-        selectButtonText: nudgeConfig.selectButtonText,
-        selectButtonColor: nudgeConfig.selectButtonColor,
-        selectButtonTextColor: nudgeConfig.selectButtonTextColor,
-        closeButtonColor: nudgeConfig.closeButtonColor,
-        showProductImage: nudgeConfig.showProductImage,
-        showProductPrice: nudgeConfig.showProductPrice,
-        showProductComparePrice: nudgeConfig.showProductComparePrice,
-        showProductDescription: nudgeConfig.showProductDescription,
-        maxProducts: nudgeConfig.maxProducts,
-        enableAnimation: nudgeConfig.enableAnimation,
-        animationType: nudgeConfig.animationType,
-        recommendationType: recommendationType,
-        useAI: nudgeConfig.useAI,
-        algorithm: nudgeConfig.algorithm,
-        showOnAddToCart: nudgeConfig.showOnAddToCart,
-        popupDelay: nudgeConfig.popupDelay,
+        title: nudgeConfig.title || "You might also like",
+        subtitle: nudgeConfig.subtitle || "Select a product to replace your choice",
+        layout: nudgeConfig.layout || "grid",
+        overlayColor: nudgeConfig.overlayColor || "#000000",
+        overlayOpacity: nudgeConfig.overlayOpacity ?? 50,
+        popupBackgroundColor: nudgeConfig.popupBackgroundColor || "#FFFFFF",
+        popupBorderRadius: nudgeConfig.popupBorderRadius ?? 8,
+        titleColor: nudgeConfig.titleColor || "#000000",
+        subtitleColor: nudgeConfig.subtitleColor || "#666666",
+        continueButtonText: nudgeConfig.continueButtonText || "Continue with original",
+        continueButtonColor: nudgeConfig.continueButtonColor || "#000000",
+        continueButtonTextColor: nudgeConfig.continueButtonTextColor || "#FFFFFF",
+        selectButtonText: nudgeConfig.selectButtonText || "Select this product",
+        selectButtonColor: nudgeConfig.selectButtonColor || "#4F46E5",
+        selectButtonTextColor: nudgeConfig.selectButtonTextColor || "#FFFFFF",
+        closeButtonColor: nudgeConfig.closeButtonColor || "#999999",
+        showProductImage: nudgeConfig.showProductImage ?? true,
+        showProductPrice: nudgeConfig.showProductPrice ?? true,
+        showProductComparePrice: nudgeConfig.showProductComparePrice ?? true,
+        showProductDescription: nudgeConfig.showProductDescription ?? false,
+        maxProducts: nudgeConfig.maxProducts ?? 4,
+        enableAnimation: nudgeConfig.enableAnimation ?? true,
+        animationType: nudgeConfig.animationType || "fade",
+        recommendationType: "manual",
+        showOnAddToCart: nudgeConfig.showOnAddToCart ?? true,
+        popupDelay: nudgeConfig.popupDelay ?? 0,
       },
       recommendations
     });
