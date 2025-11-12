@@ -50,8 +50,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   
   try {
     const response = await admin.graphql(`
-      query getProducts($first: Int!) {
-        products(first: $first) {
+      query getProducts($first: Int!, $query: String!) {
+        products(first: $first, query: $query) {
           edges {
             node {
               id
@@ -82,7 +82,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         }
       }
     `, {
-      variables: { first: 50 }
+      variables: { first: 50, query: "status:active" }
     });
 
     const responseJson = await response.json() as any;
