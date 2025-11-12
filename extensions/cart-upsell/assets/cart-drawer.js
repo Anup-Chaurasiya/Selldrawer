@@ -102,7 +102,15 @@ class UpsellityCartDrawer {
         return;
       }
 
-      const response = await fetch(`${appUrl}/api/cart-drawer?shop=${this.shop}`);
+      // Add cache-busting timestamp to ensure fresh config
+      const timestamp = new Date().getTime();
+      const response = await fetch(`${appUrl}/api/cart-drawer?shop=${this.shop}&_t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       this.config = await response.json();
       
       console.log('Upsellity: Loaded config:', this.config);
@@ -133,6 +141,7 @@ class UpsellityCartDrawer {
       // Load product availability for recommendations
       await this.loadProductAvailability();
       
+      // Re-render after filtering out-of-stock products
       this.render();
     } catch (error) {
       console.error('Upsellity: Failed to load cart', error);
@@ -270,32 +279,44 @@ class UpsellityCartDrawer {
       
       if (response.ok) {
         const data = await response.json();
-        const shopifyRecommendations = (data.products || []).map(product => {
-          // Extract variant ID - handle both GID format and numeric ID
-          let variantId = null;
-          if (product.variants?.[0]?.id) {
-            const idStr = product.variants[0].id.toString();
-            // If it's a GID, extract the numeric part
-            if (idStr.includes('gid://')) {
-              variantId = idStr.replace('gid://shopify/ProductVariant/', '');
-            } else {
-              variantId = idStr;
+        const shopifyRecommendations = (data.products || [])
+          .map(product => {
+            // Extract variant ID - handle both GID format and numeric ID
+            let variantId = null;
+            if (product.variants?.[0]?.id) {
+              const idStr = product.variants[0].id.toString();
+              // If it's a GID, extract the numeric part
+              if (idStr.includes('gid://')) {
+                variantId = idStr.replace('gid://shopify/ProductVariant/', '');
+              } else {
+                variantId = idStr;
+              }
             }
-          }
-          
-          return {
-            shopifyProductId: product.handle,
-            shopifyVariantId: variantId,
-            title: product.title,
-            handle: product.handle,
-            price: product.variants?.[0]?.price ? parseFloat(product.variants[0].price) / 100 : 0,
-            compareAtPrice: product.variants?.[0]?.compare_at_price 
-              ? parseFloat(product.variants[0].compare_at_price) / 100 
-              : null,
-            imageUrl: product.featured_image,
-            position: 0
-          };
-        });
+            
+            const variant = product.variants?.[0];
+            // Check if product is available
+            const isAvailable = variant ? (
+              variant.available !== false && 
+              (variant.inventory_management === null || 
+               variant.inventory_quantity === null || 
+               variant.inventory_quantity > 0)
+            ) : false;
+            
+            return {
+              shopifyProductId: product.handle,
+              shopifyVariantId: variantId,
+              title: product.title,
+              handle: product.handle,
+              price: variant?.price ? parseFloat(variant.price) / 100 : 0,
+              compareAtPrice: variant?.compare_at_price 
+                ? parseFloat(variant.compare_at_price) / 100 
+                : null,
+              imageUrl: product.featured_image,
+              position: 0,
+              available: isAvailable
+            };
+          })
+          .filter(rec => rec.available); // Filter out out-of-stock products
 
         // Filter out products that are already in the cart
         const cartProductIds = new Set(this.cart.items.map(item => item.product_id.toString()));
@@ -344,6 +365,7 @@ class UpsellityCartDrawer {
 
     // Fetch availability for each recommended product
     const products = recommendations.products || [];
+    const availableProducts = [];
     
     for (const product of products) {
       try {
@@ -359,18 +381,36 @@ class UpsellityCartDrawer {
           // Get the first variant or the specific variant if provided
           const variantId = product.shopifyVariantId;
           const variant = variantId
-            ? productData.variants.find(v => v.id.toString() === variantId.toString())
+            ? productData.variants.find(v => {
+                // Normalize variant IDs for comparison (handle both GID and numeric formats)
+                const vId = v.id.toString().replace('gid://shopify/ProductVariant/', '');
+                const pId = variantId.toString().replace('gid://shopify/ProductVariant/', '');
+                return vId === pId;
+              })
             : productData.variants[0];
+
+          // Check if product is available
+          const isAvailable = variant ? (
+            variant.available !== false && 
+            (variant.inventory_management === null || 
+             variant.inventory_quantity === null || 
+             variant.inventory_quantity > 0)
+          ) : false;
 
           // Store availability info
           this.productAvailability[handle] = {
-            available: variant ? variant.available : false,
+            available: isAvailable,
             inventoryQuantity: variant?.inventory_quantity || 0,
             inventoryManagement: variant?.inventory_management || null,
             product: productData
           };
+          
+          // Only add to available products if in stock
+          if (isAvailable) {
+            availableProducts.push(product);
+          }
         } else {
-          // Product not found or error
+          // Product not found or error - mark as unavailable
           this.productAvailability[handle] = {
             available: false,
             inventoryQuantity: 0,
@@ -380,7 +420,22 @@ class UpsellityCartDrawer {
         }
       } catch (error) {
         console.warn('Failed to load availability for product:', product.title, error);
+        // On error, mark as unavailable
+        const handle = product.shopifyProductId || product.handle;
+        if (handle) {
+          this.productAvailability[handle] = {
+            available: false,
+            inventoryQuantity: 0,
+            inventoryManagement: null,
+            product: null
+          };
+        }
       }
+    }
+    
+    // Update recommendations to only include available products
+    if (recommendations) {
+      recommendations.products = availableProducts;
     }
   }
 
@@ -1276,10 +1331,14 @@ class UpsellityCartDrawer {
       // Use actual recommended products from configuration
       const recommendedProducts = recommendations.products || [];
 
+      const layout = recommendations.layout || 'carousel';
+      const isGrid = layout === 'grid';
+      
       let recommendationsHtml = `
         <div class="upsellity-recommendations">
           <div class="upsellity-recommendations-title">${recommendations.title}</div>
           <div class="upsellity-recommendations-container" style="position: relative;">
+            ${!isGrid ? `
             <!-- Left Arrow -->
             <button class="upsellity-nav-arrow upsellity-nav-left" 
                     onclick="window.upsellityDrawer.scrollRecommendations('left')"
@@ -1293,22 +1352,33 @@ class UpsellityCartDrawer {
                     style="display: none;">
               <span>›</span>
             </button>
+            ` : ''}
             
-            <div class="upsellity-recommendations-grid">
-              ${recommendedProducts.slice(0, recommendations.maxProducts || 4).map(product => {
-                const originalPrice = product.compareAtPrice || product.price;
-                const discount = product.compareAtPrice && product.compareAtPrice > product.price 
-                  ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100) 
+            <div class="${isGrid ? 'upsellity-recommendations-grid-layout' : 'upsellity-recommendations-grid'}" ${isGrid ? 'style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;"' : ''}>
+              ${recommendedProducts
+                .filter(product => {
+                  // Check product availability before displaying
+                  const handle = product.shopifyProductId || product.handle;
+                  const availability = this.productAvailability[handle];
+                  // If availability was checked, use it; otherwise assume available (will be checked async)
+                  const isAvailable = availability ? availability.available : (product.available !== false);
+                  return isAvailable;
+                })
+                .slice(0, recommendations.maxProducts || 4)
+                .map(product => {
+                // Handle price format - check if price is in cents (> 1000) or rupees
+                const productPrice = product.price > 1000 ? product.price / 100 : product.price;
+                const productCompareAtPrice = product.compareAtPrice ? (product.compareAtPrice > 1000 ? product.compareAtPrice / 100 : product.compareAtPrice) : null;
+                const originalPrice = productCompareAtPrice || productPrice;
+                const discount = productCompareAtPrice && productCompareAtPrice > productPrice 
+                  ? Math.round(((productCompareAtPrice - productPrice) / productCompareAtPrice) * 100) 
                   : 0;
                 
-                // Check product availability
-                const handle = product.shopifyProductId || product.handle;
-                const availability = this.productAvailability[handle];
-                const isAvailable = availability ? availability.available : true; // Default to true if not checked yet
-                const isOutOfStock = !isAvailable;
+                // Product is already filtered, so it's available
+                const isOutOfStock = false;
                 
                 return `
-                  <div class="upsellity-recommendation-card">
+                  <div class="upsellity-recommendation-card" ${isGrid ? '' : 'style="min-width: 140px; flex-shrink: 0;"'}>
                     <div class="upsellity-recommendation-image" style="position: relative;">
                       ${product.imageUrl ? `
                         <img src="${product.imageUrl}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px; ${isOutOfStock ? 'opacity: 0.5; filter: grayscale(50%);' : ''}" />
@@ -1329,12 +1399,12 @@ class UpsellityCartDrawer {
                       ${product.title.length > 20 ? product.title.substring(0, 20) + '...' : product.title}
                     </div>
                     <div style="margin-bottom: 4px;">
-                      ${recommendations.showDiscount && product.compareAtPrice && product.compareAtPrice > product.price ? `
+                      ${recommendations.showDiscount && productCompareAtPrice && productCompareAtPrice > productPrice ? `
                         <span style="text-decoration: line-through; color: #9ca3af; font-size: 12px; margin-right: 4px;">
-                          ₹${Math.round(product.compareAtPrice)}
+                          ₹${Math.round(productCompareAtPrice)}
                         </span>
                       ` : ''}
-                      <span style="font-weight: 600; font-size: 12px;">₹${Math.round(product.price)}</span>
+                      <span style="font-weight: 600; font-size: 12px;">₹${Math.round(productPrice)}</span>
                     </div>
                     ${recommendations.showAddButton ? (
                       isOutOfStock ? `
@@ -1617,12 +1687,18 @@ class UpsellityCartDrawer {
     return `₹${Math.round(amount)}`;
   }
 
-  open() {
+  async open() {
     const drawer = document.getElementById('upsellity-cart-drawer');
     drawer.classList.add('open');
     // Don't prevent body scroll - allow users to scroll the page behind the drawer
     // document.body.style.overflow = 'hidden';
     this.isOpen = true;
+    
+    // Reload config when drawer opens to ensure fresh configuration
+    // This ensures any changes made in the admin panel are reflected immediately
+    await this.loadConfig();
+    // Reload cart to refresh with latest config
+    await this.loadCart();
   }
 
   close() {
@@ -2122,7 +2198,12 @@ class UpsellityCartDrawer {
       
       // Use the first variant if no specific variant ID provided
       const variant = variantId ? 
-        product.variants.find(v => v.id.toString() === variantId.toString()) :
+        product.variants.find(v => {
+          // Normalize variant IDs for comparison (handle both GID and numeric formats)
+          const vId = v.id.toString().replace('gid://shopify/ProductVariant/', '');
+          const pId = variantId.toString().replace('gid://shopify/ProductVariant/', '');
+          return vId === pId;
+        }) :
         product.variants[0];
       
       if (!variant) {
@@ -2328,12 +2409,17 @@ class UpsellityCartDrawer {
     this.showNotification(`${discount.code} applied!`, 'success');
   }
 
-  // Initialize product recommendations navigation
+  // Initialize product recommendations navigation (only for carousel layout)
   initializeRecommendationsNavigation() {
+    // Check if grid layout exists (grid uses different class)
+    const gridLayout = document.querySelector('.upsellity-recommendations-grid-layout');
+    if (gridLayout) return; // Don't initialize navigation for grid layout
+    
     const grid = document.querySelector('.upsellity-recommendations-grid');
     const leftArrow = document.querySelector('.upsellity-nav-left');
     const rightArrow = document.querySelector('.upsellity-nav-right');
     
+    // Only initialize for carousel layout (not grid)
     if (!grid || !leftArrow || !rightArrow) return;
     
     // Check if scrolling is needed
@@ -2370,8 +2456,12 @@ class UpsellityCartDrawer {
     }
   }
 
-  // Scroll product recommendations
+  // Scroll product recommendations (only for carousel layout)
   scrollRecommendations(direction) {
+    // Check if grid layout exists (grid uses different class)
+    const gridLayout = document.querySelector('.upsellity-recommendations-grid-layout');
+    if (gridLayout) return; // Don't scroll for grid layout
+    
     const grid = document.querySelector('.upsellity-recommendations-grid');
     if (!grid) return;
     

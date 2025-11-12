@@ -620,28 +620,28 @@ export default function NudgePopup() {
                   value={formState.titleColor}
                   onChange={(value) => setFormState({ ...formState, titleColor: value })}
                   autoComplete="off"
-                  helpText="Hex color code (e.g., #000000)"
+                  {...({ type: "color" } as any)}
                 />
                 <TextField
                   label="Subtitle Color"
                   value={formState.subtitleColor}
                   onChange={(value) => setFormState({ ...formState, subtitleColor: value })}
                   autoComplete="off"
-                  helpText="Hex color code (e.g., #666666)"
+                  {...({ type: "color" } as any)}
                 />
                 <TextField
                   label="Popup Background Color"
                   value={formState.popupBackgroundColor}
                   onChange={(value) => setFormState({ ...formState, popupBackgroundColor: value })}
                   autoComplete="off"
-                  helpText="Hex color code (e.g., #FFFFFF)"
+                  {...({ type: "color" } as any)}
                 />
                 <TextField
                   label="Overlay Color"
                   value={formState.overlayColor}
                   onChange={(value) => setFormState({ ...formState, overlayColor: value })}
                   autoComplete="off"
-                  helpText="Hex color code (e.g., #000000)"
+                  {...({ type: "color" } as any)}
                 />
                 <TextField
                   label="Overlay Opacity (%)"
@@ -684,14 +684,14 @@ export default function NudgePopup() {
                   value={formState.selectButtonColor}
                   onChange={(value) => setFormState({ ...formState, selectButtonColor: value })}
                   autoComplete="off"
-                  helpText="Hex color code (e.g., #4F46E5)"
+                  {...({ type: "color" } as any)}
                 />
                 <TextField
                   label="Select Button Text Color"
                   value={formState.selectButtonTextColor}
                   onChange={(value) => setFormState({ ...formState, selectButtonTextColor: value })}
                   autoComplete="off"
-                  helpText="Hex color code (e.g., #FFFFFF)"
+                  {...({ type: "color" } as any)}
                 />
                 <Divider />
                 <TextField
@@ -705,14 +705,14 @@ export default function NudgePopup() {
                   value={formState.continueButtonColor}
                   onChange={(value) => setFormState({ ...formState, continueButtonColor: value })}
                   autoComplete="off"
-                  helpText="Hex color code (e.g., #000000)"
+                  {...({ type: "color" } as any)}
                 />
                 <TextField
                   label="Continue Button Text Color"
                   value={formState.continueButtonTextColor}
                   onChange={(value) => setFormState({ ...formState, continueButtonTextColor: value })}
                   autoComplete="off"
-                  helpText="Hex color code (e.g., #FFFFFF)"
+                  {...({ type: "color" } as any)}
                 />
                 <Divider />
                 <TextField
@@ -720,7 +720,7 @@ export default function NudgePopup() {
                   value={formState.closeButtonColor}
                   onChange={(value) => setFormState({ ...formState, closeButtonColor: value })}
                   autoComplete="off"
-                  helpText="Hex color code (e.g., #999999)"
+                  {...({ type: "color" } as any)}
                 />
               </FormLayout>
             </BlockStack>

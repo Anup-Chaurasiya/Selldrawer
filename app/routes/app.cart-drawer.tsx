@@ -906,8 +906,8 @@ function MiniCartDrawerPreview({
               position: 'relative',
               overflow: 'hidden'
             }}>
-              {/* Left Arrow */}
-              {canScrollLeft && (
+              {/* Left Arrow - Only show for carousel layout */}
+              {productRecommendation?.layout !== 'grid' && canScrollLeft && (
                 <button
                   onClick={(e) => {
                     const container = e.currentTarget.parentElement?.querySelector('.product-recommendations-scroll') as HTMLElement;
@@ -947,8 +947,8 @@ function MiniCartDrawerPreview({
                 </button>
               )}
 
-              {/* Right Arrow */}
-              {canScrollRight && (
+              {/* Right Arrow - Only show for carousel layout */}
+              {productRecommendation?.layout !== 'grid' && canScrollRight && (
                 <button
                   onClick={(e) => {
                     const container = e.currentTarget.parentElement?.querySelector('.product-recommendations-scroll') as HTMLElement;
@@ -990,7 +990,12 @@ function MiniCartDrawerPreview({
 
               <div 
                 className="product-recommendations-scroll"
-                style={{ 
+                style={productRecommendation?.layout === 'grid' ? {
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(auto-fit, minmax(120px, 1fr))`,
+                  gap: '8px',
+                  paddingBottom: '8px'
+                } : {
                   display: 'flex',
                   gap: '8px',
                   overflowX: 'auto',
@@ -1001,11 +1006,19 @@ function MiniCartDrawerPreview({
                   paddingLeft: canScrollLeft ? '40px' : '0',
                   paddingRight: canScrollRight ? '40px' : '0'
                 }}
-                onScroll={(e) => handleScroll(e.currentTarget)}
+                onScroll={productRecommendation?.layout === 'grid' ? undefined : (e) => handleScroll(e.currentTarget)}
               >
                 {productRecommendation?.products && productRecommendation.products.length > 0 ? (
                   productRecommendation.products.slice(0, productRecommendation.maxProducts || 4).map((product: any, index: number) => (
-                    <div key={product.id} style={{ 
+                    <div key={product.id} style={productRecommendation?.layout === 'grid' ? {
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      padding: '8px',
+                      textAlign: 'center',
+                      backgroundColor: '#ffffff',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                    } : {
                       border: '1px solid #e5e7eb',
                       borderRadius: '6px',
                       padding: '8px',

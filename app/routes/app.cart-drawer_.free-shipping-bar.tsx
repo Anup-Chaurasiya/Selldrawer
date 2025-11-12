@@ -238,7 +238,7 @@ export default function FreeShippingBar() {
 
                   <TextField
                     label="Progress Bar Color"
-                    type="color"
+                    {...({ type: "color" } as any)}
                     value={formState.progressBarColor}
                     onChange={(value) => setFormState({ ...formState, progressBarColor: value })}
                     autoComplete="off"
@@ -246,7 +246,7 @@ export default function FreeShippingBar() {
 
                   <TextField
                     label="Background Color"
-                    type="color"
+                    {...({ type: "color" } as any)}
                     value={formState.backgroundColor}
                     onChange={(value) => setFormState({ ...formState, backgroundColor: value })}
                     autoComplete="off"
