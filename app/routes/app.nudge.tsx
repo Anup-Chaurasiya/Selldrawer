@@ -617,31 +617,31 @@ export default function NudgePopup() {
               <FormLayout>
                 <TextField
                   label="Title Color"
-                  type="color"
                   value={formState.titleColor}
                   onChange={(value) => setFormState({ ...formState, titleColor: value })}
                   autoComplete="off"
+                  helpText="Hex color code (e.g., #000000)"
                 />
                 <TextField
                   label="Subtitle Color"
-                  type="color"
                   value={formState.subtitleColor}
                   onChange={(value) => setFormState({ ...formState, subtitleColor: value })}
                   autoComplete="off"
+                  helpText="Hex color code (e.g., #666666)"
                 />
                 <TextField
                   label="Popup Background Color"
-                  type="color"
                   value={formState.popupBackgroundColor}
                   onChange={(value) => setFormState({ ...formState, popupBackgroundColor: value })}
                   autoComplete="off"
+                  helpText="Hex color code (e.g., #FFFFFF)"
                 />
                 <TextField
                   label="Overlay Color"
-                  type="color"
                   value={formState.overlayColor}
                   onChange={(value) => setFormState({ ...formState, overlayColor: value })}
                   autoComplete="off"
+                  helpText="Hex color code (e.g., #000000)"
                 />
                 <TextField
                   label="Overlay Opacity (%)"
@@ -681,17 +681,17 @@ export default function NudgePopup() {
                 />
                 <TextField
                   label="Select Button Background Color"
-                  type="color"
                   value={formState.selectButtonColor}
                   onChange={(value) => setFormState({ ...formState, selectButtonColor: value })}
                   autoComplete="off"
+                  helpText="Hex color code (e.g., #4F46E5)"
                 />
                 <TextField
                   label="Select Button Text Color"
-                  type="color"
                   value={formState.selectButtonTextColor}
                   onChange={(value) => setFormState({ ...formState, selectButtonTextColor: value })}
                   autoComplete="off"
+                  helpText="Hex color code (e.g., #FFFFFF)"
                 />
                 <Divider />
                 <TextField
@@ -702,25 +702,25 @@ export default function NudgePopup() {
                 />
                 <TextField
                   label="Continue Button Background Color"
-                  type="color"
                   value={formState.continueButtonColor}
                   onChange={(value) => setFormState({ ...formState, continueButtonColor: value })}
                   autoComplete="off"
+                  helpText="Hex color code (e.g., #000000)"
                 />
                 <TextField
                   label="Continue Button Text Color"
-                  type="color"
                   value={formState.continueButtonTextColor}
                   onChange={(value) => setFormState({ ...formState, continueButtonTextColor: value })}
                   autoComplete="off"
+                  helpText="Hex color code (e.g., #FFFFFF)"
                 />
                 <Divider />
                 <TextField
                   label="Close Button Color"
-                  type="color"
                   value={formState.closeButtonColor}
                   onChange={(value) => setFormState({ ...formState, closeButtonColor: value })}
                   autoComplete="off"
+                  helpText="Hex color code (e.g., #999999)"
                 />
               </FormLayout>
             </BlockStack>
@@ -837,7 +837,7 @@ export default function NudgePopup() {
             onAction: () => setShowManualModal(false),
           },
         ]}
-        large
+        size="large"
       >
         <Modal.Section>
           <BlockStack gap="400">
@@ -957,7 +957,7 @@ export default function NudgePopup() {
           content: "Done",
           onAction: () => setModalConfig({ ...modalConfig, showTriggerModal: false }),
         }}
-        large
+        size="large"
       >
         <Modal.Section>
           <BlockStack gap="400">
@@ -1036,7 +1036,7 @@ export default function NudgePopup() {
           content: "Done",
           onAction: () => setModalConfig({ ...modalConfig, showUpsellModal: false }),
         }}
-        large
+        size="large"
       >
         <Modal.Section>
           <BlockStack gap="400">
