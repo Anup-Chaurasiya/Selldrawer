@@ -2,8 +2,8 @@
   'use strict';
 
   class FrequentlyBoughtTogether {
-    constructor() {
-      this.container = document.getElementById('upsellity-fbt-widget');
+    constructor(container) {
+      this.container = container;
       if (!this.container) return;
 
       this.productHandle = this.container.dataset.productHandle;
@@ -543,13 +543,51 @@
     }
   }
 
-  // Initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      new FrequentlyBoughtTogether();
+  // Initialize all widgets when DOM is ready
+  function initializeWidgets() {
+    const widgets = document.querySelectorAll('.upsellity-fbt-widget');
+    widgets.forEach(container => {
+      new FrequentlyBoughtTogether(container);
     });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeWidgets);
   } else {
-    new FrequentlyBoughtTogether();
+    initializeWidgets();
+  }
+
+  // Also initialize widgets that might be added dynamically (e.g., via AJAX)
+  // Use MutationObserver to watch for new widgets being added to the DOM
+  if (typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === 1) { // Element node
+            // Check if the added node is a widget or contains widgets
+            if (node.classList && node.classList.contains('upsellity-fbt-widget')) {
+              new FrequentlyBoughtTogether(node);
+            } else {
+              const widgets = node.querySelectorAll && node.querySelectorAll('.upsellity-fbt-widget');
+              if (widgets && widgets.length > 0) {
+                widgets.forEach(container => {
+                  // Only initialize if not already initialized
+                  if (!container.dataset.initialized) {
+                    container.dataset.initialized = 'true';
+                    new FrequentlyBoughtTogether(container);
+                  }
+                });
+              }
+            }
+          }
+        });
+      });
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
   }
 })();
 

@@ -69,10 +69,10 @@ model CartDrawer {
   couponCodeFieldEnabled         Boolean                   @default(false)
   savingsDisplayEnabled          Boolean                   @default(true)
   freeShippingMessageEnabled     Boolean                   @default(true)
-  itemOrderingEnabled            Boolean                   @default(false)
-  featureOrder                   String[]                  @default([])
   createdAt                      DateTime                  @default(now())
   updatedAt                      DateTime                  @updatedAt
+  featureOrder                   String[]                  @default([])
+  itemOrderingEnabled            Boolean                   @default(false)
   freeShippingMessages           FreeShippingMessage[]
   freeShippingBars               FreeShippingProgressBar[]
   productRecommendations         ProductRecommendation[]
@@ -311,68 +311,68 @@ model CartDrawerAnalytics {
 }
 
 model AppSubscription {
-  id                   String    @id @default(cuid())
-  shop                 String    @unique
-  planId               String
-  planName             String
-  status               String    @default("ACTIVE")
-  amount               Decimal
-  currencyCode         String
-  interval             String
-  trialDays            Int?
-  trialEndsAt          DateTime?
-  billingOn            DateTime?
-  shopifyChargeId      String?
+  id                     String    @id @default(cuid())
+  shop                   String    @unique
+  planId                 String
+  planName               String
+  status                 String    @default("ACTIVE")
+  amount                 Decimal
+  currencyCode           String
+  interval               String
+  trialDays              Int?
+  trialEndsAt            DateTime?
+  billingOn              DateTime?
+  shopifyChargeId        String?
   shopifyConfirmationUrl String?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  cancelledAt          DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  cancelledAt            DateTime?
 
   @@index([shop])
   @@index([status])
 }
 
 model FrequentlyBoughtTogether {
-  id                        String    @id @default(cuid())
-  shop                      String    @unique
-  isActive                  Boolean   @default(true)
-  title                     String    @default("Frequently Bought Together")
-  recommendationType        String    @default("manual")
-  algorithm                 String    @default("related")
-  useAI                     Boolean   @default(false)
-  useSmartVariantMatching   Boolean   @default(false)
-  showOfferIfInCart         Boolean   @default(false)
-  limitUpsellsInCart        Boolean   @default(false)
-  maxUpsellsInCart          Int       @default(3)
-  showProductReviews        Boolean   @default(false)
-  layout                    String    @default("horizontal")
-  buttonText                String    @default("Add selected items")
-  buttonColor               String    @default("#000000")
-  buttonTextColor           String    @default("#FFFFFF")
-  showDiscount              Boolean   @default(true)
-  showTotalPrice            Boolean   @default(true)
-  showIndividualPrices      Boolean   @default(true)
-  showCheckboxes            Boolean   @default(true)
-  discountType              String    @default("percentage")
-  discountValue             Decimal?
-  createdAt                 DateTime  @default(now())
-  updatedAt                 DateTime  @updatedAt
-  rules                     FBTRule[]
+  id                      String    @id @default(cuid())
+  shop                    String    @unique
+  isActive                Boolean   @default(true)
+  title                   String    @default("Frequently Bought Together")
+  recommendationType      String    @default("manual")
+  algorithm               String    @default("related")
+  useAI                   Boolean   @default(false)
+  useSmartVariantMatching Boolean   @default(false)
+  showOfferIfInCart       Boolean   @default(false)
+  limitUpsellsInCart      Boolean   @default(false)
+  maxUpsellsInCart        Int       @default(3)
+  showProductReviews      Boolean   @default(false)
+  layout                  String    @default("horizontal")
+  buttonText              String    @default("Add selected items")
+  buttonColor             String    @default("#000000")
+  buttonTextColor         String    @default("#FFFFFF")
+  showDiscount            Boolean   @default(true)
+  showTotalPrice          Boolean   @default(true)
+  showIndividualPrices    Boolean   @default(true)
+  showCheckboxes          Boolean   @default(true)
+  discountType            String    @default("percentage")
+  discountValue           Decimal?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  rules                   FBTRule[]
 
   @@index([shop, isActive])
 }
 
 model FBTRule {
-  id                String       @id @default(cuid())
-  fbtId             String
-  triggerType       String
-  triggerValue      String
-  triggerProductId  String?
-  triggerTitle      String?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  fbt               FrequentlyBoughtTogether @relation(fields: [fbtId], references: [id], onDelete: Cascade)
-  products          FBTProduct[]
+  id               String                   @id @default(cuid())
+  fbtId            String
+  triggerType      String
+  triggerValue     String
+  triggerProductId String?
+  triggerTitle     String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  products         FBTProduct[]
+  fbt              FrequentlyBoughtTogether @relation(fields: [fbtId], references: [id], onDelete: Cascade)
 
   @@index([fbtId])
   @@index([triggerProductId])
@@ -398,62 +398,62 @@ model FBTProduct {
 }
 
 model NudgePopup {
-  id                        String      @id @default(cuid())
-  shop                      String      @unique
-  isActive                  Boolean     @default(true)
-  title                     String      @default("You might also like")
-  subtitle                  String      @default("Select a product to replace your choice")
-  recommendationType        String      @default("manual")
-  algorithm                 String      @default("related")
-  useAI                     Boolean     @default(false)
-  showOnAddToCart           Boolean     @default(true)
-  popupDelay                Int         @default(0)
-  overlayColor              String      @default("#000000")
-  overlayOpacity            Int         @default(50)
-  popupBackgroundColor      String      @default("#FFFFFF")
-  popupBorderRadius         Int         @default(8)
-  titleColor                String      @default("#000000")
-  subtitleColor             String      @default("#666666")
-  continueButtonText        String      @default("Continue with original")
-  continueButtonColor       String      @default("#000000")
-  continueButtonTextColor   String      @default("#FFFFFF")
-  selectButtonText          String      @default("Select this product")
-  selectButtonColor         String      @default("#4F46E5")
-  selectButtonTextColor     String      @default("#FFFFFF")
-  closeButtonColor          String      @default("#999999")
-  showProductImage          Boolean     @default(true)
-  showProductPrice          Boolean     @default(true)
-  showProductComparePrice   Boolean     @default(true)
-  showProductDescription    Boolean     @default(false)
-  maxProducts               Int         @default(4)
-  layout                    String      @default("grid")
-  enableAnimation           Boolean     @default(true)
-  animationType             String      @default("fade")
-  createdAt                 DateTime    @default(now())
-  updatedAt                 DateTime    @updatedAt
-  rules                     NudgeRule[]
+  id                      String      @id @default(cuid())
+  shop                    String      @unique
+  isActive                Boolean     @default(true)
+  title                   String      @default("You might also like")
+  subtitle                String      @default("Select a product to replace your choice")
+  recommendationType      String      @default("manual")
+  algorithm               String      @default("related")
+  useAI                   Boolean     @default(false)
+  showOnAddToCart         Boolean     @default(true)
+  popupDelay              Int         @default(0)
+  overlayColor            String      @default("#000000")
+  overlayOpacity          Int         @default(50)
+  popupBackgroundColor    String      @default("#FFFFFF")
+  popupBorderRadius       Int         @default(8)
+  titleColor              String      @default("#000000")
+  subtitleColor           String      @default("#666666")
+  continueButtonText      String      @default("Continue with original")
+  continueButtonColor     String      @default("#000000")
+  continueButtonTextColor String      @default("#FFFFFF")
+  selectButtonText        String      @default("Select this product")
+  selectButtonColor       String      @default("#4F46E5")
+  selectButtonTextColor   String      @default("#FFFFFF")
+  closeButtonColor        String      @default("#999999")
+  showProductImage        Boolean     @default(true)
+  showProductPrice        Boolean     @default(true)
+  showProductComparePrice Boolean     @default(true)
+  showProductDescription  Boolean     @default(false)
+  maxProducts             Int         @default(4)
+  layout                  String      @default("grid")
+  enableAnimation         Boolean     @default(true)
+  animationType           String      @default("fade")
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+  rules                   NudgeRule[]
 
   @@index([shop, isActive])
 }
 
 model NudgeRule {
-  id                String         @id @default(cuid())
-  nudgeId           String
-  triggerType       String
-  triggerValue      String
-  triggerProductId  String?
-  triggerTitle      String?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-  nudge             NudgePopup     @relation(fields: [nudgeId], references: [id], onDelete: Cascade)
-  products          NudgeProduct[]
+  id               String         @id @default(cuid())
+  nudgeId          String
+  triggerType      String
+  triggerValue     String
+  triggerProductId String?
+  triggerTitle     String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  products         NudgeProduct[]
+  nudge            NudgePopup     @relation(fields: [nudgeId], references: [id], onDelete: Cascade)
 
   @@index([nudgeId])
   @@index([triggerProductId])
 }
 
 model NudgeProduct {
-  id               String     @id @default(cuid())
+  id               String    @id @default(cuid())
   ruleId           String
   shopifyProductId String
   shopifyVariantId String?
@@ -463,10 +463,10 @@ model NudgeProduct {
   imageUrl         String?
   handle           String
   description      String?
-  position         Int        @default(0)
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
-  rule             NudgeRule  @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  position         Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  rule             NudgeRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
 
   @@index([ruleId])
   @@index([position])

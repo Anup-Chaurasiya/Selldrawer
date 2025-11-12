@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useSubmit, useNavigation, useFetcher } from "@remix-run/react";
+import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -15,20 +15,14 @@ import {
   InlineStack,
   Banner,
   Modal,
-  ResourceList,
-  ResourceItem,
-  Thumbnail,
   Badge,
-  EmptyState,
   Divider,
-  Box,
-  Icon,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { useState, useCallback, useEffect } from "react";
-import { DeleteIcon, EditIcon } from "@shopify/polaris-icons";
+import { useState, useCallback } from "react";
+import { DeleteIcon, PlusIcon } from "@shopify/polaris-icons";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -654,161 +648,6 @@ export default function FrequentlyBoughtTogether() {
               </BlockStack>
             </Card>
 
-            {/* Configuration Card */}
-            <Card>
-              <BlockStack gap="400">
-                <Text as="h2" variant="headingMd">
-                  Product Selection
-                </Text>
-                
-                <FormLayout>
-                  <Select
-                    label="Recommendation Type"
-                    options={[
-                      { label: "Manual Only", value: "manual" },
-                      { label: "AI Only", value: "ai" },
-                      { label: "Hybrid (Manual + AI)", value: "hybrid" },
-                    ]}
-                    value={formState.recommendationType}
-                    onChange={(value) => {
-                      const useAI = value === "ai" || value === "hybrid";
-                      setFormState({ 
-                        ...formState, 
-                        recommendationType: value,
-                        useAI: useAI
-                      });
-                    }}
-                    helpText="Choose how product recommendations are generated. Manual uses your configured rules, AI uses Shopify's recommendations, Hybrid combines both."
-                  />
-
-                  {(formState.recommendationType === "ai" || formState.recommendationType === "hybrid") && (
-                    <>
-                      <Select
-                        label="Recommendation Algorithm"
-                        options={[
-                          { label: "Related Products", value: "related" },
-                          { label: "Complementary Products", value: "complementary" },
-                        ]}
-                        value={formState.algorithm}
-                        onChange={(value) => setFormState({ ...formState, algorithm: value })}
-                        helpText="Select how automatic recommendations are generated"
-                      />
-
-                      <Checkbox
-                        label="Use smart variant matching"
-                        checked={formState.useSmartVariantMatching}
-                        onChange={(value) => setFormState({ ...formState, useSmartVariantMatching: value })}
-                        helpText="Automatically match product variants based on customer selections"
-                      />
-                    </>
-                  )}
-                </FormLayout>
-
-                {(formState.recommendationType === "manual" || formState.recommendationType === "hybrid") && (
-                  <>
-                    <Divider />
-
-                    <BlockStack gap="200">
-                      <Text as="h3" variant="headingMd">
-                        Manual Configuration
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Manually configure which products trigger upsell recommendations
-                      </Text>
-                      <Button onClick={() => setShowManualModal(true)}>
-                        Configure Manual Upsells
-                      </Button>
-                    </BlockStack>
-                  </>
-                )}
-
-                {/* Display existing rules */}
-                {fbtConfig?.rules && fbtConfig.rules.length > 0 && (
-                  <BlockStack gap="300">
-                    <Text as="h3" variant="headingMd">
-                      Configured Rules ({fbtConfig.rules.length})
-                    </Text>
-                    {fbtConfig.rules.map((rule: any) => {
-                      const getTriggerLabel = () => {
-                        if (rule.triggerType === "collection") {
-                          return `Collection: ${rule.triggerTitle}`;
-                        } else if (rule.triggerType === "all_products") {
-                          return "All Products";
-                        } else {
-                          return rule.triggerTitle;
-                        }
-                      };
-
-                      return (
-                        <Card key={rule.id}>
-                          <BlockStack gap="300">
-                            <InlineStack align="space-between" blockAlign="center">
-                              <BlockStack gap="200">
-                                <InlineStack gap="200" blockAlign="center">
-                                  <Text as="p" variant="bodyMd" fontWeight="semibold">
-                                    {getTriggerLabel()}
-                                  </Text>
-                                  {rule.triggerType === "collection" && (
-                                    <Badge tone="info">Collection</Badge>
-                                  )}
-                                  {rule.triggerType === "all_products" && (
-                                    <Badge>All Products</Badge>
-                                  )}
-                                </InlineStack>
-                                <Text as="p" variant="bodyMd" tone="subdued">
-                                  {rule.products.length === 1 ? "Single Product Upsell" : `${rule.products.length} Products`}
-                                </Text>
-                              </BlockStack>
-                              <Button
-                                icon={DeleteIcon}
-                                tone="critical"
-                                onClick={() => handleDeleteRule(rule.id)}
-                              >
-                                Delete
-                              </Button>
-                            </InlineStack>
-                            
-                            {rule.products.length > 0 && (
-                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                {rule.products.map((product: any) => (
-                                  <div
-                                    key={product.id}
-                                    style={{
-                                      border: '1px solid #e5e7eb',
-                                      borderRadius: '6px',
-                                      padding: '8px',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '8px',
-                                      backgroundColor: '#f9fafb'
-                                    }}
-                                  >
-                                    <img
-                                      src={product.imageUrl || "https://via.placeholder.com/40x40"}
-                                      alt={product.title}
-                                      style={{
-                                        width: '40px',
-                                        height: '40px',
-                                        objectFit: 'cover',
-                                        borderRadius: '4px'
-                                      }}
-                                    />
-                                    <Text as="span" variant="bodySm">
-                                      {product.title}
-                                    </Text>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </BlockStack>
-                        </Card>
-                      );
-                    })}
-                  </BlockStack>
-                )}
-              </BlockStack>
-            </Card>
-
             {/* Upsell Settings Card */}
             <Card>
               <BlockStack gap="400">
@@ -947,6 +786,205 @@ export default function FrequentlyBoughtTogether() {
                 </FormLayout>
               </BlockStack>
             </Card>
+
+          {/* Configuration Card */}
+          <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
+                  Product Selection
+                </Text>
+                
+                <FormLayout>
+                  <Select
+                    label="Recommendation Type"
+                    options={[
+                      { label: "Manual Only", value: "manual" },
+                      { label: "AI Only", value: "ai" },
+                      { label: "Hybrid (Manual + AI)", value: "hybrid" },
+                    ]}
+                    value={formState.recommendationType}
+                    onChange={(value) => {
+                      const useAI = value === "ai" || value === "hybrid";
+                      setFormState({ 
+                        ...formState, 
+                        recommendationType: value,
+                        useAI: useAI
+                      });
+                    }}
+                    helpText="Choose how product recommendations are generated. Manual uses your configured rules, AI uses Shopify's recommendations, Hybrid combines both."
+                  />
+
+                  {(formState.recommendationType === "ai" || formState.recommendationType === "hybrid") && (
+                    <>
+                      <Select
+                        label="Recommendation Algorithm"
+                        options={[
+                          { label: "Related Products", value: "related" },
+                          { label: "Complementary Products", value: "complementary" },
+                        ]}
+                        value={formState.algorithm}
+                        onChange={(value) => setFormState({ ...formState, algorithm: value })}
+                        helpText="Select how automatic recommendations are generated"
+                      />
+
+                      <Checkbox
+                        label="Use smart variant matching"
+                        checked={formState.useSmartVariantMatching}
+                        onChange={(value) => setFormState({ ...formState, useSmartVariantMatching: value })}
+                        helpText="Automatically match product variants based on customer selections"
+                      />
+                    </>
+                  )}
+                </FormLayout>
+
+                {(formState.recommendationType === "manual" || formState.recommendationType === "hybrid") && (
+                  <>
+                    <Divider />
+
+                    <BlockStack gap="200">
+                      <Text as="h3" variant="headingMd">
+                        Manual Configuration
+                      </Text>
+                      <Text as="p" variant="bodyMd" tone="subdued">
+                        Manually configure which products trigger upsell recommendations
+                      </Text>
+                      <Button onClick={() => setShowManualModal(true)}>
+                        Configure Manual Rules
+                      </Button>
+                    </BlockStack>
+                  </>
+                )}
+
+                {/* Display existing rules */}
+                {fbtConfig?.rules && fbtConfig.rules.length > 0 && (
+                  <BlockStack gap="400">
+                    <Text as="h3" variant="headingMd">
+                      Configured Rules ({fbtConfig.rules.length})
+                    </Text>
+                    {fbtConfig.rules.map((rule: any) => {
+                      const getTriggerLabel = () => {
+                        if (rule.triggerType === "collection") {
+                          return rule.triggerTitle;
+                        } else if (rule.triggerType === "all_products") {
+                          return "All Products";
+                        } else {
+                          return rule.triggerTitle;
+                        }
+                      };
+
+                      return (
+                        <Card key={rule.id}>
+                          <BlockStack gap="400">
+                            {/* Header with Delete Button */}
+                            <InlineStack align="space-between" blockAlign="center">
+                              <Text as="p" variant="bodyMd" fontWeight="semibold" tone="subdued">
+                                Rule #{fbtConfig.rules.indexOf(rule) + 1}
+                              </Text>
+                              <Button
+                                icon={DeleteIcon}
+                                tone="critical"
+                                onClick={() => handleDeleteRule(rule.id)}
+                                size="slim"
+                              >
+                                Delete
+                              </Button>
+                            </InlineStack>
+
+                            {/* Two Column Layout: Trigger | Upsells */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr', gap: '16px', alignItems: 'flex-start' }}>
+                              {/* Left Column: Trigger Product */}
+                              <div style={{ borderRight: '1px solid #e5e7eb', paddingRight: '16px' }}>
+                                <div style={{ marginBottom: '8px' }}>
+                                  <Text as="p" variant="bodySm" fontWeight="semibold" tone="subdued">
+                                    Trigger Product
+                                  </Text>
+                                </div>
+                                {rule.triggerType === "specific_product" && (() => {
+                                  const triggerProduct = shopProducts.find((p: any) => p.handle === rule.triggerValue);
+                                  return (
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                      <img
+                                        src={triggerProduct?.images?.[0]?.src || "https://via.placeholder.com/50x50"}
+                                        alt={getTriggerLabel()}
+                                        style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e5e7eb' }}
+                                      />
+                                      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <Text as="p" variant="bodySm" fontWeight="semibold">
+                                          {getTriggerLabel()}
+                                        </Text>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                                {rule.triggerType === "collection" && (
+                                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <div style={{ width: '50px', height: '50px', backgroundColor: '#f3f4f6', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                                      📁
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                                        {getTriggerLabel()}
+                                      </Text>
+                                    </div>
+                                  </div>
+                                )}
+                                {rule.triggerType === "all_products" && (
+                                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <div style={{ width: '50px', height: '50px', backgroundColor: '#f3f4f6', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                                      🌐
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                                        All Products
+                                      </Text>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Right Column: Upsell Products */}
+                              <div>
+                                <div style={{ marginBottom: '8px' }}>
+                                  <Text as="p" variant="bodySm" fontWeight="semibold" tone="subdued">
+                                    Recommended Products ({rule.products.length})
+                                  </Text>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                  {rule.products.map((product: any, index: number) => (
+                                    <div key={product.id} style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '6px', backgroundColor: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                                      <img
+                                        src={product.imageUrl || "https://via.placeholder.com/40x40"}
+                                        alt={product.title}
+                                        style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #e5e7eb' }}
+                                      />
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                          <Text as="p" variant="bodySm" fontWeight="semibold">
+                                            {product.title}
+                                          </Text>
+                                        </div>
+                                        {product.price && (
+                                          <div style={{ fontSize: '11px', marginTop: '2px' }}>
+                                            <Text as="p" variant="bodySm" tone="subdued">
+                                              ${typeof product.price === 'number' ? product.price.toFixed(2) : product.price}
+                                            </Text>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </BlockStack>
+                        </Card>
+                      );
+                    })}
+                  </BlockStack>
+                )}
+              </BlockStack>
+            </Card>
+
           </BlockStack>
         </Layout.Section>
 
@@ -1133,29 +1171,50 @@ export default function FrequentlyBoughtTogether() {
               gridTemplateColumns: '40px 1fr 1fr 40px',
               gap: '16px',
               alignItems: 'center',
-              padding: '12px 16px',
-              backgroundColor: '#f9fafb',
-              borderRadius: '8px'
+              padding: '16px',
+              background: 'linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)',
+              borderRadius: '12px',
+              border: '2px solid #e5e7eb'
             }}>
               <div></div>
-              <Text as="h3" variant="headingMd" fontWeight="semibold" alignment="center">
-                Trigger Product
-              </Text>
-              <Text as="h3" variant="headingMd" fontWeight="semibold" alignment="center">
-                Upsell Product
-              </Text>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: '600'
+                }}>
+                  <span>🛍️</span>
+                  <span style={{ color: 'white' }}>
+                    Trigger Product
+                  </span>
+                </div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: '600'
+                }}>
+                  <span>⬆️</span>
+                  <span style={{ color: 'white' }}>
+                    Upsell Products
+                  </span>
+                </div>
+              </div>
               <div></div>
             </div>
-
-            {/* Add New Upsell Button */}
-            <Button
-              size="large"
-              fullWidth
-              onClick={handleAddNewUpsellRow}
-              tone="critical"
-            >
-              Add New Upsell
-            </Button>
 
             {/* Upsell Rows */}
             {upsellRows.map((row, index) => (
@@ -1166,10 +1225,11 @@ export default function FrequentlyBoughtTogether() {
                   gridTemplateColumns: '40px 1fr 1fr 40px',
                   gap: '16px',
                   alignItems: 'start',
-                  padding: '16px',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px'
+                  padding: '20px',
+                  backgroundColor: '#fafbfc',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '12px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                 }}
               >
                 {/* Drag Handle */}
@@ -1186,21 +1246,33 @@ export default function FrequentlyBoughtTogether() {
                 </div>
 
                 {/* Trigger Product Column */}
-                <div>
+                <div style={{
+                  padding: '16px',
+                  backgroundColor: '#eff6ff',
+                  border: '2px solid #3b82f6',
+                  borderRadius: '10px',
+                  borderLeft: '4px solid #3b82f6'
+                }}>
                   <BlockStack gap="300">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                      <Badge tone="info" size="small">TRIGGER</Badge>
+                    </div>
+                    
                     {/* Trigger Type Selection */}
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <button
                         onClick={() => updateUpsellRow(row.id, { triggerType: "specific_product", showTriggerModal: true })}
                         style={{
                           flex: 1,
-                          padding: '8px 12px',
-                          border: '1px solid #d1d5db',
+                          padding: '10px 12px',
+                          border: row.triggerType === "specific_product" ? '2px solid #3b82f6' : '1px solid #d1d5db',
                           borderRadius: '6px',
-                          backgroundColor: 'white',
+                          backgroundColor: row.triggerType === "specific_product" ? '#eff6ff' : 'white',
                           cursor: 'pointer',
-                          fontWeight: '500',
-                          fontSize: '13px'
+                          fontWeight: '600',
+                          fontSize: '13px',
+                          color: row.triggerType === "specific_product" ? '#3b82f6' : '#6b7280',
+                          transition: 'all 0.2s'
                         }}
                       >
                         Specific Trigger
@@ -1210,13 +1282,15 @@ export default function FrequentlyBoughtTogether() {
                         onClick={() => updateUpsellRow(row.id, { triggerType: "all_products", selectedTriggerProduct: null, selectedTriggerCollection: null })}
                         style={{
                           flex: 1,
-                          padding: '8px 12px',
-                          border: '1px solid #d1d5db',
+                          padding: '10px 12px',
+                          border: row.triggerType === "all_products" ? '2px solid #3b82f6' : '1px solid #d1d5db',
                           borderRadius: '6px',
-                          backgroundColor: 'white',
+                          backgroundColor: row.triggerType === "all_products" ? '#eff6ff' : 'white',
                           cursor: 'pointer',
-                          fontWeight: '500',
-                          fontSize: '13px'
+                          fontWeight: '600',
+                          fontSize: '13px',
+                          color: row.triggerType === "all_products" ? '#3b82f6' : '#6b7280',
+                          transition: 'all 0.2s'
                         }}
                       >
                         All Products
@@ -1227,9 +1301,10 @@ export default function FrequentlyBoughtTogether() {
                     {row.selectedTriggerProduct && (
                       <div style={{
                         padding: '12px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '6px',
-                        backgroundColor: '#f9fafb'
+                        border: '2px solid #3b82f6',
+                        borderRadius: '8px',
+                        backgroundColor: '#ffffff',
+                        boxShadow: '0 2px 4px rgba(59, 130, 246, 0.1)'
                       }}>
                         {(() => {
                           const product = shopProducts.find((p: any) => p.handle === row.selectedTriggerProduct);
@@ -1259,9 +1334,10 @@ export default function FrequentlyBoughtTogether() {
                     {row.selectedTriggerCollection && (
                       <div style={{
                         padding: '12px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '6px',
-                        backgroundColor: '#f9fafb'
+                        border: '2px solid #3b82f6',
+                        borderRadius: '8px',
+                        backgroundColor: '#ffffff',
+                        boxShadow: '0 2px 4px rgba(59, 130, 246, 0.1)'
                       }}>
                         {(() => {
                           const collection = shopCollections.find((c: any) => c.handle === row.selectedTriggerCollection);
@@ -1270,12 +1346,12 @@ export default function FrequentlyBoughtTogether() {
                               <div style={{
                                 width: '40px',
                                 height: '40px',
-                                backgroundColor: '#e5e7eb',
-                                borderRadius: '4px',
+                                backgroundColor: '#3b82f6',
+                                borderRadius: '6px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '18px'
+                                fontSize: '20px'
                               }}>
                                 📁
                               </div>
@@ -1293,48 +1369,79 @@ export default function FrequentlyBoughtTogether() {
                     {row.triggerType === "all_products" && !row.selectedTriggerProduct && !row.selectedTriggerCollection && (
                       <div style={{
                         padding: '12px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '6px',
-                        backgroundColor: '#f0f9ff',
-                        textAlign: 'center'
+                        border: '2px solid #3b82f6',
+                        borderRadius: '8px',
+                        backgroundColor: '#ffffff',
+                        textAlign: 'center',
+                        boxShadow: '0 2px 4px rgba(59, 130, 246, 0.1)'
                       }}>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          All Products
-                        </Text>
+                        <div style={{ color: '#3b82f6', fontWeight: '600', fontSize: '13px' }}>
+                          🌐 All Products
+                        </div>
                       </div>
                     )}
                   </BlockStack>
                 </div>
 
                 {/* Upsell Product Column */}
-                <div>
+                <div style={{
+                  padding: '16px',
+                  backgroundColor: '#f0fdf4',
+                  border: '2px solid #10b981',
+                  borderRadius: '10px',
+                  borderLeft: '4px solid #10b981'
+                }}>
                   <BlockStack gap="300">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                      <Badge tone="success" size="small">UPSELL</Badge>
+                    </div>
+                    
                     <Button
-                      size="medium"
+                      size="large"
                       fullWidth
                       onClick={() => updateUpsellRow(row.id, { showUpsellModal: true })}
+                      tone="success"
                     >
-                      Add Upsell Product
+                      Add Recommended Product
                     </Button>
 
                     {/* Display Selected Upsell Products */}
                     {row.selectedUpsellProducts.length > 0 && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {row.selectedUpsellProducts.map((productHandle) => {
+                        {row.selectedUpsellProducts.map((productHandle, idx) => {
                           const product = shopProducts.find((p: any) => p.handle === productHandle);
                           return product ? (
                             <div
                               key={productHandle}
                               style={{
-                                padding: '8px',
-                                border: '1px solid #e5e7eb',
-                                borderRadius: '6px',
-                                backgroundColor: '#f9fafb',
+                                padding: '12px',
+                                border: '2px solid #10b981',
+                                borderRadius: '8px',
+                                backgroundColor: '#ffffff',
                                 display: 'flex',
-                                gap: '8px',
-                                alignItems: 'center'
+                                gap: '10px',
+                                alignItems: 'center',
+                                boxShadow: '0 2px 4px rgba(16, 185, 129, 0.1)',
+                                position: 'relative'
                               }}
                             >
+                              <div style={{
+                                position: 'absolute',
+                                top: '4px',
+                                right: '4px',
+                                backgroundColor: '#10b981',
+                                color: 'white',
+                                width: '20px',
+                                height: '20px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '10px',
+                                fontWeight: '600'
+                              }}>
+                                {idx + 1}
+                              </div>
                               <img
                                 src={product.images?.[0]?.src || "https://via.placeholder.com/40x40"}
                                 alt={product.title}
@@ -1391,6 +1498,18 @@ export default function FrequentlyBoughtTogether() {
                 </div>
               </div>
             ))}
+
+            {/* Add New Upsell Button */}
+            <Button
+              size="large"
+              fullWidth
+              onClick={handleAddNewUpsellRow}
+              tone="critical"
+              icon={PlusIcon}
+            >
+              Add New Rule
+            </Button>
+
           </BlockStack>
         </Modal.Section>
 
@@ -1412,7 +1531,7 @@ export default function FrequentlyBoughtTogether() {
                 onAction: () => updateUpsellRow(row.id, { showTriggerModal: false })
               }
             ]}
-            size="medium"
+            size="large"
           >
             <Modal.Section>
               <BlockStack gap="400">
@@ -1585,7 +1704,7 @@ export default function FrequentlyBoughtTogether() {
                 onAction: () => updateUpsellRow(row.id, { showUpsellModal: false })
               }
             ]}
-            size="medium"
+            size="large"
           >
             <Modal.Section>
               <BlockStack gap="400">
