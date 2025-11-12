@@ -136,3 +136,112 @@ export interface FBTRecommendation {
   imageUrl: string | null;
   position: number;
 }
+
+// Nudge Popup Types
+export interface NudgeProduct {
+  id: string;
+  ruleId: string;
+  shopifyProductId: string;
+  shopifyVariantId: string | null;
+  title: string;
+  price: number;
+  compareAtPrice: number | null;
+  imageUrl: string | null;
+  handle: string;
+  description: string | null;
+  position: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface NudgeRule {
+  id: string;
+  nudgeId: string;
+  triggerType: string;
+  triggerValue: string;
+  triggerProductId: string | null;
+  triggerTitle: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  products: NudgeProduct[];
+}
+
+export interface NudgePopup {
+  id: string;
+  shop: string;
+  isActive: boolean;
+  title: string;
+  subtitle: string;
+  recommendationType: string;
+  algorithm: string;
+  useAI: boolean;
+  showOnAddToCart: boolean;
+  popupDelay: number;
+  overlayColor: string;
+  overlayOpacity: number;
+  popupBackgroundColor: string;
+  popupBorderRadius: number;
+  titleColor: string;
+  subtitleColor: string;
+  continueButtonText: string;
+  continueButtonColor: string;
+  continueButtonTextColor: string;
+  selectButtonText: string;
+  selectButtonColor: string;
+  selectButtonTextColor: string;
+  closeButtonColor: string;
+  showProductImage: boolean;
+  showProductPrice: boolean;
+  showProductComparePrice: boolean;
+  showProductDescription: boolean;
+  maxProducts: number;
+  layout: string;
+  enableAnimation: boolean;
+  animationType: string;
+  createdAt: Date;
+  updatedAt: Date;
+  rules: NudgeRule[];
+}
+
+export interface NudgeConfig {
+  title: string;
+  subtitle: string;
+  layout: string;
+  overlayColor: string;
+  overlayOpacity: number;
+  popupBackgroundColor: string;
+  popupBorderRadius: number;
+  titleColor: string;
+  subtitleColor: string;
+  continueButtonText: string;
+  continueButtonColor: string;
+  continueButtonTextColor: string;
+  selectButtonText: string;
+  selectButtonColor: string;
+  selectButtonTextColor: string;
+  closeButtonColor: string;
+  showProductImage: boolean;
+  showProductPrice: boolean;
+  showProductComparePrice: boolean;
+  showProductDescription: boolean;
+  maxProducts: number;
+  enableAnimation: boolean;
+  animationType: string;
+  recommendationType: string;
+  useAI: boolean;
+  algorithm: string;
+  showOnAddToCart: boolean;
+  popupDelay: number;
+}
+
+export interface NudgeRecommendation {
+  id: string;
+  variantId: string | null;
+  title: string;
+  handle: string;
+  price: number;
+  compareAtPrice: number | null;
+  imageUrl: string | null;
+  description: string | null;
+  position: number;
+}
