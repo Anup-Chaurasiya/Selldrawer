@@ -6,7 +6,7 @@ import { FEATURE_ORDER_SENTINEL } from './constants.js';
 import { splitFeatureOrder, showNotification } from './utils.js';
 import * as CartOps from './cart-operations.js';
 import * as DiscountManager from './discount-manager.js';
-import * as CarouselManager from './carousel-manager.js';
+import { initializeRecommendationsNavigation, scrollRecommendations } from './carousel-manager.js';
 import * as ProductLoader from './product-loader.js';
 import { renderFreeShippingBar } from './renderers/free-shipping-bar.js';
 import { renderPromotionalBanner } from './renderers/promotional-banner.js';
@@ -23,7 +23,6 @@ export class UpsellityCartDrawer {
     this.appliedDiscount = null;
     this.availableDiscounts = [];
     this.showingAllOffers = false;
-    this.productAvailability = {};
     this.productCompareAtPrices = {};
     
     this.init();
@@ -199,7 +198,7 @@ export class UpsellityCartDrawer {
 
     const sections = {
       'free-shipping-bar': renderFreeShippingBar(this.config, this.cart),
-      'promotional-banner': renderPromotionalBanner(this.config, this.initializePromoCarousel.bind(this)),
+      'promotional-banner': renderPromotionalBanner(this.config),
       [FEATURE_ORDER_SENTINEL]: renderCartItems(this.cart, this.productCompareAtPrices, this.appliedDiscount),
       'product-recommendations': renderProductRecommendations(this.config),
       'savings-display': renderSavingsDisplay(this.config, this.cart, this.appliedDiscount),
@@ -242,7 +241,7 @@ export class UpsellityCartDrawer {
     inner.innerHTML = html;
     
     setTimeout(() => {
-      CarouselManager.initializeRecommendationsNavigation();
+      initializeRecommendationsNavigation();
     }, 100);
   }
 
@@ -261,11 +260,7 @@ export class UpsellityCartDrawer {
     this.isOpen = false;
   }
 
-  // Carousel initialization
-  initializePromoCarousel(carouselId, slides, settings) {
-    CarouselManager.initializePromoCarousel(carouselId, slides, settings);
-  }
-
+  // Handle promotional banner CTA clicks
   handleSlideCtaClick(url) {
     if (url) {
       window.location.href = url;
@@ -334,9 +329,9 @@ export class UpsellityCartDrawer {
     showNotification(`${discount.code} applied!`, 'success');
   }
 
-  // Navigation
+  // Product recommendations navigation
   scrollRecommendations(direction) {
-    CarouselManager.scrollRecommendations(direction);
+    scrollRecommendations(direction);
   }
 }
 

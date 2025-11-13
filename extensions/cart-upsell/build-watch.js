@@ -18,6 +18,18 @@ async function watch() {
     sourcemap: false,
     platform: 'browser',
     logLevel: 'info',
+    jsx: 'automatic',
+    jsxImportSource: 'react',
+    loader: {
+      '.tsx': 'tsx',
+      '.ts': 'ts',
+      '.jsx': 'jsx',
+      '.js': 'js',
+    },
+    define: {
+      'process.env.NODE_ENV': '"production"'
+    },
+    external: [],
   });
 
   await context.watch();
