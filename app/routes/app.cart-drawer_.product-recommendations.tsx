@@ -24,6 +24,7 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback, useEffect } from "react";
+import { ProductRecommendations as ProductRecommendationsComponent } from "../components/shared/ProductRecommendations";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -809,169 +810,48 @@ export default function ProductRecommendations() {
                 Preview
               </Text>
               
-              <div>
-                <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>
-                  {formState.title}
-                </div>
-                <div style={{ 
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}>
-                  <div style={formState.layout === 'grid' ? {
-                    display: 'grid',
-                    gridTemplateColumns: `repeat(auto-fit, minmax(140px, 1fr))`,
-                    gap: '12px',
-                    paddingBottom: '8px'
-                  } : {
-                    display: 'flex',
-                    gap: '12px',
-                    overflowX: 'auto',
-                    scrollBehavior: 'smooth',
-                    paddingBottom: '8px',
-                    scrollbarWidth: 'thin',
-                    scrollbarColor: '#cbd5e1 #f1f5f9'
-                  }}>
-                    {selectedProducts.length > 0 ? (
-                      selectedProducts.slice(0, parseInt(formState.maxProducts)).map((productId, idx) => {
-                        const product = shopProducts.find((p: any) => p.id === productId);
-                        if (!product) return null;
-                        
-                        const variant = product.variants?.[0];
-                        const price = variant ? parseFloat(variant.price) : 0;
-                        const comparePrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null;
-                        const discountPercent = comparePrice && comparePrice > price ? Math.round(((comparePrice - price) / comparePrice) * 100) : 0;
-                        
-                        return (
-                          <div key={productId} style={formState.layout === 'grid' ? {
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '6px',
-                            padding: '12px',
-                            textAlign: 'center',
-                            backgroundColor: '#ffffff',
-                            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                            transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-                          } : {
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '6px',
-                            padding: '12px',
-                            textAlign: 'center',
-                            minWidth: '140px',
-                            flexShrink: 0,
-                            backgroundColor: '#ffffff',
-                            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                            transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-                          }}>
-                            {product.images?.[0]?.src ? (
-                              <img 
-                                src={product.images[0].src} 
-                                alt={product.title}
-                                style={{ 
-                                  width: '100%',
-                                  height: '80px',
-                                  objectFit: 'cover',
-                                  borderRadius: '4px',
-                                  marginBottom: '8px'
-                                }} 
-                              />
-                            ) : (
-                              <div style={{ 
-                                width: '100%',
-                                height: '80px',
-                                backgroundColor: '#f3f4f6',
-                                borderRadius: '4px',
-                                marginBottom: '8px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '24px'
-                              }}>
-                                📦
-                              </div>
-                            )}
-                            <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '4px', lineHeight: '1.3' }}>
-                              {product.title.length > 20 ? product.title.substring(0, 20) + '...' : product.title}
-                            </div>
-                            {formState.showDiscount && comparePrice && (
-                              <div style={{ marginBottom: '4px', fontSize: '12px' }}>
-                                <span style={{ textDecoration: 'line-through', color: '#9ca3af', marginRight: '4px' }}>
-                                  ₹{Math.round(comparePrice)}
-                                </span>
-                                <span style={{ fontWeight: '600' }}>₹{Math.round(price)}</span>
-                              </div>
-                            )}
-                            {!formState.showDiscount && (
-                              <div style={{ marginBottom: '4px', fontSize: '12px', fontWeight: '600' }}>
-                                ₹{Math.round(price)}
-                              </div>
-                            )}
-                            {formState.showDiscountBadge && discountPercent > 0 && (
-                              <div style={{ 
-                                display: 'inline-block',
-                                backgroundColor: '#10b981',
-                                color: 'white',
-                                padding: '2px 8px',
-                                borderRadius: '12px',
-                                fontSize: '10px',
-                                marginBottom: '8px'
-                              }}>
-                                {discountPercent}% off
-                              </div>
-                            )}
-                            {formState.showAddButton && (
-                              <div style={{ 
-                                width: '100%',
-                                padding: '4px',
-                                border: '1px solid #f97316',
-                                background: 'white',
-                                color: '#f97316',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                                fontWeight: '500'
-                              }}>
-                                + Add
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div style={{ 
-                        minWidth: '100%',
-                        textAlign: 'center',
-                        padding: '40px 20px',
-                        color: '#6b7280',
-                        fontSize: '14px'
-                      }}>
-                        No products selected. Choose products above to see preview.
-                      </div>
-                    )}
-                  </div>
-                  {/* Scroll indicator */}
-                  {selectedProducts.length > 2 && (
-                    <div style={{
-                      position: 'absolute',
-                      right: '0',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,1) 100%)',
-                      width: '20px',
-                      height: '100%',
-                      pointerEvents: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <div style={{
-                        width: '4px',
-                        height: '20px',
-                        background: '#cbd5e1',
-                        borderRadius: '2px',
-                        opacity: '0.6'
-                      }}></div>
-                    </div>
-                  )}
-                </div>
-              </div>
+              {/* Preview using shared component */}
+              {(() => {
+                // Prepare products for the shared component
+                const previewProducts = selectedProducts.length > 0
+                  ? selectedProducts.slice(0, parseInt(formState.maxProducts)).map((productId) => {
+                      const product = shopProducts.find((p: any) => p.id === productId);
+                      if (!product) return null;
+                      
+                      const variant = product.variants?.[0];
+                      const price = variant ? parseFloat(variant.price) : 0;
+                      const comparePrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null;
+                      
+                      return {
+                        id: product.id,
+                        title: product.title,
+                        price: Math.round(price * 100), // Convert to cents
+                        compareAtPrice: comparePrice ? Math.round(comparePrice * 100) : null,
+                        imageUrl: product.images?.[0]?.src || null,
+                        variantId: product.shopifyProductId || product.id,
+                      };
+                    }).filter(Boolean)
+                  : [
+                      { id: 'sample1', title: 'Sample Product 1', price: 99900, compareAtPrice: 149900, imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=60&h=60&fit=crop&crop=center', variantId: 'sample1' },
+                      { id: 'sample2', title: 'Sample Product 2', price: 129900, compareAtPrice: null, imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=60&h=60&fit=crop&crop=center', variantId: 'sample2' },
+                      { id: 'sample3', title: 'Sample Product 3', price: 159900, compareAtPrice: 199900, imageUrl: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=60&h=60&fit=crop&crop=center', variantId: 'sample3' },
+                      { id: 'sample4', title: 'Sample Product 4', price: 89900, compareAtPrice: null, imageUrl: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=60&h=60&fit=crop&crop=center', variantId: 'sample4' }
+                    ];
+
+                return (
+                  <ProductRecommendationsComponent
+                    title={formState.title}
+                    products={previewProducts as any}
+                    layout={formState.layout as 'grid' | 'carousel'}
+                    maxProducts={parseInt(formState.maxProducts)}
+                    showDiscount={formState.showDiscount}
+                    showDiscountBadge={formState.showDiscountBadge}
+                    showAddButton={formState.showAddButton}
+                    onAddToCart={(variantId: string) => console.log('Add to cart clicked:', variantId)}
+                    isPreview={true}
+                  />
+                );
+              })()}
 
               <Text as="p" variant="bodyMd" tone="subdued">
                 This is how recommendations will appear in your cart drawer.

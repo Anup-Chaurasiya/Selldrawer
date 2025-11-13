@@ -35,6 +35,7 @@ import {
 } from "../utils/featureOrder";
 import { PromotionalBannerCard } from "../components/shared/PromotionalBannerCard";
 import { ProductRecommendations } from "../components/shared/ProductRecommendations";
+import { FreeShippingBar } from "../components/shared/FreeShippingBar";
 
 // Wrapper component for the preview with state management
 function PromotionalBannerPreview({ 
@@ -247,6 +248,8 @@ function MiniCartDrawerPreview({
         originalTotal: 4999.00,
         savings: 2000.00,
         itemCount: 1,
+        item_count: 1,
+        total_price: 299900, // in cents
       };
     }
 
@@ -281,6 +284,8 @@ function MiniCartDrawerPreview({
       originalTotal: sampleTotal * 1.67,
       savings: sampleTotal * 0.67,
       itemCount: sampleItemCount,
+      item_count: sampleItemCount,
+      total_price: Math.round(sampleTotal * 100), // in cents
     };
   };
 
@@ -288,118 +293,24 @@ function MiniCartDrawerPreview({
   const normalizedOrder = normalizeFeatureOrder(featureOrder ?? cartDrawer.featureOrder);
   const { beforeItems, afterItems } = splitFeatureOrder(normalizedOrder);
 
-  // Calculate free shipping progress
-  const calculateProgress = () => {
-    if (!freeShippingBar) return 0;
-    
-    if (freeShippingBar.thresholdMode === "amount") {
-      const threshold = Number(freeShippingBar.thresholdAmount);
-      return Math.min((sampleCart.total / threshold) * 100, 100);
-    } else {
-      const threshold = Number(freeShippingBar.thresholdCount);
-      return Math.min((sampleCart.itemCount / threshold) * 100, 100);
-    }
-  };
-
-  const calculateRemaining = () => {
-    if (!freeShippingBar) return 0;
-    
-    if (freeShippingBar.thresholdMode === "amount") {
-      const threshold = Number(freeShippingBar.thresholdAmount);
-      return Math.max(threshold - sampleCart.total, 0);
-    } else {
-      const threshold = Number(freeShippingBar.thresholdCount);
-      return Math.max(threshold - sampleCart.itemCount, 0);
-    }
-  };
-
-  const getProgressMessage = () => {
-    if (!freeShippingBar) return null;
-    
-    const progress = calculateProgress();
-    const remaining = calculateRemaining();
-    
-    if (progress >= 100) {
-      return freeShippingBar.afterThresholdMessage || "You've unlocked FREE shipping!";
-    } else {
-      let message = freeShippingBar.beforeThresholdMessage || "Add {remaining} for FREE shipping";
-      if (freeShippingBar.thresholdMode === "amount") {
-        message = message.replace('{remaining}', `₹${Math.round(remaining)}`);
-      } else {
-        message = message.replace('{remaining}', `${Math.round(remaining)} more items`);
-      }
-      return message;
-    }
-  };
-
   const renderFeature = (featureId: string) => {
     switch (featureId) {
       case 'free-shipping-bar':
-  return (
-          cartDrawer?.freeShippingProgressBarEnabled &&
-          freeShippingBar &&
-          getProgressMessage() && (
-            <div style={{ 
-              padding: '8px',
-              background: freeShippingBar.backgroundColor 
-                ? `linear-gradient(135deg, ${freeShippingBar.backgroundColor} 0%, ${freeShippingBar.backgroundColor}dd 100%)`
-                : 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-              borderRadius: '8px',
-              border: '1px solid #bae6fd',
-              marginBottom: '2px'
-            }}>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: '6px'
-              }}>
-                <span style={{ 
-                  color: '#0c4a6e',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}>
-                  {getProgressMessage()}
-                </span>
-                {(freeShippingBar.showPercentage ?? true) && (
-                  <span style={{ 
-                    background: calculateProgress() >= 100
-                      ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                      : freeShippingBar.progressBarColor
-                        ? `linear-gradient(135deg, ${freeShippingBar.progressBarColor} 0%, ${freeShippingBar.progressBarColor}dd 100%)`
-                        : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                    color: 'white',
-                    padding: '4px 12px',
-                    borderRadius: '16px',
-                    fontSize: '12px',
-                    fontWeight: '700',
-                    boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
-                  }}>
-                    {calculateProgress().toFixed(0)}%
-                  </span>
-                )}
-              </div>
-              <div style={{ 
-                width: '100%', 
-                height: '10px', 
-                backgroundColor: freeShippingBar.backgroundColor || '#e0f2fe',
-                borderRadius: '6px',
-                overflow: 'hidden',
-                boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)'
-              }}>
-                <div style={{
-                  width: `${calculateProgress()}%`,
-                  height: '100%',
-                  background: calculateProgress() >= 100
-                    ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                    : freeShippingBar.progressBarColor
-                      ? `linear-gradient(135deg, ${freeShippingBar.progressBarColor} 0%, ${freeShippingBar.progressBarColor}dd 100%)`
-                      : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                  borderRadius: '6px',
-                  transition: 'width 0.3s ease'
-                }} />
-              </div>
-            </div>
+        return (
+          cartDrawer?.freeShippingProgressBarEnabled && freeShippingBar && (
+            <FreeShippingBar
+              thresholdMode={freeShippingBar.thresholdMode || 'amount'}
+              thresholdAmount={Number(freeShippingBar.thresholdAmount) || 0}
+              thresholdCount={Number(freeShippingBar.thresholdCount) || 0}
+              beforeThresholdMessage={freeShippingBar.beforeThresholdMessage || 'Add {remaining} for FREE shipping'}
+              afterThresholdMessage={freeShippingBar.afterThresholdMessage || "You've unlocked FREE shipping!"}
+              backgroundColor={freeShippingBar.backgroundColor || '#f0f9ff'}
+              progressBarColor={freeShippingBar.progressBarColor || '#3b82f6'}
+              showPercentage={freeShippingBar.showPercentage ?? true}
+              currency="INR"
+              cart={sampleCart}
+              isPreview={true}
+            />
           )
         );
 

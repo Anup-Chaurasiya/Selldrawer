@@ -8427,56 +8427,155 @@
   }
 
   // extensions/cart-upsell/assets/modules/renderers/free-shipping-bar.js
+  var import_react = __toESM(require_react(), 1);
+  var import_client = __toESM(require_client(), 1);
+
+  // app/components/shared/FreeShippingBar.tsx
+  var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
+  var FreeShippingBar = ({
+    thresholdMode,
+    thresholdAmount,
+    thresholdCount,
+    beforeThresholdMessage = "Add {remaining} for FREE shipping",
+    afterThresholdMessage = "\u{1F389} You qualify for FREE shipping!",
+    backgroundColor = "#f0f9ff",
+    progressBarColor = "#3b82f6",
+    showPercentage = true,
+    currency = "INR",
+    cart,
+    isPreview = false
+  }) => {
+    const calculateProgress = () => {
+      if (thresholdMode === "amount" && thresholdAmount) {
+        const cartTotal = cart.total_price / 100;
+        return Math.min(cartTotal / thresholdAmount * 100, 100);
+      } else if (thresholdMode === "count" && thresholdCount) {
+        return Math.min(cart.item_count / thresholdCount * 100, 100);
+      }
+      return 0;
+    };
+    const calculateRemaining = () => {
+      if (thresholdMode === "amount" && thresholdAmount) {
+        const cartTotal = cart.total_price / 100;
+        return Math.max(thresholdAmount - cartTotal, 0);
+      } else if (thresholdMode === "count" && thresholdCount) {
+        return Math.max(thresholdCount - cart.item_count, 0);
+      }
+      return 0;
+    };
+    const progress = calculateProgress();
+    const remaining = calculateRemaining();
+    const isComplete = progress >= 100;
+    const getMessage = () => {
+      if (isComplete) {
+        return afterThresholdMessage;
+      } else {
+        let message2 = beforeThresholdMessage;
+        if (thresholdMode === "amount") {
+          const currencySymbol = currency === "INR" ? "\u20B9" : "$";
+          message2 = message2.replace("{remaining}", `${currencySymbol}${Math.round(remaining)}`);
+        } else {
+          message2 = message2.replace("{remaining}", `${Math.round(remaining)} more items`);
+        }
+        return message2;
+      }
+    };
+    const message = getMessage();
+    const backgroundGradient = `linear-gradient(135deg, ${backgroundColor} 0%, ${backgroundColor}dd 100%)`;
+    const completeGradient = "linear-gradient(135deg, #10b981 0%, #059669 100%)";
+    const incompleteGradient = `linear-gradient(135deg, ${progressBarColor} 0%, ${progressBarColor}dd 100%)`;
+    const percentageGradient = isComplete ? completeGradient : incompleteGradient;
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+      marginBottom: isPreview ? "16px" : "20px",
+      padding: isPreview ? "12px" : "16px",
+      background: backgroundGradient,
+      borderRadius: isPreview ? "10px" : "12px",
+      border: "1px solid #e2e8f0",
+      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)"
+    }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: isPreview ? "10px" : "12px",
+        fontSize: isPreview ? "13px" : "14px",
+        fontWeight: "600"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { color: "#374151", flex: 1 }, children: message }),
+        showPercentage && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: {
+          background: percentageGradient,
+          color: "white",
+          padding: "4px 12px",
+          borderRadius: "20px",
+          fontSize: "12px",
+          fontWeight: "700",
+          boxShadow: `0 2px 4px ${progressBarColor}40`,
+          marginLeft: "8px"
+        }, children: [
+          progress.toFixed(0),
+          "%"
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+        width: "100%",
+        height: isPreview ? "10px" : "12px",
+        borderRadius: isPreview ? "6px" : "8px",
+        overflow: "hidden",
+        background: backgroundColor,
+        position: "relative",
+        boxShadow: "inset 0 1px 3px rgba(0, 0, 0, 0.1)"
+      }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+        width: `${progress}%`,
+        height: "100%",
+        display: "block",
+        background: isComplete ? completeGradient : incompleteGradient,
+        borderRadius: isPreview ? "6px" : "8px",
+        transition: "width 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
+      } }) })
+    ] });
+  };
+
+  // extensions/cart-upsell/assets/modules/renderers/free-shipping-bar.js
   function renderFreeShippingBar(config, cart) {
     var _a;
     const bar = (_a = config == null ? void 0 : config.features) == null ? void 0 : _a.freeShippingProgressBar;
     if (!bar) {
       return "";
     }
-    let threshold, progress, remaining, isComplete, message;
-    if (bar.thresholdMode === "count") {
-      threshold = parseInt(bar.thresholdCount);
-      progress = Math.min(cart.item_count / threshold * 100, 100);
-      remaining = Math.max(threshold - cart.item_count, 0);
-      isComplete = progress >= 100;
-      message = isComplete ? bar.afterThresholdMessage || "\u{1F389} You qualify for FREE shipping!" : bar.beforeThresholdMessage.replace("{remaining}", `${remaining} more items`);
-    } else {
-      threshold = parseFloat(bar.thresholdAmount);
-      progress = Math.min(cart.total_price / 100 / threshold * 100, 100);
-      remaining = Math.max(threshold - cart.total_price / 100, 0);
-      isComplete = progress >= 100;
-      message = isComplete ? bar.afterThresholdMessage || "\u{1F389} You qualify for FREE shipping!" : bar.beforeThresholdMessage.replace("{remaining}", `${bar.currency === "INR" ? "\u20B9" : "$"}${Math.round(remaining)}`);
-    }
-    const backgroundColor = bar.backgroundColor || "#f8fafc";
-    const progressBarColor = bar.progressBarColor || "#10b981";
-    const incompleteColor = bar.progressBarColor || "#f59e0b";
-    const backgroundGradient = `linear-gradient(135deg, ${backgroundColor} 0%, ${backgroundColor}dd 100%)`;
-    const completeGradient = `linear-gradient(135deg, #10b981 0%, #059669 100%)`;
-    const incompleteGradient = `linear-gradient(135deg, ${incompleteColor} 0%, ${incompleteColor}dd 100%)`;
-    const percentageGradient = isComplete ? completeGradient : `linear-gradient(135deg, ${progressBarColor} 0%, ${progressBarColor}dd 100%)`;
-    return `
-    <div class="upsellity-progress-bar-enhanced" style="margin-bottom: 20px; padding: 16px; background: ${backgroundGradient}; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
-      <div class="upsellity-progress-bar-text-enhanced" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; font-weight: 600;">
-        <span class="upsellity-progress-bar-message" style="color: #374151;">
-          ${message}
-        </span>
-        ${bar.showPercentage ? `<span class="upsellity-progress-bar-percentage" style="background: ${percentageGradient}; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; box-shadow: 0 2px 4px ${progressBarColor}40;">${progress.toFixed(0)}%</span>` : ""}
-      </div>
-      <div class="upsellity-progress-bar-track-enhanced" style="width: 100%; height: 12px; border-radius: 8px; overflow: hidden; background: ${backgroundColor}; position: relative; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);">
-        <div class="upsellity-progress-bar-fill-enhanced ${isComplete ? "upsellity-progress-complete" : "upsellity-progress-incomplete"}" 
-             style="width: ${progress}%; height: 100%; display: block; background: ${isComplete ? completeGradient : incompleteGradient}; border-radius: 8px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);"></div>
-      </div>
-    </div>
-  `;
+    const containerId = `upsellity-free-shipping-bar-root-${Date.now()}`;
+    const html = `<div id="${containerId}"></div>`;
+    setTimeout(() => {
+      var _a2;
+      const container = document.getElementById(containerId);
+      if (container) {
+        const root = (0, import_client.createRoot)(container);
+        root.render(
+          import_react.default.createElement(FreeShippingBar, {
+            thresholdMode: bar.thresholdMode || "amount",
+            thresholdAmount: parseFloat(bar.thresholdAmount) || 0,
+            thresholdCount: parseInt(bar.thresholdCount) || 0,
+            beforeThresholdMessage: bar.beforeThresholdMessage || "Add {remaining} for FREE shipping",
+            afterThresholdMessage: bar.afterThresholdMessage || "\u{1F389} You qualify for FREE shipping!",
+            backgroundColor: bar.backgroundColor || "#f0f9ff",
+            progressBarColor: bar.progressBarColor || "#3b82f6",
+            showPercentage: (_a2 = bar.showPercentage) != null ? _a2 : true,
+            currency: bar.currency || "INR",
+            cart,
+            isPreview: false
+          })
+        );
+      }
+    }, 0);
+    return html;
   }
 
   // extensions/cart-upsell/assets/modules/renderers/promotional-banner.js
-  var import_react2 = __toESM(require_react(), 1);
-  var import_client = __toESM(require_client(), 1);
+  var import_react3 = __toESM(require_react(), 1);
+  var import_client2 = __toESM(require_client(), 1);
 
   // app/components/shared/PromotionalBannerCard.tsx
-  var import_react = __toESM(require_react(), 1);
-  var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
+  var import_react2 = __toESM(require_react(), 1);
+  var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
   var getYouTubeEmbedUrl = (url) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
@@ -8495,8 +8594,8 @@
     onCtaClick,
     isPreview = false
   }) => {
-    const [carouselIndex, setCarouselIndex] = (0, import_react.useState)(0);
-    (0, import_react.useEffect)(() => {
+    const [carouselIndex, setCarouselIndex] = (0, import_react2.useState)(0);
+    (0, import_react2.useEffect)(() => {
       if (slides && slides.length > 1 && carouselSettings.autoRotate !== false) {
         const interval = setInterval(() => {
           setCarouselIndex((prev) => (prev + 1) % slides.length);
@@ -8505,7 +8604,7 @@
       }
     }, [slides, carouselSettings]);
     if (!slides || slides.length === 0) {
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+      return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
         marginBottom: "16px",
         borderRadius: "12px",
         overflow: "hidden",
@@ -8513,13 +8612,13 @@
         border: "1px solid #e5e7eb",
         boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
       }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
           position: "relative",
           overflow: "hidden",
           height: isPreview ? "200px" : "160px",
           backgroundColor: "#f9fafb"
         }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
             "img",
             {
               src: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=200&fit=crop&crop=center",
@@ -8531,7 +8630,7 @@
               }
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
             position: "absolute",
             bottom: "6px",
             left: "50%",
@@ -8540,7 +8639,7 @@
             gap: "4px",
             zIndex: 10
           }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
               width: "6px",
               height: "6px",
               borderRadius: "50%",
@@ -8548,7 +8647,7 @@
               border: "1px solid rgba(255,255,255,0.9)",
               boxShadow: "0 1px 2px rgba(0,0,0,0.2)"
             } }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
               width: "6px",
               height: "6px",
               borderRadius: "50%",
@@ -8557,7 +8656,7 @@
               boxShadow: "0 1px 2px rgba(0,0,0,0.2)"
             } })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
             "button",
             {
               style: {
@@ -8583,7 +8682,7 @@
               children: "\u2039"
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
             "button",
             {
               style: {
@@ -8610,7 +8709,7 @@
             }
           )
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
           backgroundColor: "#fff",
           padding: isPreview ? "12px 16px" : "10px 12px",
           display: "flex",
@@ -8619,12 +8718,12 @@
           gap: "12px",
           minHeight: isPreview ? "70px" : "60px"
         }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
             flex: 1,
             textAlign: "left",
             minWidth: 0
           }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
               fontWeight: "700",
               fontSize: isPreview ? "15px" : "18px",
               color: "#111827",
@@ -8632,14 +8731,14 @@
               lineHeight: "1.3",
               wordBreak: "break-word"
             }, children: "Summer Sale" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
               fontSize: isPreview ? "12px" : "14px",
               color: "#6b7280",
               lineHeight: "1.4",
               wordBreak: "break-word"
             }, children: "Get 20% Off on Summer Items" })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { style: {
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { style: {
             backgroundColor: "#f3f4f6",
             color: "#374151",
             border: "1px solid #e5e7eb",
@@ -8660,7 +8759,7 @@
         if (currentSlide.videoType === "youtube") {
           const embedUrl = getYouTubeEmbedUrl(currentSlide.videoUrl);
           if (embedUrl) {
-            return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "iframe",
               {
                 src: embedUrl,
@@ -8678,7 +8777,7 @@
         } else if (currentSlide.videoType === "vimeo") {
           const embedUrl = getVimeoEmbedUrl(currentSlide.videoUrl);
           if (embedUrl) {
-            return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "iframe",
               {
                 src: embedUrl,
@@ -8694,7 +8793,7 @@
             );
           }
         } else if (currentSlide.videoType === "mp4") {
-          return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
             "video",
             {
               src: currentSlide.videoUrl,
@@ -8711,7 +8810,7 @@
           );
         }
       }
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+      return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
         "img",
         {
           src: currentSlide.imageUrl || "https://via.placeholder.com/400x200",
@@ -8738,7 +8837,7 @@
         onCtaClick(currentSlide.ctaUrl);
       }
     };
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
       marginBottom: "16px",
       borderRadius: isPreview ? "12px" : "10px",
       overflow: "hidden",
@@ -8746,14 +8845,14 @@
       border: "1px solid #e5e7eb",
       boxShadow: isPreview ? "0 1px 3px rgba(0, 0, 0, 0.1)" : "0 2px 8px rgba(0,0,0,0.1)"
     }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
         position: "relative",
         overflow: "hidden",
         height: isPreview ? "200px" : "160px",
         backgroundColor: isPreview ? "#f9fafb" : "#000"
       }, children: [
         renderMedia(),
-        slides.length > 1 && carouselSettings.showDots !== false && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+        slides.length > 1 && carouselSettings.showDots !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
           position: "absolute",
           bottom: "6px",
           left: "50%",
@@ -8761,7 +8860,7 @@
           display: "flex",
           gap: isPreview ? "4px" : "8px",
           zIndex: 10
-        }, children: slides.map((_, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        }, children: slides.map((_, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "div",
           {
             onClick: () => handleDotClick(index),
@@ -8778,8 +8877,8 @@
           },
           index
         )) }),
-        slides.length > 1 && carouselSettings.showArrows !== false && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        slides.length > 1 && carouselSettings.showArrows !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
             "button",
             {
               onClick: handlePrevious,
@@ -8813,7 +8912,7 @@
               children: "\u2039"
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
             "button",
             {
               onClick: handleNext,
@@ -8849,7 +8948,7 @@
           )
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
         backgroundColor: "#fff",
         padding: isPreview ? "12px 16px" : "10px 12px",
         display: "flex",
@@ -8858,12 +8957,12 @@
         gap: "12px",
         minHeight: isPreview ? "70px" : "60px"
       }, children: [
-        (currentSlide.title || currentSlide.description) && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+        (currentSlide.title || currentSlide.description) && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
           flex: 1,
           textAlign: "left",
           minWidth: 0
         }, children: [
-          currentSlide.title && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+          currentSlide.title && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
             fontWeight: "700",
             fontSize: isPreview ? "15px" : "18px",
             color: isPreview ? "#111827" : "#1f2937",
@@ -8871,14 +8970,14 @@
             lineHeight: "1.3",
             wordBreak: "break-word"
           }, children: currentSlide.title }),
-          currentSlide.description && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+          currentSlide.description && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
             fontSize: isPreview ? "12px" : "14px",
             color: "#6b7280",
             lineHeight: "1.4",
             wordBreak: "break-word"
           }, children: currentSlide.description })
         ] }),
-        currentSlide.ctaText && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        currentSlide.ctaText && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "button",
           {
             onClick: handleCtaClick,
@@ -8917,9 +9016,9 @@
     setTimeout(() => {
       const container = document.getElementById(containerId);
       if (container) {
-        const root = (0, import_client.createRoot)(container);
+        const root = (0, import_client2.createRoot)(container);
         root.render(
-          import_react2.default.createElement(PromotionalBannerCard, {
+          import_react3.default.createElement(PromotionalBannerCard, {
             slides,
             carouselSettings: banner.carouselSettings || {},
             onCtaClick: (url) => {
@@ -9056,12 +9155,12 @@
   }
 
   // extensions/cart-upsell/assets/modules/renderers/product-recommendations.js
-  var import_react4 = __toESM(require_react(), 1);
-  var import_client2 = __toESM(require_client(), 1);
+  var import_react5 = __toESM(require_react(), 1);
+  var import_client3 = __toESM(require_client(), 1);
 
   // app/components/shared/ProductRecommendations.tsx
-  var import_react3 = __toESM(require_react(), 1);
-  var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
+  var import_react4 = __toESM(require_react(), 1);
+  var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
   var ProductRecommendations = ({
     title = "You may also like",
     products = [],
@@ -9073,9 +9172,9 @@
     onAddToCart,
     isPreview = false
   }) => {
-    const [canScrollLeft, setCanScrollLeft] = (0, import_react3.useState)(false);
-    const [canScrollRight, setCanScrollRight] = (0, import_react3.useState)(false);
-    const scrollContainerRef = (0, import_react3.useRef)(null);
+    const [canScrollLeft, setCanScrollLeft] = (0, import_react4.useState)(false);
+    const [canScrollRight, setCanScrollRight] = (0, import_react4.useState)(false);
+    const scrollContainerRef = (0, import_react4.useRef)(null);
     const isGrid = layout === "grid";
     const displayProducts = products.slice(0, maxProducts);
     const updateScrollState = () => {
@@ -9087,7 +9186,7 @@
       setCanScrollLeft(currentScroll > 5);
       setCanScrollRight(currentScroll < maxScrollLeft - 5);
     };
-    (0, import_react3.useEffect)(() => {
+    (0, import_react4.useEffect)(() => {
       updateScrollState();
       const container = scrollContainerRef.current;
       if (container && !isGrid) {
@@ -9114,18 +9213,18 @@
     if (displayProducts.length === 0) {
       return null;
     }
-    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: isPreview ? "16px" : "8px" }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: {
+    return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { marginTop: isPreview ? "16px" : "8px" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("h4", { style: {
         fontSize: isPreview ? "15px" : "14px",
         fontWeight: "600",
         marginBottom: "8px",
         color: "#111827"
       }, children: title }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
         position: "relative",
         overflow: "hidden"
       }, children: [
-        !isGrid && canScrollLeft && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        !isGrid && canScrollLeft && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
           "button",
           {
             onClick: () => handleScroll("left"),
@@ -9158,10 +9257,10 @@
               e.currentTarget.style.background = "rgba(255, 255, 255, 0.9)";
               e.currentTarget.style.transform = "translateY(-50%) scale(1)";
             },
-            children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "16px", color: "#374151" }, children: "\u2039" })
+            children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: { fontSize: "16px", color: "#374151" }, children: "\u2039" })
           }
         ),
-        !isGrid && canScrollRight && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        !isGrid && canScrollRight && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
           "button",
           {
             onClick: () => handleScroll("right"),
@@ -9194,10 +9293,10 @@
               e.currentTarget.style.background = "rgba(255, 255, 255, 0.9)";
               e.currentTarget.style.transform = "translateY(-50%) scale(1)";
             },
-            children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "16px", color: "#374151" }, children: "\u203A" })
+            children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: { fontSize: "16px", color: "#374151" }, children: "\u203A" })
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
           "div",
           {
             ref: scrollContainerRef,
@@ -9221,7 +9320,7 @@
             },
             children: displayProducts.map((product) => {
               const discount = product.compareAtPrice && product.compareAtPrice > product.price ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
-              return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+              return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
                 "div",
                 {
                   style: isGrid ? {
@@ -9244,8 +9343,8 @@
                     transition: "transform 0.2s ease, box-shadow 0.2s ease"
                   },
                   children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative", marginBottom: "6px" }, children: [
-                      product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { position: "relative", marginBottom: "6px" }, children: [
+                      product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                         "img",
                         {
                           src: product.imageUrl,
@@ -9257,7 +9356,7 @@
                             borderRadius: "4px"
                           }
                         }
-                      ) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                      ) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
                         width: "100%",
                         height: "60px",
                         backgroundColor: "#f3f4f6",
@@ -9267,7 +9366,7 @@
                         justifyContent: "center",
                         fontSize: "24px"
                       }, children: "\u{1F4E6}" }),
-                      showDiscountBadge && discount > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+                      showDiscountBadge && discount > 0 && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
                         position: "absolute",
                         top: "4px",
                         right: "4px",
@@ -9283,7 +9382,7 @@
                         "% off"
                       ] })
                     ] }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
                       fontSize: "11px",
                       fontWeight: "600",
                       marginBottom: "4px",
@@ -9295,8 +9394,8 @@
                       WebkitBoxOrient: "vertical",
                       overflow: "hidden"
                     }, children: product.title }),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginBottom: "4px" }, children: showDiscount && product.compareAtPrice && product.compareAtPrice > product.price ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: {
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: { marginBottom: "4px" }, children: showDiscount && product.compareAtPrice && product.compareAtPrice > product.price ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { style: {
                         textDecoration: "line-through",
                         color: "#9ca3af",
                         fontSize: "10px",
@@ -9305,15 +9404,15 @@
                         "\u20B9",
                         Math.round(product.compareAtPrice)
                       ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontWeight: "600", fontSize: "11px", color: "#111827" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { style: { fontWeight: "600", fontSize: "11px", color: "#111827" }, children: [
                         "\u20B9",
                         Math.round(product.price)
                       ] })
-                    ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontWeight: "600", fontSize: "11px", color: "#111827" }, children: [
+                    ] }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { style: { fontWeight: "600", fontSize: "11px", color: "#111827" }, children: [
                       "\u20B9",
                       Math.round(product.price)
                     ] }) }),
-                    showAddButton && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    showAddButton && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                       "button",
                       {
                         onClick: () => handleAddClick(product),
@@ -9367,9 +9466,9 @@
       var _a, _b, _c;
       const container = document.getElementById(containerId);
       if (container) {
-        const root = (0, import_client2.createRoot)(container);
+        const root = (0, import_client3.createRoot)(container);
         root.render(
-          import_react4.default.createElement(ProductRecommendations, {
+          import_react5.default.createElement(ProductRecommendations, {
             title: recommendations.title || "You may also like",
             products,
             layout: recommendations.layout || "carousel",
