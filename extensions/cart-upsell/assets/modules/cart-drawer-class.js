@@ -6,7 +6,6 @@ import { FEATURE_ORDER_SENTINEL } from './constants.js';
 import { splitFeatureOrder, showNotification } from './utils.js';
 import * as CartOps from './cart-operations.js';
 import * as DiscountManager from './discount-manager.js';
-import { initializeRecommendationsNavigation, scrollRecommendations } from './carousel-manager.js';
 import * as ProductLoader from './product-loader.js';
 import { renderFreeShippingBar } from './renderers/free-shipping-bar.js';
 import { renderPromotionalBanner } from './renderers/promotional-banner.js';
@@ -239,10 +238,6 @@ export class UpsellityCartDrawer {
     `;
 
     inner.innerHTML = html;
-    
-    setTimeout(() => {
-      initializeRecommendationsNavigation();
-    }, 100);
   }
 
   async open() {
@@ -329,9 +324,5 @@ export class UpsellityCartDrawer {
     showNotification(`${discount.code} applied!`, 'success');
   }
 
-  // Product recommendations navigation
-  scrollRecommendations(direction) {
-    scrollRecommendations(direction);
-  }
 }
 

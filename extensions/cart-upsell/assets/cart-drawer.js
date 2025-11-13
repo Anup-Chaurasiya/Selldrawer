@@ -8296,52 +8296,6 @@
     return "/checkout";
   }
 
-  // extensions/cart-upsell/assets/modules/carousel-manager.js
-  function initializeRecommendationsNavigation() {
-    const gridLayout = document.querySelector(".upsellity-recommendations-grid-layout");
-    if (gridLayout)
-      return;
-    const grid = document.querySelector(".upsellity-recommendations-grid");
-    const leftArrow = document.querySelector(".upsellity-nav-left");
-    const rightArrow = document.querySelector(".upsellity-nav-right");
-    if (!grid || !leftArrow || !rightArrow)
-      return;
-    const needsScrolling = grid.scrollWidth > grid.clientWidth;
-    const updateArrows = () => {
-      const maxScrollLeft = grid.scrollWidth - grid.clientWidth;
-      const currentScroll = grid.scrollLeft;
-      const showLeft = currentScroll > 0;
-      const showRight = currentScroll < maxScrollLeft;
-      leftArrow.style.display = showLeft ? "flex" : "none";
-      rightArrow.style.display = showRight ? "flex" : "none";
-      grid.style.paddingLeft = showLeft ? "40px" : "0";
-      grid.style.paddingRight = showRight ? "40px" : "0";
-    };
-    if (needsScrolling) {
-      updateArrows();
-      grid.addEventListener("scroll", updateArrows);
-    } else {
-      leftArrow.style.display = "none";
-      rightArrow.style.display = "none";
-      grid.style.paddingLeft = "0";
-      grid.style.paddingRight = "0";
-    }
-  }
-  function scrollRecommendations(direction) {
-    const gridLayout = document.querySelector(".upsellity-recommendations-grid-layout");
-    if (gridLayout)
-      return;
-    const grid = document.querySelector(".upsellity-recommendations-grid");
-    if (!grid)
-      return;
-    const scrollAmount = 140;
-    if (direction === "left") {
-      grid.scrollBy({ left: -scrollAmount, behavior: "smooth" });
-    } else if (direction === "right") {
-      grid.scrollBy({ left: scrollAmount, behavior: "smooth" });
-    }
-  }
-
   // extensions/cart-upsell/assets/modules/product-loader.js
   async function loadProductCompareAtPrices(cart) {
     const productCompareAtPrices = {};
@@ -9102,93 +9056,338 @@
   }
 
   // extensions/cart-upsell/assets/modules/renderers/product-recommendations.js
+  var import_react4 = __toESM(require_react(), 1);
+  var import_client2 = __toESM(require_client(), 1);
+
+  // app/components/shared/ProductRecommendations.tsx
+  var import_react3 = __toESM(require_react(), 1);
+  var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
+  var ProductRecommendations = ({
+    title = "You may also like",
+    products = [],
+    layout = "carousel",
+    maxProducts = 4,
+    showDiscount = true,
+    showDiscountBadge = true,
+    showAddButton = true,
+    onAddToCart,
+    isPreview = false
+  }) => {
+    const [canScrollLeft, setCanScrollLeft] = (0, import_react3.useState)(false);
+    const [canScrollRight, setCanScrollRight] = (0, import_react3.useState)(false);
+    const scrollContainerRef = (0, import_react3.useRef)(null);
+    const isGrid = layout === "grid";
+    const displayProducts = products.slice(0, maxProducts);
+    const updateScrollState = () => {
+      const container = scrollContainerRef.current;
+      if (!container || isGrid)
+        return;
+      const maxScrollLeft = container.scrollWidth - container.clientWidth;
+      const currentScroll = container.scrollLeft;
+      setCanScrollLeft(currentScroll > 5);
+      setCanScrollRight(currentScroll < maxScrollLeft - 5);
+    };
+    (0, import_react3.useEffect)(() => {
+      updateScrollState();
+      const container = scrollContainerRef.current;
+      if (container && !isGrid) {
+        container.addEventListener("scroll", updateScrollState);
+        return () => container.removeEventListener("scroll", updateScrollState);
+      }
+    }, [products, isGrid]);
+    const handleScroll = (direction) => {
+      const container = scrollContainerRef.current;
+      if (!container)
+        return;
+      const scrollAmount = isPreview ? 140 : 140;
+      container.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth"
+      });
+    };
+    const handleAddClick = (product) => {
+      const variantId = product.shopifyVariantId || product.shopifyProductId;
+      if (variantId && onAddToCart) {
+        onAddToCart(variantId);
+      }
+    };
+    if (displayProducts.length === 0) {
+      return null;
+    }
+    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: isPreview ? "16px" : "8px" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h4", { style: {
+        fontSize: isPreview ? "15px" : "14px",
+        fontWeight: "600",
+        marginBottom: "8px",
+        color: "#111827"
+      }, children: title }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+        position: "relative",
+        overflow: "hidden"
+      }, children: [
+        !isGrid && canScrollLeft && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "button",
+          {
+            onClick: () => handleScroll("left"),
+            style: {
+              position: "absolute",
+              left: "0",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "rgba(255, 255, 255, 0.9)",
+              border: "1px solid #e5e7eb",
+              borderRadius: "50%",
+              width: "32px",
+              height: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              zIndex: 10,
+              opacity: 0.7,
+              transition: "all 0.2s ease",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)"
+            },
+            onMouseEnter: (e) => {
+              e.currentTarget.style.opacity = "1";
+              e.currentTarget.style.background = "rgba(255, 255, 255, 1)";
+              e.currentTarget.style.transform = "translateY(-50%) scale(1.1)";
+            },
+            onMouseLeave: (e) => {
+              e.currentTarget.style.opacity = "0.7";
+              e.currentTarget.style.background = "rgba(255, 255, 255, 0.9)";
+              e.currentTarget.style.transform = "translateY(-50%) scale(1)";
+            },
+            children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "16px", color: "#374151" }, children: "\u2039" })
+          }
+        ),
+        !isGrid && canScrollRight && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "button",
+          {
+            onClick: () => handleScroll("right"),
+            style: {
+              position: "absolute",
+              right: "0",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "rgba(255, 255, 255, 0.9)",
+              border: "1px solid #e5e7eb",
+              borderRadius: "50%",
+              width: "32px",
+              height: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              zIndex: 10,
+              opacity: 0.7,
+              transition: "all 0.2s ease",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)"
+            },
+            onMouseEnter: (e) => {
+              e.currentTarget.style.opacity = "1";
+              e.currentTarget.style.background = "rgba(255, 255, 255, 1)";
+              e.currentTarget.style.transform = "translateY(-50%) scale(1.1)";
+            },
+            onMouseLeave: (e) => {
+              e.currentTarget.style.opacity = "0.7";
+              e.currentTarget.style.background = "rgba(255, 255, 255, 0.9)";
+              e.currentTarget.style.transform = "translateY(-50%) scale(1)";
+            },
+            children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "16px", color: "#374151" }, children: "\u203A" })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "div",
+          {
+            ref: scrollContainerRef,
+            style: isGrid ? {
+              display: "grid",
+              gridTemplateColumns: `repeat(auto-fit, minmax(${isPreview ? "120px" : "120px"}, 1fr))`,
+              gap: "8px",
+              paddingBottom: "8px"
+            } : {
+              display: "flex",
+              gap: "8px",
+              overflowX: "auto",
+              scrollBehavior: "smooth",
+              paddingBottom: "8px",
+              scrollbarWidth: "thin",
+              scrollbarColor: "#cbd5e1 #f1f5f9",
+              paddingLeft: canScrollLeft ? "40px" : "0",
+              paddingRight: canScrollRight ? "40px" : "0",
+              msOverflowStyle: "none",
+              WebkitOverflowScrolling: "touch"
+            },
+            children: displayProducts.map((product) => {
+              const discount = product.compareAtPrice && product.compareAtPrice > product.price ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
+              return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                "div",
+                {
+                  style: isGrid ? {
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "6px",
+                    padding: "8px",
+                    textAlign: "center",
+                    backgroundColor: "#ffffff",
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                    transition: "transform 0.2s ease, box-shadow 0.2s ease"
+                  } : {
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "6px",
+                    padding: "8px",
+                    textAlign: "center",
+                    minWidth: isPreview ? "120px" : "120px",
+                    flexShrink: 0,
+                    backgroundColor: "#ffffff",
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                    transition: "transform 0.2s ease, box-shadow 0.2s ease"
+                  },
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative", marginBottom: "6px" }, children: [
+                      product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "img",
+                        {
+                          src: product.imageUrl,
+                          alt: product.title,
+                          style: {
+                            width: "100%",
+                            height: "60px",
+                            objectFit: "cover",
+                            borderRadius: "4px"
+                          }
+                        }
+                      ) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                        width: "100%",
+                        height: "60px",
+                        backgroundColor: "#f3f4f6",
+                        borderRadius: "4px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "24px"
+                      }, children: "\u{1F4E6}" }),
+                      showDiscountBadge && discount > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+                        position: "absolute",
+                        top: "4px",
+                        right: "4px",
+                        backgroundColor: "#10b981",
+                        color: "white",
+                        padding: "2px 6px",
+                        borderRadius: "10px",
+                        fontSize: "9px",
+                        fontWeight: "600",
+                        zIndex: 1
+                      }, children: [
+                        discount,
+                        "% off"
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                      fontSize: "11px",
+                      fontWeight: "600",
+                      marginBottom: "4px",
+                      lineHeight: "1.3",
+                      color: "#111827",
+                      minHeight: "28px",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden"
+                    }, children: product.title }),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginBottom: "4px" }, children: showDiscount && product.compareAtPrice && product.compareAtPrice > product.price ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: {
+                        textDecoration: "line-through",
+                        color: "#9ca3af",
+                        fontSize: "10px",
+                        marginRight: "4px"
+                      }, children: [
+                        "\u20B9",
+                        Math.round(product.compareAtPrice)
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontWeight: "600", fontSize: "11px", color: "#111827" }, children: [
+                        "\u20B9",
+                        Math.round(product.price)
+                      ] })
+                    ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("span", { style: { fontWeight: "600", fontSize: "11px", color: "#111827" }, children: [
+                      "\u20B9",
+                      Math.round(product.price)
+                    ] }) }),
+                    showAddButton && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "button",
+                      {
+                        onClick: () => handleAddClick(product),
+                        style: {
+                          width: "100%",
+                          padding: "4px 8px",
+                          backgroundColor: "#f97316",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          fontSize: "10px",
+                          fontWeight: "600",
+                          cursor: "pointer",
+                          transition: "all 0.2s"
+                        },
+                        onMouseEnter: (e) => {
+                          e.currentTarget.style.backgroundColor = "#ea580c";
+                          e.currentTarget.style.transform = "scale(1.02)";
+                        },
+                        onMouseLeave: (e) => {
+                          e.currentTarget.style.backgroundColor = "#f97316";
+                          e.currentTarget.style.transform = "scale(1)";
+                        },
+                        children: "+ Add"
+                      }
+                    )
+                  ]
+                },
+                product.id
+              );
+            })
+          }
+        )
+      ] })
+    ] });
+  };
+
+  // extensions/cart-upsell/assets/modules/renderers/product-recommendations.js
   function renderProductRecommendations(config) {
     if (!config.features.productRecommendations) {
       return "";
     }
     const recommendations = config.features.productRecommendations;
-    const recommendedProducts = recommendations.products || [];
-    const layout = recommendations.layout || "carousel";
-    const isGrid = layout === "grid";
-    let html = `
-    <div class="upsellity-recommendations">
-      <div class="upsellity-recommendations-title">${recommendations.title}</div>
-      <div class="upsellity-recommendations-container" style="position: relative;">
-        ${!isGrid ? renderNavigationArrows() : ""}
-        
-        <div class="${isGrid ? "upsellity-recommendations-grid-layout" : "upsellity-recommendations-grid"}" ${isGrid ? 'style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;"' : ""}>
-          ${recommendedProducts.slice(0, recommendations.maxProducts || 4).map((product) => renderProductCard(product, recommendations, isGrid)).join("")}
-        </div>
-      </div>
-    </div>
-  `;
+    const products = recommendations.products || [];
+    if (products.length === 0) {
+      return "";
+    }
+    const containerId = `upsellity-product-recs-root-${Date.now()}`;
+    const html = `<div id="${containerId}"></div>`;
+    setTimeout(() => {
+      var _a, _b, _c;
+      const container = document.getElementById(containerId);
+      if (container) {
+        const root = (0, import_client2.createRoot)(container);
+        root.render(
+          import_react4.default.createElement(ProductRecommendations, {
+            title: recommendations.title || "You may also like",
+            products,
+            layout: recommendations.layout || "carousel",
+            maxProducts: recommendations.maxProducts || 4,
+            showDiscount: (_a = recommendations.showDiscount) != null ? _a : true,
+            showDiscountBadge: (_b = recommendations.showDiscountBadge) != null ? _b : true,
+            showAddButton: (_c = recommendations.showAddButton) != null ? _c : true,
+            onAddToCart: (variantId) => {
+              if (window.upsellityDrawer) {
+                window.upsellityDrawer.addProductToCart(variantId);
+              }
+            },
+            isPreview: false
+          })
+        );
+      }
+    }, 0);
     return html;
-  }
-  function renderNavigationArrows() {
-    return `
-    <button class="upsellity-nav-arrow upsellity-nav-left" 
-            onclick="window.upsellityDrawer.scrollRecommendations('left')"
-            style="display: none;">
-      <span>\u2039</span>
-    </button>
-    
-    <button class="upsellity-nav-arrow upsellity-nav-right" 
-            onclick="window.upsellityDrawer.scrollRecommendations('right')"
-            style="display: none;">
-      <span>\u203A</span>
-    </button>
-  `;
-  }
-  function renderProductCard(product, recommendations, isGrid) {
-    const productPrice = product.price || 0;
-    const productCompareAtPrice = product.compareAtPrice || null;
-    const originalPrice = productCompareAtPrice || productPrice;
-    const discount = productCompareAtPrice && productCompareAtPrice > productPrice ? Math.round((productCompareAtPrice - productPrice) / productCompareAtPrice * 100) : 0;
-    const isOutOfStock = false;
-    return `
-    <div class="upsellity-recommendation-card" ${isGrid ? "" : 'style="min-width: 140px; flex-shrink: 0;"'}>
-      <div class="upsellity-recommendation-image" style="position: relative;">
-        ${product.imageUrl ? `
-          <img src="${product.imageUrl}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px; ${isOutOfStock ? "opacity: 0.5; filter: grayscale(50%);" : ""}" />
-        ` : `
-          <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 24px; ${isOutOfStock ? "opacity: 0.5;" : ""}">\u{1F4E6}</div>
-        `}
-        ${isOutOfStock ? `
-          <div style="position: absolute; top: 8px; left: 8px; background-color: #ef4444; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; z-index: 10;">
-            Sold Out
-          </div>
-        ` : recommendations.showDiscountBadge && discount > 0 ? `
-          <div style="position: absolute; top: 8px; right: 8px; background-color: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; z-index: 10;">
-            ${discount}% off
-          </div>
-        ` : ""}
-      </div>
-      <div style="font-size: 13px; font-weight: 500; margin-bottom: 4px; line-height: 1.3;">
-        ${product.title.length > 20 ? product.title.substring(0, 20) + "..." : product.title}
-      </div>
-      <div style="margin-bottom: 4px;">
-        ${recommendations.showDiscount && productCompareAtPrice && productCompareAtPrice > productPrice ? `
-          <span style="text-decoration: line-through; color: #9ca3af; font-size: 12px; margin-right: 4px;">
-            \u20B9${Math.round(productCompareAtPrice)}
-          </span>
-        ` : ""}
-        <span style="font-weight: 600; font-size: 12px;">\u20B9${Math.round(productPrice)}</span>
-      </div>
-      ${recommendations.showAddButton ? isOutOfStock ? `
-          <button class="upsellity-add-recommendation-btn" 
-                  disabled
-                  style="width: 100%; padding: 4px 8px; border: 1px solid #d1d5db; background: #f3f4f6; color: #9ca3af; border-radius: 4px; cursor: not-allowed; font-size: 12px; font-weight: 500;">
-            Sold Out
-          </button>
-        ` : `
-          <button class="upsellity-add-recommendation-btn" 
-                  onclick="window.upsellityDrawer.addProductToCart('${product.shopifyVariantId || product.shopifyProductId}')"
-                  style="width: 100%; padding: 4px 8px; border: 1px solid #f97316; background: white; color: #f97316; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s ease;">
-            + Add
-          </button>
-        ` : ""}
-    </div>
-  `;
   }
 
   // extensions/cart-upsell/assets/modules/renderers/other-features.js
@@ -9591,9 +9790,6 @@
       </div>
     `;
       inner.innerHTML = html;
-      setTimeout(() => {
-        initializeRecommendationsNavigation();
-      }, 100);
     }
     async open() {
       const drawer = document.getElementById("upsellity-cart-drawer");
@@ -9659,10 +9855,6 @@
       this.showingAllOffers = false;
       this.render();
       showNotification(`${discount.code} applied!`, "success");
-    }
-    // Product recommendations navigation
-    scrollRecommendations(direction) {
-      scrollRecommendations(direction);
     }
   };
 

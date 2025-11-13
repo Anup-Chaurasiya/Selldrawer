@@ -34,6 +34,7 @@ import {
   splitFeatureOrder,
 } from "../utils/featureOrder";
 import { PromotionalBannerCard } from "../components/shared/PromotionalBannerCard";
+import { ProductRecommendations } from "../components/shared/ProductRecommendations";
 
 // Wrapper component for the preview with state management
 function PromotionalBannerPreview({ 
@@ -225,42 +226,7 @@ function MiniCartDrawerPreview({
   const productRecommendation = cartDrawer?.productRecommendations?.[0];
   const savingsDisplay = cartDrawer?.savingsDisplays?.[0];
   const freeShippingMessage = cartDrawer?.freeShippingMessages?.[0];
-  
-  // State for product recommendations navigation
-  const [scrollPosition, setScrollPosition] = useState(0);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
 
-  // Handle scroll for product recommendations
-  const handleScroll = (scrollContainer: HTMLElement) => {
-    const maxScrollLeft = scrollContainer.scrollWidth - scrollContainer.clientWidth;
-    const currentScroll = scrollContainer.scrollLeft;
-    
-    setScrollPosition(currentScroll);
-    setCanScrollLeft(currentScroll > 0);
-    setCanScrollRight(currentScroll < maxScrollLeft);
-  };
-
-  const scrollLeft = (scrollContainer: HTMLElement) => {
-    const scrollAmount = 140; // Width of one product card + gap
-    scrollContainer.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-  };
-
-  const scrollRight = (scrollContainer: HTMLElement) => {
-    const scrollAmount = 140; // Width of one product card + gap
-    scrollContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-  };
-
-  // Initialize scroll state on component mount
-  React.useEffect(() => {
-    const scrollContainer = document.querySelector('.product-recommendations-scroll') as HTMLElement;
-    if (scrollContainer) {
-      // Check initial scroll state
-      const maxScrollLeft = scrollContainer.scrollWidth - scrollContainer.clientWidth;
-      setCanScrollRight(maxScrollLeft > 0);
-      setCanScrollLeft(false);
-    }
-  }, [cartDrawer?.productRecommendationsEnabled]);
 
   // Dynamic sample cart data based on configuration
   const getSampleCart = () => {
@@ -448,272 +414,28 @@ function MiniCartDrawerPreview({
         );
 
       case 'product-recommendations':
-        return (cartDrawer?.productRecommendationsEnabled && (
-          <div style={{ marginTop: '8px' }}>
-            <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
-              {productRecommendation?.title || "You may also like"}
-            </h4>
-            <div style={{ 
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              {/* Left Arrow - Only show for carousel layout */}
-              {productRecommendation?.layout !== 'grid' && canScrollLeft && (
-                <button
-                  onClick={(e) => {
-                    const container = e.currentTarget.parentElement?.querySelector('.product-recommendations-scroll') as HTMLElement;
-                    if (container) scrollLeft(container);
-                  }}
-                  style={{
-                    position: 'absolute',
-                    left: '0',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'rgba(255, 255, 255, 0.9)',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '50%',
-                    width: '32px',
-                    height: '32px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    zIndex: 10,
-                    opacity: 0.7,
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '1';
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 1)';
-                    e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '0.7';
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
-                    e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-                  }}
-                >
-                  <span style={{ fontSize: '16px', color: '#374151' }}>‹</span>
-                </button>
-              )}
-
-              {/* Right Arrow - Only show for carousel layout */}
-              {productRecommendation?.layout !== 'grid' && canScrollRight && (
-                <button
-                  onClick={(e) => {
-                    const container = e.currentTarget.parentElement?.querySelector('.product-recommendations-scroll') as HTMLElement;
-                    if (container) scrollRight(container);
-                  }}
-                  style={{
-                    position: 'absolute',
-                    right: '0',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'rgba(255, 255, 255, 0.9)',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '50%',
-                    width: '32px',
-                    height: '32px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    zIndex: 10,
-                    opacity: 0.7,
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '1';
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 1)';
-                    e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '0.7';
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
-                    e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-                  }}
-                >
-                  <span style={{ fontSize: '16px', color: '#374151' }}>›</span>
-                </button>
-              )}
-
-              <div 
-                className="product-recommendations-scroll"
-                style={productRecommendation?.layout === 'grid' ? {
-                  display: 'grid',
-                  gridTemplateColumns: `repeat(auto-fit, minmax(120px, 1fr))`,
-                  gap: '8px',
-                  paddingBottom: '8px'
-                } : {
-                  display: 'flex',
-                  gap: '8px',
-                  overflowX: 'auto',
-                  scrollBehavior: 'smooth',
-                  paddingBottom: '8px',
-                  scrollbarWidth: 'thin',
-                  scrollbarColor: '#cbd5e1 #f1f5f9',
-                  paddingLeft: canScrollLeft ? '40px' : '0',
-                  paddingRight: canScrollRight ? '40px' : '0'
-                }}
-                onScroll={productRecommendation?.layout === 'grid' ? undefined : (e) => handleScroll(e.currentTarget)}
-              >
-                {productRecommendation?.products && productRecommendation.products.length > 0 ? (
-                  productRecommendation.products.slice(0, productRecommendation.maxProducts || 4).map((product: any, index: number) => (
-                    <div key={product.id} style={productRecommendation?.layout === 'grid' ? {
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '6px',
-                      padding: '8px',
-                      textAlign: 'center',
-                      backgroundColor: '#ffffff',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                      transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-                    } : {
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '6px',
-                      padding: '8px',
-                      textAlign: 'center',
-                      minWidth: '120px',
-                      flexShrink: 0,
-                      backgroundColor: '#ffffff',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                      transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-                    }}>
-                      {product.imageUrl ? (
-                        <img 
-                          src={product.imageUrl} 
-                          alt={product.title}
-                          style={{ 
-                            width: '100%', 
-                            height: '60px', 
-                            objectFit: 'cover',
-                            borderRadius: '4px',
-                            marginBottom: '6px'
-                          }} 
-                        />
-                      ) : (
-                        <div style={{ 
-                          width: '100%', 
-                          height: '60px', 
-                          backgroundColor: '#f3f4f6',
-                          borderRadius: '4px',
-                          marginBottom: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '24px'
-                        }}>📦</div>
-                      )}
-                      <div style={{ fontSize: '11px', fontWeight: '600', marginBottom: '4px', lineHeight: '1.3' }}>
-                        {product.title.length > 20 ? product.title.substring(0, 20) + '...' : product.title}
-                      </div>
-                      <div style={{ marginBottom: '4px' }}>
-                        {productRecommendation?.showDiscount && product.compareAtPrice && product.compareAtPrice > product.price ? (
-                          <>
-                            <span style={{ 
-                              textDecoration: 'line-through',
-                              color: '#9ca3af',
-                              fontSize: '10px',
-                              marginRight: '4px'
-                            }}>
-                              ₹{Math.round(product.compareAtPrice)}
-                            </span>
-                            <span style={{ fontWeight: '600', fontSize: '11px' }}>₹{Math.round(product.price)}</span>
-                          </>
-                        ) : (
-                          <span style={{ fontWeight: '600', fontSize: '11px' }}>₹{Math.round(product.price)}</span>
-                        )}
-                      </div>
-                      {productRecommendation?.showDiscountBadge && product.compareAtPrice && product.compareAtPrice > product.price && (
-                        <div style={{ 
-                          display: 'inline-block',
-                          backgroundColor: '#10b981',
-                          color: 'white',
-                          padding: '2px 6px',
-                          borderRadius: '10px',
-                          fontSize: '9px',
-                          marginBottom: '6px',
-                          fontWeight: '600'
-                        }}>
-                          {Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)}% off
-                        </div>
-                      )}
-                      {productRecommendation?.showAddButton && (
-                        <button style={{
-                          width: '100%',
-                          padding: '4px 8px',
-                          backgroundColor: '#f97316',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          fontSize: '10px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}>
-                          + Add
-                        </button>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  // Sample product recommendations when no real data
-                  [
+        return (
+          cartDrawer?.productRecommendationsEnabled && (
+            <ProductRecommendations
+              title={productRecommendation?.title || "You may also like"}
+              products={productRecommendation?.products && productRecommendation.products.length > 0 
+                ? productRecommendation.products 
+                : [
                     { id: 'sample1', title: 'Sample Product 1', price: 999, imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=60&h=60&fit=crop&crop=center' },
                     { id: 'sample2', title: 'Sample Product 2', price: 1299, imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=60&h=60&fit=crop&crop=center' },
                     { id: 'sample3', title: 'Sample Product 3', price: 1599, imageUrl: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=60&h=60&fit=crop&crop=center' },
                     { id: 'sample4', title: 'Sample Product 4', price: 899, imageUrl: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=60&h=60&fit=crop&crop=center' }
-                  ].map((product: any, index: number) => (
-                    <div key={product.id} style={{ 
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '6px',
-                      padding: '8px',
-                      textAlign: 'center',
-                      minWidth: '120px',
-                      flexShrink: 0,
-                      backgroundColor: '#ffffff',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                      transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-                    }}>
-                      <img 
-                        src={product.imageUrl} 
-                        alt={product.title}
-                        style={{ 
-                          width: '100%', 
-                          height: '60px', 
-                          objectFit: 'cover',
-                          borderRadius: '4px',
-                          marginBottom: '6px'
-                        }}
-                      />
-                      <div style={{ fontSize: '11px', fontWeight: '600', marginBottom: '4px' }}>
-                        {product.title}
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '6px' }}>
-                        ₹{product.price}
-                      </div>
-                      <button style={{
-                        width: '100%',
-                        padding: '4px 8px',
-                        backgroundColor: '#f97316',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        fontSize: '10px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}>
-                        + Add
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        ));
+                  ]}
+              layout={productRecommendation?.layout || 'carousel'}
+              maxProducts={productRecommendation?.maxProducts || 4}
+              showDiscount={productRecommendation?.showDiscount ?? true}
+              showDiscountBadge={productRecommendation?.showDiscountBadge ?? true}
+              showAddButton={productRecommendation?.showAddButton ?? true}
+              onAddToCart={(variantId) => console.log('Add to cart:', variantId)}
+              isPreview={true}
+            />
+          )
+        );
         
       case 'savings-display':
         return (
