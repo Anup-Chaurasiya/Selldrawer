@@ -135,13 +135,11 @@ class UpsellityCartDrawer {
       // Load available discounts and auto-apply if enabled
       await this.loadAvailableDiscounts();
       
-      // Load Shopify recommendations if needed (for related/complementary types)
+      // Load Shopify recommendations if needed (for related/complementary types only)
+      // For manual products, use them directly from configuration
       await this.loadShopifyRecommendations();
       
-      // Load product availability for recommendations
-      await this.loadProductAvailability();
-      
-      // Re-render after filtering out-of-stock products
+      // Re-render immediately with products from configuration
       this.render();
     } catch (error) {
       console.error('Upsellity: Failed to load cart', error);
@@ -247,7 +245,12 @@ class UpsellityCartDrawer {
     const recommendationType = recommendations.recommendationType;
     
     // Only fetch Shopify recommendations for "related" or "complementary" types
+    // For manual products, use them directly from configuration without fetching
     if (recommendationType !== 'related' && recommendationType !== 'complementary') {
+      // For manual products, ensure products array exists from config
+      if (!recommendations.products) {
+        recommendations.products = [];
+      }
       return;
     }
 
@@ -315,33 +318,15 @@ class UpsellityCartDrawer {
               position: 0,
               available: isAvailable
             };
-          })
-          .filter(rec => rec.available); // Filter out out-of-stock products
-
-        // Filter out products that are already in the cart
-        const cartProductIds = new Set(this.cart.items.map(item => item.product_id.toString()));
-        const filteredRecommendations = shopifyRecommendations.filter(rec => {
-          // Try to match by product ID if available, otherwise by handle
-          // Since we're using handles, we'll filter by handle
-          const productInCart = this.cart.items.some(item => {
-            // Try to match by product handle if available in cart item
-            if (item.handle && item.handle === rec.handle) {
-              return true;
-            }
-            // Fallback: check if the recommendation's product ID matches any cart item's product ID
-            // This is a best-effort check since we might not have the product ID
-            return false;
           });
-          return !productInCart;
-        });
 
-        // Store recommendations in the config for rendering
+        // Store recommendations in the config for rendering (no filtering)
         if (!recommendations.products) {
           recommendations.products = [];
         }
-        recommendations.products = filteredRecommendations.slice(0, maxProducts);
+        recommendations.products = shopifyRecommendations.slice(0, maxProducts);
         
-        console.log(`Upsellity: Loaded ${filteredRecommendations.length} Shopify recommendations (${intent}), filtered from ${shopifyRecommendations.length} total`);
+        console.log(`Upsellity: Loaded ${shopifyRecommendations.length} Shopify recommendations (${intent})`);
       } else {
         console.warn(`Upsellity: Failed to fetch Shopify recommendations (${response.status} ${response.statusText}). Shopify recommendations may not be enabled for your store.`);
         // Set empty array to avoid errors
@@ -1356,25 +1341,15 @@ class UpsellityCartDrawer {
             
             <div class="${isGrid ? 'upsellity-recommendations-grid-layout' : 'upsellity-recommendations-grid'}" ${isGrid ? 'style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;"' : ''}>
               ${recommendedProducts
-                .filter(product => {
-                  // Check product availability before displaying
-                  const handle = product.shopifyProductId || product.handle;
-                  const availability = this.productAvailability[handle];
-                  // If availability was checked, use it; otherwise assume available (will be checked async)
-                  const isAvailable = availability ? availability.available : (product.available !== false);
-                  return isAvailable;
-                })
                 .slice(0, recommendations.maxProducts || 4)
                 .map(product => {
-                // Handle price format - check if price is in cents (> 1000) or rupees
-                const productPrice = product.price > 1000 ? product.price / 100 : product.price;
-                const productCompareAtPrice = product.compareAtPrice ? (product.compareAtPrice > 1000 ? product.compareAtPrice / 100 : product.compareAtPrice) : null;
-                const originalPrice = productCompareAtPrice || productPrice;
+                // Use prices directly from configuration (no conversion)
+                const productPrice = product.price || 0;
+                const productCompareAtPrice = product.compareAtPrice || null;
                 const discount = productCompareAtPrice && productCompareAtPrice > productPrice 
                   ? Math.round(((productCompareAtPrice - productPrice) / productCompareAtPrice) * 100) 
                   : 0;
                 
-                // Product is already filtered, so it's available
                 const isOutOfStock = false;
                 
                 return `

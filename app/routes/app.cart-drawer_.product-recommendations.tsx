@@ -269,8 +269,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               const variantId = variant.id.replace('gid://shopify/ProductVariant/', '');
               
               // Shopify GraphQL returns prices in cents, convert to rupees for storage
-              const priceInRupees = parseFloat(variant.price) / 100;
-              const compareAtPriceInRupees = variant.compareAtPrice ? parseFloat(variant.compareAtPrice) / 100 : null;
+              const priceInRupees = parseFloat(variant.price);
+              const compareAtPriceInRupees = variant.compareAtPrice ? parseFloat(variant.compareAtPrice): null;
               
               await prisma.recommendedProduct.create({
                 data: {
