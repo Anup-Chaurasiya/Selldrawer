@@ -14,6 +14,7 @@ import {
   Badge,
   Icon,
   Box,
+  Banner,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { 
@@ -65,6 +66,8 @@ function PromotionalBannerPreview({
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
+  const url = new URL(request.url);
+  const error = url.searchParams.get("error");
 
   // Check if app embed is enabled
   let appEmbedEnabled = false;
@@ -140,6 +143,34 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
   }
 
+  // Auto-disable freeShippingProgressBarEnabled if no data exists
+  if (cartDrawer.freeShippingProgressBarEnabled && cartDrawer.freeShippingBars.length === 0) {
+    cartDrawer = await prisma.cartDrawer.update({
+      where: { shop },
+      data: { freeShippingProgressBarEnabled: false },
+      include: {
+        freeShippingBars: { where: { isActive: true } },
+        promotionalBanners: { 
+          where: { isActive: true },
+          include: {
+            images: { orderBy: { order: 'asc' } },
+            carouselSettings: true,
+          }
+        },
+        productRecommendations: { 
+          where: { isActive: true },
+          include: {
+            products: {
+              orderBy: { position: 'asc' }
+            }
+          }
+        },
+        savingsDisplays: { where: { isActive: true } },
+        freeShippingMessages: { where: { isActive: true } },
+      },
+    });
+  }
+
   const normalizedFeatureOrder = normalizeFeatureOrder(cartDrawer.featureOrder);
   cartDrawer.featureOrder = normalizedFeatureOrder;
 
@@ -153,6 +184,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     shop, 
     appEmbedEnabled,
     shopDomain: process.env.SHOPIFY_SHOP_DOMAIN || shop,
+    error,
   });
 };
 
@@ -167,6 +199,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const featureId = formData.get("featureId") as string;
     const enabled = formData.get("enabled") === "true";
 
+    // Check if data exists before enabling free-shipping-bar
+    if (featureId === 'free-shipping-bar' && enabled) {
+      const cartDrawer = await prisma.cartDrawer.findUnique({
+        where: { shop },
+        include: {
+          freeShippingBars: { where: { isActive: true } },
+        },
+      });
+
+      if (!cartDrawer || cartDrawer.freeShippingBars.length === 0) {
+        // Cannot enable without configuration - redirect with error message
+        return redirect("/app/cart-drawer?error=free-shipping-bar-not-configured");
+      }
+    }
 
     // Map feature IDs to their corresponding database fields
     const featureFieldMap: { [key: string]: any } = {
@@ -551,7 +597,7 @@ function MiniCartDrawerPreview({
 }
 
 export default function CartDrawerIndex() {
-  const { cartDrawer, couponCodeField, appEmbedEnabled, shopDomain } = useLoaderData<typeof loader>();
+  const { cartDrawer, couponCodeField, appEmbedEnabled, shopDomain, error } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const fetcher = useFetcher();
 
@@ -640,6 +686,7 @@ export default function CartDrawerIndex() {
       enabled: cartDrawer.freeShippingProgressBarEnabled,
       count: cartDrawer.freeShippingBars.length,
       path: '/app/cart-drawer/free-shipping-bar',
+      isConfigured: cartDrawer.freeShippingBars.length > 0,
     },
     {
       id: 'promotional-banner',
@@ -754,6 +801,15 @@ export default function CartDrawerIndex() {
                 </InlineStack>
               </BlockStack>
             </Card>
+
+            {/* Error Banner */}
+            {error === 'free-shipping-bar-not-configured' && (
+              <Card>
+                <Banner tone="warning" title="Configuration Required">
+                  <p>You cannot enable the Free Shipping Progress Bar without first configuring it. Please click "Configure" to set up the feature before enabling it.</p>
+                </Banner>
+              </Card>
+            )}
 
             {/* App Embed Activation Banner */}
             {!appEmbedEnabled && (
@@ -895,6 +951,11 @@ export default function CartDrawerIndex() {
                                 {isCartItems && (
                                   <Badge tone="info">Cart Items</Badge>
                                 )}
+                                {!isCartItems && feature!.id === 'free-shipping-bar' && !feature!.isConfigured && (
+                                  <span style={{ display: 'inline-block', transform: 'scale(0.85)', transformOrigin: 'left center' }}>
+                                    <Badge tone="warning">Not Configured</Badge>
+                                  </span>
+                                )}
                               </InlineStack>
                               <Text as="p" variant="bodyMd" tone="subdued">
                                 {isCartItems ? 'Products added to cart by the customer' : feature!.description}
@@ -906,6 +967,7 @@ export default function CartDrawerIndex() {
                               <Button
                                 onClick={() => handleToggleFeature(feature!.id, feature!.enabled)}
                                 variant={feature!.enabled ? "secondary" : "primary"}
+                                disabled={feature!.id === 'free-shipping-bar' && !feature!.isConfigured && !feature!.enabled}
                               >
                                 {feature!.enabled ? "Disable" : "Enable"}
                               </Button>
