@@ -143,11 +143,41 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
   }
 
-  // Auto-disable freeShippingProgressBarEnabled if no data exists
+  // Auto-disable features if no data exists
+  const updateData: any = {};
+  
   if (cartDrawer.freeShippingProgressBarEnabled && cartDrawer.freeShippingBars.length === 0) {
+    updateData.freeShippingProgressBarEnabled = false;
+  }
+  
+  // Check promotional banner: needs to have either images or at least a banner record
+  const hasPromotionalBannerData = cartDrawer.promotionalBanners.length > 0 && 
+    cartDrawer.promotionalBanners.some(banner => 
+      (banner.images && banner.images.length > 0) || (banner.imageUrls && banner.imageUrls.length > 0) || banner.title
+    );
+  if (cartDrawer.promotionalBannerEnabled && !hasPromotionalBannerData) {
+    updateData.promotionalBannerEnabled = false;
+  }
+  
+  // Check product recommendations: needs to have products
+  const hasProductRecommendationsData = cartDrawer.productRecommendations.length > 0 && 
+    cartDrawer.productRecommendations.some(rec => rec.products && rec.products.length > 0);
+  if (cartDrawer.productRecommendationsEnabled && !hasProductRecommendationsData) {
+    updateData.productRecommendationsEnabled = false;
+  }
+  
+  if (cartDrawer.savingsDisplayEnabled && cartDrawer.savingsDisplays.length === 0) {
+    updateData.savingsDisplayEnabled = false;
+  }
+  
+  if (cartDrawer.freeShippingMessageEnabled && cartDrawer.freeShippingMessages.length === 0) {
+    updateData.freeShippingMessageEnabled = false;
+  }
+
+  if (Object.keys(updateData).length > 0) {
     cartDrawer = await prisma.cartDrawer.update({
       where: { shop },
-      data: { freeShippingProgressBarEnabled: false },
+      data: updateData,
       include: {
         freeShippingBars: { where: { isActive: true } },
         promotionalBanners: { 
@@ -199,18 +229,75 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const featureId = formData.get("featureId") as string;
     const enabled = formData.get("enabled") === "true";
 
-    // Check if data exists before enabling free-shipping-bar
-    if (featureId === 'free-shipping-bar' && enabled) {
+    // Check if data exists before enabling any feature
+    if (enabled) {
       const cartDrawer = await prisma.cartDrawer.findUnique({
         where: { shop },
         include: {
           freeShippingBars: { where: { isActive: true } },
+          promotionalBanners: { 
+            where: { isActive: true },
+            include: {
+              images: { orderBy: { order: 'asc' } },
+            }
+          },
+          productRecommendations: { 
+            where: { isActive: true },
+            include: {
+              products: {
+                orderBy: { position: 'asc' }
+              }
+            }
+          },
+          savingsDisplays: { where: { isActive: true } },
+          freeShippingMessages: { where: { isActive: true } },
         },
       });
 
-      if (!cartDrawer || cartDrawer.freeShippingBars.length === 0) {
-        // Cannot enable without configuration - redirect with error message
+      if (!cartDrawer) {
+        return redirect("/app/cart-drawer?error=feature-not-configured");
+      }
+
+      // Check each feature for required data
+      if (featureId === 'free-shipping-bar' && cartDrawer.freeShippingBars.length === 0) {
         return redirect("/app/cart-drawer?error=free-shipping-bar-not-configured");
+      }
+      
+      // Check promotional banner: needs to have images or banner data
+      if (featureId === 'promotional-banner') {
+        const hasBannerData = cartDrawer.promotionalBanners.length > 0 && 
+          cartDrawer.promotionalBanners.some(banner => 
+            (banner.images && banner.images.length > 0) || (banner.imageUrls && banner.imageUrls.length > 0) || banner.title
+          );
+        if (!hasBannerData) {
+          return redirect("/app/cart-drawer?error=promotional-banner-not-configured");
+        }
+      }
+      
+      // Check product recommendations: needs to have products
+      if (featureId === 'product-recommendations') {
+        const hasProducts = cartDrawer.productRecommendations.length > 0 && 
+          cartDrawer.productRecommendations.some(rec => rec.products && rec.products.length > 0);
+        if (!hasProducts) {
+          return redirect("/app/cart-drawer?error=product-recommendations-not-configured");
+        }
+      }
+      
+      if (featureId === 'savings-display' && cartDrawer.savingsDisplays.length === 0) {
+        return redirect("/app/cart-drawer?error=savings-display-not-configured");
+      }
+      
+      if (featureId === 'free-shipping-message' && cartDrawer.freeShippingMessages.length === 0) {
+        return redirect("/app/cart-drawer?error=free-shipping-message-not-configured");
+      }
+      
+      if (featureId === 'coupon-code') {
+        const couponCodeField = await prisma.couponCodeField.findUnique({
+          where: { shop },
+        });
+        if (!couponCodeField) {
+          return redirect("/app/cart-drawer?error=coupon-code-not-configured");
+        }
       }
     }
 
@@ -696,6 +783,12 @@ export default function CartDrawerIndex() {
       enabled: cartDrawer.promotionalBannerEnabled,
       count: cartDrawer.promotionalBanners.length,
       path: '/app/cart-drawer/promotional-banner',
+      isConfigured: cartDrawer.promotionalBanners.length > 0 && 
+                    cartDrawer.promotionalBanners.some(banner => 
+                      (banner.images && banner.images.length > 0) || 
+                      (banner.imageUrls && banner.imageUrls.length > 0) || 
+                      banner.title
+                    ),
     },
     {
       id: 'product-recommendations',
@@ -705,6 +798,10 @@ export default function CartDrawerIndex() {
       enabled: cartDrawer.productRecommendationsEnabled,
       count: cartDrawer.productRecommendations.length,
       path: '/app/cart-drawer/product-recommendations',
+      isConfigured: cartDrawer.productRecommendations.length > 0 && 
+                    cartDrawer.productRecommendations.some(rec => 
+                      rec.products && rec.products.length > 0
+                    ),
     },
     {
       id: 'coupon-code',
@@ -714,6 +811,7 @@ export default function CartDrawerIndex() {
       enabled: cartDrawer.couponCodeFieldEnabled,
       count: couponCodeField ? 1 : 0,
       path: '/app/cart-drawer/coupon-code',
+      isConfigured: couponCodeField !== null,
     },
     {
       id: 'savings-display',
@@ -723,6 +821,7 @@ export default function CartDrawerIndex() {
       enabled: cartDrawer.savingsDisplayEnabled,
       count: cartDrawer.savingsDisplays.length,
       path: '/app/cart-drawer/savings-display',
+      isConfigured: cartDrawer.savingsDisplays.length > 0,
     },
     {
       id: 'free-shipping-message',
@@ -732,6 +831,7 @@ export default function CartDrawerIndex() {
       enabled: cartDrawer.freeShippingMessageEnabled,
       count: cartDrawer.freeShippingMessages.length,
       path: '/app/cart-drawer/free-shipping-message',
+      isConfigured: cartDrawer.freeShippingMessages.length > 0,
     },
   ];
 
@@ -801,15 +901,6 @@ export default function CartDrawerIndex() {
                 </InlineStack>
               </BlockStack>
             </Card>
-
-            {/* Error Banner */}
-            {error === 'free-shipping-bar-not-configured' && (
-              <Card>
-                <Banner tone="warning" title="Configuration Required">
-                  <p>You cannot enable the Free Shipping Progress Bar without first configuring it. Please click "Configure" to set up the feature before enabling it.</p>
-                </Banner>
-              </Card>
-            )}
 
             {/* App Embed Activation Banner */}
             {!appEmbedEnabled && (
@@ -944,19 +1035,29 @@ export default function CartDrawerIndex() {
                               <Icon source={isCartItems ? ProductIcon : feature!.icon} tone="base" />
                             </Box>
                             <BlockStack gap="100">
-                              <InlineStack gap="200" blockAlign="center">
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                                 <Text as="h3" variant="headingMd">
                                   {isCartItems ? 'Selected Items' : feature!.title}
                                 </Text>
+                                {!isCartItems && !feature!.isConfigured && (
+                                  <span style={{ 
+                                    fontSize: '9px', 
+                                    color: '#92400e', 
+                                    backgroundColor: '#fef3c7', 
+                                    padding: '2px 10px', 
+                                    borderRadius: '10px', 
+                                    fontWeight: 600,
+                                    lineHeight: '1.4',
+                                    whiteSpace: 'nowrap',
+                                    border: '1px solidrgb(227, 171, 30)'
+                                  }}>
+                                    Not Configured
+                                  </span>
+                                )}
                                 {isCartItems && (
                                   <Badge tone="info">Cart Items</Badge>
                                 )}
-                                {!isCartItems && feature!.id === 'free-shipping-bar' && !feature!.isConfigured && (
-                                  <span style={{ display: 'inline-block', transform: 'scale(0.85)', transformOrigin: 'left center' }}>
-                                    <Badge tone="warning">Not Configured</Badge>
-                                  </span>
-                                )}
-                              </InlineStack>
+                              </div>
                               <Text as="p" variant="bodyMd" tone="subdued">
                                 {isCartItems ? 'Products added to cart by the customer' : feature!.description}
                               </Text>
@@ -967,7 +1068,7 @@ export default function CartDrawerIndex() {
                               <Button
                                 onClick={() => handleToggleFeature(feature!.id, feature!.enabled)}
                                 variant={feature!.enabled ? "secondary" : "primary"}
-                                disabled={feature!.id === 'free-shipping-bar' && !feature!.isConfigured && !feature!.enabled}
+                                disabled={!feature!.isConfigured && !feature!.enabled}
                               >
                                 {feature!.enabled ? "Disable" : "Enable"}
                               </Button>

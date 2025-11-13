@@ -52,6 +52,42 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "toggle") {
     const enabled = formData.get("enabled") === "true";
+
+    // Check if data exists before enabling
+    if (enabled) {
+      const cartDrawer = await prisma.cartDrawer.findUnique({
+        where: { shop },
+        include: {
+          promotionalBanners: { 
+            where: { isActive: true },
+            include: {
+              images: { orderBy: { order: 'asc' } },
+            }
+          },
+        },
+      });
+
+      if (!cartDrawer) {
+        return json({ 
+          success: false, 
+          error: "Configuration required. Please save the configuration first before enabling." 
+        }, { status: 400 });
+      }
+
+      const hasBannerData = cartDrawer.promotionalBanners.length > 0 && 
+        cartDrawer.promotionalBanners.some(banner => 
+          (banner.images && banner.images.length > 0) || 
+          (banner.imageUrls && banner.imageUrls.length > 0) || 
+          banner.title
+        );
+
+      if (!hasBannerData) {
+        return json({ 
+          success: false, 
+          error: "Configuration required. Please add at least one slide or configure the banner before enabling." 
+        }, { status: 400 });
+      }
+    }
     
     await prisma.cartDrawer.update({
       where: { shop },
@@ -98,6 +134,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         },
       });
     }
+
+    // Auto-enable the feature after creating banner
+    await prisma.cartDrawer.update({
+      where: { shop },
+      data: { promotionalBannerEnabled: true },
+    });
 
     return json({ success: true });
   }
@@ -158,6 +200,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         ctaUrl,
         order: (maxOrder?.order ?? -1) + 1,
       },
+    });
+
+    // Auto-enable the feature after adding a slide
+    await prisma.cartDrawer.update({
+      where: { shop },
+      data: { promotionalBannerEnabled: true },
     });
 
     return json({ success: true });
