@@ -19,6 +19,7 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback } from "react";
+import { SavingsDisplay as SavingsDisplayComponent } from "../components/shared/SavingsDisplay";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -204,17 +205,13 @@ export default function SavingsDisplay() {
                 Preview
               </Text>
               
-              <div style={{ 
-                backgroundColor: formState.backgroundColor,
-                color: formState.textColor,
-                padding: '12px 16px',
-                borderRadius: '6px',
-                textAlign: 'center',
-                fontWeight: '600',
-                fontSize: '16px'
-              }}>
-                {formState.message.replace('{amount}', '₹3300')}
-              </div>
+              <SavingsDisplayComponent
+                message={formState.message}
+                amount={330000} // Sample amount in cents (₹3300)
+                backgroundColor={formState.backgroundColor}
+                textColor={formState.textColor}
+                isPreview={true}
+              />
 
               <Text as="p" variant="bodyMd" tone="subdued">
                 This is how the savings display will appear in your cart drawer.

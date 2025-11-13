@@ -20,6 +20,7 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback } from "react";
+import { CouponCodeField as CouponCodeFieldComponent } from "../components/shared/CouponCodeField";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -268,215 +269,29 @@ export default function CouponCode() {
                 Preview
               </Text>
               
-              {/* Manual Coupon Input */}
-              <div style={{ 
-                display: 'flex', 
-                gap: '10px',
-                padding: '16px',
-                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-                borderRadius: '12px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                {/* Subtle background pattern */}
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  background: 'radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.03) 0%, transparent 50%)',
-                  pointerEvents: 'none'
-                }} />
-                
-                <div style={{ position: 'relative', flex: 1, zIndex: 1 }}>
-                  <input
-                    type="text"
-                    placeholder={formState.placeholder}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '10px',
-                      fontSize: '14px',
-                      outline: 'none',
-                      backgroundColor: 'white',
-                      transition: 'all 0.3s ease',
-                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
-                      fontWeight: '500'
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = '#3b82f6';
-                      e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#e5e7eb';
-                      e.target.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.02)';
-                    }}
-                  />
-                </div>
-                <button style={{
-                  padding: '12px 20px',
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  zIndex: 1
-                }}
-                onMouseEnter={(e) => {
-                  const target = e.target as HTMLButtonElement;
-                  target.style.transform = 'translateY(-1px)';
-                  target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  const target = e.target as HTMLButtonElement;
-                  target.style.transform = 'translateY(0)';
-                  target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
-                }}>
-                  <span style={{ position: 'relative', zIndex: 1 }}>
-                    {formState.buttonText}
-                  </span>
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'linear-gradient(45deg, rgba(255,255,255,0.2) 0%, transparent 50%)',
-                    pointerEvents: 'none'
-                  }} />
-                </button>
-              </div>
-
-              {/* Auto-Applied Discount Preview */}
-              {formState.enableAutoApply && (
-                <div style={{
-                  padding: '14px 16px',
-                  background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-                  border: '2px solid #10b981',
-                  borderRadius: '10px',
-                  marginTop: '12px',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.15)'
-                }}>
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'linear-gradient(45deg, rgba(255,255,255,0.3) 0%, transparent 50%)',
-                    pointerEvents: 'none'
-                  }} />
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px',
-                    position: 'relative',
-                    zIndex: 1
-                  }}>
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
-                    }}>✓</div>
-                    <div>
-                      <div style={{ 
-                        fontWeight: '700', 
-                        color: '#047857', 
-                        fontSize: '14px', 
-                        marginBottom: '2px',
-                        textShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                      }}>
-                        SUMMER20 - 20% OFF
-                      </div>
-                      <div style={{ 
-                        fontSize: '12px', 
-                        color: '#065f46',
-                        fontWeight: '500'
-                      }}>
-                        Best offer automatically applied
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Show All Offers Preview */}
-              {formState.showAllOffers && (
-                <div style={{ marginTop: '12px' }}>
-                  <button style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-                    color: '#374151',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '10px',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}
-                  onMouseEnter={(e) => {
-                    const target = e.target as HTMLButtonElement;
-                    target.style.borderColor = '#3b82f6';
-                    target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.15)';
-                    target.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    const target = e.target as HTMLButtonElement;
-                    target.style.borderColor = '#e5e7eb';
-                    target.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.04)';
-                    target.style.transform = 'translateY(0)';
-                  }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '16px' }}>🎁</span>
-                      <span>{formState.showAllOffersButtonText} (3 available)</span>
-                    </span>
-                    <span style={{ 
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      transition: 'transform 0.3s ease'
-                    }}>▼</span>
-                    <div style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      background: 'linear-gradient(45deg, rgba(59, 130, 246, 0.05) 0%, transparent 50%)',
-                      pointerEvents: 'none',
-                      opacity: 0,
-                      transition: 'opacity 0.3s ease'
-                    }} />
-                  </button>
-                </div>
-              )}
+              <CouponCodeFieldComponent
+                placeholder={formState.placeholder}
+                buttonText={formState.buttonText}
+                showAllOffers={formState.showAllOffers}
+                showAllOffersButtonText={formState.showAllOffersButtonText}
+                enableAutoApply={formState.enableAutoApply}
+                appliedDiscount={formState.enableAutoApply ? {
+                  code: 'SUMMER20',
+                  title: 'Summer Sale',
+                  description: '20% OFF',
+                  type: 'percentage',
+                  value: 20
+                } : null}
+                availableDiscounts={formState.showAllOffers ? [
+                  { code: 'SAVE10', title: 'Welcome Offer', description: '10% OFF', type: 'percentage', value: 10 },
+                  { code: 'SUMMER20', title: 'Summer Sale', description: '20% OFF', type: 'percentage', value: 20 },
+                  { code: 'FLAT500', title: 'Flat Discount', description: '₹500 OFF', type: 'fixed', value: 500 }
+                ] : []}
+                onApplyCoupon={(code) => console.log('Apply coupon:', code)}
+                onRemoveDiscount={() => console.log('Remove discount')}
+                onSwitchDiscount={(code) => console.log('Switch discount:', code)}
+                isPreview={true}
+              />
 
               <Text as="p" variant="bodyMd" tone="subdued">
                 This is how the coupon field will appear in your cart drawer.

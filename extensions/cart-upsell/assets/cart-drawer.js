@@ -9035,10 +9035,26 @@
   }
 
   // extensions/cart-upsell/assets/modules/renderers/cart-items.js
-  function renderCartItems(cart, productCompareAtPrices, appliedDiscount) {
-    let html = "";
-    cart.items.forEach((item) => {
-      var _a;
+  var import_react4 = __toESM(require_react(), 1);
+  var import_client3 = __toESM(require_client(), 1);
+
+  // app/components/shared/CartItems.tsx
+  var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
+  var CartItems = ({
+    items,
+    productCompareAtPrices,
+    appliedDiscount = null,
+    onUpdateQuantity = () => {
+    },
+    onRemoveItem = () => {
+    },
+    isPreview = false
+  }) => {
+    const formatMoney2 = (cents) => {
+      const rupees = cents / 100;
+      return `\u20B9${rupees.toFixed(2)}`;
+    };
+    const calculateItemPrices = (item, cartTotalPrice2) => {
       const linePrice = item.line_price || item.price * item.quantity;
       const itemPrice = item.price || item.final_price || 0;
       let originalLinePrice = null;
@@ -9069,98 +9085,258 @@
       if (appliedDiscount && appliedDiscount.type === "percentage") {
         itemPriceWithCoupon = Math.round(itemSubtotal * (1 - appliedDiscount.value / 100));
       } else if (appliedDiscount && appliedDiscount.type === "fixed") {
-        const itemProportion = itemSubtotal / cart.total_price;
+        const itemProportion = itemSubtotal / cartTotalPrice2;
         const itemCouponDiscount = Math.round(appliedDiscount.value * 100 * itemProportion);
         itemPriceWithCoupon = Math.max(0, itemSubtotal - itemCouponDiscount);
       }
       const hasCouponDiscount = appliedDiscount && (appliedDiscount.type === "percentage" || appliedDiscount.type === "fixed");
-      html += `
-      <div class="upsellity-cart-item" data-item-key="${item.key}">
-        <img src="${((_a = item.featured_image) == null ? void 0 : _a.url) || item.image}" alt="${item.title}" class="upsellity-cart-item-image" />
-        <div class="upsellity-cart-item-details">
-          <div class="upsellity-cart-item-title">${item.title}</div>
-          <div class="upsellity-cart-item-variant">${item.variant_title || ""}</div>
-          <div class="upsellity-cart-item-price">
-            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              ${renderItemPrice(hasItemDiscount, hasCouponDiscount, originalLinePrice, itemSubtotal, itemPriceWithCoupon, itemDiscountPercent)}
-            </div>
-            ${hasCouponDiscount ? `
-              <div style="font-size: 11px; color: #059669; margin-top: 2px;">
-                Coupon discount applied
-              </div>
-            ` : ""}
-          </div>
-          <div class="upsellity-cart-item-controls">
-            <div class="upsellity-quantity-controls">
-              <button class="upsellity-quantity-btn" onclick="window.upsellityDrawer.updateQuantity('${item.key}', ${item.quantity - 1})" ${item.quantity <= 1 ? "disabled" : ""}>\u2212</button>
-              <span class="upsellity-quantity-display">${item.quantity}</span>
-              <button class="upsellity-quantity-btn" onclick="window.upsellityDrawer.updateQuantity('${item.key}', ${item.quantity + 1})">+</button>
-            </div>
-            <button class="upsellity-remove-btn" onclick="window.upsellityDrawer.removeItem('${item.key}')" title="Remove item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3,6 5,6 21,6"></polyline>
-                <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
-                <line x1="10" y1="11" x2="10" y2="17"></line>
-                <line x1="14" y1="11" x2="14" y2="17"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-    });
+      return {
+        originalLinePrice,
+        itemSubtotal,
+        itemPriceWithCoupon,
+        hasItemDiscount,
+        hasCouponDiscount,
+        itemDiscountPercent
+      };
+    };
+    const cartTotalPrice = items.reduce((sum, item) => sum + (item.line_price || item.price * item.quantity), 0);
+    return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(import_jsx_runtime3.Fragment, { children: items.map((item) => {
+      var _a;
+      const prices = calculateItemPrices(item, cartTotalPrice);
+      const imageUrl = ((_a = item.featured_image) == null ? void 0 : _a.url) || item.image || "";
+      return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+        "div",
+        {
+          style: {
+            display: "flex",
+            gap: isPreview ? "10px" : "12px",
+            padding: isPreview ? "10px 0" : "12px 0",
+            borderBottom: "1px solid #e5e7eb"
+          },
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              "img",
+              {
+                src: imageUrl,
+                alt: item.title,
+                style: {
+                  width: isPreview ? "60px" : "70px",
+                  height: isPreview ? "60px" : "70px",
+                  objectFit: "cover",
+                  borderRadius: "6px",
+                  border: "1px solid #e5e7eb",
+                  flexShrink: 0
+                }
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
+                fontSize: isPreview ? "13px" : "14px",
+                fontWeight: "600",
+                color: "#111827",
+                marginBottom: "2px",
+                lineHeight: "1.3"
+              }, children: item.title }),
+              item.variant_title && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
+                fontSize: isPreview ? "11px" : "12px",
+                color: "#6b7280",
+                marginBottom: "6px"
+              }, children: item.variant_title }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { marginBottom: "8px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  flexWrap: "wrap"
+                }, children: [
+                  prices.hasItemDiscount && !prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                      textDecoration: "line-through",
+                      color: "#9ca3af",
+                      fontSize: isPreview ? "12px" : "13px"
+                    }, children: formatMoney2(prices.originalLinePrice) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                      fontWeight: "700",
+                      fontSize: isPreview ? "14px" : "16px",
+                      color: "#f59e0b"
+                    }, children: formatMoney2(prices.itemSubtotal) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { style: {
+                      background: "#fef3c7",
+                      color: "#92400e",
+                      padding: "2px 6px",
+                      borderRadius: "4px",
+                      fontSize: "10px",
+                      fontWeight: "600"
+                    }, children: [
+                      prices.itemDiscountPercent,
+                      "% OFF"
+                    ] })
+                  ] }),
+                  prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                      textDecoration: "line-through",
+                      color: "#9ca3af",
+                      fontSize: isPreview ? "12px" : "13px"
+                    }, children: formatMoney2(prices.itemSubtotal) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                      fontWeight: "700",
+                      fontSize: isPreview ? "14px" : "16px",
+                      color: "#059669"
+                    }, children: formatMoney2(prices.itemPriceWithCoupon) })
+                  ] }),
+                  !prices.hasItemDiscount && !prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                    fontWeight: "700",
+                    fontSize: isPreview ? "14px" : "16px",
+                    color: "#111827"
+                  }, children: formatMoney2(prices.itemSubtotal) })
+                ] }),
+                prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
+                  fontSize: "11px",
+                  color: "#059669",
+                  marginTop: "2px"
+                }, children: "Coupon discount applied" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between"
+              }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "6px",
+                  padding: "4px"
+                }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    "button",
+                    {
+                      onClick: () => !isPreview && onUpdateQuantity(item.key, item.quantity - 1),
+                      disabled: isPreview || item.quantity <= 1,
+                      style: {
+                        width: "24px",
+                        height: "24px",
+                        border: "none",
+                        backgroundColor: isPreview || item.quantity <= 1 ? "#f3f4f6" : "#ffffff",
+                        color: isPreview || item.quantity <= 1 ? "#9ca3af" : "#374151",
+                        borderRadius: "4px",
+                        cursor: isPreview || item.quantity <= 1 ? "not-allowed" : "pointer",
+                        fontSize: "16px",
+                        fontWeight: "700",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "background-color 0.2s"
+                      },
+                      children: "\u2212"
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                    minWidth: "24px",
+                    textAlign: "center",
+                    fontSize: isPreview ? "13px" : "14px",
+                    fontWeight: "600",
+                    color: "#111827"
+                  }, children: item.quantity }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    "button",
+                    {
+                      onClick: () => !isPreview && onUpdateQuantity(item.key, item.quantity + 1),
+                      disabled: isPreview,
+                      style: {
+                        width: "24px",
+                        height: "24px",
+                        border: "none",
+                        backgroundColor: isPreview ? "#f3f4f6" : "#ffffff",
+                        color: isPreview ? "#9ca3af" : "#374151",
+                        borderRadius: "4px",
+                        cursor: isPreview ? "not-allowed" : "pointer",
+                        fontSize: "16px",
+                        fontWeight: "700",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "background-color 0.2s"
+                      },
+                      children: "+"
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  "button",
+                  {
+                    onClick: () => !isPreview && onRemoveItem(item.key),
+                    disabled: isPreview,
+                    title: "Remove item",
+                    style: {
+                      width: "32px",
+                      height: "32px",
+                      border: "none",
+                      backgroundColor: "transparent",
+                      color: isPreview ? "#9ca3af" : "#dc2626",
+                      cursor: isPreview ? "not-allowed" : "pointer",
+                      borderRadius: "6px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "background-color 0.2s"
+                    },
+                    children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("polyline", { points: "3,6 5,6 21,6" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "10", y1: "11", x2: "10", y2: "17" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "14", y1: "11", x2: "14", y2: "17" })
+                    ] })
+                  }
+                )
+              ] })
+            ] })
+          ]
+        },
+        item.key
+      );
+    }) });
+  };
+
+  // extensions/cart-upsell/assets/modules/renderers/cart-items.js
+  function renderCartItems(cart, productCompareAtPrices, appliedDiscount) {
+    const containerId = `upsellity-cart-items-root-${Date.now()}`;
+    const html = `<div id="${containerId}"></div>`;
+    setTimeout(() => {
+      const container = document.getElementById(containerId);
+      if (container) {
+        const root = (0, import_client3.createRoot)(container);
+        root.render(
+          import_react4.default.createElement(CartItems, {
+            items: cart.items,
+            productCompareAtPrices,
+            appliedDiscount,
+            onUpdateQuantity: (key, quantity) => {
+              if (window.upsellityDrawer) {
+                window.upsellityDrawer.updateQuantity(key, quantity);
+              }
+            },
+            onRemoveItem: (key) => {
+              if (window.upsellityDrawer) {
+                window.upsellityDrawer.removeItem(key);
+              }
+            },
+            isPreview: false
+          })
+        );
+      }
+    }, 0);
     return html;
-  }
-  function renderItemPrice(hasItemDiscount, hasCouponDiscount, originalLinePrice, itemSubtotal, itemPriceWithCoupon, itemDiscountPercent) {
-    if (hasItemDiscount && !hasCouponDiscount) {
-      return `
-      <span style="text-decoration: line-through; color: #9ca3af; font-size: 13px;">
-        ${formatMoney(originalLinePrice)}
-      </span>
-      <span style="font-weight: 700; font-size: 16px; color: #f59e0b;">
-        ${formatMoney(itemSubtotal)}
-      </span>
-      <span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;">
-        ${itemDiscountPercent}% OFF
-      </span>
-    `;
-    } else if (hasCouponDiscount) {
-      return `
-      <span style="text-decoration: line-through; color: #9ca3af; font-size: 13px;">
-        ${formatMoney(itemSubtotal)}
-      </span>
-      <span style="font-weight: 700; font-size: 16px; color: #059669;">
-        ${formatMoney(itemPriceWithCoupon)}
-      </span>
-    `;
-    } else if (hasItemDiscount) {
-      return `
-      <span style="text-decoration: line-through; color: #9ca3af; font-size: 13px;">
-        ${formatMoney(originalLinePrice)}
-      </span>
-      <span style="font-weight: 700; font-size: 16px; color: #f59e0b;">
-        ${formatMoney(itemSubtotal)}
-      </span>
-      <span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;">
-        ${itemDiscountPercent}% OFF
-      </span>
-    `;
-    } else {
-      return `
-      <span style="font-weight: 700; font-size: 16px; color: #111827;">
-        ${formatMoney(itemSubtotal)}
-      </span>
-    `;
-    }
   }
 
   // extensions/cart-upsell/assets/modules/renderers/product-recommendations.js
-  var import_react5 = __toESM(require_react(), 1);
-  var import_client3 = __toESM(require_client(), 1);
+  var import_react6 = __toESM(require_react(), 1);
+  var import_client4 = __toESM(require_client(), 1);
 
   // app/components/shared/ProductRecommendations.tsx
-  var import_react4 = __toESM(require_react(), 1);
-  var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
+  var import_react5 = __toESM(require_react(), 1);
+  var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
   var ProductRecommendations = ({
     title = "You may also like",
     products = [],
@@ -9172,9 +9348,9 @@
     onAddToCart,
     isPreview = false
   }) => {
-    const [canScrollLeft, setCanScrollLeft] = (0, import_react4.useState)(false);
-    const [canScrollRight, setCanScrollRight] = (0, import_react4.useState)(false);
-    const scrollContainerRef = (0, import_react4.useRef)(null);
+    const [canScrollLeft, setCanScrollLeft] = (0, import_react5.useState)(false);
+    const [canScrollRight, setCanScrollRight] = (0, import_react5.useState)(false);
+    const scrollContainerRef = (0, import_react5.useRef)(null);
     const isGrid = layout === "grid";
     const displayProducts = products.slice(0, maxProducts);
     const updateScrollState = () => {
@@ -9186,7 +9362,7 @@
       setCanScrollLeft(currentScroll > 5);
       setCanScrollRight(currentScroll < maxScrollLeft - 5);
     };
-    (0, import_react4.useEffect)(() => {
+    (0, import_react5.useEffect)(() => {
       updateScrollState();
       const container = scrollContainerRef.current;
       if (container && !isGrid) {
@@ -9213,18 +9389,18 @@
     if (displayProducts.length === 0) {
       return null;
     }
-    return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { marginTop: isPreview ? "16px" : "8px" }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("h4", { style: {
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { marginTop: isPreview ? "16px" : "8px" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h4", { style: {
         fontSize: isPreview ? "15px" : "14px",
         fontWeight: "600",
         marginBottom: "8px",
         color: "#111827"
       }, children: title }),
-      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
         position: "relative",
         overflow: "hidden"
       }, children: [
-        !isGrid && canScrollLeft && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        !isGrid && canScrollLeft && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
           "button",
           {
             onClick: () => handleScroll("left"),
@@ -9257,10 +9433,10 @@
               e.currentTarget.style.background = "rgba(255, 255, 255, 0.9)";
               e.currentTarget.style.transform = "translateY(-50%) scale(1)";
             },
-            children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: { fontSize: "16px", color: "#374151" }, children: "\u2039" })
+            children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontSize: "16px", color: "#374151" }, children: "\u2039" })
           }
         ),
-        !isGrid && canScrollRight && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        !isGrid && canScrollRight && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
           "button",
           {
             onClick: () => handleScroll("right"),
@@ -9293,10 +9469,10 @@
               e.currentTarget.style.background = "rgba(255, 255, 255, 0.9)";
               e.currentTarget.style.transform = "translateY(-50%) scale(1)";
             },
-            children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: { fontSize: "16px", color: "#374151" }, children: "\u203A" })
+            children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontSize: "16px", color: "#374151" }, children: "\u203A" })
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
           "div",
           {
             ref: scrollContainerRef,
@@ -9320,7 +9496,7 @@
             },
             children: displayProducts.map((product) => {
               const discount = product.compareAtPrice && product.compareAtPrice > product.price ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
-              return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+              return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
                 "div",
                 {
                   style: isGrid ? {
@@ -9343,8 +9519,8 @@
                     transition: "transform 0.2s ease, box-shadow 0.2s ease"
                   },
                   children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { position: "relative", marginBottom: "6px" }, children: [
-                      product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { position: "relative", marginBottom: "6px" }, children: [
+                      product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
                         "img",
                         {
                           src: product.imageUrl,
@@ -9356,7 +9532,7 @@
                             borderRadius: "4px"
                           }
                         }
-                      ) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
+                      ) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
                         width: "100%",
                         height: "60px",
                         backgroundColor: "#f3f4f6",
@@ -9366,7 +9542,7 @@
                         justifyContent: "center",
                         fontSize: "24px"
                       }, children: "\u{1F4E6}" }),
-                      showDiscountBadge && discount > 0 && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+                      showDiscountBadge && discount > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
                         position: "absolute",
                         top: "4px",
                         right: "4px",
@@ -9382,7 +9558,7 @@
                         "% off"
                       ] })
                     ] }),
-                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
                       fontSize: "11px",
                       fontWeight: "600",
                       marginBottom: "4px",
@@ -9394,8 +9570,8 @@
                       WebkitBoxOrient: "vertical",
                       overflow: "hidden"
                     }, children: product.title }),
-                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: { marginBottom: "4px" }, children: showDiscount && product.compareAtPrice && product.compareAtPrice > product.price ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { style: {
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { marginBottom: "4px" }, children: showDiscount && product.compareAtPrice && product.compareAtPrice > product.price ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: {
                         textDecoration: "line-through",
                         color: "#9ca3af",
                         fontSize: "10px",
@@ -9404,15 +9580,15 @@
                         "\u20B9",
                         Math.round(product.compareAtPrice)
                       ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { style: { fontWeight: "600", fontSize: "11px", color: "#111827" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { fontWeight: "600", fontSize: "11px", color: "#111827" }, children: [
                         "\u20B9",
                         Math.round(product.price)
                       ] })
-                    ] }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { style: { fontWeight: "600", fontSize: "11px", color: "#111827" }, children: [
+                    ] }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { fontWeight: "600", fontSize: "11px", color: "#111827" }, children: [
                       "\u20B9",
                       Math.round(product.price)
                     ] }) }),
-                    showAddButton && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    showAddButton && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
                       "button",
                       {
                         onClick: () => handleAddClick(product),
@@ -9466,9 +9642,9 @@
       var _a, _b, _c;
       const container = document.getElementById(containerId);
       if (container) {
-        const root = (0, import_client3.createRoot)(container);
+        const root = (0, import_client4.createRoot)(container);
         root.render(
-          import_react5.default.createElement(ProductRecommendations, {
+          import_react6.default.createElement(ProductRecommendations, {
             title: recommendations.title || "You may also like",
             products,
             layout: recommendations.layout || "carousel",
@@ -9489,7 +9665,42 @@
     return html;
   }
 
-  // extensions/cart-upsell/assets/modules/renderers/other-features.js
+  // extensions/cart-upsell/assets/modules/renderers/savings-display.js
+  var import_react7 = __toESM(require_react(), 1);
+  var import_client5 = __toESM(require_client(), 1);
+
+  // app/components/shared/SavingsDisplay.tsx
+  var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
+  var SavingsDisplay = ({
+    message,
+    amount,
+    backgroundColor = "#dcfce7",
+    textColor = "#15803d",
+    isPreview = false
+  }) => {
+    if (amount <= 0) {
+      return null;
+    }
+    const formatMoney2 = (cents) => {
+      const rupees = cents / 100;
+      return `\u20B9${rupees.toFixed(2)}`;
+    };
+    const formattedMessage = message.replace("{amount}", formatMoney2(amount));
+    return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: {
+      backgroundColor,
+      color: textColor,
+      padding: isPreview ? "10px 14px" : "12px 16px",
+      borderRadius: isPreview ? "8px" : "10px",
+      fontSize: isPreview ? "13px" : "14px",
+      fontWeight: "600",
+      marginBottom: isPreview ? "12px" : "16px",
+      textAlign: "center",
+      border: `1px solid ${textColor}40`,
+      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)"
+    }, children: formattedMessage });
+  };
+
+  // extensions/cart-upsell/assets/modules/renderers/savings-display.js
   function renderSavingsDisplay(config, cart, appliedDiscount) {
     if (!config.features.savingsDisplay) {
       return "";
@@ -9500,194 +9711,558 @@
     }, 0);
     const discountSavings = appliedDiscount ? calculateEstimatedDiscount(appliedDiscount, cart) : 0;
     const totalSavings = Math.max(itemLevelSavings, discountSavings);
-    if (totalSavings > 0) {
-      return `
-      <div class="upsellity-savings-display" style="background-color: ${savingsCfg.backgroundColor}; color: ${savingsCfg.textColor}">
-        ${savingsCfg.message.replace("{amount}", formatMoney(totalSavings))}
-      </div>
-    `;
+    if (totalSavings <= 0) {
+      return "";
     }
-    return "";
+    const containerId = `upsellity-savings-display-root-${Date.now()}`;
+    const html = `<div id="${containerId}"></div>`;
+    setTimeout(() => {
+      const container = document.getElementById(containerId);
+      if (container) {
+        const root = (0, import_client5.createRoot)(container);
+        root.render(
+          import_react7.default.createElement(SavingsDisplay, {
+            message: savingsCfg.message || "You saved {amount}!",
+            amount: totalSavings,
+            backgroundColor: savingsCfg.backgroundColor || "#dcfce7",
+            textColor: savingsCfg.textColor || "#15803d",
+            isPreview: false
+          })
+        );
+      }
+    }, 0);
+    return html;
   }
+
+  // extensions/cart-upsell/assets/modules/renderers/free-shipping-message.js
+  var import_react8 = __toESM(require_react(), 1);
+  var import_client6 = __toESM(require_client(), 1);
+
+  // app/components/shared/FreeShippingMessage.tsx
+  var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
+  var FreeShippingMessage = ({
+    thresholdAmount,
+    cartTotal,
+    beforeThresholdMessage,
+    achievedMessage,
+    backgroundColor = "#fef3c7",
+    textColor = "#92400e",
+    currency = "INR",
+    isPreview = false
+  }) => {
+    const cartTotalInCurrency = cartTotal / 100;
+    const remaining = Math.max(thresholdAmount - cartTotalInCurrency, 0);
+    const currencySymbol = currency === "INR" ? "\u20B9" : "$";
+    const message = remaining > 0 ? beforeThresholdMessage.replace("{threshold}", `${currencySymbol}${Math.round(thresholdAmount)}`).replace("{remaining}", `${currencySymbol}${Math.round(remaining)}`) : achievedMessage;
+    return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: {
+      backgroundColor,
+      color: textColor,
+      border: `2px solid ${textColor}`,
+      padding: isPreview ? "12px 16px" : "14px 18px",
+      borderRadius: isPreview ? "10px" : "12px",
+      display: "flex",
+      alignItems: "center",
+      gap: "12px",
+      fontSize: isPreview ? "13px" : "14px",
+      fontWeight: "700",
+      marginBottom: isPreview ? "12px" : "8px",
+      boxShadow: "0 3px 6px rgba(0, 0, 0, 0.1)",
+      position: "relative",
+      overflow: "hidden"
+    }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: "linear-gradient(45deg, rgba(255,255,255,0.2) 0%, transparent 50%)",
+        pointerEvents: "none"
+      } }),
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: {
+        fontSize: "20px",
+        flexShrink: 0,
+        position: "relative",
+        zIndex: 1
+      }, children: "\u{1F69A}" }),
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { style: {
+        position: "relative",
+        zIndex: 1,
+        textShadow: "0 1px 2px rgba(0,0,0,0.1)",
+        flex: 1
+      }, children: message })
+    ] });
+  };
+
+  // extensions/cart-upsell/assets/modules/renderers/free-shipping-message.js
   function renderFreeShippingMessage(config, cart) {
     if (!config.features.freeShippingMessage) {
       return "";
     }
     const msg = config.features.freeShippingMessage;
-    const threshold = parseFloat(msg.thresholdAmount);
-    const remaining = Math.max(threshold - cart.total_price / 100, 0);
-    console.log("Upsellity: Free shipping message debug:", {
-      msg,
-      threshold,
-      remaining,
-      cartTotal: cart.total_price,
-      cartTotalInRupees: cart.total_price / 100
-    });
-    return `
-    <div class="upsellity-shipping-message" style="background-color: ${msg.backgroundColor}; color: ${msg.textColor}; border: 2px solid ${msg.textColor}; padding: 14px 18px; border-radius: 12px; display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 700; margin-bottom: 8px; box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1); position: relative; overflow: hidden;">
-      <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(45deg, rgba(255,255,255,0.2) 0%, transparent 50%); pointer-events: none;"></div>
-      <div style="font-size: 20px; flex-shrink: 0; position: relative; z-index: 1;">\u{1F69A}</div>
-      <span style="position: relative; z-index: 1; text-shadow: 0 1px 2px rgba(0,0,0,0.1); flex: 1;">
-        ${remaining > 0 ? msg.beforeThresholdMessage.replace("{threshold}", `${msg.currency === "INR" ? "\u20B9" : "$"}${Math.round(threshold)}`).replace("{remaining}", `${msg.currency === "INR" ? "\u20B9" : "$"}${Math.round(remaining)}`) : msg.achievedMessage}
-      </span>
-    </div>
-  `;
+    const containerId = `upsellity-free-shipping-msg-root-${Date.now()}`;
+    const html = `<div id="${containerId}"></div>`;
+    setTimeout(() => {
+      const container = document.getElementById(containerId);
+      if (container) {
+        const root = (0, import_client6.createRoot)(container);
+        root.render(
+          import_react8.default.createElement(FreeShippingMessage, {
+            thresholdAmount: parseFloat(msg.thresholdAmount) || 0,
+            cartTotal: cart.total_price,
+            beforeThresholdMessage: msg.beforeThresholdMessage || "Add {remaining} more for FREE shipping",
+            achievedMessage: msg.achievedMessage || "You qualify for FREE shipping!",
+            backgroundColor: msg.backgroundColor || "#fef3c7",
+            textColor: msg.textColor || "#92400e",
+            currency: msg.currency || "INR",
+            isPreview: false
+          })
+        );
+      }
+    }, 0);
+    return html;
   }
+
+  // extensions/cart-upsell/assets/modules/renderers/coupon-code-field.js
+  var import_react10 = __toESM(require_react(), 1);
+  var import_client7 = __toESM(require_client(), 1);
+
+  // app/components/shared/CouponCodeField.tsx
+  var import_react9 = __toESM(require_react(), 1);
+  var import_jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
+  var CouponCodeField = ({
+    placeholder = "Enter coupon code",
+    buttonText = "Apply",
+    showAllOffers = false,
+    showAllOffersButtonText = "Show all offers",
+    enableAutoApply = false,
+    appliedDiscount = null,
+    availableDiscounts = [],
+    onApplyCoupon = () => {
+    },
+    onRemoveDiscount = () => {
+    },
+    onSwitchDiscount = () => {
+    },
+    isPreview = false
+  }) => {
+    const [couponCode, setCouponCode] = (0, import_react9.useState)("");
+    const [showingAllOffers, setShowingAllOffers] = (0, import_react9.useState)(false);
+    const handleApply = () => {
+      if (couponCode.trim()) {
+        onApplyCoupon(couponCode.trim());
+        if (!isPreview) {
+          setCouponCode("");
+        }
+      }
+    };
+    const handleKeyPress = (e) => {
+      if (e.key === "Enter") {
+        handleApply();
+      }
+    };
+    return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
+      marginBottom: isPreview ? "12px" : "16px"
+    }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
+        display: "flex",
+        gap: "8px",
+        marginBottom: "12px"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+          flex: 1,
+          position: "relative"
+        }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+          "input",
+          {
+            type: "text",
+            value: couponCode,
+            onChange: (e) => setCouponCode(e.target.value),
+            onKeyPress: handleKeyPress,
+            placeholder,
+            disabled: isPreview,
+            style: {
+              width: "100%",
+              padding: isPreview ? "10px 14px" : "12px 16px",
+              border: "2px solid #e5e7eb",
+              borderRadius: "8px",
+              fontSize: isPreview ? "13px" : "14px",
+              outline: "none",
+              transition: "border-color 0.2s ease",
+              backgroundColor: isPreview ? "#f9fafb" : "#ffffff",
+              cursor: isPreview ? "not-allowed" : "text"
+            }
+          }
+        ) }),
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+          "button",
+          {
+            onClick: handleApply,
+            disabled: isPreview || !couponCode.trim(),
+            style: {
+              padding: isPreview ? "10px 20px" : "12px 24px",
+              backgroundColor: isPreview || !couponCode.trim() ? "#9ca3af" : "#f97316",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              fontSize: isPreview ? "13px" : "14px",
+              fontWeight: "600",
+              cursor: isPreview ? "not-allowed" : "pointer",
+              transition: "background-color 0.2s ease",
+              whiteSpace: "nowrap"
+            },
+            children: buttonText
+          }
+        )
+      ] }),
+      appliedDiscount && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
+        backgroundColor: "#d1fae5",
+        border: "2px solid #059669",
+        borderRadius: "10px",
+        padding: isPreview ? "10px 14px" : "12px 16px",
+        marginBottom: "12px",
+        display: "flex",
+        alignItems: "center",
+        gap: "12px"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+          width: "24px",
+          height: "24px",
+          borderRadius: "50%",
+          backgroundColor: "#059669",
+          color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "14px",
+          fontWeight: "700",
+          flexShrink: 0
+        }, children: "\u2713" }),
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { flex: 1 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
+            fontSize: isPreview ? "13px" : "14px",
+            fontWeight: "600",
+            color: "#065f46",
+            marginBottom: "2px"
+          }, children: [
+            appliedDiscount.code,
+            " - ",
+            appliedDiscount.description
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+            fontSize: isPreview ? "11px" : "12px",
+            color: "#059669"
+          }, children: enableAutoApply ? "Best offer automatically applied" : "Applied" })
+        ] }),
+        !isPreview && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+          "button",
+          {
+            onClick: onRemoveDiscount,
+            style: {
+              padding: "6px 12px",
+              backgroundColor: "transparent",
+              color: "#dc2626",
+              border: "1px solid #dc2626",
+              borderRadius: "6px",
+              fontSize: "12px",
+              fontWeight: "600",
+              cursor: "pointer",
+              transition: "all 0.2s ease"
+            },
+            children: "Remove"
+          }
+        )
+      ] }),
+      showAllOffers && availableDiscounts.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
+          "button",
+          {
+            onClick: () => setShowingAllOffers(!showingAllOffers),
+            style: {
+              width: "100%",
+              padding: isPreview ? "10px 14px" : "12px 16px",
+              backgroundColor: "#fef3c7",
+              border: "2px solid #fbbf24",
+              borderRadius: "8px",
+              fontSize: isPreview ? "13px" : "14px",
+              fontWeight: "600",
+              color: "#92400e",
+              cursor: isPreview ? "default" : "pointer",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: showingAllOffers ? "8px" : "0",
+              transition: "all 0.2s ease"
+            },
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: { fontSize: "16px" }, children: "\u{1F381}" }),
+                /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("span", { children: [
+                  showAllOffersButtonText,
+                  " (",
+                  availableDiscounts.length,
+                  " available)"
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: {
+                fontSize: "12px",
+                color: "#6b7280",
+                transition: "transform 0.3s ease",
+                transform: showingAllOffers ? "rotate(180deg)" : "rotate(0deg)"
+              }, children: "\u25BC" })
+            ]
+          }
+        ),
+        showingAllOffers && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+          backgroundColor: "#ffffff",
+          border: "1px solid #e5e7eb",
+          borderRadius: "8px",
+          overflow: "hidden",
+          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)"
+        }, children: availableDiscounts.map((discount) => /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
+          "div",
+          {
+            onClick: () => !isPreview && onSwitchDiscount(discount.code),
+            style: {
+              padding: isPreview ? "10px 14px" : "12px 16px",
+              borderBottom: "1px solid #f3f4f6",
+              cursor: isPreview ? "default" : "pointer",
+              transition: "background-color 0.2s ease",
+              backgroundColor: (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? "#f0fdf4" : "transparent",
+              display: "flex",
+              alignItems: "center",
+              gap: "12px"
+            },
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+                width: "20px",
+                height: "20px",
+                borderRadius: "50%",
+                border: `2px solid ${(appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? "#059669" : "#d1d5db"}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "12px",
+                color: "#059669",
+                fontWeight: "700",
+                flexShrink: 0
+              }, children: (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? "\u2713" : "" }),
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { flex: 1 }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
+                  fontSize: isPreview ? "13px" : "14px",
+                  fontWeight: "600",
+                  color: "#111827",
+                  marginBottom: "2px"
+                }, children: [
+                  discount.code,
+                  " - ",
+                  discount.description
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+                  fontSize: isPreview ? "11px" : "12px",
+                  color: "#6b7280"
+                }, children: discount.title })
+              ] })
+            ]
+          },
+          discount.code
+        )) })
+      ] })
+    ] });
+  };
+
+  // extensions/cart-upsell/assets/modules/renderers/coupon-code-field.js
   function renderCouponCodeField(config, appliedDiscount, availableDiscounts, showingAllOffers) {
     if (!config.features.couponCodeField) {
       return "";
     }
     const couponField = config.features.couponCodeField;
-    return `
-    <div class="upsellity-coupon-field">
-      <div class="upsellity-coupon-input-container">
-        <div class="upsellity-coupon-input-wrapper">
-          <input 
-            type="text" 
-            id="upsellity-coupon-input" 
-            class="upsellity-coupon-input"
-            placeholder="${couponField.placeholder || "Enter coupon code"}"
-            onkeypress="if(event.key === 'Enter') window.upsellityDrawer.applyCoupon()"
-          />
-        </div>
-        <button 
-          class="upsellity-coupon-apply-btn"
-          onclick="window.upsellityDrawer.applyCoupon()"
-        >
-          ${couponField.buttonText || "Apply"}
-        </button>
-      </div>
-      <div id="upsellity-coupon-message" class="upsellity-coupon-message"></div>
-
-      ${appliedDiscount ? renderAppliedDiscount(appliedDiscount, couponField) : ""}
-
-      ${couponField.showAllOffers && availableDiscounts.length > 0 ? renderAllOffers(couponField, availableDiscounts, appliedDiscount, showingAllOffers) : ""}
-    </div>
-  `;
+    const containerId = `upsellity-coupon-field-root-${Date.now()}`;
+    const html = `<div id="${containerId}"></div>`;
+    setTimeout(() => {
+      const container = document.getElementById(containerId);
+      if (container) {
+        const root = (0, import_client7.createRoot)(container);
+        root.render(
+          import_react10.default.createElement(CouponCodeField, {
+            placeholder: couponField.placeholder || "Enter coupon code",
+            buttonText: couponField.buttonText || "Apply",
+            showAllOffers: couponField.showAllOffers || false,
+            showAllOffersButtonText: couponField.showAllOffersButtonText || "Show all offers",
+            enableAutoApply: couponField.enableAutoApply || false,
+            appliedDiscount,
+            availableDiscounts,
+            onApplyCoupon: (code) => {
+              if (window.upsellityDrawer) {
+                window.upsellityDrawer.applyCouponWithCode(code);
+              }
+            },
+            onRemoveDiscount: () => {
+              if (window.upsellityDrawer) {
+                window.upsellityDrawer.removeDiscount();
+              }
+            },
+            onSwitchDiscount: (code) => {
+              if (window.upsellityDrawer) {
+                window.upsellityDrawer.switchDiscount(code);
+              }
+            },
+            isPreview: false
+          })
+        );
+      }
+    }, 0);
+    return html;
   }
-  function renderAppliedDiscount(appliedDiscount, couponField) {
-    return `
-    <div class="upsellity-applied-discount">
-      <div class="upsellity-applied-discount-content">
-        <div class="upsellity-discount-checkmark">\u2713</div>
-        <div class="upsellity-discount-info">
-          <div class="upsellity-discount-title">
-            ${appliedDiscount.code} - ${appliedDiscount.description}
-          </div>
-          <div class="upsellity-discount-subtitle">
-            ${couponField.enableAutoApply ? "Best offer automatically applied" : "Applied"}
-          </div>
-        </div>
-        <button 
-          class="upsellity-discount-remove"
-          onclick="window.upsellityDrawer.removeDiscount()"
-        >
-          Remove
-        </button>
-      </div>
-    </div>
-  `;
-  }
-  function renderAllOffers(couponField, availableDiscounts, appliedDiscount, showingAllOffers) {
-    return `
-    <button 
-      class="upsellity-show-offers-btn"
-      onclick="window.upsellityDrawer.toggleAllOffers()"
-    >
-      <span style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 16px;">\u{1F381}</span>
-        <span>${couponField.showAllOffersButtonText || "Show all offers"} (${availableDiscounts.length} available)</span>
-      </span>
-      <span style="font-size: 12px; color: #6b7280; transition: transform 0.3s ease;" id="upsellity-offers-arrow">${showingAllOffers ? "\u25B2" : "\u25BC"}</span>
-    </button>
 
-    <div id="upsellity-all-offers-dropdown" class="upsellity-offers-list" style="display: ${showingAllOffers ? "block" : "none"};">
-      ${availableDiscounts.map((discount) => `
-        <div 
-          class="upsellity-offer-item ${(appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? "selected" : ""}"
-          onclick="window.upsellityDrawer.switchDiscount('${discount.code}')"
-        >
-          <div class="upsellity-offer-content">
-            <div class="upsellity-offer-checkbox">
-              ${(appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? "\u2713" : ""}
-            </div>
-            <div class="upsellity-offer-details">
-              <div class="upsellity-offer-code">
-                ${discount.code} - ${discount.description}
-              </div>
-              <div class="upsellity-offer-description">
-                ${discount.title}
-              </div>
-            </div>
-          </div>
-        </div>
-      `).join("")}
-    </div>
-  `;
-  }
-  function renderCartTotals(cart, appliedDiscount) {
-    const originalTotal = cart.items.reduce((sum, item) => {
+  // extensions/cart-upsell/assets/modules/renderers/cart-totals.js
+  var import_react11 = __toESM(require_react(), 1);
+  var import_client8 = __toESM(require_client(), 1);
+
+  // app/components/shared/CartTotals.tsx
+  var import_jsx_runtime8 = __toESM(require_jsx_runtime(), 1);
+  var CartTotals = ({
+    items,
+    totalPrice,
+    appliedDiscount = null,
+    isPreview = false
+  }) => {
+    const formatMoney2 = (cents) => {
+      const rupees = cents / 100;
+      return `\u20B9${rupees.toFixed(2)}`;
+    };
+    const calculateEstimatedDiscount2 = (discount, total) => {
+      if (!discount)
+        return 0;
+      if (discount.type === "percentage") {
+        return Math.round(total * discount.value / 100);
+      } else {
+        return discount.value * 100;
+      }
+    };
+    const originalTotal = items.reduce((sum, item) => {
       return sum + item.original_price * item.quantity;
     }, 0);
-    const subtotal = cart.total_price;
+    const subtotal = totalPrice;
     const itemLevelSavings = originalTotal - subtotal;
-    const couponDiscount = calculateEstimatedDiscount(appliedDiscount, cart);
+    const couponDiscount = calculateEstimatedDiscount2(appliedDiscount, totalPrice);
     const estimatedTotal = Math.max(0, subtotal - couponDiscount);
     const totalSavings = itemLevelSavings + couponDiscount;
-    return `
-    <div style="border-top: 2px solid #e5e7eb; padding-top: 16px; margin-top: 20px;">
-      ${itemLevelSavings > 0 || couponDiscount > 0 ? `
-        <div style="font-size: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; color: #6b7280;">
-          <span>Original Price</span>
-          <span style="text-decoration: line-through;">${formatMoney(originalTotal)}</span>
-        </div>
-      ` : ""}
-      
-      ${itemLevelSavings > 0 ? renderItemDiscounts(itemLevelSavings) : ""}
-      
-      <div style="font-size: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; ${itemLevelSavings > 0 ? "font-weight: 600;" : ""}">
-        <span style="color: #374151;">Subtotal</span>
-        <span style="color: #111827;">${formatMoney(subtotal)}</span>
-      </div>
-      
-      ${appliedDiscount && couponDiscount > 0 ? renderCouponDiscount(appliedDiscount, couponDiscount) : ""}
-      
-      <div style="font-size: 20px; font-weight: 700; padding-top: 12px; border-top: 2px solid #e5e7eb; display: flex; justify-content: space-between; color: #111827;">
-        <span>Total</span>
-        <span style="color: ${totalSavings > 0 ? "#059669" : "#111827"};">${formatMoney(estimatedTotal)}</span>
-      </div>
-      
-      <div style="font-size: 12px; color: #6b7280; margin-top: 8px; text-align: right;">
-        Taxes and shipping calculated at checkout
-      </div>
-    </div>
-  `;
-  }
-  function renderItemDiscounts(itemLevelSavings) {
-    return `
-    <div style="font-size: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; color: #f59e0b;">
-      <span style="display: flex; align-items: center; gap: 6px;">
-        <span>Item Discounts</span>
-        <span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;">
-          SALE
-        </span>
-      </span>
-      <span style="font-weight: 600;">-${formatMoney(itemLevelSavings)}</span>
-    </div>
-  `;
-  }
-  function renderCouponDiscount(appliedDiscount, couponDiscount) {
-    return `
-    <div style="font-size: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; color: #059669;">
-      <span style="display: flex; align-items: center; gap: 6px;">
-        <span>Coupon (${appliedDiscount.code})</span>
-        <span style="background: #d1fae5; color: #065f46; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600;">
-          ${appliedDiscount.type === "percentage" ? `${appliedDiscount.value}%` : "FIXED"}
-        </span>
-      </span>
-      <span style="font-weight: 600;">-${formatMoney(couponDiscount)}</span>
-    </div>
-  `;
+    return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
+      borderTop: "2px solid #e5e7eb",
+      paddingTop: isPreview ? "14px" : "16px",
+      marginTop: isPreview ? "16px" : "20px"
+    }, children: [
+      (itemLevelSavings > 0 || couponDiscount > 0) && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
+        fontSize: isPreview ? "14px" : "15px",
+        marginBottom: "10px",
+        display: "flex",
+        justifyContent: "space-between",
+        color: "#6b7280"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: "Original Price" }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { textDecoration: "line-through" }, children: formatMoney2(originalTotal) })
+      ] }),
+      itemLevelSavings > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
+        fontSize: isPreview ? "13px" : "14px",
+        marginBottom: "10px",
+        display: "flex",
+        justifyContent: "space-between",
+        color: "#f59e0b"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: "Item Discounts" }),
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: {
+            background: "#fef3c7",
+            color: "#92400e",
+            padding: "2px 6px",
+            borderRadius: "4px",
+            fontSize: "10px",
+            fontWeight: "600"
+          }, children: "SALE" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { fontWeight: "600" }, children: [
+          "-",
+          formatMoney2(itemLevelSavings)
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
+        fontSize: isPreview ? "15px" : "16px",
+        marginBottom: "12px",
+        display: "flex",
+        justifyContent: "space-between",
+        fontWeight: itemLevelSavings > 0 ? "600" : "normal"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: "#374151" }, children: "Subtotal" }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: "#111827" }, children: formatMoney2(subtotal) })
+      ] }),
+      appliedDiscount && couponDiscount > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
+        fontSize: isPreview ? "14px" : "15px",
+        marginBottom: "12px",
+        display: "flex",
+        justifyContent: "space-between",
+        color: "#059669"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
+            "Coupon (",
+            appliedDiscount.code,
+            ")"
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: {
+            background: "#d1fae5",
+            color: "#065f46",
+            padding: "2px 6px",
+            borderRadius: "4px",
+            fontSize: "10px",
+            fontWeight: "600"
+          }, children: appliedDiscount.type === "percentage" ? `${appliedDiscount.value}%` : "FIXED" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { fontWeight: "600" }, children: [
+          "-",
+          formatMoney2(couponDiscount)
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
+        fontSize: isPreview ? "18px" : "20px",
+        fontWeight: "700",
+        paddingTop: "12px",
+        borderTop: "2px solid #e5e7eb",
+        display: "flex",
+        justifyContent: "space-between",
+        color: "#111827"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: "Total" }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: totalSavings > 0 ? "#059669" : "#111827" }, children: formatMoney2(estimatedTotal) })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: {
+        fontSize: isPreview ? "11px" : "12px",
+        color: "#6b7280",
+        marginTop: "8px",
+        textAlign: "right"
+      }, children: "Taxes and shipping calculated at checkout" })
+    ] });
+  };
+
+  // extensions/cart-upsell/assets/modules/renderers/cart-totals.js
+  function renderCartTotals(cart, appliedDiscount) {
+    const containerId = `upsellity-cart-totals-root-${Date.now()}`;
+    const html = `<div id="${containerId}"></div>`;
+    setTimeout(() => {
+      const container = document.getElementById(containerId);
+      if (container) {
+        const root = (0, import_client8.createRoot)(container);
+        root.render(
+          import_react11.default.createElement(CartTotals, {
+            items: cart.items,
+            totalPrice: cart.total_price,
+            appliedDiscount,
+            isPreview: false
+          })
+        );
+      }
+    }, 0);
+    return html;
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-class.js
@@ -9923,6 +10498,16 @@
     }
     // Discount management
     async applyCoupon() {
+      const newDiscount = await applyCoupon(this.shop, this.config, this.appliedDiscount, this.render.bind(this));
+      if (newDiscount) {
+        this.appliedDiscount = newDiscount;
+      }
+    }
+    async applyCouponWithCode(code) {
+      const input = document.getElementById("upsellity-coupon-input");
+      if (input) {
+        input.value = code;
+      }
       const newDiscount = await applyCoupon(this.shop, this.config, this.appliedDiscount, this.render.bind(this));
       if (newDiscount) {
         this.appliedDiscount = newDiscount;

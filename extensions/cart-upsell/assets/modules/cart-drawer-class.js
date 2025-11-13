@@ -11,7 +11,10 @@ import { renderFreeShippingBar } from './renderers/free-shipping-bar.js';
 import { renderPromotionalBanner } from './renderers/promotional-banner.js';
 import { renderCartItems } from './renderers/cart-items.js';
 import { renderProductRecommendations } from './renderers/product-recommendations.js';
-import { renderSavingsDisplay, renderFreeShippingMessage, renderCouponCodeField, renderCartTotals } from './renderers/other-features.js';
+import { renderSavingsDisplay } from './renderers/savings-display.js';
+import { renderFreeShippingMessage } from './renderers/free-shipping-message.js';
+import { renderCouponCodeField } from './renderers/coupon-code-field.js';
+import { renderCartTotals } from './renderers/cart-totals.js';
 
 export class UpsellityCartDrawer {
   constructor() {
@@ -281,6 +284,17 @@ export class UpsellityCartDrawer {
 
   // Discount management
   async applyCoupon() {
+    const newDiscount = await DiscountManager.applyCoupon(this.shop, this.config, this.appliedDiscount, this.render.bind(this));
+    if (newDiscount) {
+      this.appliedDiscount = newDiscount;
+    }
+  }
+
+  async applyCouponWithCode(code) {
+    const input = document.getElementById('upsellity-coupon-input');
+    if (input) {
+      input.value = code;
+    }
     const newDiscount = await DiscountManager.applyCoupon(this.shop, this.config, this.appliedDiscount, this.render.bind(this));
     if (newDiscount) {
       this.appliedDiscount = newDiscount;
