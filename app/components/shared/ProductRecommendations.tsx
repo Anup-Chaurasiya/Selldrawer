@@ -90,11 +90,21 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
 
   return (
     <div style={{ marginTop: isPreview ? '16px' : '8px' }}>
+      <style>{`
+        .upsellity-product-recommendations-scroll::-webkit-scrollbar {
+          display: none;
+        }
+        .upsellity-product-recommendations-scroll {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
       <h4 style={{ 
-        fontSize: isPreview ? '15px' : '14px', 
+        fontSize: isPreview ? '14px' : '13px', 
         fontWeight: '600', 
-        marginBottom: '8px',
-        color: '#111827'
+        marginBottom: isPreview ? '6px' : '4px',
+        color: '#111827',
+        letterSpacing: '-0.01em'
       }}>
         {title}
       </h4>
@@ -109,35 +119,36 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
             onClick={() => handleScroll('left')}
             style={{
               position: 'absolute',
-              left: '0',
+              left: '4px',
               top: '50%',
               transform: 'translateY(-50%)',
-              background: 'rgba(255, 255, 255, 0.9)',
+              background: '#ffffff',
               border: '1px solid #e5e7eb',
               borderRadius: '50%',
-              width: '32px',
-              height: '32px',
+              width: '36px',
+              height: '36px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               zIndex: 10,
-              opacity: 0.7,
-              transition: 'all 0.2s ease',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+              transition: 'all 0.2s ease'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = '1';
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 1)';
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+              e.currentTarget.style.background = '#f9fafb';
+              e.currentTarget.style.borderColor = '#d1d5db';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = '0.7';
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
+              e.currentTarget.style.background = '#ffffff';
+              e.currentTarget.style.borderColor = '#e5e7eb';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.12)';
               e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
             }}
           >
-            <span style={{ fontSize: '16px', color: '#374151' }}>‹</span>
+            <span style={{ fontSize: '18px', color: '#374151', fontWeight: '300' }}>‹</span>
           </button>
         )}
 
@@ -147,57 +158,58 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
             onClick={() => handleScroll('right')}
             style={{
               position: 'absolute',
-              right: '0',
+              right: '4px',
               top: '50%',
               transform: 'translateY(-50%)',
-              background: 'rgba(255, 255, 255, 0.9)',
+              background: '#ffffff',
               border: '1px solid #e5e7eb',
               borderRadius: '50%',
-              width: '32px',
-              height: '32px',
+              width: '36px',
+              height: '36px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               zIndex: 10,
-              opacity: 0.7,
-              transition: 'all 0.2s ease',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+              transition: 'all 0.2s ease'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = '1';
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 1)';
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+              e.currentTarget.style.background = '#f9fafb';
+              e.currentTarget.style.borderColor = '#d1d5db';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = '0.7';
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
+              e.currentTarget.style.background = '#ffffff';
+              e.currentTarget.style.borderColor = '#e5e7eb';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.12)';
               e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
             }}
           >
-            <span style={{ fontSize: '16px', color: '#374151' }}>›</span>
+            <span style={{ fontSize: '18px', color: '#374151', fontWeight: '300' }}>›</span>
           </button>
         )}
 
         <div 
           ref={scrollContainerRef}
+          className={!isGrid ? 'upsellity-product-recommendations-scroll' : ''}
           style={isGrid ? {
             display: 'grid',
             gridTemplateColumns: `repeat(auto-fit, minmax(${isPreview ? '120px' : '120px'}, 1fr))`,
-            gap: '8px',
-            paddingBottom: '8px'
+            gap: '6px',
+            paddingBottom: '0px'
           } : {
             display: 'flex',
-            gap: '8px',
+            gap: '6px',
             overflowX: 'auto',
             scrollBehavior: 'smooth',
-            paddingBottom: '8px',
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#cbd5e1 #f1f5f9',
-            paddingLeft: canScrollLeft ? '40px' : '0',
-            paddingRight: canScrollRight ? '40px' : '0',
+            paddingBottom: '0px',
+            scrollbarWidth: 'none',
             msOverflowStyle: 'none',
-            WebkitOverflowScrolling: 'touch'
+            WebkitOverflowScrolling: 'touch',
+            paddingLeft: canScrollLeft ? '44px' : '0',
+            paddingRight: canScrollRight ? '44px' : '0'
           }}
         >
           {displayProducts.map((product) => {
@@ -211,46 +223,73 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
                 style={isGrid ? {
                   border: '1px solid #e5e7eb',
                   borderRadius: '6px',
-                  padding: '8px',
-                  textAlign: 'center',
+                  padding: '6px',
                   backgroundColor: '#ffffff',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100%'
                 } : {
                   border: '1px solid #e5e7eb',
                   borderRadius: '6px',
-                  padding: '8px',
-                  textAlign: 'center',
+                  padding: '6px',
                   minWidth: isPreview ? '120px' : '120px',
+                  maxWidth: isPreview ? '120px' : '120px',
                   flexShrink: 0,
                   backgroundColor: '#ffffff',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.12)';
+                  e.currentTarget.style.borderColor = '#d1d5db';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.08)';
+                  e.currentTarget.style.borderColor = '#e5e7eb';
                 }}
               >
                 {/* Product Image */}
-                <div style={{ position: 'relative', marginBottom: '6px' }}>
+                <div style={{ 
+                  position: 'relative', 
+                  marginBottom: '4px',
+                  borderRadius: '4px',
+                  overflow: 'hidden',
+                  backgroundColor: '#f9fafb',
+                  aspectRatio: '1',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
                   {product.imageUrl ? (
                     <img 
                       src={product.imageUrl} 
                       alt={product.title}
                       style={{ 
                         width: '100%', 
-                        height: '60px', 
+                        height: '100%', 
                         objectFit: 'cover',
-                        borderRadius: '4px'
+                        display: 'block'
                       }} 
                     />
                   ) : (
                     <div style={{ 
                       width: '100%', 
-                      height: '60px', 
+                      height: '100%', 
                       backgroundColor: '#f3f4f6',
-                      borderRadius: '4px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '24px'
+                      fontSize: '24px',
+                      color: '#9ca3af'
                     }}>📦</div>
                   )}
                   
@@ -258,55 +297,75 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
                   {showDiscountBadge && discount > 0 && (
                     <div style={{ 
                       position: 'absolute',
-                      top: '4px',
-                      right: '4px',
-                      backgroundColor: '#10b981',
+                      top: '3px',
+                      right: '3px',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                       color: 'white',
-                      padding: '2px 6px',
-                      borderRadius: '10px',
-                      fontSize: '9px',
-                      fontWeight: '600',
-                      zIndex: 1
+                      padding: '1px 5px',
+                      borderRadius: '8px',
+                      fontSize: '8px',
+                      fontWeight: '700',
+                      zIndex: 1,
+                      boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)',
+                      letterSpacing: '0.3px'
                     }}>
-                      {discount}% off
+                      -{discount}%
                     </div>
                   )}
                 </div>
 
                 {/* Product Title */}
                 <div style={{ 
-                  fontSize: '11px', 
-                  fontWeight: '600', 
-                  marginBottom: '4px', 
-                  lineHeight: '1.3',
+                  fontSize: '10px', 
+                  fontWeight: '500', 
+                  marginBottom: '2px', 
+                  lineHeight: '1.2',
                   color: '#111827',
-                  minHeight: '28px',
+                  minHeight: '24px',
                   display: '-webkit-box',
                   WebkitLineClamp: 2,
                   WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  letterSpacing: '-0.01em'
                 }}>
                   {product.title}
                 </div>
 
                 {/* Price */}
-                <div style={{ marginBottom: '4px' }}>
+                <div style={{ 
+                  marginBottom: '4px',
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: '4px',
+                  flexWrap: 'wrap'
+                }}>
                   {showDiscount && product.compareAtPrice && product.compareAtPrice > product.price ? (
                     <>
                       <span style={{ 
                         textDecoration: 'line-through',
                         color: '#9ca3af',
-                        fontSize: '10px',
-                        marginRight: '4px'
+                        fontSize: '9px',
+                        fontWeight: '400'
                       }}>
                         ₹{Math.round(product.compareAtPrice)}
                       </span>
-                      <span style={{ fontWeight: '600', fontSize: '11px', color: '#111827' }}>
+                      <span style={{ 
+                        fontWeight: '700', 
+                        fontSize: '11px', 
+                        color: '#111827',
+                        letterSpacing: '-0.01em'
+                      }}>
                         ₹{Math.round(product.price)}
                       </span>
                     </>
                   ) : (
-                    <span style={{ fontWeight: '600', fontSize: '11px', color: '#111827' }}>
+                    <span style={{ 
+                      fontWeight: '700', 
+                      fontSize: '11px', 
+                      color: '#111827',
+                      letterSpacing: '-0.01em'
+                    }}>
                       ₹{Math.round(product.price)}
                     </span>
                   )}
@@ -319,25 +378,36 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
                     style={{
                       width: '100%',
                       padding: '4px 8px',
-                      backgroundColor: '#f97316',
+                      background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
                       color: 'white',
                       border: 'none',
                       borderRadius: '4px',
-                      fontSize: '10px',
+                      fontSize: '9px',
                       fontWeight: '600',
                       cursor: 'pointer',
-                      transition: 'all 0.2s'
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: '0 1px 3px rgba(249, 115, 22, 0.3)',
+                      letterSpacing: '0.2px',
+                      marginTop: 'auto'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#ea580c';
-                      e.currentTarget.style.transform = 'scale(1.02)';
+                      e.currentTarget.style.background = 'linear-gradient(135deg, #ea580c 0%, #dc2626 100%)';
+                      e.currentTarget.style.boxShadow = '0 2px 6px rgba(249, 115, 22, 0.4)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f97316';
-                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.background = 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)';
+                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(249, 115, 22, 0.3)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                    onMouseDown={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                    onMouseUp={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-1px)';
                     }}
                   >
-                    + Add
+                    + Add to Cart
                   </button>
                 )}
               </div>

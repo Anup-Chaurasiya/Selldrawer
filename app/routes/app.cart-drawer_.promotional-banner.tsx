@@ -15,11 +15,13 @@ import {
   Banner,
   RangeSlider,
   Thumbnail,
+  Icon,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { PromotionalBannerCard } from "../components/shared/PromotionalBannerCard";
+import { PlayIcon } from "@shopify/polaris-icons";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -625,7 +627,28 @@ export default function PromotionalBanner() {
                         <Card key={slide.id}>
                           <InlineStack align="space-between" blockAlign="center">
                             <InlineStack gap="300" blockAlign="center">
-                              <Thumbnail source={slide.imageUrl} alt={`Slide ${index + 1}`} size="small" />
+                              {slide.videoUrl && !slide.imageUrl ? (
+                                <div
+                                  style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    borderRadius: '8px',
+                                    backgroundColor: '#FA003F',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  <Icon source={PlayIcon} tone="base" />
+                                </div>
+                              ) : (
+                                <Thumbnail 
+                                  source={slide.imageUrl || slide.videoUrl} 
+                                  alt={`Slide ${index + 1}`} 
+                                  size="small" 
+                                />
+                              )}
                               <BlockStack gap="100">
                                 <Text as="p" variant="bodyMd" fontWeight="semibold">
                                   Slide {index + 1}

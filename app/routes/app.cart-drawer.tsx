@@ -578,14 +578,6 @@ function MiniCartDrawerPreview({
           }}>
             Cart Drawer Preview
           </h3>
-          <p style={{ 
-            fontSize: '14px', 
-            color: '#6b7280', 
-            margin: '2px 0 0 0',
-            fontWeight: '500'
-          }}>
-            {sampleCart.itemCount} {sampleCart.itemCount === 1 ? 'item' : 'items'}
-          </p>
         </div>
         <button style={{ 
           background: 'none', 
