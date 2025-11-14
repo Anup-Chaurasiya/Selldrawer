@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
-import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
+import { useLoaderData, useSubmit, useNavigation, useRevalidator } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -24,9 +24,10 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback, useEffect } from "react";
+import { ProductRecommendations as ProductRecommendationsComponent } from "../components/shared/ProductRecommendations";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
 
   const cartDrawer = await prisma.cartDrawer.findUnique({
@@ -49,11 +50,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let shopProducts: any[] = [];
   
   try {
-    const { admin } = await authenticate.admin(request);
-    
     const response = await admin.graphql(`
-      query getProducts($first: Int!) {
-        products(first: $first) {
+      query getProducts($first: Int!, $query: String!) {
+        products(first: $first, query: $query) {
           edges {
             node {
               id
@@ -71,8 +70,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
               variants(first: 1) {
                 edges {
                   node {
+                    id
                     price
                     compareAtPrice
+                    availableForSale
+                    inventoryQuantity
                   }
                 }
               }
@@ -81,37 +83,53 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         }
       }
     `, {
-      variables: { first: 50 }
+      variables: { first: 50, query: "status:active" }
     });
 
-    const responseJson = await response.json();
+    const responseJson = await response.json() as any;
     
-    if (responseJson.data && responseJson.data.products && responseJson.data.products.edges) {
-      shopProducts = responseJson.data.products.edges.map((edge: any) => {
-        const product = edge.node;
-        const image = product.images.edges[0]?.node;
-        const variant = product.variants.edges[0]?.node;
-        
-        return {
-          id: product.handle, // Use handle as ID for frontend compatibility
-          shopifyProductId: product.id.replace('gid://shopify/Product/', ''), // Keep numeric ID for reference
-          title: product.title,
-          handle: product.handle,
-          status: product.status.toLowerCase(),
-          images: image ? [{ src: image.url, alt: image.altText }] : [],
-          variants: variant ? [{
-            price: variant.price,
-            compare_at_price: variant.compareAtPrice
-          }] : []
-        };
-      });
+    // Check for GraphQL errors
+    if (responseJson.errors) {
+      throw new Error('Failed to fetch products from Shopify. Please check your Shopify connection.');
+      // Continue with empty array instead of throwing
+    } else if (responseJson.data?.products?.edges) {
+      shopProducts = responseJson.data.products.edges
+        .map((edge: any) => {
+          const product = edge.node;
+          const image = product.images.edges[0]?.node;
+          const variant = product.variants.edges[0]?.node;
+          
+          // Check if product is available (variant available and has inventory if tracked)
+          const isAvailable = variant ? (
+            variant.availableForSale && 
+            (variant.inventoryQuantity === null || 
+             variant.inventoryQuantity > 0)
+          ) : false;
+          
+          return {
+            id: product.handle, // Use handle as ID for frontend compatibility
+            shopifyProductId: product.id.replace('gid://shopify/Product/', ''), // Keep numeric ID for reference
+            title: product.title,
+            handle: product.handle,
+            status: product.status.toLowerCase(),
+            images: image ? [{ src: image.url, alt: image.altText }] : [],
+            variants: variant ? [{
+              price: variant.price,
+              compare_at_price: variant.compareAtPrice,
+              available: isAvailable
+            }] : [],
+            available: isAvailable
+          };
+        })
+        .filter((product: any) => product.available); // Filter out out-of-stock products
       
     } else {
       console.error('No products found in GraphQL response:', responseJson);
     }
   } catch (error) {
     console.error('Error fetching products from Shopify:', error);
-    throw new Error('Failed to fetch products from your store. Please check your Shopify connection.');
+    // Handle gracefully - return empty array instead of throwing
+    // This allows the page to load even if product fetching fails
   }
 
   
@@ -119,7 +137,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
 
   const formData = await request.formData();
@@ -133,7 +151,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       data: { productRecommendationsEnabled: enabled },
     });
 
-    return json({ success: true });
+    // Return with revalidation headers to ensure instant update
+    return json({ success: true }, {
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+      }
+    });
   }
 
 
@@ -185,11 +208,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Add new recommended products
     if (selectedProducts.length > 0) {
-      const { admin } = await authenticate.admin(request);
-      
       for (let i = 0; i < selectedProducts.length; i++) {
         const productId = selectedProducts[i];
-        
         try {
           // Use GraphQL to fetch product details by handle
           const response = await admin.graphql(`
@@ -212,6 +232,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                       id
                       price
                       compareAtPrice
+                      availableForSale
+                      inventoryQuantity
                     }
                   }
                 }
@@ -223,15 +245,33 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
           });
 
-          const responseJson = await response.json();
+          const responseJson = await response.json() as any;
+          
+          // Check for GraphQL errors
+          if (responseJson.errors) {
+            console.error(`GraphQL errors for product ${productId}:`, responseJson.errors);
+            continue; // Skip this product and continue with the next one
+          }
           
           if (responseJson.data && responseJson.data.productByHandle) {
             const product = responseJson.data.productByHandle;
             const image = product.images.edges[0]?.node;
             const variant = product.variants.edges[0]?.node;
             
-            if (variant) {
+            // Check if product is available before saving
+            const isAvailable = variant ? (
+              variant.availableForSale && 
+              (variant.inventoryQuantity === null || 
+               variant.inventoryQuantity > 0)
+            ) : false;
+            
+            // Only save if product is available
+            if (variant && isAvailable) {
               const variantId = variant.id.replace('gid://shopify/ProductVariant/', '');
+              
+              // Shopify GraphQL returns prices in cents, convert to rupees for storage
+              const priceInRupees = parseFloat(variant.price);
+              const compareAtPriceInRupees = variant.compareAtPrice ? parseFloat(variant.compareAtPrice): null;
               
               await prisma.recommendedProduct.create({
                 data: {
@@ -239,15 +279,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                   shopifyProductId: productId, // Store product handle (which is the frontend ID)
                   shopifyVariantId: variantId, // Store the variant ID for add to cart functionality
                   title: product.title,
-                  price: parseFloat(variant.price),
-                  compareAtPrice: variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
+                  price: priceInRupees,
+                  compareAtPrice: compareAtPriceInRupees,
                   imageUrl: image?.url || null,
                   position: i,
                 },
               });
-              
             } else {
-              console.error(`No variant found for product: ${product.title}`);
+              console.warn(`Product ${product.title} is out of stock and will not be added to recommendations`);
             }
           }
         } catch (error) {
@@ -256,7 +295,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
     }
 
-    return redirect("/app/cart-drawer");
+    // Redirect with cache-busting to ensure fresh data
+    return redirect("/app/cart-drawer", {
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+      }
+    });
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
@@ -266,6 +310,7 @@ export default function ProductRecommendations() {
   const { cartDrawer, productRecommendation, shopProducts } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
+  const revalidator = useRevalidator();
   const isLoading = navigation.state === "submitting";
 
   const [formState, setFormState] = useState({
@@ -281,17 +326,37 @@ export default function ProductRecommendations() {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Initialize selected products when data is loaded
+  // Sync formState when loader data changes
+  useEffect(() => {
+    if (productRecommendation) {
+      setFormState({
+        title: productRecommendation.title || "You may also like",
+        maxProducts: productRecommendation.maxProducts?.toString() || "4",
+        layout: productRecommendation.layout || "grid",
+        recommendationType: productRecommendation.recommendationType || "manual",
+        showDiscount: productRecommendation.showDiscount ?? true,
+        showDiscountBadge: productRecommendation.showDiscountBadge ?? true,
+        showAddButton: productRecommendation.showAddButton ?? true,
+      });
+    }
+  }, [productRecommendation]);
+
+  // Initialize selected products when data is loaded - use shopifyProductId (handle) for matching
   useEffect(() => {
     if (productRecommendation?.products && shopProducts.length > 0) {
       const savedProducts = productRecommendation.products.map(p => {
-        // Find the matching product by title since we have variant IDs but need product handles
-        const matchingProduct = shopProducts.find(sp => sp.title === p.title);
-        return matchingProduct?.id || '';
+        // Match by shopifyProductId (which is the handle) instead of title
+        // shopifyProductId in RecommendedProduct is the product handle
+        const matchingProduct = shopProducts.find(sp => 
+          sp.handle === p.shopifyProductId || sp.id === p.shopifyProductId
+        );
+        return matchingProduct?.id || matchingProduct?.handle || '';
       }).filter(id => id !== '');
       
-      
       setSelectedProducts(savedProducts);
+    } else if (!productRecommendation?.products || productRecommendation.products.length === 0) {
+      // Clear selection if no products are saved
+      setSelectedProducts([]);
     }
   }, [productRecommendation?.products, shopProducts]);
 
@@ -299,8 +364,15 @@ export default function ProductRecommendations() {
     const formData = new FormData();
     formData.append("intent", "toggle");
     formData.append("enabled", (!cartDrawer?.productRecommendationsEnabled).toString());
-    submit(formData, { method: "post" });
-  }, [cartDrawer?.productRecommendationsEnabled, submit]);
+    submit(formData, { 
+      method: "post",
+      // Revalidate after submission to update UI instantly
+    });
+    // Revalidate immediately after toggle to ensure UI updates
+    setTimeout(() => {
+      revalidator.revalidate();
+    }, 100);
+  }, [cartDrawer?.productRecommendationsEnabled, submit, revalidator]);
 
   const handleProductToggle = useCallback((productId: string) => {
     setSelectedProducts(prev => {
@@ -545,9 +617,6 @@ export default function ProductRecommendations() {
                                             {`${discountPercent}% off`}
                                           </Badge>
                                         )}
-                                        {isSelected && (
-                                          <Badge tone="success">Selected</Badge>
-                                        )}
                                       </div>
                                     </div>
                                   </div>
@@ -741,156 +810,48 @@ export default function ProductRecommendations() {
                 Preview
               </Text>
               
-              <div>
-                <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>
-                  {formState.title}
-                </div>
-                <div style={{ 
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{ 
-                    display: 'flex',
-                    gap: '12px',
-                    overflowX: 'auto',
-                    scrollBehavior: 'smooth',
-                    paddingBottom: '8px',
-                    scrollbarWidth: 'thin',
-                    scrollbarColor: '#cbd5e1 #f1f5f9'
-                  }}>
-                    {selectedProducts.length > 0 ? (
-                      selectedProducts.slice(0, parseInt(formState.maxProducts)).map((productId, idx) => {
-                        const product = shopProducts.find((p: any) => p.id === productId);
-                        if (!product) return null;
-                        
-                        const variant = product.variants?.[0];
-                        const price = variant ? parseFloat(variant.price) : 0;
-                        const comparePrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null;
-                        const discountPercent = comparePrice && comparePrice > price ? Math.round(((comparePrice - price) / comparePrice) * 100) : 0;
-                        
-                        return (
-                          <div key={productId} style={{ 
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '6px',
-                            padding: '12px',
-                            textAlign: 'center',
-                            minWidth: '140px',
-                            flexShrink: 0,
-                            backgroundColor: '#ffffff',
-                            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                            transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-                          }}>
-                            {product.images?.[0]?.src ? (
-                              <img 
-                                src={product.images[0].src} 
-                                alt={product.title}
-                                style={{ 
-                                  width: '100%',
-                                  height: '80px',
-                                  objectFit: 'cover',
-                                  borderRadius: '4px',
-                                  marginBottom: '8px'
-                                }} 
-                              />
-                            ) : (
-                              <div style={{ 
-                                width: '100%',
-                                height: '80px',
-                                backgroundColor: '#f3f4f6',
-                                borderRadius: '4px',
-                                marginBottom: '8px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '24px'
-                              }}>
-                                📦
-                              </div>
-                            )}
-                            <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '4px', lineHeight: '1.3' }}>
-                              {product.title.length > 20 ? product.title.substring(0, 20) + '...' : product.title}
-                            </div>
-                            {formState.showDiscount && comparePrice && (
-                              <div style={{ marginBottom: '4px', fontSize: '12px' }}>
-                                <span style={{ textDecoration: 'line-through', color: '#9ca3af', marginRight: '4px' }}>
-                                  ₹{Math.round(comparePrice)}
-                                </span>
-                                <span style={{ fontWeight: '600' }}>₹{Math.round(price)}</span>
-                              </div>
-                            )}
-                            {!formState.showDiscount && (
-                              <div style={{ marginBottom: '4px', fontSize: '12px', fontWeight: '600' }}>
-                                ₹{Math.round(price)}
-                              </div>
-                            )}
-                            {formState.showDiscountBadge && discountPercent > 0 && (
-                              <div style={{ 
-                                display: 'inline-block',
-                                backgroundColor: '#10b981',
-                                color: 'white',
-                                padding: '2px 8px',
-                                borderRadius: '12px',
-                                fontSize: '10px',
-                                marginBottom: '8px'
-                              }}>
-                                {discountPercent}% off
-                              </div>
-                            )}
-                            {formState.showAddButton && (
-                              <div style={{ 
-                                width: '100%',
-                                padding: '4px',
-                                border: '1px solid #f97316',
-                                background: 'white',
-                                color: '#f97316',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                                fontWeight: '500'
-                              }}>
-                                + Add
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div style={{ 
-                        minWidth: '100%',
-                        textAlign: 'center',
-                        padding: '40px 20px',
-                        color: '#6b7280',
-                        fontSize: '14px'
-                      }}>
-                        No products selected. Choose products above to see preview.
-                      </div>
-                    )}
-                  </div>
-                  {/* Scroll indicator */}
-                  {selectedProducts.length > 2 && (
-                    <div style={{
-                      position: 'absolute',
-                      right: '0',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,1) 100%)',
-                      width: '20px',
-                      height: '100%',
-                      pointerEvents: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <div style={{
-                        width: '4px',
-                        height: '20px',
-                        background: '#cbd5e1',
-                        borderRadius: '2px',
-                        opacity: '0.6'
-                      }}></div>
-                    </div>
-                  )}
-                </div>
-              </div>
+              {/* Preview using shared component */}
+              {(() => {
+                // Prepare products for the shared component
+                const previewProducts = selectedProducts.length > 0
+                  ? selectedProducts.slice(0, parseInt(formState.maxProducts)).map((productId) => {
+                      const product = shopProducts.find((p: any) => p.id === productId);
+                      if (!product) return null;
+                      
+                      const variant = product.variants?.[0];
+                      const price = variant ? parseFloat(variant.price) : 0;
+                      const comparePrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null;
+                      
+                      return {
+                        id: product.id,
+                        title: product.title,
+                        price: Math.round(price * 100), // Convert to cents
+                        compareAtPrice: comparePrice ? Math.round(comparePrice * 100) : null,
+                        imageUrl: product.images?.[0]?.src || null,
+                        variantId: product.shopifyProductId || product.id,
+                      };
+                    }).filter(Boolean)
+                  : [
+                      { id: 'sample1', title: 'Sample Product 1', price: 99900, compareAtPrice: 149900, imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=60&h=60&fit=crop&crop=center', variantId: 'sample1' },
+                      { id: 'sample2', title: 'Sample Product 2', price: 129900, compareAtPrice: null, imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=60&h=60&fit=crop&crop=center', variantId: 'sample2' },
+                      { id: 'sample3', title: 'Sample Product 3', price: 159900, compareAtPrice: 199900, imageUrl: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=60&h=60&fit=crop&crop=center', variantId: 'sample3' },
+                      { id: 'sample4', title: 'Sample Product 4', price: 89900, compareAtPrice: null, imageUrl: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=60&h=60&fit=crop&crop=center', variantId: 'sample4' }
+                    ];
+
+                return (
+                  <ProductRecommendationsComponent
+                    title={formState.title}
+                    products={previewProducts as any}
+                    layout={formState.layout as 'grid' | 'carousel'}
+                    maxProducts={parseInt(formState.maxProducts)}
+                    showDiscount={formState.showDiscount}
+                    showDiscountBadge={formState.showDiscountBadge}
+                    showAddButton={formState.showAddButton}
+                    onAddToCart={(variantId: string) => console.log('Add to cart clicked:', variantId)}
+                    isPreview={true}
+                  />
+                );
+              })()}
 
               <Text as="p" variant="bodyMd" tone="subdued">
                 This is how recommendations will appear in your cart drawer.

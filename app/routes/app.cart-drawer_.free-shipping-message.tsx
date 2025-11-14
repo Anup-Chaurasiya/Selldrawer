@@ -18,6 +18,7 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback } from "react";
+import { FreeShippingMessage as FreeShippingMessageComponent } from "../components/shared/FreeShippingMessage";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -222,45 +223,16 @@ export default function FreeShippingMessage() {
                 Preview
               </Text>
               
-              <div style={{ 
-                backgroundColor: formState.backgroundColor,
-                color: formState.textColor,
-                padding: '16px 20px',
-                borderRadius: '12px',
-                border: `2px solid ${formState.textColor}`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                fontSize: '16px',
-                fontWeight: '600',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                {/* Delivery truck icon */}
-                <div style={{
-                  fontSize: '24px',
-                  flexShrink: 0
-                }}>
-                  🚚
-                </div>
-                
-                {/* Message text */}
-                <div style={{ flex: 1 }}>
-                  {formState.beforeThresholdMessage.replace('{threshold}', `₹${formState.thresholdAmount}`)}
-                </div>
-                
-                {/* Subtle background pattern */}
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  background: 'linear-gradient(45deg, rgba(255,255,255,0.2) 0%, transparent 50%)',
-                  pointerEvents: 'none'
-                }} />
-              </div>
+              <FreeShippingMessageComponent
+                thresholdAmount={parseFloat(formState.thresholdAmount) || 5000}
+                cartTotal={300000} // Sample cart total (₹3000 in cents)
+                beforeThresholdMessage={formState.beforeThresholdMessage}
+                achievedMessage={formState.achievedMessage}
+                backgroundColor={formState.backgroundColor}
+                textColor={formState.textColor}
+                currency={formState.currency}
+                isPreview={true}
+              />
 
               <Text as="p" variant="bodyMd" tone="subdued">
                 This is how the message will appear in your cart drawer.

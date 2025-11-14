@@ -13,22 +13,13 @@ import {
   Checkbox,
   InlineStack,
   Banner,
-  Select,
   RangeSlider,
   Thumbnail,
-  ButtonGroup,
-  Modal,
-  DropZone,
-  List,
-  Icon,
-  Badge,
 } from "@shopify/polaris";
-import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback, useEffect, useRef } from "react";
-import { ChevronLeftIcon, ChevronRightIcon } from '@shopify/polaris-icons';
-import { PromotionalBannerCard } from "./app.cart-drawer";
+import { PromotionalBannerCard } from "../components/shared/PromotionalBannerCard";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -408,14 +399,10 @@ function SlideEditor({
   );
 }
 
-// Carousel Preview Component - now using the shared PromotionalBannerCard
-function CarouselPreview({ slides, currentIndex, carouselSettings, onPrevious, onNext, onDotClick }: { 
+// Carousel Preview Component - using the shared PromotionalBannerCard
+function CarouselPreview({ slides, carouselSettings }: { 
   slides: any[]; 
-  currentIndex: number; 
   carouselSettings: any;
-  onPrevious: () => void;
-  onNext: () => void;
-  onDotClick: (index: number) => void;
 }) {
   if (!slides || slides.length === 0) {
     return (
@@ -436,11 +423,11 @@ function CarouselPreview({ slides, currentIndex, carouselSettings, onPrevious, o
   return (
     <PromotionalBannerCard 
       slides={slides}
-      carouselIndex={currentIndex}
       carouselSettings={carouselSettings}
-      onPrevious={onPrevious}
-      onNext={onNext}
-      onDotClick={onDotClick}
+      onCtaClick={(url) => {
+        console.log('CTA clicked in preview:', url);
+      }}
+      isPreview={true}
     />
   );
 }
@@ -453,7 +440,6 @@ export default function PromotionalBanner() {
 
   const [editingSlide, setEditingSlide] = useState<any>(null);
   const [isAddingSlide, setIsAddingSlide] = useState(false);
-  const [previewIndex, setPreviewIndex] = useState(0);
   const [carouselSettings, setCarouselSettings] = useState({
     autoRotate: promotionalBanner?.carouselSettings?.autoRotate ?? true,
     rotationSpeed: promotionalBanner?.carouselSettings?.rotationSpeed ?? 5000,
@@ -462,16 +448,6 @@ export default function PromotionalBanner() {
   });
 
   const slides = promotionalBanner?.images || [];
-
-  // Auto-rotate preview
-  useEffect(() => {
-    if (slides.length > 1 && carouselSettings.autoRotate && !editingSlide && !isAddingSlide) {
-      const interval = setInterval(() => {
-        setPreviewIndex((prev) => (typeof prev === 'number' ? (prev < (slides.length - 1) ? prev + 1 : prev) : 0));
-      }, carouselSettings.rotationSpeed);
-      return () => clearInterval(interval);
-    }
-  }, [slides.length, carouselSettings.autoRotate, carouselSettings.rotationSpeed, editingSlide, isAddingSlide]);
 
   const handleToggle = useCallback(() => {
     const formData = new FormData();
@@ -616,7 +592,6 @@ export default function PromotionalBanner() {
                               </BlockStack>
                             </InlineStack>
                             <InlineStack gap="200">
-                              <Button onClick={() => setPreviewIndex(index)}>Preview</Button>
                               <Button onClick={() => setEditingSlide(slide)}>Edit</Button>
                               <Button tone="critical" onClick={() => handleDeleteSlide(slide.id)}>
                                 Delete
@@ -704,11 +679,7 @@ export default function PromotionalBanner() {
               
               <CarouselPreview 
                 slides={slides} 
-                currentIndex={previewIndex}
                 carouselSettings={carouselSettings}
-                onPrevious={() => setPreviewIndex(prev => (typeof prev === 'number' ? (prev > 0 ? prev - 1 : prev) : 0))}
-                onNext={() => setPreviewIndex(prev => (typeof prev === 'number' ? (prev < (slides.length - 1) ? prev + 1 : prev) : 0))}
-                onDotClick={(index) => setPreviewIndex(index)}
               />
 
               <Text as="p" variant="bodySm" tone="subdued">

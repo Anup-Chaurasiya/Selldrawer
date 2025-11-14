@@ -8,6 +8,8 @@
     "generate": "shopify app generate",
     "deploy": "shopify app deploy",
     "config:use": "shopify app config use",
+    "build:cart-drawer": "node extensions/cart-upsell/build.js",
+    "watch:cart-drawer": "node extensions/cart-upsell/build-watch.js",
     "env": "shopify app env",
     "start": "remix-serve ./build/server/index.js",
     "docker-start": "npm run setup && npm run start",

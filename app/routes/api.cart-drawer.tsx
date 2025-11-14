@@ -119,6 +119,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       primaryColor: cartDrawer.primaryColor,
       featureOrder: featureOrder ?? [],
       features,
+    }, {
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0",
+      }
     });
 
     return cors(request, response);
