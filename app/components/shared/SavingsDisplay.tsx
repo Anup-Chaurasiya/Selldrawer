@@ -10,7 +10,6 @@ interface SavingsDisplayProps {
   amount: number;
   backgroundColor?: string;
   textColor?: string;
-  isPreview?: boolean;
 }
 
 export const SavingsDisplay: React.FC<SavingsDisplayProps> = ({
@@ -18,7 +17,6 @@ export const SavingsDisplay: React.FC<SavingsDisplayProps> = ({
   amount,
   backgroundColor = '#dcfce7',
   textColor = '#15803d',
-  isPreview = false
 }) => {
   if (amount <= 0) {
     return null;
@@ -36,11 +34,10 @@ export const SavingsDisplay: React.FC<SavingsDisplayProps> = ({
     <div style={{
       backgroundColor: backgroundColor,
       color: textColor,
-      padding: isPreview ? '10px 14px' : '12px 16px',
-      borderRadius: isPreview ? '8px' : '10px',
-      fontSize: isPreview ? '13px' : '14px',
+      padding: '12px 16px',
+      borderRadius: '10px',
+      fontSize: '14px',
       fontWeight: '600',
-      marginBottom: isPreview ? '12px' : '16px',
       textAlign: 'center',
       border: `1px solid ${textColor}40`,
       boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'

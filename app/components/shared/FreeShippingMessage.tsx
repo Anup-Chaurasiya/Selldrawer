@@ -41,14 +41,13 @@ export const FreeShippingMessage: React.FC<FreeShippingMessageProps> = ({
       backgroundColor: backgroundColor,
       color: textColor,
       border: `2px solid ${textColor}`,
-      padding: isPreview ? '12px 16px' : '14px 18px',
-      borderRadius: isPreview ? '10px' : '12px',
+      padding: '14px 18px',
+      borderRadius: '12px',
       display: 'flex',
       alignItems: 'center',
       gap: '12px',
-      fontSize: isPreview ? '13px' : '14px',
+      fontSize: '14px',
       fontWeight: '700',
-      marginBottom: isPreview ? '12px' : '8px',
       boxShadow: '0 3px 6px rgba(0, 0, 0, 0.1)',
       position: 'relative',
       overflow: 'hidden'
@@ -69,7 +68,8 @@ export const FreeShippingMessage: React.FC<FreeShippingMessageProps> = ({
         fontSize: '20px',
         flexShrink: 0,
         position: 'relative',
-        zIndex: 1
+        zIndex: 1,
+        ...(isPreview ? {} : { height: '20px', top: '-8px' })
       }}>
         🚚
       </div>

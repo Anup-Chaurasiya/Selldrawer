@@ -96,7 +96,48 @@ export function calculateDiscountSavings(discount, cart) {
 }
 
 /**
- * Apply coupon code
+ * Validate and apply coupon code (used with React component)
+ */
+export async function validateAndApplyCoupon(shop, config, couponCode, cart) {
+  if (!couponCode || !couponCode.trim()) {
+    showNotification('Please enter a coupon code', 'error');
+    return null;
+  }
+
+  const code = couponCode.trim().toUpperCase();
+
+  try {
+    const appUrl = document.querySelector('[data-upsellity-app-url]')?.dataset.upsellityAppUrl || '';
+    
+    const response = await fetch(`${appUrl}/api/validate-discount?shop=${shop}&code=${encodeURIComponent(code)}`);
+    const data = await response.json();
+
+    if (data.valid) {
+      const newDiscount = {
+        code: data.code,
+        title: data.title,
+        description: data.description || getDiscountDescription(data.type, data.value),
+        type: data.type,
+        value: data.value
+      };
+      
+      const estimatedDiscount = calculateEstimatedDiscount(newDiscount, cart);
+      showNotification(`Coupon ${data.code} applied! You're saving ${formatMoney(estimatedDiscount)}`, 'success');
+      
+      return newDiscount;
+    } else {
+      showNotification(data.error || 'Invalid coupon code', 'error');
+      return null;
+    }
+  } catch (error) {
+    console.error('Upsellity: Error validating coupon', error);
+    showNotification('Failed to validate coupon code', 'error');
+    return null;
+  }
+}
+
+/**
+ * Apply coupon code (legacy function for non-React implementations)
  */
 export async function applyCoupon(shop, config, appliedDiscount, renderCallback) {
   const couponInput = document.getElementById('upsellity-coupon-input');

@@ -270,6 +270,7 @@ export default function CouponCode() {
               </Text>
               
               <CouponCodeFieldComponent
+                id="upsellity-coupon-field-preview"
                 placeholder={formState.placeholder}
                 buttonText={formState.buttonText}
                 showAllOffers={formState.showAllOffers}

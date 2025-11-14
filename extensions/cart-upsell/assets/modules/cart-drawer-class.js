@@ -7,6 +7,7 @@ import { splitFeatureOrder, showNotification } from './utils.js';
 import * as CartOps from './cart-operations.js';
 import * as DiscountManager from './discount-manager.js';
 import * as ProductLoader from './product-loader.js';
+import * as AutoApplyStorage from './auto-apply-storage.js';
 import { renderFreeShippingBar } from './renderers/free-shipping-bar.js';
 import { renderPromotionalBanner } from './renderers/promotional-banner.js';
 import { renderCartItems } from './renderers/cart-items.js';
@@ -80,7 +81,11 @@ export class UpsellityCartDrawer {
       
       this.availableDiscounts = await DiscountManager.loadAvailableDiscounts(this.shop, this.config);
       
-      if (this.config?.features?.couponCodeField?.enableAutoApply && !this.appliedDiscount && this.availableDiscounts.length > 0) {
+      // Auto-apply best discount only if user hasn't removed it recently
+      if (this.config?.features?.couponCodeField?.enableAutoApply && 
+          !this.appliedDiscount && 
+          this.availableDiscounts.length > 0 &&
+          !AutoApplyStorage.wasDiscountRemoved()) {
         this.appliedDiscount = DiscountManager.autoApplyBestDiscount(this.availableDiscounts, this.cart, this.config);
       }
       
@@ -208,18 +213,18 @@ export class UpsellityCartDrawer {
     const { beforeItems, afterItems } = splitFeatureOrder(this.config?.featureOrder);
 
     beforeItems.forEach((id) => {
-      if (sections[id]) html += sections[id];
+      if (sections[id]) html += `<div style="margin-bottom: 12px;">${sections[id]}</div>`;
     });
 
     if (sections[FEATURE_ORDER_SENTINEL]) {
-      html += sections[FEATURE_ORDER_SENTINEL];
+      html += `<div style="margin-bottom: 12px;">${sections[FEATURE_ORDER_SENTINEL]}</div>`;
     }
 
     afterItems.forEach((id) => {
-      if (sections[id]) html += sections[id];
+      if (sections[id]) html += `<div style="margin-bottom: 12px;">${sections[id]}</div>`;
     });
 
-    html += renderCartTotals(this.cart, this.appliedDiscount);
+    html += `<div style="margin-bottom: 12px;">${renderCartTotals(this.cart, this.appliedDiscount)}</div>`;
     html += `
       <button class="upsellity-checkout-btn" onclick="window.location.href='${DiscountManager.getCheckoutUrl(this.appliedDiscount)}'">
         Checkout
@@ -288,18 +293,21 @@ export class UpsellityCartDrawer {
   }
 
   async applyCouponWithCode(code) {
-    const input = document.getElementById('upsellity-coupon-input');
-    if (input) {
-      input.value = code;
-    }
-    const newDiscount = await DiscountManager.applyCoupon(this.shop, this.config, this.appliedDiscount, this.render.bind(this));
+    const newDiscount = await DiscountManager.validateAndApplyCoupon(this.shop, this.config, code, this.cart);
     if (newDiscount) {
       this.appliedDiscount = newDiscount;
+      // Clear removal preference when user manually applies a discount
+      AutoApplyStorage.clearDiscountRemoval();
+      this.render();
     }
   }
 
   removeDiscount() {
     this.appliedDiscount = null;
+    
+    // Mark that user removed the discount (prevents auto-apply for 15 minutes)
+    AutoApplyStorage.markDiscountRemoved();
+    
     this.render();
     showNotification('Discount removed', 'info');
   }
@@ -329,6 +337,9 @@ export class UpsellityCartDrawer {
 
     this.appliedDiscount = discount;
     this.showingAllOffers = false;
+    
+    // Clear removal preference when user manually switches to a discount
+    AutoApplyStorage.clearDiscountRemoval();
     
     this.render();
     

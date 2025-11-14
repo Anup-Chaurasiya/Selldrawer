@@ -3,7 +3,7 @@
  * Used in both production cart drawer and Remix preview
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 
 interface CartItem {
   key: string;
@@ -33,6 +33,347 @@ interface CartItemsProps {
   onRemoveItem?: (key: string) => void;
   isPreview?: boolean;
 }
+
+// Individual Cart Item Component with editable quantity
+const CartItemRow: React.FC<{
+  item: CartItem;
+  productCompareAtPrices: Record<string | number, number>;
+  appliedDiscount: Discount | null;
+  cartTotalPrice: number;
+  onUpdateQuantity: (key: string, quantity: number) => void | Promise<void>;
+  onRemoveItem: (key: string) => void;
+  isPreview: boolean;
+  formatMoney: (cents: number) => string;
+  calculateItemPrices: (item: CartItem, cartTotalPrice: number) => any;
+}> = ({
+  item,
+  productCompareAtPrices,
+  appliedDiscount,
+  cartTotalPrice,
+  onUpdateQuantity,
+  onRemoveItem,
+  isPreview,
+  formatMoney,
+  calculateItemPrices
+}) => {
+  const [inputValue, setInputValue] = useState(item.quantity.toString());
+  const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow only numbers
+    if (value === '' || /^\d+$/.test(value)) {
+      setInputValue(value);
+      setError(null);
+    }
+  };
+
+  const handleBlur = async () => {
+    setIsEditing(false);
+    const newQuantity = parseInt(inputValue, 10);
+
+    // Validate input
+    if (!inputValue || isNaN(newQuantity) || newQuantity < 1) {
+      setError('Please enter a valid quantity');
+      setInputValue(item.quantity.toString());
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    // If quantity hasn't changed, do nothing
+    if (newQuantity === item.quantity) {
+      return;
+    }
+
+    // Try to update quantity
+    setIsUpdating(true);
+    try {
+      await onUpdateQuantity(item.key, newQuantity);
+      setError(null);
+    } catch (err: any) {
+      // Handle error - revert to original quantity
+      const errorMessage = err?.message || 'Failed to update quantity';
+      setError(errorMessage);
+      setInputValue(item.quantity.toString());
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleFocus = () => {
+    setIsEditing(true);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
+  };
+
+  // Update input value when item.quantity changes externally
+  React.useEffect(() => {
+    if (!isEditing) {
+      setInputValue(item.quantity.toString());
+    }
+  }, [item.quantity, isEditing]);
+
+  const prices = calculateItemPrices(item, cartTotalPrice);
+  const imageUrl = item.featured_image?.url || item.image || '';
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        gap: '12px',
+        padding: '12px 0',
+        borderBottom: '1px solid #e5e7eb'
+      }}
+    >
+      {/* Item Image */}
+      <img
+        src={imageUrl}
+        alt={item.title}
+        style={{
+          width: '70px',
+          height: '70px',
+          objectFit: 'cover',
+          borderRadius: '6px',
+          border: '1px solid #e5e7eb',
+          flexShrink: 0
+        }}
+      />
+
+      {/* Item Details */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Title */}
+        <div style={{
+          fontSize: '14px',
+          fontWeight: '600',
+          color: '#111827',
+          marginBottom: '2px',
+          lineHeight: '1.3'
+        }}>
+          {item.title}
+        </div>
+
+        {/* Variant */}
+        {item.variant_title && (
+          <div style={{
+            fontSize: '12px',
+            color: '#6b7280',
+            marginBottom: '6px'
+          }}>
+            {item.variant_title}
+          </div>
+        )}
+
+        {/* Price */}
+        <div style={{ marginBottom: '8px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            flexWrap: 'wrap'
+          }}>
+            {prices.hasItemDiscount && !prices.hasCouponDiscount && (
+              <>
+                <span style={{
+                  textDecoration: 'line-through',
+                  color: '#9ca3af',
+                  fontSize: '13px'
+                }}>
+                  {formatMoney(prices.originalLinePrice)}
+                </span>
+                <span style={{
+                  fontWeight: '700',
+                  fontSize: '16px',
+                  color: '#f59e0b'
+                }}>
+                  {formatMoney(prices.itemSubtotal)}
+                </span>
+                <span style={{
+                  background: '#fef3c7',
+                  color: '#92400e',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  fontWeight: '600'
+                }}>
+                  {prices.itemDiscountPercent}% OFF
+                </span>
+              </>
+            )}
+
+            {prices.hasCouponDiscount && (
+              <>
+                <span style={{
+                  textDecoration: 'line-through',
+                  color: '#9ca3af',
+                  fontSize: '13px'
+                }}>
+                  {formatMoney(prices.itemSubtotal)}
+                </span>
+                <span style={{
+                  fontWeight: '700',
+                  fontSize: '16px',
+                  color: '#059669'
+                }}>
+                  {formatMoney(prices.itemPriceWithCoupon)}
+                </span>
+              </>
+            )}
+
+            {!prices.hasItemDiscount && !prices.hasCouponDiscount && (
+              <span style={{
+                fontWeight: '700',
+                fontSize: '16px',
+                color: '#111827'
+              }}>
+                {formatMoney(prices.itemSubtotal)}
+              </span>
+            )}
+          </div>
+
+          {prices.hasCouponDiscount && (
+            <div style={{
+              fontSize: '11px',
+              color: '#059669',
+              marginTop: '2px'
+            }}>
+              Coupon discount applied
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div style={{
+              fontSize: '11px',
+              color: '#dc2626',
+              marginTop: '2px',
+              fontWeight: '500'
+            }}>
+              {error}
+            </div>
+          )}
+        </div>
+
+        {/* Controls */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+        }}>
+          {/* Quantity Controls */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            border: '1px solid #e5e7eb',
+            borderRadius: '6px',
+            padding: '4px'
+          }}>
+            <button
+              onClick={() => !isPreview && !isUpdating && onUpdateQuantity(item.key, item.quantity - 1)}
+              disabled={isPreview || item.quantity <= 1 || isUpdating}
+              style={{
+                width: '24px',
+                height: '24px',
+                border: 'none',
+                backgroundColor: isPreview || item.quantity <= 1 || isUpdating ? '#f3f4f6' : '#ffffff',
+                color: isPreview || item.quantity <= 1 || isUpdating ? '#9ca3af' : '#374151',
+                borderRadius: '4px',
+                cursor: isPreview || item.quantity <= 1 || isUpdating ? 'not-allowed' : 'pointer',
+                fontSize: '16px',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background-color 0.2s'
+              }}
+            >
+              −
+            </button>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={inputValue}
+              onChange={handleInputChange}
+              onBlur={handleBlur}
+              onFocus={handleFocus}
+              onKeyDown={handleKeyDown}
+              disabled={isPreview || isUpdating}
+              style={{
+                minWidth: '32px',
+                maxWidth: '48px',
+                textAlign: 'center',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#111827',
+                border: 'none',
+                outline: 'none',
+                backgroundColor: 'transparent',
+                cursor: isPreview || isUpdating ? 'not-allowed' : 'text',
+                padding: '2px 4px',
+                borderRadius: '2px',
+                transition: 'background-color 0.2s'
+              }}
+            />
+            <button
+              onClick={() => !isPreview && !isUpdating && onUpdateQuantity(item.key, item.quantity + 1)}
+              disabled={isPreview || isUpdating}
+              style={{
+                width: '24px',
+                height: '24px',
+                border: 'none',
+                backgroundColor: isPreview || isUpdating ? '#f3f4f6' : '#ffffff',
+                color: isPreview || isUpdating ? '#9ca3af' : '#374151',
+                borderRadius: '4px',
+                cursor: isPreview || isUpdating ? 'not-allowed' : 'pointer',
+                fontSize: '16px',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background-color 0.2s'
+              }}
+            >
+              +
+            </button>
+          </div>
+
+          {/* Remove Button */}
+          <button
+            onClick={() => !isPreview && onRemoveItem(item.key)}
+            disabled={isPreview}
+            title="Remove item"
+            style={{
+              width: '32px',
+              height: '32px',
+              border: 'none',
+              backgroundColor: 'transparent',
+              color: '#4a4a4a',
+              cursor: 'pointer',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background-color 0.2s'
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3,6 5,6 21,6"></polyline>
+              <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const CartItems: React.FC<CartItemsProps> = ({
   items,
@@ -115,235 +456,20 @@ export const CartItems: React.FC<CartItemsProps> = ({
 
   return (
     <>
-      {items.map((item) => {
-        const prices = calculateItemPrices(item, cartTotalPrice);
-        const imageUrl = item.featured_image?.url || item.image || '';
-
-        return (
-          <div
-            key={item.key}
-            style={{
-              display: 'flex',
-              gap: isPreview ? '10px' : '12px',
-              padding: isPreview ? '10px 0' : '12px 0',
-              borderBottom: '1px solid #e5e7eb'
-            }}
-          >
-            {/* Item Image */}
-            <img
-              src={imageUrl}
-              alt={item.title}
-              style={{
-                width: isPreview ? '60px' : '70px',
-                height: isPreview ? '60px' : '70px',
-                objectFit: 'cover',
-                borderRadius: '6px',
-                border: '1px solid #e5e7eb',
-                flexShrink: 0
-              }}
-            />
-
-            {/* Item Details */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              {/* Title */}
-              <div style={{
-                fontSize: isPreview ? '13px' : '14px',
-                fontWeight: '600',
-                color: '#111827',
-                marginBottom: '2px',
-                lineHeight: '1.3'
-              }}>
-                {item.title}
-              </div>
-
-              {/* Variant */}
-              {item.variant_title && (
-                <div style={{
-                  fontSize: isPreview ? '11px' : '12px',
-                  color: '#6b7280',
-                  marginBottom: '6px'
-                }}>
-                  {item.variant_title}
-                </div>
-              )}
-
-              {/* Price */}
-              <div style={{ marginBottom: '8px' }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  flexWrap: 'wrap'
-                }}>
-                  {prices.hasItemDiscount && !prices.hasCouponDiscount && (
-                    <>
-                      <span style={{
-                        textDecoration: 'line-through',
-                        color: '#9ca3af',
-                        fontSize: isPreview ? '12px' : '13px'
-                      }}>
-                        {formatMoney(prices.originalLinePrice)}
-                      </span>
-                      <span style={{
-                        fontWeight: '700',
-                        fontSize: isPreview ? '14px' : '16px',
-                        color: '#f59e0b'
-                      }}>
-                        {formatMoney(prices.itemSubtotal)}
-                      </span>
-                      <span style={{
-                        background: '#fef3c7',
-                        color: '#92400e',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '10px',
-                        fontWeight: '600'
-                      }}>
-                        {prices.itemDiscountPercent}% OFF
-                      </span>
-                    </>
-                  )}
-
-                  {prices.hasCouponDiscount && (
-                    <>
-                      <span style={{
-                        textDecoration: 'line-through',
-                        color: '#9ca3af',
-                        fontSize: isPreview ? '12px' : '13px'
-                      }}>
-                        {formatMoney(prices.itemSubtotal)}
-                      </span>
-                      <span style={{
-                        fontWeight: '700',
-                        fontSize: isPreview ? '14px' : '16px',
-                        color: '#059669'
-                      }}>
-                        {formatMoney(prices.itemPriceWithCoupon)}
-                      </span>
-                    </>
-                  )}
-
-                  {!prices.hasItemDiscount && !prices.hasCouponDiscount && (
-                    <span style={{
-                      fontWeight: '700',
-                      fontSize: isPreview ? '14px' : '16px',
-                      color: '#111827'
-                    }}>
-                      {formatMoney(prices.itemSubtotal)}
-                    </span>
-                  )}
-                </div>
-
-                {prices.hasCouponDiscount && (
-                  <div style={{
-                    fontSize: '11px',
-                    color: '#059669',
-                    marginTop: '2px'
-                  }}>
-                    Coupon discount applied
-                  </div>
-                )}
-              </div>
-
-              {/* Controls */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}>
-                {/* Quantity Controls */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '6px',
-                  padding: '4px'
-                }}>
-                  <button
-                    onClick={() => !isPreview && onUpdateQuantity(item.key, item.quantity - 1)}
-                    disabled={isPreview || item.quantity <= 1}
-                    style={{
-                      width: '24px',
-                      height: '24px',
-                      border: 'none',
-                      backgroundColor: isPreview || item.quantity <= 1 ? '#f3f4f6' : '#ffffff',
-                      color: isPreview || item.quantity <= 1 ? '#9ca3af' : '#374151',
-                      borderRadius: '4px',
-                      cursor: isPreview || item.quantity <= 1 ? 'not-allowed' : 'pointer',
-                      fontSize: '16px',
-                      fontWeight: '700',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'background-color 0.2s'
-                    }}
-                  >
-                    −
-                  </button>
-                  <span style={{
-                    minWidth: '24px',
-                    textAlign: 'center',
-                    fontSize: isPreview ? '13px' : '14px',
-                    fontWeight: '600',
-                    color: '#111827'
-                  }}>
-                    {item.quantity}
-                  </span>
-                  <button
-                    onClick={() => !isPreview && onUpdateQuantity(item.key, item.quantity + 1)}
-                    disabled={isPreview}
-                    style={{
-                      width: '24px',
-                      height: '24px',
-                      border: 'none',
-                      backgroundColor: isPreview ? '#f3f4f6' : '#ffffff',
-                      color: isPreview ? '#9ca3af' : '#374151',
-                      borderRadius: '4px',
-                      cursor: isPreview ? 'not-allowed' : 'pointer',
-                      fontSize: '16px',
-                      fontWeight: '700',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'background-color 0.2s'
-                    }}
-                  >
-                    +
-                  </button>
-                </div>
-
-                {/* Remove Button */}
-                <button
-                  onClick={() => !isPreview && onRemoveItem(item.key)}
-                  disabled={isPreview}
-                  title="Remove item"
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    border: 'none',
-                    backgroundColor: 'transparent',
-                    color: isPreview ? '#9ca3af' : '#dc2626',
-                    cursor: isPreview ? 'not-allowed' : 'pointer',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'background-color 0.2s'
-                  }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="3,6 5,6 21,6"></polyline>
-                    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
-                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })}
+      {items.map((item) => (
+        <CartItemRow
+          key={item.key}
+          item={item}
+          productCompareAtPrices={productCompareAtPrices}
+          appliedDiscount={appliedDiscount}
+          cartTotalPrice={cartTotalPrice}
+          onUpdateQuantity={onUpdateQuantity}
+          onRemoveItem={onRemoveItem}
+          isPreview={isPreview}
+          formatMoney={formatMoney}
+          calculateItemPrices={calculateItemPrices}
+        />
+      ))}
     </>
   );
 };

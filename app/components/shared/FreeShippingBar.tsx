@@ -88,10 +88,9 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
 
   return (
     <div style={{
-      marginBottom: isPreview ? '16px' : '20px',
-      padding: isPreview ? '12px' : '16px',
+      padding: '16px',
       background: backgroundGradient,
-      borderRadius: isPreview ? '10px' : '12px',
+      borderRadius: '12px',
       border: '1px solid #e2e8f0',
       boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
     }}>
@@ -100,8 +99,8 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: isPreview ? '10px' : '12px',
-        fontSize: isPreview ? '13px' : '14px',
+        marginBottom: '12px',
+        fontSize: '14px',
         fontWeight: '600'
       }}>
         <span style={{ color: '#374151', flex: 1 }}>
@@ -126,8 +125,8 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
       {/* Progress Bar Track */}
       <div style={{
         width: '100%',
-        height: isPreview ? '10px' : '12px',
-        borderRadius: isPreview ? '6px' : '8px',
+        height: '12px',
+        borderRadius: '8px',
         overflow: 'hidden',
         background: backgroundColor,
         position: 'relative',
@@ -139,7 +138,7 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
           height: '100%',
           display: 'block',
           background: isComplete ? completeGradient : incompleteGradient,
-          borderRadius: isPreview ? '6px' : '8px',
+          borderRadius: '8px',
           transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
         }} />
       </div>

@@ -4,8 +4,22 @@
   var __defProp = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __getOwnPropSymbols = Object.getOwnPropertySymbols;
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __propIsEnum = Object.prototype.propertyIsEnumerable;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __spreadValues = (a, b) => {
+    for (var prop in b || (b = {}))
+      if (__hasOwnProp.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    if (__getOwnPropSymbols)
+      for (var prop of __getOwnPropSymbols(b)) {
+        if (__propIsEnum.call(b, prop))
+          __defNormalProp(a, prop, b[prop]);
+      }
+    return a;
+  };
   var __commonJS = (cb, mod) => function __require() {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
   };
@@ -8038,8 +8052,9 @@
     }
   }
   async function updateQuantity(itemKey, newQuantity, loadCartCallback, renderCallback) {
-    if (newQuantity < 0)
-      return;
+    if (newQuantity < 0) {
+      throw new Error("Quantity cannot be negative");
+    }
     const cartItem = document.querySelector(`[data-item-key="${itemKey}"]`);
     if (cartItem) {
       cartItem.classList.add("upsellity-loading");
@@ -8062,7 +8077,9 @@
         if (result.items) {
           const updatedItem = result.items.find((item) => item.key === itemKey);
           if (!updatedItem && newQuantity > 0) {
-            showNotification("This item is no longer available and has been removed from your cart", "error");
+            const errorMessage = "This item is no longer available and has been removed from your cart";
+            showNotification(errorMessage, "error");
+            throw new Error(errorMessage);
           } else {
             showNotification("Cart updated!", "success");
           }
@@ -8073,19 +8090,26 @@
         const error = await response.json();
         console.error("Cart update error:", error);
         await loadCartCallback();
+        let errorMessage = error.description || error.message || "Failed to update cart";
         if (error.description && error.description.includes("sold out")) {
           showNotification(error.description, "error");
           if (newQuantity !== 0) {
-            showNotification("This product is out of stock. Please remove it from your cart.", "error");
+            errorMessage = "This product is out of stock";
+            showNotification(errorMessage, "error");
           }
         } else {
-          showNotification(error.description || error.message || "Failed to update cart", "error");
+          showNotification(errorMessage, "error");
         }
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error("Error updating quantity:", error);
+      if (error.message && (error.message.includes("no longer available") || error.message.includes("out of stock") || error.message.includes("Failed to update cart") || error.message.includes("negative"))) {
+        throw error;
+      }
       showNotification("Failed to update cart", "error");
       await loadCartCallback();
+      throw new Error("Failed to update cart");
     } finally {
       if (cartItem) {
         cartItem.classList.remove("upsellity-loading");
@@ -8198,6 +8222,38 @@
         return 5e3;
       default:
         return 0;
+    }
+  }
+  async function validateAndApplyCoupon(shop, config, couponCode, cart) {
+    var _a;
+    if (!couponCode || !couponCode.trim()) {
+      showNotification("Please enter a coupon code", "error");
+      return null;
+    }
+    const code = couponCode.trim().toUpperCase();
+    try {
+      const appUrl = ((_a = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a.dataset.upsellityAppUrl) || "";
+      const response = await fetch(`${appUrl}/api/validate-discount?shop=${shop}&code=${encodeURIComponent(code)}`);
+      const data = await response.json();
+      if (data.valid) {
+        const newDiscount = {
+          code: data.code,
+          title: data.title,
+          description: data.description || getDiscountDescription(data.type, data.value),
+          type: data.type,
+          value: data.value
+        };
+        const estimatedDiscount = calculateEstimatedDiscount(newDiscount, cart);
+        showNotification(`Coupon ${data.code} applied! You're saving ${formatMoney(estimatedDiscount)}`, "success");
+        return newDiscount;
+      } else {
+        showNotification(data.error || "Invalid coupon code", "error");
+        return null;
+      }
+    } catch (error) {
+      console.error("Upsellity: Error validating coupon", error);
+      showNotification("Failed to validate coupon code", "error");
+      return null;
     }
   }
   async function applyCoupon(shop, config, appliedDiscount, renderCallback) {
@@ -8423,6 +8479,46 @@
     }
   }
 
+  // extensions/cart-upsell/assets/modules/auto-apply-storage.js
+  var STORAGE_KEY = "upsellity_discount_removed";
+  var EXPIRATION_MINUTES = 15;
+  function markDiscountRemoved() {
+    const expirationTime = Date.now() + EXPIRATION_MINUTES * 60 * 1e3;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        removed: true,
+        expiresAt: expirationTime
+      }));
+    } catch (error) {
+      console.warn("Upsellity: Failed to save discount removal preference", error);
+    }
+  }
+  function wasDiscountRemoved() {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) {
+        return false;
+      }
+      const data = JSON.parse(stored);
+      const now = Date.now();
+      if (now >= data.expiresAt) {
+        localStorage.removeItem(STORAGE_KEY);
+        return false;
+      }
+      return data.removed === true;
+    } catch (error) {
+      console.warn("Upsellity: Failed to read discount removal preference", error);
+      return false;
+    }
+  }
+  function clearDiscountRemoval() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.warn("Upsellity: Failed to clear discount removal preference", error);
+    }
+  }
+
   // extensions/cart-upsell/assets/modules/renderers/free-shipping-bar.js
   var import_react = __toESM(require_react(), 1);
   var import_client = __toESM(require_client(), 1);
@@ -8483,10 +8579,9 @@
     const incompleteGradient = `linear-gradient(135deg, ${progressBarColor} 0%, ${progressBarColor}dd 100%)`;
     const percentageGradient = isComplete ? completeGradient : incompleteGradient;
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-      marginBottom: isPreview ? "16px" : "20px",
-      padding: isPreview ? "12px" : "16px",
+      padding: "16px",
       background: backgroundGradient,
-      borderRadius: isPreview ? "10px" : "12px",
+      borderRadius: "12px",
       border: "1px solid #e2e8f0",
       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)"
     }, children: [
@@ -8494,8 +8589,8 @@
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: isPreview ? "10px" : "12px",
-        fontSize: isPreview ? "13px" : "14px",
+        marginBottom: "12px",
+        fontSize: "14px",
         fontWeight: "600"
       }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { color: "#374151", flex: 1 }, children: message }),
@@ -8515,8 +8610,8 @@
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
         width: "100%",
-        height: isPreview ? "10px" : "12px",
-        borderRadius: isPreview ? "6px" : "8px",
+        height: "12px",
+        borderRadius: "8px",
         overflow: "hidden",
         background: backgroundColor,
         position: "relative",
@@ -8526,7 +8621,7 @@
         height: "100%",
         display: "block",
         background: isComplete ? completeGradient : incompleteGradient,
-        borderRadius: isPreview ? "6px" : "8px",
+        borderRadius: "8px",
         transition: "width 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
       } }) })
     ] });
@@ -8591,18 +8686,45 @@
     onCtaClick,
     isPreview = false
   }) => {
-    const [carouselIndex, setCarouselIndex] = (0, import_react2.useState)(0);
+    const [currentIndex, setCurrentIndex] = (0, import_react2.useState)(0);
+    const [canScrollLeft, setCanScrollLeft] = (0, import_react2.useState)(false);
+    const [canScrollRight, setCanScrollRight] = (0, import_react2.useState)(false);
+    const scrollContainerRef = (0, import_react2.useRef)(null);
+    const isScrolling = (0, import_react2.useRef)(false);
+    const updateScrollState = () => {
+      const container = scrollContainerRef.current;
+      if (!container || slides.length <= 1)
+        return;
+      const scrollLeft = container.scrollLeft;
+      const maxScrollLeft = container.scrollWidth - container.clientWidth;
+      setCanScrollLeft(scrollLeft > 10);
+      setCanScrollRight(scrollLeft < maxScrollLeft - 10);
+      const slideWidth = container.clientWidth * 0.8 + 8;
+      const index = Math.round(scrollLeft / slideWidth);
+      setCurrentIndex(Math.min(index, slides.length - 1));
+    };
     (0, import_react2.useEffect)(() => {
-      if (slides && slides.length > 1 && carouselSettings.autoRotate !== false) {
+      updateScrollState();
+      const container = scrollContainerRef.current;
+      if (container && slides.length > 1) {
+        container.addEventListener("scroll", updateScrollState);
+        window.addEventListener("resize", updateScrollState);
+        return () => {
+          container.removeEventListener("scroll", updateScrollState);
+          window.removeEventListener("resize", updateScrollState);
+        };
+      }
+    }, [slides]);
+    (0, import_react2.useEffect)(() => {
+      if (slides && slides.length > 1 && carouselSettings.autoRotate !== false && !isScrolling.current) {
         const interval = setInterval(() => {
-          setCarouselIndex((prev) => (prev + 1) % slides.length);
+          handleNext();
         }, carouselSettings.rotationSpeed || 5e3);
         return () => clearInterval(interval);
       }
-    }, [slides, carouselSettings]);
+    }, [slides, carouselSettings, currentIndex]);
     if (!slides || slides.length === 0) {
       return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-        marginBottom: "16px",
         borderRadius: "12px",
         overflow: "hidden",
         backgroundColor: "#fff",
@@ -8612,7 +8734,7 @@
         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
           position: "relative",
           overflow: "hidden",
-          height: isPreview ? "200px" : "160px",
+          height: "200px",
           backgroundColor: "#f9fafb"
         }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -8663,8 +8785,8 @@
                 transform: "translateY(-50%)",
                 backgroundColor: "rgba(255,255,255,0.9)",
                 borderRadius: "50%",
-                width: isPreview ? "24px" : "32px",
-                height: isPreview ? "24px" : "32px",
+                width: "24px",
+                height: "24px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -8689,8 +8811,8 @@
                 transform: "translateY(-50%)",
                 backgroundColor: "rgba(255,255,255,0.9)",
                 borderRadius: "50%",
-                width: isPreview ? "24px" : "32px",
-                height: isPreview ? "24px" : "32px",
+                width: "24px",
+                height: "24px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -8708,12 +8830,12 @@
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
           backgroundColor: "#fff",
-          padding: isPreview ? "12px 16px" : "10px 12px",
+          padding: "12px 16px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: "12px",
-          minHeight: isPreview ? "70px" : "60px"
+          minHeight: "70px"
         }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
             flex: 1,
@@ -8722,14 +8844,14 @@
           }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
               fontWeight: "700",
-              fontSize: isPreview ? "15px" : "18px",
+              fontSize: "15px",
               color: "#111827",
               marginBottom: "4px",
               lineHeight: "1.3",
               wordBreak: "break-word"
             }, children: "Summer Sale" }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-              fontSize: isPreview ? "12px" : "14px",
+              fontSize: "12px",
               color: "#6b7280",
               lineHeight: "1.4",
               wordBreak: "break-word"
@@ -8740,21 +8862,20 @@
             color: "#374151",
             border: "1px solid #e5e7eb",
             padding: "8px 20px",
-            borderRadius: isPreview ? "8px" : "6px",
-            fontWeight: isPreview ? "500" : "600",
+            borderRadius: "8px",
+            fontWeight: "500",
             cursor: "pointer",
-            fontSize: isPreview ? "13px" : "14px",
+            fontSize: "13px",
             transition: "all 0.2s ease",
             minWidth: "80px"
           }, children: "shop" }) })
         ] })
       ] });
     }
-    const currentSlide = slides[carouselIndex] || slides[0];
-    const renderMedia = () => {
-      if (currentSlide.videoUrl && currentSlide.videoType) {
-        if (currentSlide.videoType === "youtube") {
-          const embedUrl = getYouTubeEmbedUrl(currentSlide.videoUrl);
+    const renderMedia = (slide) => {
+      if (slide.videoUrl && slide.videoType) {
+        if (slide.videoType === "youtube") {
+          const embedUrl = getYouTubeEmbedUrl(slide.videoUrl);
           if (embedUrl) {
             return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "iframe",
@@ -8771,8 +8892,8 @@
               }
             );
           }
-        } else if (currentSlide.videoType === "vimeo") {
-          const embedUrl = getVimeoEmbedUrl(currentSlide.videoUrl);
+        } else if (slide.videoType === "vimeo") {
+          const embedUrl = getVimeoEmbedUrl(slide.videoUrl);
           if (embedUrl) {
             return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "iframe",
@@ -8789,11 +8910,11 @@
               }
             );
           }
-        } else if (currentSlide.videoType === "mp4") {
+        } else if (slide.videoType === "mp4") {
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
             "video",
             {
-              src: currentSlide.videoUrl,
+              src: slide.videoUrl,
               style: {
                 width: "100%",
                 height: "100%",
@@ -8810,7 +8931,7 @@
       return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
         "img",
         {
-          src: currentSlide.imageUrl || "https://via.placeholder.com/400x200",
+          src: slide.imageUrl || "https://via.placeholder.com/400x200",
           alt: "Promotional banner",
           style: {
             width: "100%",
@@ -8820,180 +8941,232 @@
         }
       );
     };
+    const scrollToIndex = (index) => {
+      const container = scrollContainerRef.current;
+      if (!container)
+        return;
+      isScrolling.current = true;
+      const slideWidth = container.clientWidth * 0.8 + 8;
+      const targetScroll = index * slideWidth;
+      container.scrollTo({
+        left: targetScroll,
+        behavior: "smooth"
+      });
+      setTimeout(() => {
+        isScrolling.current = false;
+      }, 500);
+    };
     const handlePrevious = () => {
-      setCarouselIndex((prev) => (prev - 1 + slides.length) % slides.length);
+      const newIndex = currentIndex > 0 ? currentIndex - 1 : slides.length - 1;
+      scrollToIndex(newIndex);
     };
     const handleNext = () => {
-      setCarouselIndex((prev) => (prev + 1) % slides.length);
+      const newIndex = currentIndex < slides.length - 1 ? currentIndex + 1 : 0;
+      scrollToIndex(newIndex);
     };
     const handleDotClick = (index) => {
-      setCarouselIndex(index);
+      scrollToIndex(index);
     };
-    const handleCtaClick = () => {
-      if (currentSlide.ctaUrl && onCtaClick) {
-        onCtaClick(currentSlide.ctaUrl);
+    const handleCtaClick = (slide) => {
+      if (slide.ctaUrl && onCtaClick) {
+        onCtaClick(slide.ctaUrl);
       }
     };
-    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-      marginBottom: "16px",
-      borderRadius: isPreview ? "12px" : "10px",
-      overflow: "hidden",
-      backgroundColor: "#fff",
-      border: "1px solid #e5e7eb",
-      boxShadow: isPreview ? "0 1px 3px rgba(0, 0, 0, 0.1)" : "0 2px 8px rgba(0,0,0,0.1)"
-    }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-        position: "relative",
-        overflow: "hidden",
-        height: isPreview ? "200px" : "160px",
-        backgroundColor: isPreview ? "#f9fafb" : "#000"
-      }, children: [
-        renderMedia(),
+    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "16px" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("style", { children: `
+        .upsellity-promo-scroll::-webkit-scrollbar {
+          display: none;
+        }
+        .upsellity-promo-scroll {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      ` }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative" }, children: [
+        slides.length > 1 && canScrollLeft && carouselSettings.showArrows !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "button",
+          {
+            onClick: handlePrevious,
+            style: {
+              position: "absolute",
+              left: "8px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "#ffffff",
+              border: "1px solid #e5e7eb",
+              borderRadius: "50%",
+              width: "32px",
+              height: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              zIndex: 20,
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
+              transition: "all 0.2s ease"
+            },
+            onMouseEnter: (e) => {
+              e.currentTarget.style.background = "#f9fafb";
+              e.currentTarget.style.borderColor = "#d1d5db";
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
+              e.currentTarget.style.transform = "translateY(-50%) scale(1.05)";
+            },
+            onMouseLeave: (e) => {
+              e.currentTarget.style.background = "#ffffff";
+              e.currentTarget.style.borderColor = "#e5e7eb";
+              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.12)";
+              e.currentTarget.style.transform = "translateY(-50%) scale(1)";
+            },
+            children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px", color: "#374151", fontWeight: "300" }, children: "\u2039" })
+          }
+        ),
+        slides.length > 1 && canScrollRight && carouselSettings.showArrows !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "button",
+          {
+            onClick: handleNext,
+            style: {
+              position: "absolute",
+              right: "8px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "#ffffff",
+              border: "1px solid #e5e7eb",
+              borderRadius: "50%",
+              width: "32px",
+              height: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              zIndex: 20,
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
+              transition: "all 0.2s ease"
+            },
+            onMouseEnter: (e) => {
+              e.currentTarget.style.background = "#f9fafb";
+              e.currentTarget.style.borderColor = "#d1d5db";
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
+              e.currentTarget.style.transform = "translateY(-50%) scale(1.05)";
+            },
+            onMouseLeave: (e) => {
+              e.currentTarget.style.background = "#ffffff";
+              e.currentTarget.style.borderColor = "#e5e7eb";
+              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.12)";
+              e.currentTarget.style.transform = "translateY(-50%) scale(1)";
+            },
+            children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px", color: "#374151", fontWeight: "300" }, children: "\u203A" })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "div",
+          {
+            ref: scrollContainerRef,
+            className: "upsellity-promo-scroll",
+            style: {
+              display: "flex",
+              gap: "8px",
+              overflowX: "auto",
+              scrollBehavior: "smooth",
+              scrollSnapType: "x mandatory",
+              WebkitOverflowScrolling: "touch"
+            },
+            children: slides.map((slide, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+              "div",
+              {
+                style: {
+                  minWidth: slides.length > 1 ? "80%" : "100%",
+                  maxWidth: slides.length > 1 ? "80%" : "100%",
+                  flexShrink: 0,
+                  scrollSnapAlign: "start",
+                  borderRadius: "12px",
+                  overflow: "hidden",
+                  backgroundColor: "#fff",
+                  border: "1px solid #e5e7eb",
+                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+                },
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                    position: "relative",
+                    overflow: "hidden",
+                    height: "200px",
+                    backgroundColor: "#f9fafb"
+                  }, children: renderMedia(slide) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+                    backgroundColor: "#fff",
+                    padding: "12px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    minHeight: "70px"
+                  }, children: [
+                    (slide.title || slide.description) && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+                      flex: 1,
+                      textAlign: "left",
+                      minWidth: 0
+                    }, children: [
+                      slide.title && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                        fontWeight: "700",
+                        fontSize: "15px",
+                        color: "#111827",
+                        marginBottom: slide.description ? "4px" : "0",
+                        lineHeight: "1.3",
+                        wordBreak: "break-word"
+                      }, children: slide.title }),
+                      slide.description && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                        fontSize: "12px",
+                        color: "#6b7280",
+                        lineHeight: "1.4",
+                        wordBreak: "break-word"
+                      }, children: slide.description })
+                    ] }),
+                    slide.ctaText && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "button",
+                      {
+                        onClick: () => handleCtaClick(slide),
+                        style: {
+                          backgroundColor: "#f3f4f6",
+                          color: "#374151",
+                          border: "1px solid #e5e7eb",
+                          padding: "8px 20px",
+                          borderRadius: "8px",
+                          fontWeight: "500",
+                          cursor: "pointer",
+                          fontSize: "13px",
+                          transition: "all 0.2s ease",
+                          minWidth: "80px"
+                        },
+                        children: slide.ctaText
+                      }
+                    ) })
+                  ] })
+                ]
+              },
+              index
+            ))
+          }
+        ),
         slides.length > 1 && carouselSettings.showDots !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-          position: "absolute",
-          bottom: "6px",
-          left: "50%",
-          transform: "translateX(-50%)",
           display: "flex",
-          gap: isPreview ? "4px" : "8px",
-          zIndex: 10
+          justifyContent: "center",
+          gap: "6px",
+          marginTop: "8px"
         }, children: slides.map((_, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "div",
           {
             onClick: () => handleDotClick(index),
             style: {
-              width: isPreview ? "6px" : "12px",
-              height: isPreview ? "6px" : "12px",
+              width: "8px",
+              height: "8px",
               borderRadius: "50%",
-              backgroundColor: index === carouselIndex ? "#007bff" : "rgba(255,255,255,0.6)",
-              border: isPreview ? "1px solid rgba(255,255,255,0.9)" : "2px solid rgba(255,255,255,0.9)",
+              backgroundColor: index === currentIndex ? "#007bff" : "#d1d5db",
               transition: "all 0.2s ease",
               cursor: "pointer",
-              boxShadow: isPreview ? "0 1px 2px rgba(0,0,0,0.2)" : "0 2px 4px rgba(0,0,0,0.2)"
+              boxShadow: index === currentIndex ? "0 2px 4px rgba(0, 123, 255, 0.3)" : "none"
             }
           },
           index
-        )) }),
-        slides.length > 1 && carouselSettings.showArrows !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-            "button",
-            {
-              onClick: handlePrevious,
-              style: {
-                position: "absolute",
-                left: isPreview ? "4px" : "12px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                backgroundColor: "rgba(255,255,255,0.9)",
-                borderRadius: "50%",
-                width: isPreview ? "24px" : "32px",
-                height: isPreview ? "24px" : "32px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                border: "none",
-                fontSize: isPreview ? "14px" : "18px",
-                fontWeight: "bold",
-                color: "#333",
-                boxShadow: isPreview ? "0 2px 6px rgba(0,0,0,0.2)" : "0 2px 8px rgba(0,0,0,0.2)",
-                transition: "all 0.2s ease",
-                zIndex: 10
-              },
-              onMouseEnter: (e) => {
-                e.currentTarget.style.transform = "translateY(-50%) scale(1.1)";
-              },
-              onMouseLeave: (e) => {
-                e.currentTarget.style.transform = "translateY(-50%) scale(1)";
-              },
-              children: "\u2039"
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-            "button",
-            {
-              onClick: handleNext,
-              style: {
-                position: "absolute",
-                right: isPreview ? "4px" : "12px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                backgroundColor: "rgba(255,255,255,0.9)",
-                borderRadius: "50%",
-                width: isPreview ? "24px" : "32px",
-                height: isPreview ? "24px" : "32px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                border: "none",
-                fontSize: isPreview ? "14px" : "18px",
-                fontWeight: "bold",
-                color: "#333",
-                boxShadow: isPreview ? "0 2px 6px rgba(0,0,0,0.2)" : "0 2px 8px rgba(0,0,0,0.2)",
-                transition: "all 0.2s ease",
-                zIndex: 10
-              },
-              onMouseEnter: (e) => {
-                e.currentTarget.style.transform = "translateY(-50%) scale(1.1)";
-              },
-              onMouseLeave: (e) => {
-                e.currentTarget.style.transform = "translateY(-50%) scale(1)";
-              },
-              children: "\u203A"
-            }
-          )
-        ] })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-        backgroundColor: "#fff",
-        padding: isPreview ? "12px 16px" : "10px 12px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: "12px",
-        minHeight: isPreview ? "70px" : "60px"
-      }, children: [
-        (currentSlide.title || currentSlide.description) && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-          flex: 1,
-          textAlign: "left",
-          minWidth: 0
-        }, children: [
-          currentSlide.title && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-            fontWeight: "700",
-            fontSize: isPreview ? "15px" : "18px",
-            color: isPreview ? "#111827" : "#1f2937",
-            marginBottom: currentSlide.description ? isPreview ? "4px" : "2px" : "0",
-            lineHeight: "1.3",
-            wordBreak: "break-word"
-          }, children: currentSlide.title }),
-          currentSlide.description && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-            fontSize: isPreview ? "12px" : "14px",
-            color: "#6b7280",
-            lineHeight: "1.4",
-            wordBreak: "break-word"
-          }, children: currentSlide.description })
-        ] }),
-        currentSlide.ctaText && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-          "button",
-          {
-            onClick: handleCtaClick,
-            style: {
-              backgroundColor: "#f3f4f6",
-              color: "#374151",
-              border: "1px solid #e5e7eb",
-              padding: isPreview ? "8px 20px" : "8px 16px",
-              borderRadius: isPreview ? "8px" : "6px",
-              fontWeight: isPreview ? "500" : "600",
-              cursor: "pointer",
-              fontSize: isPreview ? "13px" : "14px",
-              transition: "all 0.2s ease",
-              minWidth: isPreview ? "80px" : "110px",
-              boxShadow: isPreview ? "none" : "0 1px 2px rgba(0,0,0,0.05)"
-            },
-            children: currentSlide.ctaText
-          }
-        ) })
+        )) })
       ] })
     ] });
   };
@@ -9032,11 +9205,293 @@
   }
 
   // extensions/cart-upsell/assets/modules/renderers/cart-items.js
-  var import_react4 = __toESM(require_react(), 1);
+  var import_react5 = __toESM(require_react(), 1);
   var import_client3 = __toESM(require_client(), 1);
 
   // app/components/shared/CartItems.tsx
+  var import_react4 = __toESM(require_react(), 1);
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
+  var CartItemRow = ({
+    item,
+    productCompareAtPrices,
+    appliedDiscount,
+    cartTotalPrice,
+    onUpdateQuantity,
+    onRemoveItem,
+    isPreview,
+    formatMoney: formatMoney2,
+    calculateItemPrices
+  }) => {
+    var _a;
+    const [inputValue, setInputValue] = (0, import_react4.useState)(item.quantity.toString());
+    const [isEditing, setIsEditing] = (0, import_react4.useState)(false);
+    const [error, setError] = (0, import_react4.useState)(null);
+    const [isUpdating, setIsUpdating] = (0, import_react4.useState)(false);
+    const handleInputChange = (e) => {
+      const value = e.target.value;
+      if (value === "" || /^\d+$/.test(value)) {
+        setInputValue(value);
+        setError(null);
+      }
+    };
+    const handleBlur = async () => {
+      setIsEditing(false);
+      const newQuantity = parseInt(inputValue, 10);
+      if (!inputValue || isNaN(newQuantity) || newQuantity < 1) {
+        setError("Please enter a valid quantity");
+        setInputValue(item.quantity.toString());
+        setTimeout(() => setError(null), 3e3);
+        return;
+      }
+      if (newQuantity === item.quantity) {
+        return;
+      }
+      setIsUpdating(true);
+      try {
+        await onUpdateQuantity(item.key, newQuantity);
+        setError(null);
+      } catch (err) {
+        const errorMessage = (err == null ? void 0 : err.message) || "Failed to update quantity";
+        setError(errorMessage);
+        setInputValue(item.quantity.toString());
+        setTimeout(() => setError(null), 3e3);
+      } finally {
+        setIsUpdating(false);
+      }
+    };
+    const handleFocus = () => {
+      setIsEditing(true);
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === "Enter") {
+        e.currentTarget.blur();
+      }
+    };
+    import_react4.default.useEffect(() => {
+      if (!isEditing) {
+        setInputValue(item.quantity.toString());
+      }
+    }, [item.quantity, isEditing]);
+    const prices = calculateItemPrices(item, cartTotalPrice);
+    const imageUrl = ((_a = item.featured_image) == null ? void 0 : _a.url) || item.image || "";
+    return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+      "div",
+      {
+        style: {
+          display: "flex",
+          gap: "12px",
+          padding: "12px 0",
+          borderBottom: "1px solid #e5e7eb"
+        },
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            "img",
+            {
+              src: imageUrl,
+              alt: item.title,
+              style: {
+                width: "70px",
+                height: "70px",
+                objectFit: "cover",
+                borderRadius: "6px",
+                border: "1px solid #e5e7eb",
+                flexShrink: 0
+              }
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
+              fontSize: "14px",
+              fontWeight: "600",
+              color: "#111827",
+              marginBottom: "2px",
+              lineHeight: "1.3"
+            }, children: item.title }),
+            item.variant_title && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
+              fontSize: "12px",
+              color: "#6b7280",
+              marginBottom: "6px"
+            }, children: item.variant_title }),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { marginBottom: "8px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                flexWrap: "wrap"
+              }, children: [
+                prices.hasItemDiscount && !prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                    textDecoration: "line-through",
+                    color: "#9ca3af",
+                    fontSize: "13px"
+                  }, children: formatMoney2(prices.originalLinePrice) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                    fontWeight: "700",
+                    fontSize: "16px",
+                    color: "#f59e0b"
+                  }, children: formatMoney2(prices.itemSubtotal) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { style: {
+                    background: "#fef3c7",
+                    color: "#92400e",
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                    fontSize: "10px",
+                    fontWeight: "600"
+                  }, children: [
+                    prices.itemDiscountPercent,
+                    "% OFF"
+                  ] })
+                ] }),
+                prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                    textDecoration: "line-through",
+                    color: "#9ca3af",
+                    fontSize: "13px"
+                  }, children: formatMoney2(prices.itemSubtotal) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                    fontWeight: "700",
+                    fontSize: "16px",
+                    color: "#059669"
+                  }, children: formatMoney2(prices.itemPriceWithCoupon) })
+                ] }),
+                !prices.hasItemDiscount && !prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                  fontWeight: "700",
+                  fontSize: "16px",
+                  color: "#111827"
+                }, children: formatMoney2(prices.itemSubtotal) })
+              ] }),
+              prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
+                fontSize: "11px",
+                color: "#059669",
+                marginTop: "2px"
+              }, children: "Coupon discount applied" }),
+              error && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
+                fontSize: "11px",
+                color: "#dc2626",
+                marginTop: "2px",
+                fontWeight: "500"
+              }, children: error })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+              display: "flex",
+              alignItems: "center"
+            }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                border: "1px solid #e5e7eb",
+                borderRadius: "6px",
+                padding: "4px"
+              }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  "button",
+                  {
+                    onClick: () => !isPreview && !isUpdating && onUpdateQuantity(item.key, item.quantity - 1),
+                    disabled: isPreview || item.quantity <= 1 || isUpdating,
+                    style: {
+                      width: "24px",
+                      height: "24px",
+                      border: "none",
+                      backgroundColor: isPreview || item.quantity <= 1 || isUpdating ? "#f3f4f6" : "#ffffff",
+                      color: isPreview || item.quantity <= 1 || isUpdating ? "#9ca3af" : "#374151",
+                      borderRadius: "4px",
+                      cursor: isPreview || item.quantity <= 1 || isUpdating ? "not-allowed" : "pointer",
+                      fontSize: "16px",
+                      fontWeight: "700",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "background-color 0.2s"
+                    },
+                    children: "\u2212"
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  "input",
+                  {
+                    type: "text",
+                    inputMode: "numeric",
+                    value: inputValue,
+                    onChange: handleInputChange,
+                    onBlur: handleBlur,
+                    onFocus: handleFocus,
+                    onKeyDown: handleKeyDown,
+                    disabled: isPreview || isUpdating,
+                    style: {
+                      minWidth: "32px",
+                      maxWidth: "48px",
+                      textAlign: "center",
+                      fontSize: "14px",
+                      fontWeight: "600",
+                      color: "#111827",
+                      border: "none",
+                      outline: "none",
+                      backgroundColor: "transparent",
+                      cursor: isPreview || isUpdating ? "not-allowed" : "text",
+                      padding: "2px 4px",
+                      borderRadius: "2px",
+                      transition: "background-color 0.2s"
+                    }
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  "button",
+                  {
+                    onClick: () => !isPreview && !isUpdating && onUpdateQuantity(item.key, item.quantity + 1),
+                    disabled: isPreview || isUpdating,
+                    style: {
+                      width: "24px",
+                      height: "24px",
+                      border: "none",
+                      backgroundColor: isPreview || isUpdating ? "#f3f4f6" : "#ffffff",
+                      color: isPreview || isUpdating ? "#9ca3af" : "#374151",
+                      borderRadius: "4px",
+                      cursor: isPreview || isUpdating ? "not-allowed" : "pointer",
+                      fontSize: "16px",
+                      fontWeight: "700",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "background-color 0.2s"
+                    },
+                    children: "+"
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                "button",
+                {
+                  onClick: () => !isPreview && onRemoveItem(item.key),
+                  disabled: isPreview,
+                  title: "Remove item",
+                  style: {
+                    width: "32px",
+                    height: "32px",
+                    border: "none",
+                    backgroundColor: "transparent",
+                    color: "#4a4a4a",
+                    cursor: "pointer",
+                    borderRadius: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "background-color 0.2s"
+                  },
+                  children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("polyline", { points: "3,6 5,6 21,6" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "10", y1: "11", x2: "10", y2: "17" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "14", y1: "11", x2: "14", y2: "17" })
+                  ] })
+                }
+              )
+            ] })
+          ] })
+        ]
+      }
+    );
+  };
   var CartItems = ({
     items,
     productCompareAtPrices,
@@ -9097,203 +9552,21 @@
       };
     };
     const cartTotalPrice = items.reduce((sum, item) => sum + (item.line_price || item.price * item.quantity), 0);
-    return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(import_jsx_runtime3.Fragment, { children: items.map((item) => {
-      var _a;
-      const prices = calculateItemPrices(item, cartTotalPrice);
-      const imageUrl = ((_a = item.featured_image) == null ? void 0 : _a.url) || item.image || "";
-      return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
-        "div",
-        {
-          style: {
-            display: "flex",
-            gap: isPreview ? "10px" : "12px",
-            padding: isPreview ? "10px 0" : "12px 0",
-            borderBottom: "1px solid #e5e7eb"
-          },
-          children: [
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-              "img",
-              {
-                src: imageUrl,
-                alt: item.title,
-                style: {
-                  width: isPreview ? "60px" : "70px",
-                  height: isPreview ? "60px" : "70px",
-                  objectFit: "cover",
-                  borderRadius: "6px",
-                  border: "1px solid #e5e7eb",
-                  flexShrink: 0
-                }
-              }
-            ),
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
-                fontSize: isPreview ? "13px" : "14px",
-                fontWeight: "600",
-                color: "#111827",
-                marginBottom: "2px",
-                lineHeight: "1.3"
-              }, children: item.title }),
-              item.variant_title && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
-                fontSize: isPreview ? "11px" : "12px",
-                color: "#6b7280",
-                marginBottom: "6px"
-              }, children: item.variant_title }),
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { marginBottom: "8px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  flexWrap: "wrap"
-                }, children: [
-                  prices.hasItemDiscount && !prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
-                      textDecoration: "line-through",
-                      color: "#9ca3af",
-                      fontSize: isPreview ? "12px" : "13px"
-                    }, children: formatMoney2(prices.originalLinePrice) }),
-                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
-                      fontWeight: "700",
-                      fontSize: isPreview ? "14px" : "16px",
-                      color: "#f59e0b"
-                    }, children: formatMoney2(prices.itemSubtotal) }),
-                    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { style: {
-                      background: "#fef3c7",
-                      color: "#92400e",
-                      padding: "2px 6px",
-                      borderRadius: "4px",
-                      fontSize: "10px",
-                      fontWeight: "600"
-                    }, children: [
-                      prices.itemDiscountPercent,
-                      "% OFF"
-                    ] })
-                  ] }),
-                  prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
-                      textDecoration: "line-through",
-                      color: "#9ca3af",
-                      fontSize: isPreview ? "12px" : "13px"
-                    }, children: formatMoney2(prices.itemSubtotal) }),
-                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
-                      fontWeight: "700",
-                      fontSize: isPreview ? "14px" : "16px",
-                      color: "#059669"
-                    }, children: formatMoney2(prices.itemPriceWithCoupon) })
-                  ] }),
-                  !prices.hasItemDiscount && !prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
-                    fontWeight: "700",
-                    fontSize: isPreview ? "14px" : "16px",
-                    color: "#111827"
-                  }, children: formatMoney2(prices.itemSubtotal) })
-                ] }),
-                prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
-                  fontSize: "11px",
-                  color: "#059669",
-                  marginTop: "2px"
-                }, children: "Coupon discount applied" })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between"
-              }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "6px",
-                  padding: "4px"
-                }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                    "button",
-                    {
-                      onClick: () => !isPreview && onUpdateQuantity(item.key, item.quantity - 1),
-                      disabled: isPreview || item.quantity <= 1,
-                      style: {
-                        width: "24px",
-                        height: "24px",
-                        border: "none",
-                        backgroundColor: isPreview || item.quantity <= 1 ? "#f3f4f6" : "#ffffff",
-                        color: isPreview || item.quantity <= 1 ? "#9ca3af" : "#374151",
-                        borderRadius: "4px",
-                        cursor: isPreview || item.quantity <= 1 ? "not-allowed" : "pointer",
-                        fontSize: "16px",
-                        fontWeight: "700",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        transition: "background-color 0.2s"
-                      },
-                      children: "\u2212"
-                    }
-                  ),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
-                    minWidth: "24px",
-                    textAlign: "center",
-                    fontSize: isPreview ? "13px" : "14px",
-                    fontWeight: "600",
-                    color: "#111827"
-                  }, children: item.quantity }),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                    "button",
-                    {
-                      onClick: () => !isPreview && onUpdateQuantity(item.key, item.quantity + 1),
-                      disabled: isPreview,
-                      style: {
-                        width: "24px",
-                        height: "24px",
-                        border: "none",
-                        backgroundColor: isPreview ? "#f3f4f6" : "#ffffff",
-                        color: isPreview ? "#9ca3af" : "#374151",
-                        borderRadius: "4px",
-                        cursor: isPreview ? "not-allowed" : "pointer",
-                        fontSize: "16px",
-                        fontWeight: "700",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        transition: "background-color 0.2s"
-                      },
-                      children: "+"
-                    }
-                  )
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                  "button",
-                  {
-                    onClick: () => !isPreview && onRemoveItem(item.key),
-                    disabled: isPreview,
-                    title: "Remove item",
-                    style: {
-                      width: "32px",
-                      height: "32px",
-                      border: "none",
-                      backgroundColor: "transparent",
-                      color: isPreview ? "#9ca3af" : "#dc2626",
-                      cursor: isPreview ? "not-allowed" : "pointer",
-                      borderRadius: "6px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      transition: "background-color 0.2s"
-                    },
-                    children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("polyline", { points: "3,6 5,6 21,6" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "10", y1: "11", x2: "10", y2: "17" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "14", y1: "11", x2: "14", y2: "17" })
-                    ] })
-                  }
-                )
-              ] })
-            ] })
-          ]
-        },
-        item.key
-      );
-    }) });
+    return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(import_jsx_runtime3.Fragment, { children: items.map((item) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+      CartItemRow,
+      {
+        item,
+        productCompareAtPrices,
+        appliedDiscount,
+        cartTotalPrice,
+        onUpdateQuantity,
+        onRemoveItem,
+        isPreview,
+        formatMoney: formatMoney2,
+        calculateItemPrices
+      },
+      item.key
+    )) });
   };
 
   // extensions/cart-upsell/assets/modules/renderers/cart-items.js
@@ -9305,7 +9578,7 @@
       if (container) {
         const root = (0, import_client3.createRoot)(container);
         root.render(
-          import_react4.default.createElement(CartItems, {
+          import_react5.default.createElement(CartItems, {
             items: cart.items,
             productCompareAtPrices,
             appliedDiscount,
@@ -9328,11 +9601,11 @@
   }
 
   // extensions/cart-upsell/assets/modules/renderers/product-recommendations.js
-  var import_react6 = __toESM(require_react(), 1);
+  var import_react7 = __toESM(require_react(), 1);
   var import_client4 = __toESM(require_client(), 1);
 
   // app/components/shared/ProductRecommendations.tsx
-  var import_react5 = __toESM(require_react(), 1);
+  var import_react6 = __toESM(require_react(), 1);
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
   var ProductRecommendations = ({
     title = "You may also like",
@@ -9345,9 +9618,9 @@
     onAddToCart,
     isPreview = false
   }) => {
-    const [canScrollLeft, setCanScrollLeft] = (0, import_react5.useState)(false);
-    const [canScrollRight, setCanScrollRight] = (0, import_react5.useState)(false);
-    const scrollContainerRef = (0, import_react5.useRef)(null);
+    const [canScrollLeft, setCanScrollLeft] = (0, import_react6.useState)(false);
+    const [canScrollRight, setCanScrollRight] = (0, import_react6.useState)(false);
+    const scrollContainerRef = (0, import_react6.useRef)(null);
     const isGrid = layout === "grid";
     const displayProducts = products.slice(0, maxProducts);
     const updateScrollState = () => {
@@ -9359,7 +9632,7 @@
       setCanScrollLeft(currentScroll > 5);
       setCanScrollRight(currentScroll < maxScrollLeft - 5);
     };
-    (0, import_react5.useEffect)(() => {
+    (0, import_react6.useEffect)(() => {
       updateScrollState();
       const container = scrollContainerRef.current;
       if (container && !isGrid) {
@@ -9371,7 +9644,7 @@
       const container = scrollContainerRef.current;
       if (!container)
         return;
-      const scrollAmount = isPreview ? 140 : 140;
+      const scrollAmount = 140;
       container.scrollBy({
         left: direction === "left" ? -scrollAmount : scrollAmount,
         behavior: "smooth"
@@ -9386,7 +9659,7 @@
     if (displayProducts.length === 0) {
       return null;
     }
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { marginTop: isPreview ? "16px" : "8px" }, children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { marginTop: "8px" }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("style", { children: `
         .upsellity-product-recommendations-scroll::-webkit-scrollbar {
           display: none;
@@ -9397,9 +9670,9 @@
         }
       ` }),
       /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h4", { style: {
-        fontSize: isPreview ? "14px" : "13px",
+        fontSize: "13px",
         fontWeight: "600",
-        marginBottom: isPreview ? "6px" : "4px",
+        marginBottom: "4px",
         color: "#111827",
         letterSpacing: "-0.01em"
       }, children: title }),
@@ -9488,7 +9761,7 @@
             className: !isGrid ? "upsellity-product-recommendations-scroll" : "",
             style: isGrid ? {
               display: "grid",
-              gridTemplateColumns: `repeat(auto-fit, minmax(${isPreview ? "120px" : "120px"}, 1fr))`,
+              gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
               gap: "6px",
               paddingBottom: "0px"
             } : {
@@ -9496,7 +9769,8 @@
               gap: "6px",
               overflowX: "auto",
               scrollBehavior: "smooth",
-              paddingBottom: "0px",
+              paddingBottom: "5px",
+              paddingTop: "5px",
               scrollbarWidth: "none",
               msOverflowStyle: "none",
               WebkitOverflowScrolling: "touch",
@@ -9523,8 +9797,8 @@
                     border: "1px solid #e5e7eb",
                     borderRadius: "6px",
                     padding: "6px",
-                    minWidth: isPreview ? "120px" : "120px",
-                    maxWidth: isPreview ? "120px" : "120px",
+                    minWidth: "120px",
+                    maxWidth: "120px",
                     flexShrink: 0,
                     backgroundColor: "#ffffff",
                     boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
@@ -9712,7 +9986,7 @@
       if (container) {
         const root = (0, import_client4.createRoot)(container);
         root.render(
-          import_react6.default.createElement(ProductRecommendations, {
+          import_react7.default.createElement(ProductRecommendations, {
             title: recommendations.title || "You may also like",
             products,
             layout: recommendations.layout || "carousel",
@@ -9734,7 +10008,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/renderers/savings-display.js
-  var import_react7 = __toESM(require_react(), 1);
+  var import_react8 = __toESM(require_react(), 1);
   var import_client5 = __toESM(require_client(), 1);
 
   // app/components/shared/SavingsDisplay.tsx
@@ -9743,8 +10017,7 @@
     message,
     amount,
     backgroundColor = "#dcfce7",
-    textColor = "#15803d",
-    isPreview = false
+    textColor = "#15803d"
   }) => {
     if (amount <= 0) {
       return null;
@@ -9757,11 +10030,10 @@
     return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: {
       backgroundColor,
       color: textColor,
-      padding: isPreview ? "10px 14px" : "12px 16px",
-      borderRadius: isPreview ? "8px" : "10px",
-      fontSize: isPreview ? "13px" : "14px",
+      padding: "12px 16px",
+      borderRadius: "10px",
+      fontSize: "14px",
       fontWeight: "600",
-      marginBottom: isPreview ? "12px" : "16px",
       textAlign: "center",
       border: `1px solid ${textColor}40`,
       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)"
@@ -9789,7 +10061,7 @@
       if (container) {
         const root = (0, import_client5.createRoot)(container);
         root.render(
-          import_react7.default.createElement(SavingsDisplay, {
+          import_react8.default.createElement(SavingsDisplay, {
             message: savingsCfg.message || "You saved {amount}!",
             amount: totalSavings,
             backgroundColor: savingsCfg.backgroundColor || "#dcfce7",
@@ -9803,7 +10075,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/renderers/free-shipping-message.js
-  var import_react8 = __toESM(require_react(), 1);
+  var import_react9 = __toESM(require_react(), 1);
   var import_client6 = __toESM(require_client(), 1);
 
   // app/components/shared/FreeShippingMessage.tsx
@@ -9826,14 +10098,13 @@
       backgroundColor,
       color: textColor,
       border: `2px solid ${textColor}`,
-      padding: isPreview ? "12px 16px" : "14px 18px",
-      borderRadius: isPreview ? "10px" : "12px",
+      padding: "14px 18px",
+      borderRadius: "12px",
       display: "flex",
       alignItems: "center",
       gap: "12px",
-      fontSize: isPreview ? "13px" : "14px",
+      fontSize: "14px",
       fontWeight: "700",
-      marginBottom: isPreview ? "12px" : "8px",
       boxShadow: "0 3px 6px rgba(0, 0, 0, 0.1)",
       position: "relative",
       overflow: "hidden"
@@ -9847,12 +10118,12 @@
         background: "linear-gradient(45deg, rgba(255,255,255,0.2) 0%, transparent 50%)",
         pointerEvents: "none"
       } }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: __spreadValues({
         fontSize: "20px",
         flexShrink: 0,
         position: "relative",
         zIndex: 1
-      }, children: "\u{1F69A}" }),
+      }, isPreview ? {} : { height: "20px", top: "-8px" }), children: "\u{1F69A}" }),
       /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { style: {
         position: "relative",
         zIndex: 1,
@@ -9875,7 +10146,7 @@
       if (container) {
         const root = (0, import_client6.createRoot)(container);
         root.render(
-          import_react8.default.createElement(FreeShippingMessage, {
+          import_react9.default.createElement(FreeShippingMessage, {
             thresholdAmount: parseFloat(msg.thresholdAmount) || 0,
             cartTotal: cart.total_price,
             beforeThresholdMessage: msg.beforeThresholdMessage || "Add {remaining} more for FREE shipping",
@@ -9892,13 +10163,20 @@
   }
 
   // extensions/cart-upsell/assets/modules/renderers/coupon-code-field.js
-  var import_react10 = __toESM(require_react(), 1);
+  var import_react11 = __toESM(require_react(), 1);
   var import_client7 = __toESM(require_client(), 1);
 
   // app/components/shared/CouponCodeField.tsx
-  var import_react9 = __toESM(require_react(), 1);
+  var import_react10 = __toESM(require_react(), 1);
   var import_jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
+  var CheckIcon = ({ size = 16, color = "currentColor" }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "3", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("polyline", { points: "20 6 9 17 4 12" }) });
+  var ChevronDownIcon = ({ size = 16, color = "currentColor" }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("polyline", { points: "6 9 12 15 18 9" }) });
+  var XIcon = ({ size = 16, color = "currentColor" }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("line", { x1: "18", y1: "6", x2: "6", y2: "18" }),
+    /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("line", { x1: "6", y1: "6", x2: "18", y2: "18" })
+  ] });
   var CouponCodeField = ({
+    id,
     placeholder = "Enter coupon code",
     buttonText = "Apply",
     showAllOffers = false,
@@ -9914,8 +10192,8 @@
     },
     isPreview = false
   }) => {
-    const [couponCode, setCouponCode] = (0, import_react9.useState)("");
-    const [showingAllOffers, setShowingAllOffers] = (0, import_react9.useState)(false);
+    const [couponCode, setCouponCode] = (0, import_react10.useState)("");
+    const [showingAllOffers, setShowingAllOffers] = (0, import_react10.useState)(false);
     const handleApply = () => {
       if (couponCode.trim()) {
         onApplyCoupon(couponCode.trim());
@@ -9929,10 +10207,10 @@
         handleApply();
       }
     };
-    return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
-      marginBottom: isPreview ? "12px" : "16px"
+    return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { id, style: {
+      marginBottom: "16px"
     }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
+      !appliedDiscount && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
         display: "flex",
         gap: "8px",
         marginBottom: "12px"
@@ -9951,13 +10229,13 @@
             disabled: isPreview,
             style: {
               width: "100%",
-              padding: isPreview ? "10px 14px" : "12px 16px",
+              padding: "12px 16px",
               border: "2px solid #e5e7eb",
               borderRadius: "8px",
-              fontSize: isPreview ? "13px" : "14px",
+              fontSize: "14px",
               outline: "none",
               transition: "border-color 0.2s ease",
-              backgroundColor: isPreview ? "#f9fafb" : "#ffffff",
+              backgroundColor: "#ffffff",
               cursor: isPreview ? "not-allowed" : "text"
             }
           }
@@ -9968,12 +10246,12 @@
             onClick: handleApply,
             disabled: isPreview || !couponCode.trim(),
             style: {
-              padding: isPreview ? "10px 20px" : "12px 24px",
-              backgroundColor: isPreview || !couponCode.trim() ? "#9ca3af" : "#f97316",
+              padding: "12px 24px",
+              backgroundColor: !couponCode.trim() ? "#9ca3af" : "#f97316",
               color: "white",
               border: "none",
               borderRadius: "8px",
-              fontSize: isPreview ? "13px" : "14px",
+              fontSize: "14px",
               fontWeight: "600",
               cursor: isPreview ? "not-allowed" : "pointer",
               transition: "background-color 0.2s ease",
@@ -9987,7 +10265,7 @@
         backgroundColor: "#d1fae5",
         border: "2px solid #059669",
         borderRadius: "10px",
-        padding: isPreview ? "10px 14px" : "12px 16px",
+        padding: "12px 16px",
         marginBottom: "12px",
         display: "flex",
         alignItems: "center",
@@ -10002,13 +10280,11 @@
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: "14px",
-          fontWeight: "700",
           flexShrink: 0
-        }, children: "\u2713" }),
+        }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 14, color: "white" }) }),
         /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { flex: 1 }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
-            fontSize: isPreview ? "13px" : "14px",
+            fontSize: "14px",
             fontWeight: "600",
             color: "#065f46",
             marginBottom: "2px"
@@ -10018,26 +10294,30 @@
             appliedDiscount.description
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-            fontSize: isPreview ? "11px" : "12px",
+            fontSize: "12px",
             color: "#059669"
           }, children: enableAutoApply ? "Best offer automatically applied" : "Applied" })
         ] }),
-        !isPreview && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
           "button",
           {
             onClick: onRemoveDiscount,
             style: {
-              padding: "6px 12px",
+              width: "28px",
+              height: "28px",
+              padding: "0",
               backgroundColor: "transparent",
-              color: "#dc2626",
-              border: "1px solid #dc2626",
+              color: "#6b7280",
+              border: "none",
               borderRadius: "6px",
-              fontSize: "12px",
-              fontWeight: "600",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               cursor: "pointer",
-              transition: "all 0.2s ease"
+              transition: "all 0.2s ease",
+              flexShrink: 0
             },
-            children: "Remove"
+            children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(XIcon, { size: 16, color: "#6b7280" })
           }
         )
       ] }),
@@ -10048,13 +10328,12 @@
             onClick: () => setShowingAllOffers(!showingAllOffers),
             style: {
               width: "100%",
-              padding: isPreview ? "10px 14px" : "12px 16px",
-              backgroundColor: "#fef3c7",
-              border: "2px solid #fbbf24",
-              borderRadius: "8px",
-              fontSize: isPreview ? "13px" : "14px",
-              fontWeight: "600",
-              color: "#92400e",
+              padding: "0 15px",
+              backgroundColor: "transparent",
+              border: "none",
+              fontSize: "14px",
+              fontWeight: "500",
+              color: "#374151",
               cursor: isPreview ? "default" : "pointer",
               display: "flex",
               justifyContent: "space-between",
@@ -10063,21 +10342,18 @@
               transition: "all 0.2s ease"
             },
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: { fontSize: "16px" }, children: "\u{1F381}" }),
-                /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("span", { children: [
-                  showAllOffersButtonText,
-                  " (",
-                  availableDiscounts.length,
-                  " available)"
-                ] })
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("span", { children: [
+                showAllOffersButtonText,
+                " (",
+                availableDiscounts.length,
+                " available)"
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: {
-                fontSize: "12px",
-                color: "#6b7280",
+                display: "flex",
+                alignItems: "center",
                 transition: "transform 0.3s ease",
                 transform: showingAllOffers ? "rotate(180deg)" : "rotate(0deg)"
-              }, children: "\u25BC" })
+              }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(ChevronDownIcon, { size: 16, color: "#6b7280" }) })
             ]
           }
         ),
@@ -10086,13 +10362,13 @@
           border: "1px solid #e5e7eb",
           borderRadius: "8px",
           overflow: "hidden",
-          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)"
+          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)"
         }, children: availableDiscounts.map((discount) => /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
           "div",
           {
             onClick: () => !isPreview && onSwitchDiscount(discount.code),
             style: {
-              padding: isPreview ? "10px 14px" : "12px 16px",
+              padding: "12px 16px",
               borderBottom: "1px solid #f3f4f6",
               cursor: isPreview ? "default" : "pointer",
               transition: "background-color 0.2s ease",
@@ -10110,14 +10386,11 @@
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: "12px",
-                color: "#059669",
-                fontWeight: "700",
                 flexShrink: 0
-              }, children: (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? "\u2713" : "" }),
+              }, children: (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 12, color: "#059669" }) }),
               /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { flex: 1 }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
-                  fontSize: isPreview ? "13px" : "14px",
+                  fontSize: "14px",
                   fontWeight: "600",
                   color: "#111827",
                   marginBottom: "2px"
@@ -10127,7 +10400,7 @@
                   discount.description
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-                  fontSize: isPreview ? "11px" : "12px",
+                  fontSize: "12px",
                   color: "#6b7280"
                 }, children: discount.title })
               ] })
@@ -10146,13 +10419,15 @@
     }
     const couponField = config.features.couponCodeField;
     const containerId = `upsellity-coupon-field-root-${Date.now()}`;
+    const componentId = `upsellity-coupon-field-${Date.now()}`;
     const html = `<div id="${containerId}"></div>`;
     setTimeout(() => {
       const container = document.getElementById(containerId);
-      if (container) {
+      if (container && !document.getElementById(componentId)) {
         const root = (0, import_client7.createRoot)(container);
         root.render(
-          import_react10.default.createElement(CouponCodeField, {
+          import_react11.default.createElement(CouponCodeField, {
+            id: componentId,
             placeholder: couponField.placeholder || "Enter coupon code",
             buttonText: couponField.buttonText || "Apply",
             showAllOffers: couponField.showAllOffers || false,
@@ -10184,7 +10459,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/renderers/cart-totals.js
-  var import_react11 = __toESM(require_react(), 1);
+  var import_react12 = __toESM(require_react(), 1);
   var import_client8 = __toESM(require_client(), 1);
 
   // app/components/shared/CartTotals.tsx
@@ -10192,8 +10467,7 @@
   var CartTotals = ({
     items,
     totalPrice,
-    appliedDiscount = null,
-    isPreview = false
+    appliedDiscount = null
   }) => {
     const formatMoney2 = (cents) => {
       const rupees = cents / 100;
@@ -10218,11 +10492,10 @@
     const totalSavings = itemLevelSavings + couponDiscount;
     return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
       borderTop: "2px solid #e5e7eb",
-      paddingTop: isPreview ? "14px" : "16px",
-      marginTop: isPreview ? "16px" : "20px"
+      paddingTop: "16px"
     }, children: [
       (itemLevelSavings > 0 || couponDiscount > 0) && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
-        fontSize: isPreview ? "14px" : "15px",
+        fontSize: "15px",
         marginBottom: "10px",
         display: "flex",
         justifyContent: "space-between",
@@ -10232,7 +10505,7 @@
         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { textDecoration: "line-through" }, children: formatMoney2(originalTotal) })
       ] }),
       itemLevelSavings > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
-        fontSize: isPreview ? "13px" : "14px",
+        fontSize: "14px",
         marginBottom: "10px",
         display: "flex",
         justifyContent: "space-between",
@@ -10255,7 +10528,7 @@
         ] })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
-        fontSize: isPreview ? "15px" : "16px",
+        fontSize: "16px",
         marginBottom: "12px",
         display: "flex",
         justifyContent: "space-between",
@@ -10265,7 +10538,7 @@
         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: "#111827" }, children: formatMoney2(subtotal) })
       ] }),
       appliedDiscount && couponDiscount > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
-        fontSize: isPreview ? "14px" : "15px",
+        fontSize: "15px",
         marginBottom: "12px",
         display: "flex",
         justifyContent: "space-between",
@@ -10292,10 +10565,9 @@
         ] })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
-        fontSize: isPreview ? "18px" : "20px",
+        fontSize: "20px",
         fontWeight: "700",
         paddingTop: "12px",
-        borderTop: "2px solid #e5e7eb",
         display: "flex",
         justifyContent: "space-between",
         color: "#111827"
@@ -10304,7 +10576,7 @@
         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: totalSavings > 0 ? "#059669" : "#111827" }, children: formatMoney2(estimatedTotal) })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: {
-        fontSize: isPreview ? "11px" : "12px",
+        fontSize: "12px",
         color: "#6b7280",
         marginTop: "8px",
         textAlign: "right"
@@ -10321,7 +10593,7 @@
       if (container) {
         const root = (0, import_client8.createRoot)(container);
         root.render(
-          import_react11.default.createElement(CartTotals, {
+          import_react12.default.createElement(CartTotals, {
             items: cart.items,
             totalPrice: cart.total_price,
             appliedDiscount,
@@ -10392,7 +10664,7 @@
         }
         this.productCompareAtPrices = await loadProductCompareAtPrices(this.cart);
         this.availableDiscounts = await loadAvailableDiscounts(this.shop, this.config);
-        if (((_c = (_b = (_a = this.config) == null ? void 0 : _a.features) == null ? void 0 : _b.couponCodeField) == null ? void 0 : _c.enableAutoApply) && !this.appliedDiscount && this.availableDiscounts.length > 0) {
+        if (((_c = (_b = (_a = this.config) == null ? void 0 : _a.features) == null ? void 0 : _b.couponCodeField) == null ? void 0 : _c.enableAutoApply) && !this.appliedDiscount && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
           this.appliedDiscount = autoApplyBestDiscount(this.availableDiscounts, this.cart, this.config);
         }
         await loadShopifyRecommendations(this.cart, this.config);
@@ -10503,16 +10775,16 @@
       const { beforeItems, afterItems } = splitFeatureOrder((_a = this.config) == null ? void 0 : _a.featureOrder);
       beforeItems.forEach((id) => {
         if (sections[id])
-          html += sections[id];
+          html += `<div style="margin-bottom: 12px;">${sections[id]}</div>`;
       });
       if (sections[FEATURE_ORDER_SENTINEL]) {
-        html += sections[FEATURE_ORDER_SENTINEL];
+        html += `<div style="margin-bottom: 12px;">${sections[FEATURE_ORDER_SENTINEL]}</div>`;
       }
       afterItems.forEach((id) => {
         if (sections[id])
-          html += sections[id];
+          html += `<div style="margin-bottom: 12px;">${sections[id]}</div>`;
       });
-      html += renderCartTotals(this.cart, this.appliedDiscount);
+      html += `<div style="margin-bottom: 12px;">${renderCartTotals(this.cart, this.appliedDiscount)}</div>`;
       html += `
       <button class="upsellity-checkout-btn" onclick="window.location.href='${getCheckoutUrl(this.appliedDiscount)}'">
         Checkout
@@ -10570,17 +10842,16 @@
       }
     }
     async applyCouponWithCode(code) {
-      const input = document.getElementById("upsellity-coupon-input");
-      if (input) {
-        input.value = code;
-      }
-      const newDiscount = await applyCoupon(this.shop, this.config, this.appliedDiscount, this.render.bind(this));
+      const newDiscount = await validateAndApplyCoupon(this.shop, this.config, code, this.cart);
       if (newDiscount) {
         this.appliedDiscount = newDiscount;
+        clearDiscountRemoval();
+        this.render();
       }
     }
     removeDiscount() {
       this.appliedDiscount = null;
+      markDiscountRemoved();
       this.render();
       showNotification("Discount removed", "info");
     }
@@ -10603,6 +10874,7 @@
       }
       this.appliedDiscount = discount;
       this.showingAllOffers = false;
+      clearDiscountRemoval();
       this.render();
       showNotification(`${discount.code} applied!`, "success");
     }
