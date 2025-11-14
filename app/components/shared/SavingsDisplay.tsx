@@ -26,8 +26,8 @@ export const SavingsDisplay: React.FC<SavingsDisplayProps> = ({
 
   // Format money (amount is in cents)
   const formatMoney = (cents: number) => {
-    const rupees = cents / 100;
-    return `₹${rupees.toFixed(2)}`;
+    const rupees = Math.floor(cents / 100);
+    return `₹${rupees}`;
   };
 
   const formattedMessage = message.replace('{amount}', formatMoney(amount));

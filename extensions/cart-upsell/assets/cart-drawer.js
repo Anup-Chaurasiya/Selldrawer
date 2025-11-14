@@ -9049,7 +9049,7 @@
   }) => {
     const formatMoney2 = (cents) => {
       const rupees = cents / 100;
-      return `\u20B9${rupees.toFixed(2)}`;
+      return `\u20B9${Math.round(rupees)}`;
     };
     const calculateItemPrices = (item, cartTotalPrice2) => {
       const linePrice = item.line_price || item.price * item.quantity;
@@ -9750,8 +9750,8 @@
       return null;
     }
     const formatMoney2 = (cents) => {
-      const rupees = cents / 100;
-      return `\u20B9${rupees.toFixed(2)}`;
+      const rupees = Math.floor(cents / 100);
+      return `\u20B9${rupees}`;
     };
     const formattedMessage = message.replace("{amount}", formatMoney2(amount));
     return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: {
@@ -10197,7 +10197,7 @@
   }) => {
     const formatMoney2 = (cents) => {
       const rupees = cents / 100;
-      return `\u20B9${rupees.toFixed(2)}`;
+      return `\u20B9${Math.round(rupees)}`;
     };
     const calculateEstimatedDiscount2 = (discount, total) => {
       if (!discount)
