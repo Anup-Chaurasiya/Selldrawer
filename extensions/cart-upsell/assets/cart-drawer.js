@@ -8579,10 +8579,9 @@
     const incompleteGradient = `linear-gradient(135deg, ${progressBarColor} 0%, ${progressBarColor}dd 100%)`;
     const percentageGradient = isComplete ? completeGradient : incompleteGradient;
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-      marginBottom: isPreview ? "16px" : "20px",
-      padding: isPreview ? "12px" : "16px",
+      padding: "16px",
       background: backgroundGradient,
-      borderRadius: isPreview ? "10px" : "12px",
+      borderRadius: "12px",
       border: "1px solid #e2e8f0",
       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)"
     }, children: [
@@ -8590,8 +8589,8 @@
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: isPreview ? "10px" : "12px",
-        fontSize: isPreview ? "13px" : "14px",
+        marginBottom: "12px",
+        fontSize: "14px",
         fontWeight: "600"
       }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { color: "#374151", flex: 1 }, children: message }),
@@ -8611,8 +8610,8 @@
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
         width: "100%",
-        height: isPreview ? "10px" : "12px",
-        borderRadius: isPreview ? "6px" : "8px",
+        height: "12px",
+        borderRadius: "8px",
         overflow: "hidden",
         background: backgroundColor,
         position: "relative",
@@ -8622,7 +8621,7 @@
         height: "100%",
         display: "block",
         background: isComplete ? completeGradient : incompleteGradient,
-        borderRadius: isPreview ? "6px" : "8px",
+        borderRadius: "8px",
         transition: "width 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
       } }) })
     ] });
@@ -8687,18 +8686,45 @@
     onCtaClick,
     isPreview = false
   }) => {
-    const [carouselIndex, setCarouselIndex] = (0, import_react2.useState)(0);
+    const [currentIndex, setCurrentIndex] = (0, import_react2.useState)(0);
+    const [canScrollLeft, setCanScrollLeft] = (0, import_react2.useState)(false);
+    const [canScrollRight, setCanScrollRight] = (0, import_react2.useState)(false);
+    const scrollContainerRef = (0, import_react2.useRef)(null);
+    const isScrolling = (0, import_react2.useRef)(false);
+    const updateScrollState = () => {
+      const container = scrollContainerRef.current;
+      if (!container || slides.length <= 1)
+        return;
+      const scrollLeft = container.scrollLeft;
+      const maxScrollLeft = container.scrollWidth - container.clientWidth;
+      setCanScrollLeft(scrollLeft > 10);
+      setCanScrollRight(scrollLeft < maxScrollLeft - 10);
+      const slideWidth = container.clientWidth * 0.8 + 8;
+      const index = Math.round(scrollLeft / slideWidth);
+      setCurrentIndex(Math.min(index, slides.length - 1));
+    };
     (0, import_react2.useEffect)(() => {
-      if (slides && slides.length > 1 && carouselSettings.autoRotate !== false) {
+      updateScrollState();
+      const container = scrollContainerRef.current;
+      if (container && slides.length > 1) {
+        container.addEventListener("scroll", updateScrollState);
+        window.addEventListener("resize", updateScrollState);
+        return () => {
+          container.removeEventListener("scroll", updateScrollState);
+          window.removeEventListener("resize", updateScrollState);
+        };
+      }
+    }, [slides]);
+    (0, import_react2.useEffect)(() => {
+      if (slides && slides.length > 1 && carouselSettings.autoRotate !== false && !isScrolling.current) {
         const interval = setInterval(() => {
-          setCarouselIndex((prev) => (prev + 1) % slides.length);
+          handleNext();
         }, carouselSettings.rotationSpeed || 5e3);
         return () => clearInterval(interval);
       }
-    }, [slides, carouselSettings]);
+    }, [slides, carouselSettings, currentIndex]);
     if (!slides || slides.length === 0) {
       return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-        marginBottom: "16px",
         borderRadius: "12px",
         overflow: "hidden",
         backgroundColor: "#fff",
@@ -8708,7 +8734,7 @@
         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
           position: "relative",
           overflow: "hidden",
-          height: isPreview ? "200px" : "160px",
+          height: "200px",
           backgroundColor: "#f9fafb"
         }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
@@ -8759,8 +8785,8 @@
                 transform: "translateY(-50%)",
                 backgroundColor: "rgba(255,255,255,0.9)",
                 borderRadius: "50%",
-                width: isPreview ? "24px" : "32px",
-                height: isPreview ? "24px" : "32px",
+                width: "24px",
+                height: "24px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -8785,8 +8811,8 @@
                 transform: "translateY(-50%)",
                 backgroundColor: "rgba(255,255,255,0.9)",
                 borderRadius: "50%",
-                width: isPreview ? "24px" : "32px",
-                height: isPreview ? "24px" : "32px",
+                width: "24px",
+                height: "24px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -8804,12 +8830,12 @@
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
           backgroundColor: "#fff",
-          padding: isPreview ? "12px 16px" : "10px 12px",
+          padding: "12px 16px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: "12px",
-          minHeight: isPreview ? "70px" : "60px"
+          minHeight: "70px"
         }, children: [
           /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
             flex: 1,
@@ -8818,14 +8844,14 @@
           }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
               fontWeight: "700",
-              fontSize: isPreview ? "15px" : "18px",
+              fontSize: "15px",
               color: "#111827",
               marginBottom: "4px",
               lineHeight: "1.3",
               wordBreak: "break-word"
             }, children: "Summer Sale" }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-              fontSize: isPreview ? "12px" : "14px",
+              fontSize: "12px",
               color: "#6b7280",
               lineHeight: "1.4",
               wordBreak: "break-word"
@@ -8836,21 +8862,20 @@
             color: "#374151",
             border: "1px solid #e5e7eb",
             padding: "8px 20px",
-            borderRadius: isPreview ? "8px" : "6px",
-            fontWeight: isPreview ? "500" : "600",
+            borderRadius: "8px",
+            fontWeight: "500",
             cursor: "pointer",
-            fontSize: isPreview ? "13px" : "14px",
+            fontSize: "13px",
             transition: "all 0.2s ease",
             minWidth: "80px"
           }, children: "shop" }) })
         ] })
       ] });
     }
-    const currentSlide = slides[carouselIndex] || slides[0];
-    const renderMedia = () => {
-      if (currentSlide.videoUrl && currentSlide.videoType) {
-        if (currentSlide.videoType === "youtube") {
-          const embedUrl = getYouTubeEmbedUrl(currentSlide.videoUrl);
+    const renderMedia = (slide) => {
+      if (slide.videoUrl && slide.videoType) {
+        if (slide.videoType === "youtube") {
+          const embedUrl = getYouTubeEmbedUrl(slide.videoUrl);
           if (embedUrl) {
             return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "iframe",
@@ -8867,8 +8892,8 @@
               }
             );
           }
-        } else if (currentSlide.videoType === "vimeo") {
-          const embedUrl = getVimeoEmbedUrl(currentSlide.videoUrl);
+        } else if (slide.videoType === "vimeo") {
+          const embedUrl = getVimeoEmbedUrl(slide.videoUrl);
           if (embedUrl) {
             return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "iframe",
@@ -8885,11 +8910,11 @@
               }
             );
           }
-        } else if (currentSlide.videoType === "mp4") {
+        } else if (slide.videoType === "mp4") {
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
             "video",
             {
-              src: currentSlide.videoUrl,
+              src: slide.videoUrl,
               style: {
                 width: "100%",
                 height: "100%",
@@ -8906,7 +8931,7 @@
       return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
         "img",
         {
-          src: currentSlide.imageUrl || "https://via.placeholder.com/400x200",
+          src: slide.imageUrl || "https://via.placeholder.com/400x200",
           alt: "Promotional banner",
           style: {
             width: "100%",
@@ -8916,180 +8941,232 @@
         }
       );
     };
+    const scrollToIndex = (index) => {
+      const container = scrollContainerRef.current;
+      if (!container)
+        return;
+      isScrolling.current = true;
+      const slideWidth = container.clientWidth * 0.8 + 8;
+      const targetScroll = index * slideWidth;
+      container.scrollTo({
+        left: targetScroll,
+        behavior: "smooth"
+      });
+      setTimeout(() => {
+        isScrolling.current = false;
+      }, 500);
+    };
     const handlePrevious = () => {
-      setCarouselIndex((prev) => (prev - 1 + slides.length) % slides.length);
+      const newIndex = currentIndex > 0 ? currentIndex - 1 : slides.length - 1;
+      scrollToIndex(newIndex);
     };
     const handleNext = () => {
-      setCarouselIndex((prev) => (prev + 1) % slides.length);
+      const newIndex = currentIndex < slides.length - 1 ? currentIndex + 1 : 0;
+      scrollToIndex(newIndex);
     };
     const handleDotClick = (index) => {
-      setCarouselIndex(index);
+      scrollToIndex(index);
     };
-    const handleCtaClick = () => {
-      if (currentSlide.ctaUrl && onCtaClick) {
-        onCtaClick(currentSlide.ctaUrl);
+    const handleCtaClick = (slide) => {
+      if (slide.ctaUrl && onCtaClick) {
+        onCtaClick(slide.ctaUrl);
       }
     };
-    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-      marginBottom: "16px",
-      borderRadius: isPreview ? "12px" : "10px",
-      overflow: "hidden",
-      backgroundColor: "#fff",
-      border: "1px solid #e5e7eb",
-      boxShadow: isPreview ? "0 1px 3px rgba(0, 0, 0, 0.1)" : "0 2px 8px rgba(0,0,0,0.1)"
-    }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-        position: "relative",
-        overflow: "hidden",
-        height: isPreview ? "200px" : "160px",
-        backgroundColor: isPreview ? "#f9fafb" : "#000"
-      }, children: [
-        renderMedia(),
+    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "16px" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("style", { children: `
+        .upsellity-promo-scroll::-webkit-scrollbar {
+          display: none;
+        }
+        .upsellity-promo-scroll {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      ` }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative" }, children: [
+        slides.length > 1 && canScrollLeft && carouselSettings.showArrows !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "button",
+          {
+            onClick: handlePrevious,
+            style: {
+              position: "absolute",
+              left: "8px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "#ffffff",
+              border: "1px solid #e5e7eb",
+              borderRadius: "50%",
+              width: "32px",
+              height: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              zIndex: 20,
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
+              transition: "all 0.2s ease"
+            },
+            onMouseEnter: (e) => {
+              e.currentTarget.style.background = "#f9fafb";
+              e.currentTarget.style.borderColor = "#d1d5db";
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
+              e.currentTarget.style.transform = "translateY(-50%) scale(1.05)";
+            },
+            onMouseLeave: (e) => {
+              e.currentTarget.style.background = "#ffffff";
+              e.currentTarget.style.borderColor = "#e5e7eb";
+              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.12)";
+              e.currentTarget.style.transform = "translateY(-50%) scale(1)";
+            },
+            children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px", color: "#374151", fontWeight: "300" }, children: "\u2039" })
+          }
+        ),
+        slides.length > 1 && canScrollRight && carouselSettings.showArrows !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "button",
+          {
+            onClick: handleNext,
+            style: {
+              position: "absolute",
+              right: "8px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "#ffffff",
+              border: "1px solid #e5e7eb",
+              borderRadius: "50%",
+              width: "32px",
+              height: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              zIndex: 20,
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
+              transition: "all 0.2s ease"
+            },
+            onMouseEnter: (e) => {
+              e.currentTarget.style.background = "#f9fafb";
+              e.currentTarget.style.borderColor = "#d1d5db";
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
+              e.currentTarget.style.transform = "translateY(-50%) scale(1.05)";
+            },
+            onMouseLeave: (e) => {
+              e.currentTarget.style.background = "#ffffff";
+              e.currentTarget.style.borderColor = "#e5e7eb";
+              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.12)";
+              e.currentTarget.style.transform = "translateY(-50%) scale(1)";
+            },
+            children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px", color: "#374151", fontWeight: "300" }, children: "\u203A" })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "div",
+          {
+            ref: scrollContainerRef,
+            className: "upsellity-promo-scroll",
+            style: {
+              display: "flex",
+              gap: "8px",
+              overflowX: "auto",
+              scrollBehavior: "smooth",
+              scrollSnapType: "x mandatory",
+              WebkitOverflowScrolling: "touch"
+            },
+            children: slides.map((slide, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+              "div",
+              {
+                style: {
+                  minWidth: slides.length > 1 ? "80%" : "100%",
+                  maxWidth: slides.length > 1 ? "80%" : "100%",
+                  flexShrink: 0,
+                  scrollSnapAlign: "start",
+                  borderRadius: "12px",
+                  overflow: "hidden",
+                  backgroundColor: "#fff",
+                  border: "1px solid #e5e7eb",
+                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+                },
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                    position: "relative",
+                    overflow: "hidden",
+                    height: "200px",
+                    backgroundColor: "#f9fafb"
+                  }, children: renderMedia(slide) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+                    backgroundColor: "#fff",
+                    padding: "12px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    minHeight: "70px"
+                  }, children: [
+                    (slide.title || slide.description) && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+                      flex: 1,
+                      textAlign: "left",
+                      minWidth: 0
+                    }, children: [
+                      slide.title && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                        fontWeight: "700",
+                        fontSize: "15px",
+                        color: "#111827",
+                        marginBottom: slide.description ? "4px" : "0",
+                        lineHeight: "1.3",
+                        wordBreak: "break-word"
+                      }, children: slide.title }),
+                      slide.description && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                        fontSize: "12px",
+                        color: "#6b7280",
+                        lineHeight: "1.4",
+                        wordBreak: "break-word"
+                      }, children: slide.description })
+                    ] }),
+                    slide.ctaText && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "button",
+                      {
+                        onClick: () => handleCtaClick(slide),
+                        style: {
+                          backgroundColor: "#f3f4f6",
+                          color: "#374151",
+                          border: "1px solid #e5e7eb",
+                          padding: "8px 20px",
+                          borderRadius: "8px",
+                          fontWeight: "500",
+                          cursor: "pointer",
+                          fontSize: "13px",
+                          transition: "all 0.2s ease",
+                          minWidth: "80px"
+                        },
+                        children: slide.ctaText
+                      }
+                    ) })
+                  ] })
+                ]
+              },
+              index
+            ))
+          }
+        ),
         slides.length > 1 && carouselSettings.showDots !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-          position: "absolute",
-          bottom: "6px",
-          left: "50%",
-          transform: "translateX(-50%)",
           display: "flex",
-          gap: isPreview ? "4px" : "8px",
-          zIndex: 10
+          justifyContent: "center",
+          gap: "6px",
+          marginTop: "8px"
         }, children: slides.map((_, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "div",
           {
             onClick: () => handleDotClick(index),
             style: {
-              width: isPreview ? "6px" : "12px",
-              height: isPreview ? "6px" : "12px",
+              width: "8px",
+              height: "8px",
               borderRadius: "50%",
-              backgroundColor: index === carouselIndex ? "#007bff" : "rgba(255,255,255,0.6)",
-              border: isPreview ? "1px solid rgba(255,255,255,0.9)" : "2px solid rgba(255,255,255,0.9)",
+              backgroundColor: index === currentIndex ? "#007bff" : "#d1d5db",
               transition: "all 0.2s ease",
               cursor: "pointer",
-              boxShadow: isPreview ? "0 1px 2px rgba(0,0,0,0.2)" : "0 2px 4px rgba(0,0,0,0.2)"
+              boxShadow: index === currentIndex ? "0 2px 4px rgba(0, 123, 255, 0.3)" : "none"
             }
           },
           index
-        )) }),
-        slides.length > 1 && carouselSettings.showArrows !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-            "button",
-            {
-              onClick: handlePrevious,
-              style: {
-                position: "absolute",
-                left: isPreview ? "4px" : "12px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                backgroundColor: "rgba(255,255,255,0.9)",
-                borderRadius: "50%",
-                width: isPreview ? "24px" : "32px",
-                height: isPreview ? "24px" : "32px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                border: "none",
-                fontSize: isPreview ? "14px" : "18px",
-                fontWeight: "bold",
-                color: "#333",
-                boxShadow: isPreview ? "0 2px 6px rgba(0,0,0,0.2)" : "0 2px 8px rgba(0,0,0,0.2)",
-                transition: "all 0.2s ease",
-                zIndex: 10
-              },
-              onMouseEnter: (e) => {
-                e.currentTarget.style.transform = "translateY(-50%) scale(1.1)";
-              },
-              onMouseLeave: (e) => {
-                e.currentTarget.style.transform = "translateY(-50%) scale(1)";
-              },
-              children: "\u2039"
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-            "button",
-            {
-              onClick: handleNext,
-              style: {
-                position: "absolute",
-                right: isPreview ? "4px" : "12px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                backgroundColor: "rgba(255,255,255,0.9)",
-                borderRadius: "50%",
-                width: isPreview ? "24px" : "32px",
-                height: isPreview ? "24px" : "32px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                border: "none",
-                fontSize: isPreview ? "14px" : "18px",
-                fontWeight: "bold",
-                color: "#333",
-                boxShadow: isPreview ? "0 2px 6px rgba(0,0,0,0.2)" : "0 2px 8px rgba(0,0,0,0.2)",
-                transition: "all 0.2s ease",
-                zIndex: 10
-              },
-              onMouseEnter: (e) => {
-                e.currentTarget.style.transform = "translateY(-50%) scale(1.1)";
-              },
-              onMouseLeave: (e) => {
-                e.currentTarget.style.transform = "translateY(-50%) scale(1)";
-              },
-              children: "\u203A"
-            }
-          )
-        ] })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-        backgroundColor: "#fff",
-        padding: isPreview ? "12px 16px" : "10px 12px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: "12px",
-        minHeight: isPreview ? "70px" : "60px"
-      }, children: [
-        (currentSlide.title || currentSlide.description) && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-          flex: 1,
-          textAlign: "left",
-          minWidth: 0
-        }, children: [
-          currentSlide.title && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-            fontWeight: "700",
-            fontSize: isPreview ? "15px" : "18px",
-            color: isPreview ? "#111827" : "#1f2937",
-            marginBottom: currentSlide.description ? isPreview ? "4px" : "2px" : "0",
-            lineHeight: "1.3",
-            wordBreak: "break-word"
-          }, children: currentSlide.title }),
-          currentSlide.description && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-            fontSize: isPreview ? "12px" : "14px",
-            color: "#6b7280",
-            lineHeight: "1.4",
-            wordBreak: "break-word"
-          }, children: currentSlide.description })
-        ] }),
-        currentSlide.ctaText && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-          "button",
-          {
-            onClick: handleCtaClick,
-            style: {
-              backgroundColor: "#f3f4f6",
-              color: "#374151",
-              border: "1px solid #e5e7eb",
-              padding: isPreview ? "8px 20px" : "8px 16px",
-              borderRadius: isPreview ? "8px" : "6px",
-              fontWeight: isPreview ? "500" : "600",
-              cursor: "pointer",
-              fontSize: isPreview ? "13px" : "14px",
-              transition: "all 0.2s ease",
-              minWidth: isPreview ? "80px" : "110px",
-              boxShadow: isPreview ? "none" : "0 1px 2px rgba(0,0,0,0.05)"
-            },
-            children: currentSlide.ctaText
-          }
-        ) })
+        )) })
       ] })
     ] });
   };
@@ -10698,16 +10775,16 @@
       const { beforeItems, afterItems } = splitFeatureOrder((_a = this.config) == null ? void 0 : _a.featureOrder);
       beforeItems.forEach((id) => {
         if (sections[id])
-          html += sections[id];
+          html += `<div style="margin-bottom: 12px;">${sections[id]}</div>`;
       });
       if (sections[FEATURE_ORDER_SENTINEL]) {
-        html += sections[FEATURE_ORDER_SENTINEL];
+        html += `<div style="margin-bottom: 12px;">${sections[FEATURE_ORDER_SENTINEL]}</div>`;
       }
       afterItems.forEach((id) => {
         if (sections[id])
-          html += sections[id];
+          html += `<div style="margin-bottom: 12px;">${sections[id]}</div>`;
       });
-      html += renderCartTotals(this.cart, this.appliedDiscount);
+      html += `<div style="margin-bottom: 12px;">${renderCartTotals(this.cart, this.appliedDiscount)}</div>`;
       html += `
       <button class="upsellity-checkout-btn" onclick="window.location.href='${getCheckoutUrl(this.appliedDiscount)}'">
         Checkout

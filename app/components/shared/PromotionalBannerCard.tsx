@@ -3,7 +3,7 @@
  * Used in both production cart drawer and Remix preview
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface Slide {
   imageUrl?: string;
@@ -51,24 +51,58 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
   onCtaClick,
   isPreview = false
 }) => {
-  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isScrolling = useRef(false);
+
+  // Check scroll state
+  const updateScrollState = () => {
+    const container = scrollContainerRef.current;
+    if (!container || slides.length <= 1) return;
+
+    const scrollLeft = container.scrollLeft;
+    const maxScrollLeft = container.scrollWidth - container.clientWidth;
+
+    setCanScrollLeft(scrollLeft > 10);
+    setCanScrollRight(scrollLeft < maxScrollLeft - 10);
+
+    // Update current index based on scroll position
+    const slideWidth = container.clientWidth * 0.8 + 8; // 80% + gap
+    const index = Math.round(scrollLeft / slideWidth);
+    setCurrentIndex(Math.min(index, slides.length - 1));
+  };
+
+  useEffect(() => {
+    updateScrollState();
+    const container = scrollContainerRef.current;
+    if (container && slides.length > 1) {
+      container.addEventListener('scroll', updateScrollState);
+      window.addEventListener('resize', updateScrollState);
+      return () => {
+        container.removeEventListener('scroll', updateScrollState);
+        window.removeEventListener('resize', updateScrollState);
+      };
+    }
+  }, [slides]);
 
   // Auto-rotate carousel
   useEffect(() => {
     if (slides && 
         slides.length > 1 && 
-        carouselSettings.autoRotate !== false) {
+        carouselSettings.autoRotate !== false &&
+        !isScrolling.current) {
       const interval = setInterval(() => {
-        setCarouselIndex((prev) => (prev + 1) % slides.length);
+        handleNext();
       }, carouselSettings.rotationSpeed || 5000);
       return () => clearInterval(interval);
     }
-  }, [slides, carouselSettings]);
+  }, [slides, carouselSettings, currentIndex]);
 
   if (!slides || slides.length === 0) {
     return (
       <div style={{
-        marginBottom: '16px',
         borderRadius: '12px',
         overflow: 'hidden',
         backgroundColor: '#fff',
@@ -79,7 +113,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         <div style={{
           position: 'relative',
           overflow: 'hidden',
-          height: isPreview ? '200px' : '160px',
+          height: '200px',
           backgroundColor: '#f9fafb'
         }}>
           <img 
@@ -129,8 +163,8 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
               transform: 'translateY(-50%)',
               backgroundColor: 'rgba(255,255,255,0.9)',
               borderRadius: '50%',
-              width: isPreview ? '24px' : '32px',
-              height: isPreview ? '24px' : '32px',
+              width: '24px',
+              height: '24px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -153,8 +187,8 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
               transform: 'translateY(-50%)',
               backgroundColor: 'rgba(255,255,255,0.9)',
               borderRadius: '50%',
-              width: isPreview ? '24px' : '32px',
-              height: isPreview ? '24px' : '32px',
+              width: '24px',
+              height: '24px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -174,12 +208,12 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         {/* Text Content Section */}
         <div style={{
           backgroundColor: '#fff',
-          padding: isPreview ? '12px 16px' : '10px 12px',
+          padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '12px',
-          minHeight: isPreview ? '70px' : '60px'
+          minHeight: '70px'
         }}>
           {/* Title & Description - Left Side */}
           <div style={{ 
@@ -189,7 +223,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
           }}>
             <div style={{ 
               fontWeight: '700', 
-              fontSize: isPreview ? '15px' : '18px', 
+              fontSize: '15px', 
               color: '#111827',
               marginBottom: '4px',
               lineHeight: '1.3',
@@ -198,7 +232,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
               Summer Sale
             </div>
             <div style={{ 
-              fontSize: isPreview ? '12px' : '14px', 
+              fontSize: '12px', 
               color: '#6b7280',
               lineHeight: '1.4',
               wordBreak: 'break-word'
@@ -214,10 +248,10 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
               color: '#374151',
               border: '1px solid #e5e7eb',
               padding: '8px 20px',
-              borderRadius: isPreview ? '8px' : '6px',
-              fontWeight: isPreview ? '500' : '600',
+              borderRadius: '8px',
+              fontWeight: '500',
               cursor: 'pointer',
-              fontSize: isPreview ? '13px' : '14px',
+              fontSize: '13px',
               transition: 'all 0.2s ease',
               minWidth: '80px'
             }}>
@@ -229,13 +263,11 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
     );
   }
 
-  const currentSlide = slides[carouselIndex] || slides[0];
-
   // Render media based on type
-  const renderMedia = () => {
-    if (currentSlide.videoUrl && currentSlide.videoType) {
-      if (currentSlide.videoType === 'youtube') {
-        const embedUrl = getYouTubeEmbedUrl(currentSlide.videoUrl);
+  const renderMedia = (slide: Slide) => {
+    if (slide.videoUrl && slide.videoType) {
+      if (slide.videoType === 'youtube') {
+        const embedUrl = getYouTubeEmbedUrl(slide.videoUrl);
         if (embedUrl) {
           return (
             <iframe
@@ -251,8 +283,8 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
             />
           );
         }
-      } else if (currentSlide.videoType === 'vimeo') {
-        const embedUrl = getVimeoEmbedUrl(currentSlide.videoUrl);
+      } else if (slide.videoType === 'vimeo') {
+        const embedUrl = getVimeoEmbedUrl(slide.videoUrl);
         if (embedUrl) {
           return (
             <iframe
@@ -268,10 +300,10 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
             />
           );
         }
-      } else if (currentSlide.videoType === 'mp4') {
+      } else if (slide.videoType === 'mp4') {
         return (
           <video
-            src={currentSlide.videoUrl}
+            src={slide.videoUrl}
             style={{
               width: '100%',
               height: '100%',
@@ -288,7 +320,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
     // Fallback to image
     return (
       <img 
-        src={currentSlide.imageUrl || 'https://via.placeholder.com/400x200'}
+        src={slide.imageUrl || 'https://via.placeholder.com/400x200'}
         alt="Promotional banner"
         style={{ 
           width: '100%', 
@@ -299,207 +331,266 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
     );
   };
 
+  const scrollToIndex = (index: number) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    isScrolling.current = true;
+    const slideWidth = container.clientWidth * 0.8 + 8; // 80% + gap
+    const targetScroll = index * slideWidth;
+
+    container.scrollTo({
+      left: targetScroll,
+      behavior: 'smooth'
+    });
+
+    // Reset scrolling flag after animation
+    setTimeout(() => {
+      isScrolling.current = false;
+    }, 500);
+  };
+
   const handlePrevious = () => {
-    setCarouselIndex((prev) => (prev - 1 + slides.length) % slides.length);
+    const newIndex = currentIndex > 0 ? currentIndex - 1 : slides.length - 1;
+    scrollToIndex(newIndex);
   };
 
   const handleNext = () => {
-    setCarouselIndex((prev) => (prev + 1) % slides.length);
+    const newIndex = currentIndex < slides.length - 1 ? currentIndex + 1 : 0;
+    scrollToIndex(newIndex);
   };
 
   const handleDotClick = (index: number) => {
-    setCarouselIndex(index);
+    scrollToIndex(index);
   };
 
-  const handleCtaClick = () => {
-    if (currentSlide.ctaUrl && onCtaClick) {
-      onCtaClick(currentSlide.ctaUrl);
+  const handleCtaClick = (slide: Slide) => {
+    if (slide.ctaUrl && onCtaClick) {
+      onCtaClick(slide.ctaUrl);
     }
   };
 
   return (
-    <div style={{
-      marginBottom: '16px',
-      borderRadius: isPreview ? '12px' : '10px',
-      overflow: 'hidden',
-      backgroundColor: '#fff',
-      border: '1px solid #e5e7eb',
-      boxShadow: isPreview ? '0 1px 3px rgba(0, 0, 0, 0.1)' : '0 2px 8px rgba(0,0,0,0.1)'
-    }}>
-      {/* Media Section */}
-      <div style={{
-        position: 'relative',
-        overflow: 'hidden',
-        height: isPreview ? '200px' : '160px',
-        backgroundColor: isPreview ? '#f9fafb' : '#000'
-      }}>
-        {/* Media (Image or Video) */}
-        {renderMedia()}
+    <div style={{ marginBottom: '16px' }}>
+      <style>{`
+        .upsellity-promo-scroll::-webkit-scrollbar {
+          display: none;
+        }
+        .upsellity-promo-scroll {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
+
+      <div style={{ position: 'relative' }}>
+        {/* Left Arrow */}
+        {slides.length > 1 && canScrollLeft && (carouselSettings.showArrows !== false) && (
+          <button
+            onClick={handlePrevious}
+            style={{
+              position: 'absolute',
+              left: '8px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: '#ffffff',
+              border: '1px solid #e5e7eb',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 20,
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#f9fafb';
+              e.currentTarget.style.borderColor = '#d1d5db';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#ffffff';
+              e.currentTarget.style.borderColor = '#e5e7eb';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.12)';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+            }}
+          >
+            <span style={{ fontSize: '18px', color: '#374151', fontWeight: '300' }}>‹</span>
+          </button>
+        )}
+
+        {/* Right Arrow */}
+        {slides.length > 1 && canScrollRight && (carouselSettings.showArrows !== false) && (
+          <button
+            onClick={handleNext}
+            style={{
+              position: 'absolute',
+              right: '8px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: '#ffffff',
+              border: '1px solid #e5e7eb',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 20,
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#f9fafb';
+              e.currentTarget.style.borderColor = '#d1d5db';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#ffffff';
+              e.currentTarget.style.borderColor = '#e5e7eb';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.12)';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+            }}
+          >
+            <span style={{ fontSize: '18px', color: '#374151', fontWeight: '300' }}>›</span>
+          </button>
+        )}
+
+        {/* Scrollable Container */}
+        <div
+          ref={scrollContainerRef}
+          className="upsellity-promo-scroll"
+          style={{
+            display: 'flex',
+            gap: '8px',
+            overflowX: 'auto',
+            scrollBehavior: 'smooth',
+            scrollSnapType: 'x mandatory',
+            WebkitOverflowScrolling: 'touch'
+          }}
+        >
+          {slides.map((slide, index) => (
+            <div
+              key={index}
+              style={{
+                minWidth: slides.length > 1 ? '80%' : '100%',
+                maxWidth: slides.length > 1 ? '80%' : '100%',
+                flexShrink: 0,
+                scrollSnapAlign: 'start',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                backgroundColor: '#fff',
+                border: '1px solid #e5e7eb',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+              }}
+            >
+              {/* Media Section */}
+              <div style={{
+                position: 'relative',
+                overflow: 'hidden',
+                height: '200px',
+                backgroundColor: '#f9fafb'
+              }}>
+                {renderMedia(slide)}
+              </div>
+
+              {/* Text Content Section */}
+              <div style={{
+                backgroundColor: '#fff',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                minHeight: '70px'
+              }}>
+                {/* Title & Description */}
+                {(slide.title || slide.description) && (
+                  <div style={{ 
+                    flex: 1,
+                    textAlign: 'left',
+                    minWidth: 0
+                  }}>
+                    {slide.title && (
+                      <div style={{ 
+                        fontWeight: '700', 
+                        fontSize: '15px', 
+                        color: '#111827',
+                        marginBottom: slide.description ? '4px' : '0',
+                        lineHeight: '1.3',
+                        wordBreak: 'break-word'
+                      }}>
+                        {slide.title}
+                      </div>
+                    )}
+                    {slide.description && (
+                      <div style={{ 
+                        fontSize: '12px', 
+                        color: '#6b7280',
+                        lineHeight: '1.4',
+                        wordBreak: 'break-word'
+                      }}>
+                        {slide.description}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* CTA Button */}
+                {slide.ctaText && (
+                  <div style={{ flexShrink: 0 }}>
+                    <button 
+                      onClick={() => handleCtaClick(slide)}
+                      style={{
+                        backgroundColor: '#f3f4f6',
+                        color: '#374151',
+                        border: '1px solid #e5e7eb',
+                        padding: '8px 20px',
+                        borderRadius: '8px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        transition: 'all 0.2s ease',
+                        minWidth: '80px'
+                      }}
+                    >
+                      {slide.ctaText}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
 
         {/* Dot Indicators */}
         {slides.length > 1 && (carouselSettings.showDots !== false) && (
           <div style={{
-            position: 'absolute',
-            bottom: '6px',
-            left: '50%',
-            transform: 'translateX(-50%)',
             display: 'flex',
-            gap: isPreview ? '4px' : '8px',
-            zIndex: 10
+            justifyContent: 'center',
+            gap: '6px',
+            marginTop: '8px'
           }}>
             {slides.map((_, index) => (
               <div 
                 key={index} 
                 onClick={() => handleDotClick(index)}
                 style={{
-                  width: isPreview ? '6px' : '12px',
-                  height: isPreview ? '6px' : '12px',
+                  width: '8px',
+                  height: '8px',
                   borderRadius: '50%',
-                  backgroundColor: index === carouselIndex ? '#007bff' : 'rgba(255,255,255,0.6)',
-                  border: isPreview ? '1px solid rgba(255,255,255,0.9)' : '2px solid rgba(255,255,255,0.9)',
+                  backgroundColor: index === currentIndex ? '#007bff' : '#d1d5db',
                   transition: 'all 0.2s ease',
                   cursor: 'pointer',
-                  boxShadow: isPreview ? '0 1px 2px rgba(0,0,0,0.2)' : '0 2px 4px rgba(0,0,0,0.2)'
+                  boxShadow: index === currentIndex ? '0 2px 4px rgba(0, 123, 255, 0.3)' : 'none'
                 }} 
               />
             ))}
-          </div>
-        )}
-
-        {/* Navigation Arrows */}
-        {slides.length > 1 && (carouselSettings.showArrows !== false) && (
-          <>
-            <button
-              onClick={handlePrevious}
-              style={{
-                position: 'absolute',
-                left: isPreview ? '4px' : '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                backgroundColor: 'rgba(255,255,255,0.9)',
-                borderRadius: '50%',
-                width: isPreview ? '24px' : '32px',
-                height: isPreview ? '24px' : '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                border: 'none',
-                fontSize: isPreview ? '14px' : '18px',
-                fontWeight: 'bold',
-                color: '#333',
-                boxShadow: isPreview ? '0 2px 6px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.2)',
-                transition: 'all 0.2s ease',
-                zIndex: 10
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-              }}
-            >
-              ‹
-            </button>
-            <button
-              onClick={handleNext}
-              style={{
-                position: 'absolute',
-                right: isPreview ? '4px' : '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                backgroundColor: 'rgba(255,255,255,0.9)',
-                borderRadius: '50%',
-                width: isPreview ? '24px' : '32px',
-                height: isPreview ? '24px' : '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                border: 'none',
-                fontSize: isPreview ? '14px' : '18px',
-                fontWeight: 'bold',
-                color: '#333',
-                boxShadow: isPreview ? '0 2px 6px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.2)',
-                transition: 'all 0.2s ease',
-                zIndex: 10
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-              }}
-            >
-              ›
-            </button>
-          </>
-        )}
-      </div>
-      
-      {/* Text Content Section (Below Image) */}
-      <div style={{
-        backgroundColor: '#fff',
-        padding: isPreview ? '12px 16px' : '10px 12px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '12px',
-        minHeight: isPreview ? '70px' : '60px'
-      }}>
-        {/* Title & Description - Left Side */}
-        {(currentSlide.title || currentSlide.description) && (
-          <div style={{ 
-            flex: 1,
-            textAlign: 'left',
-            minWidth: 0
-          }}>
-            {currentSlide.title && (
-              <div style={{ 
-                fontWeight: '700', 
-                fontSize: isPreview ? '15px' : '18px', 
-                color: isPreview ? '#111827' : '#1f2937',
-                marginBottom: currentSlide.description ? (isPreview ? '4px' : '2px') : '0',
-                lineHeight: '1.3',
-                wordBreak: 'break-word'
-              }}>
-                {currentSlide.title}
-              </div>
-            )}
-            {currentSlide.description && (
-              <div style={{ 
-                fontSize: isPreview ? '12px' : '14px', 
-                color: '#6b7280',
-                lineHeight: '1.4',
-                wordBreak: 'break-word'
-              }}>
-                {currentSlide.description}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* CTA Button - Right Side */}
-        {currentSlide.ctaText && (
-          <div style={{ flexShrink: 0 }}>
-            <button 
-              onClick={handleCtaClick}
-              style={{
-                backgroundColor: '#f3f4f6',
-                color: '#374151',
-                border: '1px solid #e5e7eb',
-                padding: isPreview ? '8px 20px' : '8px 16px',
-                borderRadius: isPreview ? '8px' : '6px',
-                fontWeight: isPreview ? '500' : '600',
-                cursor: 'pointer',
-                fontSize: isPreview ? '13px' : '14px',
-                transition: 'all 0.2s ease',
-                minWidth: isPreview ? '80px' : '110px',
-                boxShadow: isPreview ? 'none' : '0 1px 2px rgba(0,0,0,0.05)'
-              }}
-            >
-              {currentSlide.ctaText}
-            </button>
           </div>
         )}
       </div>

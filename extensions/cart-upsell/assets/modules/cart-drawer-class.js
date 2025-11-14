@@ -213,18 +213,18 @@ export class UpsellityCartDrawer {
     const { beforeItems, afterItems } = splitFeatureOrder(this.config?.featureOrder);
 
     beforeItems.forEach((id) => {
-      if (sections[id]) html += sections[id];
+      if (sections[id]) html += `<div style="margin-bottom: 12px;">${sections[id]}</div>`;
     });
 
     if (sections[FEATURE_ORDER_SENTINEL]) {
-      html += sections[FEATURE_ORDER_SENTINEL];
+      html += `<div style="margin-bottom: 12px;">${sections[FEATURE_ORDER_SENTINEL]}</div>`;
     }
 
     afterItems.forEach((id) => {
-      if (sections[id]) html += sections[id];
+      if (sections[id]) html += `<div style="margin-bottom: 12px;">${sections[id]}</div>`;
     });
 
-    html += renderCartTotals(this.cart, this.appliedDiscount);
+    html += `<div style="margin-bottom: 12px;">${renderCartTotals(this.cart, this.appliedDiscount)}</div>`;
     html += `
       <button class="upsellity-checkout-btn" onclick="window.location.href='${DiscountManager.getCheckoutUrl(this.appliedDiscount)}'">
         Checkout
