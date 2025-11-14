@@ -83,7 +83,6 @@ export async function loadShopifyRecommendations(cart, config) {
   }
 
   if (!cart || !cart.items || cart.items.length === 0) {
-    console.log('Upsellity: No items in cart, skipping Shopify recommendations');
     return;
   }
 
@@ -100,7 +99,6 @@ export async function loadShopifyRecommendations(cart, config) {
     const maxProducts = recommendations.maxProducts || 4;
     
     const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=${maxProducts}`;
-    console.log('Upsellity: Fetching Shopify recommendations', { productId, intent, url: recommendationsUrl });
     
     const response = await fetch(recommendationsUrl);
     
@@ -157,8 +155,6 @@ export async function loadShopifyRecommendations(cart, config) {
         recommendations.products = [];
       }
       recommendations.products = filteredRecommendations.slice(0, maxProducts);
-      
-      console.log(`Upsellity: Loaded ${filteredRecommendations.length} Shopify recommendations (${intent}), filtered from ${shopifyRecommendations.length} total`);
     } else {
       console.warn(`Upsellity: Failed to fetch Shopify recommendations (${response.status} ${response.statusText}). Shopify recommendations may not be enabled for your store.`);
       recommendations.products = [];

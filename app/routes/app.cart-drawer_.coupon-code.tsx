@@ -287,9 +287,9 @@ export default function CouponCode() {
                   { code: 'SUMMER20', title: 'Summer Sale', description: '20% OFF', type: 'percentage', value: 20 },
                   { code: 'FLAT500', title: 'Flat Discount', description: '₹500 OFF', type: 'fixed', value: 500 }
                 ] : []}
-                onApplyCoupon={(code) => console.log('Apply coupon:', code)}
-                onRemoveDiscount={() => console.log('Remove discount')}
-                onSwitchDiscount={(code) => console.log('Switch discount:', code)}
+                onApplyCoupon={() => {}}
+                onRemoveDiscount={() => {}}
+                onSwitchDiscount={() => {}}
                 isPreview={true}
               />
 

@@ -32,9 +32,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     },
   });
 
-  console.log('Preview loader - Cart drawer config:', cartDrawer);
-  console.log('Preview loader - Free shipping bars:', cartDrawer?.freeShippingBars);
-
   return json({ cartDrawer });
 };
 

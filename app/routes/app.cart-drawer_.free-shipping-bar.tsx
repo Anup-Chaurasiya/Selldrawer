@@ -47,6 +47,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "toggle") {
     const enabled = formData.get("enabled") === "true";
 
+    // Check if data exists before enabling
+    if (enabled) {
+      const cartDrawer = await prisma.cartDrawer.findUnique({
+        where: { shop },
+        include: {
+          freeShippingBars: { where: { isActive: true } },
+        },
+      });
+
+      if (!cartDrawer || cartDrawer.freeShippingBars.length === 0) {
+        return json({ 
+          success: false, 
+          error: "Configuration required. Please save the configuration first before enabling." 
+        }, { status: 400 });
+      }
+    }
+
     await prisma.cartDrawer.update({
       where: { shop },
       data: { freeShippingProgressBarEnabled: enabled },
@@ -77,8 +94,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       showPercentage: formData.get("showPercentage") === "true",
     };
 
-    console.log('Saving free shipping bar configuration:', data);
-
     const existingBar = cartDrawer.freeShippingBars[0];
 
     if (existingBar) {
@@ -96,6 +111,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         },
       });
     }
+
+    // Auto-enable the feature after saving configuration
+    await prisma.cartDrawer.update({
+      where: { shop },
+      data: { freeShippingProgressBarEnabled: true },
+    });
 
     return redirect("/app/cart-drawer");
   }
@@ -159,14 +180,20 @@ export default function FreeShippingBar() {
                   <Button
                     onClick={handleToggle}
                     loading={isLoading}
+                    disabled={!freeShippingBar && !cartDrawer?.freeShippingProgressBarEnabled}
                   >
                     {cartDrawer?.freeShippingProgressBarEnabled ? "Disable" : "Enable"}
                   </Button>
                 </InlineStack>
 
-                {!cartDrawer?.freeShippingProgressBarEnabled && (
+                {!cartDrawer?.freeShippingProgressBarEnabled && freeShippingBar && (
+                  <Banner tone="info">
+                    This feature is currently disabled. Click "Enable" to show the progress bar in your cart.
+                  </Banner>
+                )}
+                {!freeShippingBar && (
                   <Banner tone="warning">
-                    This feature is currently disabled. Enable it to show the progress bar in your cart.
+                    This feature is not configured. Please fill in the configuration below and click "Save" to set it up. The feature will be automatically enabled after saving.
                   </Banner>
                 )}
 

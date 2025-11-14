@@ -45,7 +45,7 @@ export const CartItems: React.FC<CartItemsProps> = ({
   // Format money (cents to currency)
   const formatMoney = (cents: number) => {
     const rupees = cents / 100;
-    return `₹${rupees.toFixed(2)}`;
+    return `₹${Math.round(rupees)}`;
   };
 
   const calculateItemPrices = (item: CartItem, cartTotalPrice: number) => {

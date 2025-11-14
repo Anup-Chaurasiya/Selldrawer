@@ -46,6 +46,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "toggle") {
     const enabled = formData.get("enabled") === "true";
+
+    // Check if data exists before enabling
+    if (enabled) {
+      const cartDrawer = await prisma.cartDrawer.findUnique({
+        where: { shop },
+        include: {
+          savingsDisplays: { where: { isActive: true } },
+        },
+      });
+
+      if (!cartDrawer || cartDrawer.savingsDisplays.length === 0) {
+        return json({ 
+          success: false, 
+          error: "Configuration required. Please save the configuration first before enabling." 
+        }, { status: 400 });
+      }
+    }
     
     await prisma.cartDrawer.update({
       where: { shop },
@@ -90,6 +107,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         },
       });
     }
+
+    // Auto-enable the feature after saving configuration
+    await prisma.cartDrawer.update({
+      where: { shop },
+      data: { savingsDisplayEnabled: true },
+    });
 
     return redirect("/app/cart-drawer");
   }

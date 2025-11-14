@@ -145,6 +145,40 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "toggle") {
     const enabled = formData.get("enabled") === "true";
+
+    // Check if data exists before enabling
+    if (enabled) {
+      const cartDrawer = await prisma.cartDrawer.findUnique({
+        where: { shop },
+        include: {
+          productRecommendations: { 
+            where: { isActive: true },
+            include: {
+              products: {
+                orderBy: { position: 'asc' }
+              }
+            }
+          },
+        },
+      });
+
+      if (!cartDrawer) {
+        return json({ 
+          success: false, 
+          error: "Configuration required. Please save the configuration first before enabling." 
+        }, { status: 400 });
+      }
+
+      const hasProducts = cartDrawer.productRecommendations.length > 0 && 
+        cartDrawer.productRecommendations.some(rec => rec.products && rec.products.length > 0);
+
+      if (!hasProducts) {
+        return json({ 
+          success: false, 
+          error: "Configuration required. Please add at least one product before enabling." 
+        }, { status: 400 });
+      }
+    }
     
     await prisma.cartDrawer.update({
       where: { shop },
@@ -296,6 +330,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     // Redirect with cache-busting to ensure fresh data
+    // Auto-enable the feature after saving configuration (only if products were added)
+    if (selectedProducts.length > 0) {
+      await prisma.cartDrawer.update({
+        where: { shop },
+        data: { productRecommendationsEnabled: true },
+      });
+    }
+
     return redirect("/app/cart-drawer", {
       headers: {
         "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -825,8 +867,8 @@ export default function ProductRecommendations() {
                       return {
                         id: product.id,
                         title: product.title,
-                        price: Math.round(price * 100), // Convert to cents
-                        compareAtPrice: comparePrice ? Math.round(comparePrice * 100) : null,
+                        price: price ? parseFloat(price.toString()) : 0,
+                        compareAtPrice: comparePrice ? parseFloat(comparePrice.toString()) : null,
                         imageUrl: product.images?.[0]?.src || null,
                         variantId: product.shopifyProductId || product.id,
                       };
@@ -847,7 +889,7 @@ export default function ProductRecommendations() {
                     showDiscount={formState.showDiscount}
                     showDiscountBadge={formState.showDiscountBadge}
                     showAddButton={formState.showAddButton}
-                    onAddToCart={(variantId: string) => console.log('Add to cart clicked:', variantId)}
+                    onAddToCart={() => {}}
                     isPreview={true}
                   />
                 );

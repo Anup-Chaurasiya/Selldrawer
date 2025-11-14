@@ -15,11 +15,13 @@ import {
   Banner,
   RangeSlider,
   Thumbnail,
+  Icon,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { PromotionalBannerCard } from "../components/shared/PromotionalBannerCard";
+import { PlayIcon } from "@shopify/polaris-icons";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -52,6 +54,42 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "toggle") {
     const enabled = formData.get("enabled") === "true";
+
+    // Check if data exists before enabling
+    if (enabled) {
+      const cartDrawer = await prisma.cartDrawer.findUnique({
+        where: { shop },
+        include: {
+          promotionalBanners: { 
+            where: { isActive: true },
+            include: {
+              images: { orderBy: { order: 'asc' } },
+            }
+          },
+        },
+      });
+
+      if (!cartDrawer) {
+        return json({ 
+          success: false, 
+          error: "Configuration required. Please save the configuration first before enabling." 
+        }, { status: 400 });
+      }
+
+      const hasBannerData = cartDrawer.promotionalBanners.length > 0 && 
+        cartDrawer.promotionalBanners.some(banner => 
+          (banner.images && banner.images.length > 0) || 
+          (banner.imageUrls && banner.imageUrls.length > 0) || 
+          banner.title
+        );
+
+      if (!hasBannerData) {
+        return json({ 
+          success: false, 
+          error: "Configuration required. Please add at least one slide or configure the banner before enabling." 
+        }, { status: 400 });
+      }
+    }
     
     await prisma.cartDrawer.update({
       where: { shop },
@@ -98,6 +136,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         },
       });
     }
+
+    // Auto-enable the feature after creating banner
+    await prisma.cartDrawer.update({
+      where: { shop },
+      data: { promotionalBannerEnabled: true },
+    });
 
     return json({ success: true });
   }
@@ -158,6 +202,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         ctaUrl,
         order: (maxOrder?.order ?? -1) + 1,
       },
+    });
+
+    // Auto-enable the feature after adding a slide
+    await prisma.cartDrawer.update({
+      where: { shop },
+      data: { promotionalBannerEnabled: true },
     });
 
     return json({ success: true });
@@ -424,9 +474,7 @@ function CarouselPreview({ slides, carouselSettings }: {
     <PromotionalBannerCard 
       slides={slides}
       carouselSettings={carouselSettings}
-      onCtaClick={(url) => {
-        console.log('CTA clicked in preview:', url);
-      }}
+      onCtaClick={() => {}}
       isPreview={true}
     />
   );
@@ -579,7 +627,28 @@ export default function PromotionalBanner() {
                         <Card key={slide.id}>
                           <InlineStack align="space-between" blockAlign="center">
                             <InlineStack gap="300" blockAlign="center">
-                              <Thumbnail source={slide.imageUrl} alt={`Slide ${index + 1}`} size="small" />
+                              {slide.videoUrl && !slide.imageUrl ? (
+                                <div
+                                  style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    borderRadius: '8px',
+                                    backgroundColor: '#FA003F',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  <Icon source={PlayIcon} tone="base" />
+                                </div>
+                              ) : (
+                                <Thumbnail 
+                                  source={slide.imageUrl || slide.videoUrl} 
+                                  alt={`Slide ${index + 1}`} 
+                                  size="small" 
+                                />
+                              )}
                               <BlockStack gap="100">
                                 <Text as="p" variant="bodyMd" fontWeight="semibold">
                                   Slide {index + 1}

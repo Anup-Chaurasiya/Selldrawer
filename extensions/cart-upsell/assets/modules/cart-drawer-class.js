@@ -61,9 +61,6 @@ export class UpsellityCartDrawer {
         }
       });
       this.config = await response.json();
-      
-      console.log('Upsellity: Loaded config:', this.config);
-      console.log('Upsellity: Free shipping message config:', this.config.features?.freeShippingMessage);
     } catch (error) {
       console.error('Upsellity: Failed to load config', error);
       this.config = { enabled: false, features: {} };

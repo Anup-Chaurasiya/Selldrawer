@@ -8357,7 +8357,6 @@
       return;
     }
     if (!cart || !cart.items || cart.items.length === 0) {
-      console.log("Upsellity: No items in cart, skipping Shopify recommendations");
       return;
     }
     try {
@@ -8370,7 +8369,6 @@
       const intent = recommendationType === "complementary" ? "complementary" : "related";
       const maxProducts = recommendations.maxProducts || 4;
       const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=${maxProducts}`;
-      console.log("Upsellity: Fetching Shopify recommendations", { productId, intent, url: recommendationsUrl });
       const response = await fetch(recommendationsUrl);
       if (response.ok) {
         const data = await response.json();
@@ -8413,7 +8411,6 @@
           recommendations.products = [];
         }
         recommendations.products = filteredRecommendations.slice(0, maxProducts);
-        console.log(`Upsellity: Loaded ${filteredRecommendations.length} Shopify recommendations (${intent}), filtered from ${shopifyRecommendations.length} total`);
       } else {
         console.warn(`Upsellity: Failed to fetch Shopify recommendations (${response.status} ${response.statusText}). Shopify recommendations may not be enabled for your store.`);
         recommendations.products = [];
@@ -9052,7 +9049,7 @@
   }) => {
     const formatMoney2 = (cents) => {
       const rupees = cents / 100;
-      return `\u20B9${rupees.toFixed(2)}`;
+      return `\u20B9${Math.round(rupees)}`;
     };
     const calculateItemPrices = (item, cartTotalPrice2) => {
       const linePrice = item.line_price || item.price * item.quantity;
@@ -9390,11 +9387,21 @@
       return null;
     }
     return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { marginTop: isPreview ? "16px" : "8px" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("style", { children: `
+        .upsellity-product-recommendations-scroll::-webkit-scrollbar {
+          display: none;
+        }
+        .upsellity-product-recommendations-scroll {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      ` }),
       /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h4", { style: {
-        fontSize: isPreview ? "15px" : "14px",
+        fontSize: isPreview ? "14px" : "13px",
         fontWeight: "600",
-        marginBottom: "8px",
-        color: "#111827"
+        marginBottom: isPreview ? "6px" : "4px",
+        color: "#111827",
+        letterSpacing: "-0.01em"
       }, children: title }),
       /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
         position: "relative",
@@ -9406,34 +9413,35 @@
             onClick: () => handleScroll("left"),
             style: {
               position: "absolute",
-              left: "0",
+              left: "4px",
               top: "50%",
               transform: "translateY(-50%)",
-              background: "rgba(255, 255, 255, 0.9)",
+              background: "#ffffff",
               border: "1px solid #e5e7eb",
               borderRadius: "50%",
-              width: "32px",
-              height: "32px",
+              width: "36px",
+              height: "36px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               cursor: "pointer",
               zIndex: 10,
-              opacity: 0.7,
-              transition: "all 0.2s ease",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)"
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
+              transition: "all 0.2s ease"
             },
             onMouseEnter: (e) => {
-              e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.background = "rgba(255, 255, 255, 1)";
-              e.currentTarget.style.transform = "translateY(-50%) scale(1.1)";
+              e.currentTarget.style.background = "#f9fafb";
+              e.currentTarget.style.borderColor = "#d1d5db";
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
+              e.currentTarget.style.transform = "translateY(-50%) scale(1.05)";
             },
             onMouseLeave: (e) => {
-              e.currentTarget.style.opacity = "0.7";
-              e.currentTarget.style.background = "rgba(255, 255, 255, 0.9)";
+              e.currentTarget.style.background = "#ffffff";
+              e.currentTarget.style.borderColor = "#e5e7eb";
+              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.12)";
               e.currentTarget.style.transform = "translateY(-50%) scale(1)";
             },
-            children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontSize: "16px", color: "#374151" }, children: "\u2039" })
+            children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontSize: "18px", color: "#374151", fontWeight: "300" }, children: "\u2039" })
           }
         ),
         !isGrid && canScrollRight && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
@@ -9442,57 +9450,58 @@
             onClick: () => handleScroll("right"),
             style: {
               position: "absolute",
-              right: "0",
+              right: "4px",
               top: "50%",
               transform: "translateY(-50%)",
-              background: "rgba(255, 255, 255, 0.9)",
+              background: "#ffffff",
               border: "1px solid #e5e7eb",
               borderRadius: "50%",
-              width: "32px",
-              height: "32px",
+              width: "36px",
+              height: "36px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               cursor: "pointer",
               zIndex: 10,
-              opacity: 0.7,
-              transition: "all 0.2s ease",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)"
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
+              transition: "all 0.2s ease"
             },
             onMouseEnter: (e) => {
-              e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.background = "rgba(255, 255, 255, 1)";
-              e.currentTarget.style.transform = "translateY(-50%) scale(1.1)";
+              e.currentTarget.style.background = "#f9fafb";
+              e.currentTarget.style.borderColor = "#d1d5db";
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
+              e.currentTarget.style.transform = "translateY(-50%) scale(1.05)";
             },
             onMouseLeave: (e) => {
-              e.currentTarget.style.opacity = "0.7";
-              e.currentTarget.style.background = "rgba(255, 255, 255, 0.9)";
+              e.currentTarget.style.background = "#ffffff";
+              e.currentTarget.style.borderColor = "#e5e7eb";
+              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.12)";
               e.currentTarget.style.transform = "translateY(-50%) scale(1)";
             },
-            children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontSize: "16px", color: "#374151" }, children: "\u203A" })
+            children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontSize: "18px", color: "#374151", fontWeight: "300" }, children: "\u203A" })
           }
         ),
         /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
           "div",
           {
             ref: scrollContainerRef,
+            className: !isGrid ? "upsellity-product-recommendations-scroll" : "",
             style: isGrid ? {
               display: "grid",
               gridTemplateColumns: `repeat(auto-fit, minmax(${isPreview ? "120px" : "120px"}, 1fr))`,
-              gap: "8px",
-              paddingBottom: "8px"
+              gap: "6px",
+              paddingBottom: "0px"
             } : {
               display: "flex",
-              gap: "8px",
+              gap: "6px",
               overflowX: "auto",
               scrollBehavior: "smooth",
-              paddingBottom: "8px",
-              scrollbarWidth: "thin",
-              scrollbarColor: "#cbd5e1 #f1f5f9",
-              paddingLeft: canScrollLeft ? "40px" : "0",
-              paddingRight: canScrollRight ? "40px" : "0",
+              paddingBottom: "0px",
+              scrollbarWidth: "none",
               msOverflowStyle: "none",
-              WebkitOverflowScrolling: "touch"
+              WebkitOverflowScrolling: "touch",
+              paddingLeft: canScrollLeft ? "44px" : "0",
+              paddingRight: canScrollRight ? "44px" : "0"
             },
             children: displayProducts.map((product) => {
               const discount = product.compareAtPrice && product.compareAtPrice > product.price ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
@@ -9502,24 +9511,51 @@
                   style: isGrid ? {
                     border: "1px solid #e5e7eb",
                     borderRadius: "6px",
-                    padding: "8px",
-                    textAlign: "center",
+                    padding: "6px",
                     backgroundColor: "#ffffff",
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                    transition: "transform 0.2s ease, box-shadow 0.2s ease"
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
+                    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100%"
                   } : {
                     border: "1px solid #e5e7eb",
                     borderRadius: "6px",
-                    padding: "8px",
-                    textAlign: "center",
+                    padding: "6px",
                     minWidth: isPreview ? "120px" : "120px",
+                    maxWidth: isPreview ? "120px" : "120px",
                     flexShrink: 0,
                     backgroundColor: "#ffffff",
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                    transition: "transform 0.2s ease, box-shadow 0.2s ease"
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
+                    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                    cursor: "pointer"
+                  },
+                  onMouseEnter: (e) => {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.12)";
+                    e.currentTarget.style.borderColor = "#d1d5db";
+                  },
+                  onMouseLeave: (e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.08)";
+                    e.currentTarget.style.borderColor = "#e5e7eb";
                   },
                   children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { position: "relative", marginBottom: "6px" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
+                      position: "relative",
+                      marginBottom: "4px",
+                      borderRadius: "4px",
+                      overflow: "hidden",
+                      backgroundColor: "#f9fafb",
+                      aspectRatio: "1",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }, children: [
                       product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
                         "img",
                         {
@@ -9527,64 +9563,85 @@
                           alt: product.title,
                           style: {
                             width: "100%",
-                            height: "60px",
+                            height: "100%",
                             objectFit: "cover",
-                            borderRadius: "4px"
+                            display: "block"
                           }
                         }
                       ) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
                         width: "100%",
-                        height: "60px",
+                        height: "100%",
                         backgroundColor: "#f3f4f6",
-                        borderRadius: "4px",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: "24px"
+                        fontSize: "24px",
+                        color: "#9ca3af"
                       }, children: "\u{1F4E6}" }),
                       showDiscountBadge && discount > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
                         position: "absolute",
-                        top: "4px",
-                        right: "4px",
-                        backgroundColor: "#10b981",
+                        top: "3px",
+                        right: "3px",
+                        background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
                         color: "white",
-                        padding: "2px 6px",
-                        borderRadius: "10px",
-                        fontSize: "9px",
-                        fontWeight: "600",
-                        zIndex: 1
+                        padding: "1px 5px",
+                        borderRadius: "8px",
+                        fontSize: "8px",
+                        fontWeight: "700",
+                        zIndex: 1,
+                        boxShadow: "0 2px 4px rgba(16, 185, 129, 0.3)",
+                        letterSpacing: "0.3px"
                       }, children: [
+                        "-",
                         discount,
-                        "% off"
+                        "%"
                       ] })
                     ] }),
                     /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
-                      fontSize: "11px",
-                      fontWeight: "600",
-                      marginBottom: "4px",
-                      lineHeight: "1.3",
+                      fontSize: "10px",
+                      fontWeight: "500",
+                      marginBottom: "2px",
+                      lineHeight: "1.2",
                       color: "#111827",
-                      minHeight: "28px",
+                      minHeight: "24px",
                       display: "-webkit-box",
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: "vertical",
-                      overflow: "hidden"
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      letterSpacing: "-0.01em"
                     }, children: product.title }),
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { marginBottom: "4px" }, children: showDiscount && product.compareAtPrice && product.compareAtPrice > product.price ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
+                      marginBottom: "4px",
+                      display: "flex",
+                      alignItems: "baseline",
+                      gap: "4px",
+                      flexWrap: "wrap"
+                    }, children: showDiscount && product.compareAtPrice && product.compareAtPrice > product.price ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
                       /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: {
                         textDecoration: "line-through",
                         color: "#9ca3af",
-                        fontSize: "10px",
-                        marginRight: "4px"
+                        fontSize: "9px",
+                        fontWeight: "400"
                       }, children: [
                         "\u20B9",
                         Math.round(product.compareAtPrice)
                       ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { fontWeight: "600", fontSize: "11px", color: "#111827" }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: {
+                        fontWeight: "700",
+                        fontSize: "11px",
+                        color: "#111827",
+                        letterSpacing: "-0.01em"
+                      }, children: [
                         "\u20B9",
                         Math.round(product.price)
                       ] })
-                    ] }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { fontWeight: "600", fontSize: "11px", color: "#111827" }, children: [
+                    ] }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: {
+                      fontWeight: "700",
+                      fontSize: "11px",
+                      color: "#111827",
+                      letterSpacing: "-0.01em"
+                    }, children: [
                       "\u20B9",
                       Math.round(product.price)
                     ] }) }),
@@ -9595,24 +9652,35 @@
                         style: {
                           width: "100%",
                           padding: "4px 8px",
-                          backgroundColor: "#f97316",
+                          background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
                           color: "white",
                           border: "none",
                           borderRadius: "4px",
-                          fontSize: "10px",
+                          fontSize: "9px",
                           fontWeight: "600",
                           cursor: "pointer",
-                          transition: "all 0.2s"
+                          transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                          boxShadow: "0 1px 3px rgba(249, 115, 22, 0.3)",
+                          letterSpacing: "0.2px",
+                          marginTop: "auto"
                         },
                         onMouseEnter: (e) => {
-                          e.currentTarget.style.backgroundColor = "#ea580c";
-                          e.currentTarget.style.transform = "scale(1.02)";
+                          e.currentTarget.style.background = "linear-gradient(135deg, #ea580c 0%, #dc2626 100%)";
+                          e.currentTarget.style.boxShadow = "0 2px 6px rgba(249, 115, 22, 0.4)";
+                          e.currentTarget.style.transform = "translateY(-1px)";
                         },
                         onMouseLeave: (e) => {
-                          e.currentTarget.style.backgroundColor = "#f97316";
-                          e.currentTarget.style.transform = "scale(1)";
+                          e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
+                          e.currentTarget.style.boxShadow = "0 1px 3px rgba(249, 115, 22, 0.3)";
+                          e.currentTarget.style.transform = "translateY(0)";
                         },
-                        children: "+ Add"
+                        onMouseDown: (e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                        },
+                        onMouseUp: (e) => {
+                          e.currentTarget.style.transform = "translateY(-1px)";
+                        },
+                        children: "+ Add to Cart"
                       }
                     )
                   ]
@@ -9682,8 +9750,8 @@
       return null;
     }
     const formatMoney2 = (cents) => {
-      const rupees = cents / 100;
-      return `\u20B9${rupees.toFixed(2)}`;
+      const rupees = Math.floor(cents / 100);
+      return `\u20B9${rupees}`;
     };
     const formattedMessage = message.replace("{amount}", formatMoney2(amount));
     return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: {
@@ -10129,7 +10197,7 @@
   }) => {
     const formatMoney2 = (cents) => {
       const rupees = cents / 100;
-      return `\u20B9${rupees.toFixed(2)}`;
+      return `\u20B9${Math.round(rupees)}`;
     };
     const calculateEstimatedDiscount2 = (discount, total) => {
       if (!discount)
@@ -10291,7 +10359,7 @@
       await this.loadCart();
     }
     async loadConfig() {
-      var _a, _b;
+      var _a;
       try {
         const appUrl = (_a = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a.dataset.upsellityAppUrl;
         if (!appUrl) {
@@ -10308,8 +10376,6 @@
           }
         });
         this.config = await response.json();
-        console.log("Upsellity: Loaded config:", this.config);
-        console.log("Upsellity: Free shipping message config:", (_b = this.config.features) == null ? void 0 : _b.freeShippingMessage);
       } catch (error) {
         console.error("Upsellity: Failed to load config", error);
         this.config = { enabled: false, features: {} };

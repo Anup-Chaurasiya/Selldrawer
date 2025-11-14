@@ -48,13 +48,11 @@
         const apiUrl = `${appUrl}/api/fbt?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(this.productHandle)}`;
         const response = await fetch(apiUrl);
 
-        console.log("FBT Widget Response:", response);
         if (!response.ok) {
           throw new Error(`Failed to load FBT config: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
-        console.log("FBT Widget Data:", data);
         
         this.enabled = data.enabled || false;
         this.config = data.config || null;
@@ -104,8 +102,6 @@
             const intent = this.config.algorithm === 'complementary' ? 'complementary' : 'related';
             const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=3`;
             
-            console.log('FBT Widget: Fetching AI recommendations', { productId, intent, url: recommendationsUrl });
-            
             const response = await fetch(recommendationsUrl);
             
             if (response.ok) {
@@ -130,7 +126,6 @@
                 aiRecommendations = aiRecommendations.slice(0, maxUpsells);
               }
               
-              console.log(`FBT Widget: Loaded ${aiRecommendations.length} AI recommendations`);
             } else {
               console.warn(`FBT Widget: Failed to fetch AI recommendations (${response.status} ${response.statusText}). Shopify recommendations may not be enabled for your store.`);
             }
@@ -173,7 +168,6 @@
         : null;
       
       if (maxUpsells && this.recommendations.length > maxUpsells) {
-        console.log(`FBT Widget: Limiting recommendations from ${this.recommendations.length} to ${maxUpsells}`);
         this.recommendations = this.recommendations.slice(0, maxUpsells);
       }
 
@@ -183,7 +177,6 @@
         this.selectedProducts.add(rec.variantId || rec.id);
       });
 
-      console.log(`FBT Widget: Loaded ${this.recommendations.length} recommendations (Type: ${recommendationType}, Filtered from ${allRecommendations.length} total, Max: ${maxUpsells || 'unlimited'})`);
     }
 
     render() {

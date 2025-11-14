@@ -86,11 +86,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             recommendations = recommendations.slice(0, fbtConfig.maxUpsellsInCart);
           }
           
-          console.log(`FBT API: Found matching rule for ${productHandle}, returning ${recommendations.length} manual recommendations`);
-        } else {
-          console.log(`FBT API: No matching rule found for product handle: ${productHandle}. Available rules:`, 
-            fbtConfig.rules.map((r: any) => ({ type: r.triggerType, value: r.triggerValue }))
-          );
         }
       }
     }

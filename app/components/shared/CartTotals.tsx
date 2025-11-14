@@ -33,7 +33,7 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
   // Format money (cents to currency)
   const formatMoney = (cents: number) => {
     const rupees = cents / 100;
-    return `₹${rupees.toFixed(2)}`;
+    return `₹${Math.round(rupees)}`;
   };
 
   // Calculate estimated discount
