@@ -107,12 +107,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         : null,
     };
 
-    console.log('API Debug - Free Shipping Message:', {
-      enabled: cartDrawer.freeShippingMessageEnabled,
-      messages: cartDrawer.freeShippingMessages,
-      result: features.freeShippingMessage
-    });
-
     const response = json({
       enabled: cartDrawer.isActive,
       theme: cartDrawer.theme,

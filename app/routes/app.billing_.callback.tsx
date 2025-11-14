@@ -3,19 +3,13 @@ import { redirect } from "@remix-run/node";
 import prisma from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  console.log("=== BILLING CALLBACK START ===");
-  console.log("Full URL:", request.url);
-  
   const url = new URL(request.url);
   const planId = url.searchParams.get("plan");
   const charge_id = url.searchParams.get("charge_id");
   const host = url.searchParams.get("host");
   const shop = url.searchParams.get("shop");
 
-  console.log("Billing callback - URL params:", { planId, charge_id, host, shop });
-
   if (!planId || !shop) {
-    console.log("Missing planId or shop, redirecting to app");
     return redirect("/app");
   }
 
@@ -26,8 +20,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const trialEndsAt = new Date();
     trialEndsAt.setDate(trialEndsAt.getDate() + 14); // 14-day trial
 
-    console.log("Updating subscription in database...");
-    
     await prisma.appSubscription.upsert({
       where: { shop },
       create: {
@@ -52,18 +44,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       },
     });
 
-    console.log("✅ Subscription updated successfully for shop:", shop);
-
     // Redirect back to the embedded app in Shopify admin
     // This will trigger re-authentication in the proper context
     if (host) {
       const redirectUrl = `/app?host=${host}&shop=${shop}&billing=success`;
-      console.log("Redirecting to:", redirectUrl);
       return redirect(redirectUrl);
     }
     
     // Fallback redirect
-    console.log("Redirecting to /app with shop and billing=success");
     return redirect(`/app?shop=${shop}&billing=success`);
   } catch (error) {
     console.error("=== BILLING CALLBACK ERROR ===");

@@ -867,8 +867,8 @@ export default function ProductRecommendations() {
                       return {
                         id: product.id,
                         title: product.title,
-                        price: Math.round(price * 100), // Convert to cents
-                        compareAtPrice: comparePrice ? Math.round(comparePrice * 100) : null,
+                        price: price ? parseFloat(price.toString()) : 0,
+                        compareAtPrice: comparePrice ? parseFloat(comparePrice.toString()) : null,
                         imageUrl: product.images?.[0]?.src || null,
                         variantId: product.shopifyProductId || product.id,
                       };
@@ -889,7 +889,7 @@ export default function ProductRecommendations() {
                     showDiscount={formState.showDiscount}
                     showDiscountBadge={formState.showDiscountBadge}
                     showAddButton={formState.showAddButton}
-                    onAddToCart={(variantId: string) => console.log('Add to cart clicked:', variantId)}
+                    onAddToCart={() => {}}
                     isPreview={true}
                   />
                 );

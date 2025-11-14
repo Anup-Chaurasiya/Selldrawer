@@ -55,9 +55,7 @@ function PromotionalBannerPreview({
     <PromotionalBannerCard
       slides={slides}
       carouselSettings={carouselSettings}
-      onCtaClick={(url) => {
-        console.log('CTA clicked:', url);
-      }}
+      onCtaClick={() => {}}
       isPreview={true}
     />
   );
@@ -480,7 +478,7 @@ function MiniCartDrawerPreview({
               showDiscount={productRecommendation?.showDiscount ?? true}
               showDiscountBadge={productRecommendation?.showDiscountBadge ?? true}
               showAddButton={productRecommendation?.showAddButton ?? true}
-              onAddToCart={(variantId) => console.log('Add to cart:', variantId)}
+              onAddToCart={() => {}}
               isPreview={true}
             />
           )
@@ -535,9 +533,9 @@ function MiniCartDrawerPreview({
               { code: 'SUMMER20', title: 'Summer Sale', description: '20% OFF', type: 'percentage', value: 20 },
               { code: 'FLAT500', title: 'Flat Discount', description: '₹500 OFF', type: 'fixed', value: 500 }
             ] : []}
-            onApplyCoupon={(code) => console.log('Apply coupon:', code)}
-            onRemoveDiscount={() => console.log('Remove discount')}
-            onSwitchDiscount={(code) => console.log('Switch discount:', code)}
+            onApplyCoupon={() => {}}
+            onRemoveDiscount={() => {}}
+            onSwitchDiscount={() => {}}
             isPreview={true}
           />
         ));
@@ -631,8 +629,8 @@ function MiniCartDrawerPreview({
               }))}
               productCompareAtPrices={{}}
               appliedDiscount={null}
-              onUpdateQuantity={(key, quantity) => console.log('Update quantity:', key, quantity)}
-              onRemoveItem={(key) => console.log('Remove item:', key)}
+              onUpdateQuantity={() => {}}
+              onRemoveItem={() => {}}
               isPreview={true}
             />
           </div>

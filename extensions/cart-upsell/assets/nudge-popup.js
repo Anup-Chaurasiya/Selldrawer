@@ -428,7 +428,6 @@
             }
             
             const productData = await productResponse.json();
-            console.log('Fetched product data for:', product.handle, 'variants:', productData.variants);
             
             // Get the first available variant (or match by stored variant ID if possible)
             let variant = null;
@@ -454,12 +453,10 @@
             // Extract numeric variant ID
             // Shopify's product JSON API returns variant.id as a number
             let variantId = variant.id;
-            console.log('Variant ID for', product.title, ':', variantId, 'type:', typeof variantId);
             
             // Handle different formats
             if (typeof variantId === 'number') {
               // Already a number, use it directly
-              console.log('Using numeric variant ID:', variantId);
               itemsToAdd.push({
                 id: variantId,
                 quantity: 1
@@ -475,7 +472,6 @@
                 console.warn('Invalid variant ID for product:', product.title, 'variantId:', variant.id);
                 continue;
               }
-              console.log('Converted variant ID to number:', numericId);
               itemsToAdd.push({
                 id: numericId,
                 quantity: 1
@@ -493,8 +489,6 @@
           console.error('No valid products to add to cart');
           return;
         }
-        
-        console.log('Adding products to cart:', itemsToAdd);
         
         const addResponse = await fetch('/cart/add.js', {
           method: 'POST',
@@ -523,7 +517,6 @@
         }
         
         const responseData = await addResponse.json();
-        console.log('Products added successfully:', responseData);
         
         // Wait a moment to ensure cart is fully updated
         await new Promise(resolve => setTimeout(resolve, 150));

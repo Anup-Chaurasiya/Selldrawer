@@ -472,9 +472,7 @@ function CarouselPreview({ slides, carouselSettings }: {
     <PromotionalBannerCard 
       slides={slides}
       carouselSettings={carouselSettings}
-      onCtaClick={(url) => {
-        console.log('CTA clicked in preview:', url);
-      }}
+      onCtaClick={() => {}}
       isPreview={true}
     />
   );

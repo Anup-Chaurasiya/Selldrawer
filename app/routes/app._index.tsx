@@ -133,7 +133,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const planId = formData.get("planId") as string;
 
-  console.log("Billing action - planId:", planId, "shop:", shop);
 
   if (!planId) {
     return json({ error: "Plan ID is required" }, { status: 400 });
@@ -146,7 +145,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
 
     if (existingSubscription && existingSubscription.status === "ACTIVE") {
-      console.log("Already has active subscription, redirecting to cart-drawer");
       return redirect("/app/cart-drawer");
     }
 
@@ -158,8 +156,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const appUrl = process.env.SHOPIFY_APP_URL;
     const returnUrl = `${appUrl}/app/billing/callback?shop=${shop}&plan=${planId}${host ? `&host=${host}` : ''}`;
     
-    console.log("Billing action - returnUrl:", returnUrl);
-    console.log("Billing action - host:", host);
     
     // Create a subscription charge
     let confirmationUrl: string;
@@ -172,14 +168,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
       
       confirmationUrl = billingResult.confirmationUrl;
-      console.log("Billing request successful, confirmationUrl:", confirmationUrl);
     } catch (billingError: any) {
       console.error("Billing request error:", billingError);
       
       // Handle 302 redirect response (normal for embedded apps)
       if (billingError.status === 302 && billingError.headers) {
         const location = billingError.headers.get?.('Location') || billingError.headers.get?.('location');
-        console.log("Got 302 redirect, Location header:", location);
         
         if (location) {
           // If it's an exit-iframe URL, extract the exitIframe parameter
@@ -187,11 +181,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             const exitIframeMatch = location.match(/exitIframe=([^&]+)/);
             if (exitIframeMatch) {
               confirmationUrl = decodeURIComponent(exitIframeMatch[1]);
-              console.log("Extracted confirmation URL from exitIframe:", confirmationUrl);
             } else {
               // Use the full location URL as-is
               confirmationUrl = `${appUrl}${location}`;
-              console.log("Using full exit-iframe URL:", confirmationUrl);
             }
           } else {
             confirmationUrl = location;
@@ -206,7 +198,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         
         if (reauthorizeUrl) {
           confirmationUrl = reauthorizeUrl;
-          console.log("Got reauthorize URL:", confirmationUrl);
         } else {
           throw billingError;
         }
@@ -239,7 +230,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
     
-    console.log("Subscription stored in DB as PENDING");
     
     // Return confirmation URL for frontend redirect
     return json({ 
@@ -286,7 +276,6 @@ export default function Index() {
         isError: true,
       });
     } else if (billingStatus === "cancelled") {
-      console.log("Billing was cancelled");
       shopify.toast.show("Subscription was cancelled. Please try again if you'd like to continue.", {
         isError: false,
       });
@@ -296,7 +285,6 @@ export default function Index() {
   // Handle billing confirmation redirect
   useEffect(() => {
     if (actionData && 'requiresRedirect' in actionData && actionData.requiresRedirect && 'confirmationUrl' in actionData && actionData.confirmationUrl) {
-      console.log("Redirecting to confirmation URL:", actionData.confirmationUrl);
       // Use window.top to break out of iframe and redirect to Shopify billing page
       if (window.top) {
         window.top.location.href = actionData.confirmationUrl;

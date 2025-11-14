@@ -94,8 +94,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       showPercentage: formData.get("showPercentage") === "true",
     };
 
-    console.log('Saving free shipping bar configuration:', data);
-
     const existingBar = cartDrawer.freeShippingBars[0];
 
     if (existingBar) {

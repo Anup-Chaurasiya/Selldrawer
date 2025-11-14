@@ -8357,7 +8357,6 @@
       return;
     }
     if (!cart || !cart.items || cart.items.length === 0) {
-      console.log("Upsellity: No items in cart, skipping Shopify recommendations");
       return;
     }
     try {
@@ -8370,7 +8369,6 @@
       const intent = recommendationType === "complementary" ? "complementary" : "related";
       const maxProducts = recommendations.maxProducts || 4;
       const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=${maxProducts}`;
-      console.log("Upsellity: Fetching Shopify recommendations", { productId, intent, url: recommendationsUrl });
       const response = await fetch(recommendationsUrl);
       if (response.ok) {
         const data = await response.json();
@@ -8413,7 +8411,6 @@
           recommendations.products = [];
         }
         recommendations.products = filteredRecommendations.slice(0, maxProducts);
-        console.log(`Upsellity: Loaded ${filteredRecommendations.length} Shopify recommendations (${intent}), filtered from ${shopifyRecommendations.length} total`);
       } else {
         console.warn(`Upsellity: Failed to fetch Shopify recommendations (${response.status} ${response.statusText}). Shopify recommendations may not be enabled for your store.`);
         recommendations.products = [];
@@ -10291,7 +10288,7 @@
       await this.loadCart();
     }
     async loadConfig() {
-      var _a, _b;
+      var _a;
       try {
         const appUrl = (_a = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a.dataset.upsellityAppUrl;
         if (!appUrl) {
@@ -10308,8 +10305,6 @@
           }
         });
         this.config = await response.json();
-        console.log("Upsellity: Loaded config:", this.config);
-        console.log("Upsellity: Free shipping message config:", (_b = this.config.features) == null ? void 0 : _b.freeShippingMessage);
       } catch (error) {
         console.error("Upsellity: Failed to load config", error);
         this.config = { enabled: false, features: {} };
