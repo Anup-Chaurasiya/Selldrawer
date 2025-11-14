@@ -516,6 +516,7 @@ function MiniCartDrawerPreview({
       case 'coupon-code':
         return (cartDrawer?.couponCodeFieldEnabled && couponCodeField && (
           <CouponCodeField
+            id="upsellity-coupon-field-mini-preview"
             placeholder={couponCodeField.placeholder || 'Enter coupon code'}
             buttonText={couponCodeField.buttonText || 'Apply'}
             showAllOffers={couponCodeField.showAllOffers || false}

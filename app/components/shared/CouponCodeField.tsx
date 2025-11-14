@@ -5,6 +5,26 @@
 
 import React, { useState } from 'react';
 
+// Icon Components
+const CheckIcon = ({ size = 16, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+const ChevronDownIcon = ({ size = 16, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+const XIcon = ({ size = 16, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
 interface Discount {
   code: string;
   title: string;
@@ -14,6 +34,7 @@ interface Discount {
 }
 
 interface CouponCodeFieldProps {
+  id?: string;
   placeholder?: string;
   buttonText?: string;
   showAllOffers?: boolean;
@@ -28,6 +49,7 @@ interface CouponCodeFieldProps {
 }
 
 export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
+  id,
   placeholder = 'Enter coupon code',
   buttonText = 'Apply',
   showAllOffers = false,
@@ -59,58 +81,60 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
   };
 
   return (
-    <div style={{
-      marginBottom: isPreview ? '12px' : '16px'
+    <div id={id} style={{
+      marginBottom: '16px'
     }}>
-      {/* Coupon Input */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '12px'
-      }}>
+      {/* Coupon Input - Only show when no discount is applied */}
+      {!appliedDiscount && (
         <div style={{
-          flex: 1,
-          position: 'relative'
+          display: 'flex',
+          gap: '8px',
+          marginBottom: '12px'
         }}>
-          <input
-            type="text"
-            value={couponCode}
-            onChange={(e) => setCouponCode(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder={placeholder}
-            disabled={isPreview}
+          <div style={{
+            flex: 1,
+            position: 'relative'
+          }}>
+            <input
+              type="text"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={placeholder}
+              disabled={isPreview}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: '2px solid #e5e7eb',
+                borderRadius: '8px',
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'border-color 0.2s ease',
+                backgroundColor: '#ffffff',
+                cursor: isPreview ? 'not-allowed' : 'text'
+              }}
+            />
+          </div>
+          <button
+            onClick={handleApply}
+            disabled={isPreview || !couponCode.trim()}
             style={{
-              width: '100%',
-              padding: isPreview ? '10px 14px' : '12px 16px',
-              border: '2px solid #e5e7eb',
+              padding: '12px 24px',
+              backgroundColor: !couponCode.trim() ? '#9ca3af' : '#f97316',
+              color: 'white',
+              border: 'none',
               borderRadius: '8px',
-              fontSize: isPreview ? '13px' : '14px',
-              outline: 'none',
-              transition: 'border-color 0.2s ease',
-              backgroundColor: isPreview ? '#f9fafb' : '#ffffff',
-              cursor: isPreview ? 'not-allowed' : 'text'
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: isPreview ? 'not-allowed' : 'pointer',
+              transition: 'background-color 0.2s ease',
+              whiteSpace: 'nowrap'
             }}
-          />
+          >
+            {buttonText}
+          </button>
         </div>
-        <button
-          onClick={handleApply}
-          disabled={isPreview || !couponCode.trim()}
-          style={{
-            padding: isPreview ? '10px 20px' : '12px 24px',
-            backgroundColor: isPreview || !couponCode.trim() ? '#9ca3af' : '#f97316',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: isPreview ? '13px' : '14px',
-            fontWeight: '600',
-            cursor: isPreview ? 'not-allowed' : 'pointer',
-            transition: 'background-color 0.2s ease',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          {buttonText}
-        </button>
-      </div>
+      )}
 
       {/* Applied Discount */}
       {appliedDiscount && (
@@ -118,7 +142,7 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
           backgroundColor: '#d1fae5',
           border: '2px solid #059669',
           borderRadius: '10px',
-          padding: isPreview ? '10px 14px' : '12px 16px',
+          padding: '12px 16px',
           marginBottom: '12px',
           display: 'flex',
           alignItems: 'center',
@@ -133,15 +157,13 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '14px',
-            fontWeight: '700',
             flexShrink: 0
           }}>
-            ✓
+            <CheckIcon size={14} color="white" />
           </div>
           <div style={{ flex: 1 }}>
             <div style={{
-              fontSize: isPreview ? '13px' : '14px',
+              fontSize: '14px',
               fontWeight: '600',
               color: '#065f46',
               marginBottom: '2px'
@@ -149,30 +171,32 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
               {appliedDiscount.code} - {appliedDiscount.description}
             </div>
             <div style={{
-              fontSize: isPreview ? '11px' : '12px',
+              fontSize: '12px',
               color: '#059669'
             }}>
               {enableAutoApply ? 'Best offer automatically applied' : 'Applied'}
             </div>
           </div>
-          {!isPreview && (
-            <button
-              onClick={onRemoveDiscount}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: 'transparent',
-                color: '#dc2626',
-                border: '1px solid #dc2626',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              Remove
-            </button>
-          )}
+          <button
+            onClick={onRemoveDiscount}
+            style={{
+              width: '28px',
+              height: '28px',
+              padding: '0',
+              backgroundColor: 'transparent',
+              color: '#6b7280',
+              border: 'none',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              flexShrink: 0
+            }}
+          >
+            <XIcon size={16} color="#6b7280" />
+          </button>
         </div>
       )}
 
@@ -183,13 +207,12 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
             onClick={() => setShowingAllOffers(!showingAllOffers)}
             style={{
               width: '100%',
-              padding: isPreview ? '10px 14px' : '12px 16px',
-              backgroundColor: '#fef3c7',
-              border: '2px solid #fbbf24',
-              borderRadius: '8px',
-              fontSize: isPreview ? '13px' : '14px',
-              fontWeight: '600',
-              color: '#92400e',
+              padding: '0 15px',
+              backgroundColor: 'transparent',
+              border: 'none',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#374151',
               cursor: isPreview ? 'default' : 'pointer',
               display: 'flex',
               justifyContent: 'space-between',
@@ -198,17 +221,14 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
               transition: 'all 0.2s ease'
             }}
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '16px' }}>🎁</span>
-              <span>{showAllOffersButtonText} ({availableDiscounts.length} available)</span>
-            </span>
+            <span>{showAllOffersButtonText} ({availableDiscounts.length} available)</span>
             <span style={{
-              fontSize: '12px',
-              color: '#6b7280',
+              display: 'flex',
+              alignItems: 'center',
               transition: 'transform 0.3s ease',
               transform: showingAllOffers ? 'rotate(180deg)' : 'rotate(0deg)'
             }}>
-              ▼
+              <ChevronDownIcon size={16} color="#6b7280" />
             </span>
           </button>
 
@@ -219,14 +239,14 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
               border: '1px solid #e5e7eb',
               borderRadius: '8px',
               overflow: 'hidden',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)'
             }}>
               {availableDiscounts.map((discount) => (
                 <div
                   key={discount.code}
                   onClick={() => !isPreview && onSwitchDiscount(discount.code)}
                   style={{
-                    padding: isPreview ? '10px 14px' : '12px 16px',
+                    padding: '12px 16px',
                     borderBottom: '1px solid #f3f4f6',
                     cursor: isPreview ? 'default' : 'pointer',
                     transition: 'background-color 0.2s ease',
@@ -244,16 +264,13 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '12px',
-                    color: '#059669',
-                    fontWeight: '700',
                     flexShrink: 0
                   }}>
-                    {appliedDiscount?.code === discount.code ? '✓' : ''}
+                    {appliedDiscount?.code === discount.code && <CheckIcon size={12} color="#059669" />}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{
-                      fontSize: isPreview ? '13px' : '14px',
+                      fontSize: '14px',
                       fontWeight: '600',
                       color: '#111827',
                       marginBottom: '2px'
@@ -261,7 +278,7 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
                       {discount.code} - {discount.description}
                     </div>
                     <div style={{
-                      fontSize: isPreview ? '11px' : '12px',
+                      fontSize: '12px',
                       color: '#6b7280'
                     }}>
                       {discount.title}

@@ -14,14 +14,16 @@ export function renderCouponCodeField(config, appliedDiscount, availableDiscount
 
   const couponField = config.features.couponCodeField;
   const containerId = `upsellity-coupon-field-root-${Date.now()}`;
+  const componentId = `upsellity-coupon-field-${Date.now()}`;
   const html = `<div id="${containerId}"></div>`;
 
   setTimeout(() => {
     const container = document.getElementById(containerId);
-    if (container) {
+    if (container && !document.getElementById(componentId)) {
       const root = createRoot(container);
       root.render(
         React.createElement(CouponCodeField, {
+          id: componentId,
           placeholder: couponField.placeholder || 'Enter coupon code',
           buttonText: couponField.buttonText || 'Apply',
           showAllOffers: couponField.showAllOffers || false,

@@ -70,7 +70,7 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    const scrollAmount = isPreview ? 140 : 140;
+    const scrollAmount = 140;
     container.scrollBy({
       left: direction === 'left' ? -scrollAmount : scrollAmount,
       behavior: 'smooth'
@@ -89,7 +89,7 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
   }
 
   return (
-    <div style={{ marginTop: isPreview ? '16px' : '8px' }}>
+    <div style={{ marginTop: '8px' }}>
       <style>{`
         .upsellity-product-recommendations-scroll::-webkit-scrollbar {
           display: none;
@@ -100,9 +100,9 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
         }
       `}</style>
       <h4 style={{ 
-        fontSize: isPreview ? '14px' : '13px', 
+        fontSize: '13px', 
         fontWeight: '600', 
-        marginBottom: isPreview ? '6px' : '4px',
+        marginBottom: '4px',
         color: '#111827',
         letterSpacing: '-0.01em'
       }}>
@@ -196,7 +196,7 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
           className={!isGrid ? 'upsellity-product-recommendations-scroll' : ''}
           style={isGrid ? {
             display: 'grid',
-            gridTemplateColumns: `repeat(auto-fit, minmax(${isPreview ? '120px' : '120px'}, 1fr))`,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
             gap: '6px',
             paddingBottom: '0px'
           } : {
@@ -204,7 +204,8 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
             gap: '6px',
             overflowX: 'auto',
             scrollBehavior: 'smooth',
-            paddingBottom: '0px',
+            paddingBottom: '5px',
+            paddingTop: '5px',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
             WebkitOverflowScrolling: 'touch',
@@ -235,8 +236,8 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
                   border: '1px solid #e5e7eb',
                   borderRadius: '6px',
                   padding: '6px',
-                  minWidth: isPreview ? '120px' : '120px',
-                  maxWidth: isPreview ? '120px' : '120px',
+                  minWidth: '120px',
+                  maxWidth: '120px',
                   flexShrink: 0,
                   backgroundColor: '#ffffff',
                   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',

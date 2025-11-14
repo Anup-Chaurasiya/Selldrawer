@@ -21,14 +21,12 @@ interface CartTotalsProps {
   items: CartItem[];
   totalPrice: number; // in cents
   appliedDiscount?: Discount | null;
-  isPreview?: boolean;
 }
 
 export const CartTotals: React.FC<CartTotalsProps> = ({
   items,
   totalPrice,
-  appliedDiscount = null,
-  isPreview = false
+  appliedDiscount = null
 }) => {
   // Format money (cents to currency)
   const formatMoney = (cents: number) => {
@@ -61,13 +59,12 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
   return (
     <div style={{
       borderTop: '2px solid #e5e7eb',
-      paddingTop: isPreview ? '14px' : '16px',
-      marginTop: isPreview ? '16px' : '20px'
+      paddingTop: '16px',
     }}>
       {/* Original Price (if there are savings) */}
       {(itemLevelSavings > 0 || couponDiscount > 0) && (
         <div style={{
-          fontSize: isPreview ? '14px' : '15px',
+          fontSize: '15px',
           marginBottom: '10px',
           display: 'flex',
           justifyContent: 'space-between',
@@ -83,7 +80,7 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
       {/* Item Discounts */}
       {itemLevelSavings > 0 && (
         <div style={{
-          fontSize: isPreview ? '13px' : '14px',
+          fontSize: '14px',
           marginBottom: '10px',
           display: 'flex',
           justifyContent: 'space-between',
@@ -108,7 +105,7 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
 
       {/* Subtotal */}
       <div style={{
-        fontSize: isPreview ? '15px' : '16px',
+        fontSize: '16px',
         marginBottom: '12px',
         display: 'flex',
         justifyContent: 'space-between',
@@ -121,7 +118,7 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
       {/* Coupon Discount */}
       {appliedDiscount && couponDiscount > 0 && (
         <div style={{
-          fontSize: isPreview ? '14px' : '15px',
+          fontSize: '15px',
           marginBottom: '12px',
           display: 'flex',
           justifyContent: 'space-between',
@@ -146,10 +143,9 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
 
       {/* Total */}
       <div style={{
-        fontSize: isPreview ? '18px' : '20px',
+        fontSize: '20px',
         fontWeight: '700',
         paddingTop: '12px',
-        borderTop: '2px solid #e5e7eb',
         display: 'flex',
         justifyContent: 'space-between',
         color: '#111827'
@@ -162,7 +158,7 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
 
       {/* Tax and Shipping Notice */}
       <div style={{
-        fontSize: isPreview ? '11px' : '12px',
+        fontSize: '12px',
         color: '#6b7280',
         marginTop: '8px',
         textAlign: 'right'

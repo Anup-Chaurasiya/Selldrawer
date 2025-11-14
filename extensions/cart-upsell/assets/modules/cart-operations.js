@@ -141,7 +141,9 @@ export async function addProductToCartByHandle(productHandle, variantId, quantit
  * Update item quantity in cart
  */
 export async function updateQuantity(itemKey, newQuantity, loadCartCallback, renderCallback) {
-  if (newQuantity < 0) return;
+  if (newQuantity < 0) {
+    throw new Error('Quantity cannot be negative');
+  }
   
   const cartItem = document.querySelector(`[data-item-key="${itemKey}"]`);
   if (cartItem) {
@@ -171,7 +173,9 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
       if (result.items) {
         const updatedItem = result.items.find(item => item.key === itemKey);
         if (!updatedItem && newQuantity > 0) {
-          showNotification('This item is no longer available and has been removed from your cart', 'error');
+          const errorMessage = 'This item is no longer available and has been removed from your cart';
+          showNotification(errorMessage, 'error');
+          throw new Error(errorMessage);
         } else {
           showNotification('Cart updated!', 'success');
         }
@@ -184,19 +188,37 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
       
       await loadCartCallback();
       
+      let errorMessage = error.description || error.message || 'Failed to update cart';
+      
       if (error.description && error.description.includes('sold out')) {
         showNotification(error.description, 'error');
         if (newQuantity !== 0) {
-          showNotification('This product is out of stock. Please remove it from your cart.', 'error');
+          errorMessage = 'This product is out of stock';
+          showNotification(errorMessage, 'error');
         }
       } else {
-        showNotification(error.description || error.message || 'Failed to update cart', 'error');
+        showNotification(errorMessage, 'error');
       }
+      
+      throw new Error(errorMessage);
     }
   } catch (error) {
     console.error('Error updating quantity:', error);
+    
+    // If it's already an error we created, re-throw it
+    if (error.message && (
+      error.message.includes('no longer available') || 
+      error.message.includes('out of stock') ||
+      error.message.includes('Failed to update cart') ||
+      error.message.includes('negative')
+    )) {
+      throw error;
+    }
+    
+    // Otherwise, show notification and throw new error
     showNotification('Failed to update cart', 'error');
     await loadCartCallback();
+    throw new Error('Failed to update cart');
   } finally {
     if (cartItem) {
       cartItem.classList.remove('upsellity-loading');
