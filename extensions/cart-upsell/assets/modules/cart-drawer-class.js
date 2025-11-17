@@ -29,6 +29,7 @@ export class UpsellityCartDrawer {
     this.productCompareAtPrices = {};
     this.reactRoots = {}; // Store React roots to avoid recreating them
     this.isInitialRender = true;
+    this.cartJustUpdated = false; // Track if cart was just updated via add to cart
     
     this.init();
   }
@@ -70,7 +71,7 @@ export class UpsellityCartDrawer {
     }
   }
 
-  async loadCart(cartData = null) {
+  async loadCart(cartData = null, skipRender = false) {
     try {
       if (cartData) {
         this.cart = cartData;
@@ -93,7 +94,9 @@ export class UpsellityCartDrawer {
       
       await ProductLoader.loadShopifyRecommendations(this.cart, this.config);
       
-      this.render();
+      if (!skipRender) {
+        this.render();
+      }
     } catch (error) {
       console.error('Upsellity: Failed to load cart', error);
       this.cart = {
@@ -101,15 +104,28 @@ export class UpsellityCartDrawer {
         total_price: 0,
         items: []
       };
-      this.render();
+      if (!skipRender) {
+        this.render();
+      }
     }
   }
 
   interceptAddToCart() {
+    // Track if we're already handling an add to cart to prevent double-opening
+    let isHandlingAddToCart = false;
+    
+    // Intercept form submissions
     document.addEventListener('submit', async (e) => {
       const form = e.target;
-      if (form.getAttribute('action') === '/cart/add') {
+      const action = form.getAttribute('action');
+      
+      // Match various cart/add action formats
+      if (action && (action === '/cart/add' || action.endsWith('/cart/add') || action.includes('/cart/add'))) {
         e.preventDefault();
+        e.stopPropagation();
+        
+        if (isHandlingAddToCart) return;
+        isHandlingAddToCart = true;
         
         const formData = new FormData(form);
         
@@ -120,22 +136,53 @@ export class UpsellityCartDrawer {
           });
           
           if (response.ok) {
-            await this.loadCart();
-            this.open();
+            // Load cart data without rendering, then open will handle the render
+            this.cartJustUpdated = true;
+            await this.loadCart(null, true);
+            await this.open();
+          } else {
+            console.error('Upsellity: Failed to add to cart', await response.text());
           }
         } catch (error) {
           console.error('Upsellity: Failed to add to cart', error);
+        } finally {
+          setTimeout(() => {
+            isHandlingAddToCart = false;
+          }, 500);
         }
       }
-    });
+    }, true); // Use capture phase to intercept early
 
+    // Intercept AJAX add to cart calls
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
+      const url = typeof args[0] === 'string' ? args[0] : args[0]?.url;
+      const isCartAdd = url && (url.includes('/cart/add.js') || url.includes('/cart/add'));
+      
+      // Call original fetch
       const response = await originalFetch(...args);
       
-      if (args[0]?.includes('/cart/add')) {
-        await this.loadCart();
-        this.open();
+      // Only open drawer if this is a cart add and we're not already handling it
+      if (isCartAdd && !isHandlingAddToCart) {
+        isHandlingAddToCart = true;
+        
+        // Clone response so the original caller can still use it
+        const clonedResponse = response.clone();
+        
+         try {
+           if (clonedResponse.ok) {
+             // Load cart data without rendering, then open will handle the render
+             this.cartJustUpdated = true;
+             await this.loadCart(null, true);
+             await this.open();
+           }
+         } catch (error) {
+           console.error('Upsellity: Error handling cart add', error);
+         } finally {
+           setTimeout(() => {
+             isHandlingAddToCart = false;
+           }, 500);
+         }
       }
       
       return response;
@@ -143,14 +190,22 @@ export class UpsellityCartDrawer {
   }
 
   attachCartTriggers() {
+    // Intercept cart links with capture phase to prevent navigation early
     document.addEventListener('click', (e) => {
       const cartTrigger = e.target.closest('a[href="/cart"], a[href*="/cart"]');
-      if (cartTrigger && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        this.open();
+      if (cartTrigger && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        const href = cartTrigger.getAttribute('href');
+        // Only intercept if it's actually a cart link (not checkout or other pages)
+        if (href && (href === '/cart' || href.endsWith('/cart') || href.includes('/cart?'))) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          this.open();
+        }
       }
-    });
+    }, true); // Use capture phase
 
+    // Keyboard shortcut to open cart
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'C') {
         e.preventDefault();
@@ -171,6 +226,17 @@ export class UpsellityCartDrawer {
     `;
     
     document.body.appendChild(drawer);
+    
+    // Add overlay click handler to close drawer
+    const overlay = drawer.querySelector('.upsellity-drawer-overlay');
+    if (overlay) {
+      overlay.addEventListener('click', () => {
+        if (this.isOpen) {
+          this.close();
+        }
+      });
+    }
+    
     this.loadStyles();
   }
 
@@ -334,22 +400,36 @@ export class UpsellityCartDrawer {
   async open() {
     const drawer = document.getElementById('upsellity-cart-drawer');
     const wasOpen = this.isOpen;
-    drawer.classList.add('open');
-    this.isOpen = true;
     
     // Only do initial render if drawer was previously closed
     if (!wasOpen) {
       this.isInitialRender = true;
     }
     
-    await this.loadConfig();
-    await this.loadCart();
+    // If cart was just updated (add to cart), don't reload, just render
+    if (this.cartJustUpdated) {
+      this.cartJustUpdated = false;
+      this.render();
+    } else {
+      // Cart wasn't just updated, so reload to get fresh data
+      await this.loadConfig();
+      await this.loadCart();
+    }
+    
+    // Prevent body scroll when drawer opens
+    document.body.style.overflow = 'hidden';
+    
+    drawer.classList.add('open');
+    this.isOpen = true;
   }
 
   close() {
     const drawer = document.getElementById('upsellity-cart-drawer');
     drawer.classList.remove('open');
     this.isOpen = false;
+    
+    // Restore body scroll
+    document.body.style.overflow = '';
     
     // Clean up React roots when closing
     Object.values(this.reactRoots).forEach(root => {

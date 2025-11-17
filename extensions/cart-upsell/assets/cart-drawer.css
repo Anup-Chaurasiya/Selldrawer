@@ -25,12 +25,13 @@
   bottom: 0;
   background: rgba(0, 0, 0, 0);
   transition: background 0.3s ease;
-  pointer-events: none; /* Changed: Allow clicks to pass through overlay */
+  pointer-events: none;
 }
 
 .upsellity-drawer.open .upsellity-drawer-overlay {
-  background: rgba(0, 0, 0, 0.3); /* Slightly lighter for better visibility of page behind */
-  pointer-events: none; /* Changed: Allow clicks to pass through */
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: auto; /* Make overlay clickable when drawer is open */
+  cursor: pointer;
 }
 
 .upsellity-drawer-content {

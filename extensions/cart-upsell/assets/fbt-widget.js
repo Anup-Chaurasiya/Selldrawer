@@ -484,9 +484,11 @@
             // Show success message
             this.showSuccess();
             
-            // Optional: Refresh cart drawer if it exists
-            if (window.Shopify && window.Shopify.theme) {
-              window.location.reload();
+            // Open cart drawer if it exists (don't reload the page)
+            if (window.upsellityDrawer && typeof window.upsellityDrawer.open === 'function') {
+              setTimeout(() => {
+                window.upsellityDrawer.open();
+              }, 1500);
             }
           } else {
             throw new Error('Failed to add items to cart');
@@ -509,7 +511,7 @@
           <h3 style="font-size: 1.25rem; font-weight: 600; color: #10b981; margin-bottom: 0.5rem;">
             Items added to cart!
           </h3>
-          <p style="color: #6b7280;">Redirecting to cart...</p>
+          <p style="color: #6b7280;">Opening cart drawer...</p>
         </div>
       `;
       
