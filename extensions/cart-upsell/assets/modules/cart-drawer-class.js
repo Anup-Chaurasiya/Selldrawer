@@ -2,20 +2,15 @@
  * Main UpsellityCartDrawer Class
  */
 
+import React from 'react';
+import { createRoot } from 'react-dom/client';
 import { FEATURE_ORDER_SENTINEL } from './constants.js';
 import { splitFeatureOrder, showNotification } from './utils.js';
 import * as CartOps from './cart-operations.js';
 import * as DiscountManager from './discount-manager.js';
 import * as ProductLoader from './product-loader.js';
 import * as AutoApplyStorage from './auto-apply-storage.js';
-import { renderFreeShippingBar } from './renderers/free-shipping-bar.js';
-import { renderPromotionalBanner } from './renderers/promotional-banner.js';
-import { renderCartItems } from './renderers/cart-items.js';
-import { renderProductRecommendations } from './renderers/product-recommendations.js';
-import { renderSavingsDisplay } from './renderers/savings-display.js';
-import { renderFreeShippingMessage } from './renderers/free-shipping-message.js';
-import { renderCouponCodeField } from './renderers/coupon-code-field.js';
-import { renderCartTotals } from './renderers/cart-totals.js';
+import { UnifiedCartDrawer } from './components/UnifiedCartDrawer.jsx';
 
 export class UpsellityCartDrawer {
   constructor() {
@@ -27,8 +22,7 @@ export class UpsellityCartDrawer {
     this.availableDiscounts = [];
     this.showingAllOffers = false;
     this.productCompareAtPrices = {};
-    this.reactRoots = {}; // Store React roots to avoid recreating them
-    this.isInitialRender = true;
+    this.reactRoot = null; // Single React root for the entire drawer
     this.cartJustUpdated = false; // Track if cart was just updated via add to cart
     
     this.init();
@@ -295,150 +289,35 @@ export class UpsellityCartDrawer {
       return;
     }
     
-    // For initial render, create the structure
-    if (this.isInitialRender) {
-      this.renderInitial(inner);
-      this.isInitialRender = false;
-    } else {
-      // For subsequent renders, only update the dynamic parts
-      this.renderUpdate(inner);
+    // Create or reuse React root
+    if (!this.reactRoot) {
+      this.reactRoot = createRoot(inner);
     }
-  }
-
-  renderInitial(inner) {
-    let html = `
-      <button class="upsellity-close-btn" onclick="window.upsellityDrawer.close()">×</button>
-      <h2 id="upsellity-cart-header" style="font-size: 20px; font-weight: 600; margin-bottom: 20px;">
-        Your Cart (${this.cart.item_count} items)
-      </h2>
-    `;
-
-    const { beforeItems, afterItems } = splitFeatureOrder(this.config?.featureOrder);
-
-    // Create containers for each section
-    beforeItems.forEach((id) => {
-      html += `<div id="upsellity-section-${id}" style="margin-bottom: 12px;"></div>`;
-    });
-
-    html += `<div id="upsellity-section-cart-items" style="margin-bottom: 12px;"></div>`;
-
-    afterItems.forEach((id) => {
-      html += `<div id="upsellity-section-${id}" style="margin-bottom: 12px;"></div>`;
-    });
-
-    html += `<div id="upsellity-section-cart-totals" style="margin-bottom: 12px;"></div>`;
-    html += `
-      <button class="upsellity-checkout-btn" id="upsellity-checkout-btn" onclick="window.location.href='${DiscountManager.getCheckoutUrl(this.appliedDiscount)}'">
-        Checkout
-      </button>
-      <div style="text-align: center; font-size: 12px; color: #6b7280; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 12px;">
-        <span style="display: flex; align-items: center; gap: 4px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-          </svg>
-          Secure Checkout
-        </span>
-        <span>•</span>
-        <span>Free Returns</span>
-      </div>
-    `;
-
-    inner.innerHTML = html;
     
-    // Now populate each section
-    this.updateAllSections();
-  }
-
-  renderUpdate(inner) {
-    // Update cart header
-    const header = inner.querySelector('#upsellity-cart-header');
-    if (header) {
-      header.textContent = `Your Cart (${this.cart.item_count} items)`;
-    }
-
-    // Update checkout button URL
-    const checkoutBtn = inner.querySelector('#upsellity-checkout-btn');
-    if (checkoutBtn) {
-      checkoutBtn.onclick = () => window.location.href = DiscountManager.getCheckoutUrl(this.appliedDiscount);
-    }
-
-    // Update all dynamic sections
-    this.updateAllSections();
-  }
-
-  updateAllSections() {
-    const sections = {
-      'free-shipping-bar': { 
-        render: () => renderFreeShippingBar(this.config, this.cart, this.reactRoots),
-        reactComponent: true
-      },
-      'promotional-banner': { 
-        render: () => renderPromotionalBanner(this.config, this.reactRoots),
-        reactComponent: true
-      },
-      'cart-items': { 
-        render: () => renderCartItems(this.cart, this.productCompareAtPrices, this.appliedDiscount, this.reactRoots),
-        reactComponent: true
-      },
-      'product-recommendations': { 
-        render: () => renderProductRecommendations(this.config, this.reactRoots),
-        reactComponent: true
-      },
-      'savings-display': { 
-        render: () => renderSavingsDisplay(this.config, this.cart, this.appliedDiscount, this.reactRoots),
-        reactComponent: true
-      },
-      'free-shipping-message': { 
-        render: () => renderFreeShippingMessage(this.config, this.cart, this.reactRoots),
-        reactComponent: true
-      },
-      'coupon-code': { 
-        render: () => renderCouponCodeField(this.config, this.appliedDiscount, this.availableDiscounts, this.showingAllOffers, this.reactRoots),
-        reactComponent: true
-      },
-      'cart-totals': { 
-        render: () => renderCartTotals(this.cart, this.appliedDiscount, this.reactRoots),
-        reactComponent: true
-      }
-    };
-
-    const { beforeItems, afterItems } = splitFeatureOrder(this.config?.featureOrder);
-
-    // Update sections in order
-    [...beforeItems, 'cart-items', ...afterItems, 'cart-totals'].forEach((id) => {
-      const section = sections[id];
-      if (!section) return;
-
-      const container = document.getElementById(`upsellity-section-${id}`);
-      if (!container) return;
-      
-      const content = section.render();
-      
-      if (section.reactComponent) {
-        // For React components, only set innerHTML if the nested container doesn't exist yet
-        // Each renderer returns HTML like: <div id="upsellity-cart-items-root"></div>
-        // We need this container div to exist before React can render into it
-        const innerContainerId = content.match(/id="([^"]+)"/)?.[1];
-        if (innerContainerId && !document.getElementById(innerContainerId)) {
-          container.innerHTML = content;
-        }
-        // The render function's setTimeout will call root.render() to update the component
-      } else {
-        // For non-React content, always update innerHTML
-        container.innerHTML = content;
-      }
-    });
+    // Render the unified React component
+    this.reactRoot.render(
+      React.createElement(UnifiedCartDrawer, {
+        config: this.config,
+        cart: this.cart,
+        appliedDiscount: this.appliedDiscount,
+        availableDiscounts: this.availableDiscounts,
+        productCompareAtPrices: this.productCompareAtPrices,
+        showingAllOffers: this.showingAllOffers,
+        onClose: () => this.close(),
+        onCheckout: () => window.location.href = DiscountManager.getCheckoutUrl(this.appliedDiscount),
+        onAddProductToCart: (variantId) => this.addProductToCart(variantId),
+        onUpdateQuantity: (itemKey, newQuantity) => this.updateQuantity(itemKey, newQuantity),
+        onRemoveItem: (itemKey) => this.removeItem(itemKey),
+        onApplyCoupon: (code) => this.applyCouponWithCode(code),
+        onRemoveDiscount: () => this.removeDiscount(),
+        onSwitchDiscount: (code) => this.switchDiscount(code),
+        onSlideCtaClick: (url) => this.handleSlideCtaClick(url)
+      })
+    );
   }
 
   async open() {
     const drawer = document.getElementById('upsellity-cart-drawer');
-    const wasOpen = this.isOpen;
-    
-    // Only do initial render if drawer was previously closed
-    if (!wasOpen) {
-      this.isInitialRender = true;
-    }
     
     // If cart was just updated (add to cart), render and open immediately
     if (this.cartJustUpdated) {
@@ -505,15 +384,15 @@ export class UpsellityCartDrawer {
     // Restore body scroll
     document.body.style.overflow = '';
     
-    // Clean up React roots when closing
-    Object.values(this.reactRoots).forEach(root => {
+    // Clean up React root when closing
+    if (this.reactRoot) {
       try {
-        root.unmount();
+        this.reactRoot.unmount();
       } catch (e) {
         // Ignore errors during unmount
       }
-    });
-    this.reactRoots = {};
+      this.reactRoot = null;
+    }
   }
 
   // Handle promotional banner CTA clicks
