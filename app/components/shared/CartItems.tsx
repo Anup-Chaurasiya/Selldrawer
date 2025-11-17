@@ -237,16 +237,6 @@ const CartItemRow: React.FC<{
             )}
           </div>
 
-          {prices.hasCouponDiscount && (
-            <div style={{
-              fontSize: '11px',
-              color: '#059669',
-              marginTop: '2px'
-            }}>
-              Coupon discount applied
-            </div>
-          )}
-
           {/* Error Message */}
           {error && (
             <div style={{

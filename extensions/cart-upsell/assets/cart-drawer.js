@@ -9360,11 +9360,6 @@
                   color: "#111827"
                 }, children: formatMoney2(prices.itemSubtotal) })
               ] }),
-              prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
-                fontSize: "11px",
-                color: "#059669",
-                marginTop: "2px"
-              }, children: "Coupon discount applied" }),
               error && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
                 fontSize: "11px",
                 color: "#dc2626",
