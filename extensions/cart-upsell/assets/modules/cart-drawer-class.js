@@ -2,20 +2,15 @@
  * Main UpsellityCartDrawer Class
  */
 
+import React from 'react';
+import { createRoot } from 'react-dom/client';
 import { FEATURE_ORDER_SENTINEL } from './constants.js';
 import { splitFeatureOrder, showNotification } from './utils.js';
 import * as CartOps from './cart-operations.js';
 import * as DiscountManager from './discount-manager.js';
 import * as ProductLoader from './product-loader.js';
 import * as AutoApplyStorage from './auto-apply-storage.js';
-import { renderFreeShippingBar } from './renderers/free-shipping-bar.js';
-import { renderPromotionalBanner } from './renderers/promotional-banner.js';
-import { renderCartItems } from './renderers/cart-items.js';
-import { renderProductRecommendations } from './renderers/product-recommendations.js';
-import { renderSavingsDisplay } from './renderers/savings-display.js';
-import { renderFreeShippingMessage } from './renderers/free-shipping-message.js';
-import { renderCouponCodeField } from './renderers/coupon-code-field.js';
-import { renderCartTotals } from './renderers/cart-totals.js';
+import { UnifiedCartDrawer } from './components/UnifiedCartDrawer.jsx';
 
 export class UpsellityCartDrawer {
   constructor() {
@@ -27,8 +22,8 @@ export class UpsellityCartDrawer {
     this.availableDiscounts = [];
     this.showingAllOffers = false;
     this.productCompareAtPrices = {};
-    this.reactRoots = {}; // Store React roots to avoid recreating them
-    this.isInitialRender = true;
+    this.reactRoot = null; // Single React root for the entire drawer
+    this.cartJustUpdated = false; // Track if cart was just updated via add to cart
     
     this.init();
   }
@@ -70,8 +65,9 @@ export class UpsellityCartDrawer {
     }
   }
 
-  async loadCart(cartData = null) {
+  async loadCart(cartData = null, skipRender = false) {
     try {
+      // Load cart data first (required for rendering)
       if (cartData) {
         this.cart = cartData;
       } else {
@@ -79,9 +75,21 @@ export class UpsellityCartDrawer {
         this.cart = await response.json();
       }
       
-      this.productCompareAtPrices = await ProductLoader.loadProductCompareAtPrices(this.cart);
+      // Render immediately if we're not skipping render
+      // This ensures drawer opens as soon as we have cart + config
+      if (!skipRender) {
+        this.render();
+      }
       
-      this.availableDiscounts = await DiscountManager.loadAvailableDiscounts(this.shop, this.config);
+      // Load all secondary data in parallel (can complete after drawer is open)
+      const [productCompareAtPrices, availableDiscounts] = await Promise.all([
+        ProductLoader.loadProductCompareAtPrices(this.cart),
+        DiscountManager.loadAvailableDiscounts(this.shop, this.config),
+        ProductLoader.loadShopifyRecommendations(this.cart, this.config)
+      ]);
+      
+      this.productCompareAtPrices = productCompareAtPrices;
+      this.availableDiscounts = availableDiscounts;
       
       // Auto-apply best discount only if user hasn't removed it recently
       if (this.config?.features?.couponCodeField?.enableAutoApply && 
@@ -91,9 +99,10 @@ export class UpsellityCartDrawer {
         this.appliedDiscount = DiscountManager.autoApplyBestDiscount(this.availableDiscounts, this.cart, this.config);
       }
       
-      await ProductLoader.loadShopifyRecommendations(this.cart, this.config);
-      
-      this.render();
+      // Re-render after secondary data is loaded
+      if (!skipRender) {
+        this.render();
+      }
     } catch (error) {
       console.error('Upsellity: Failed to load cart', error);
       this.cart = {
@@ -101,15 +110,28 @@ export class UpsellityCartDrawer {
         total_price: 0,
         items: []
       };
-      this.render();
+      if (!skipRender) {
+        this.render();
+      }
     }
   }
 
   interceptAddToCart() {
+    // Track if we're already handling an add to cart to prevent double-opening
+    let isHandlingAddToCart = false;
+    
+    // Intercept form submissions
     document.addEventListener('submit', async (e) => {
       const form = e.target;
-      if (form.getAttribute('action') === '/cart/add') {
+      const action = form.getAttribute('action');
+      
+      // Match various cart/add action formats
+      if (action && (action === '/cart/add' || action.endsWith('/cart/add') || action.includes('/cart/add'))) {
         e.preventDefault();
+        e.stopPropagation();
+        
+        if (isHandlingAddToCart) return;
+        isHandlingAddToCart = true;
         
         const formData = new FormData(form);
         
@@ -120,22 +142,75 @@ export class UpsellityCartDrawer {
           });
           
           if (response.ok) {
-            await this.loadCart();
-            this.open();
+            // Ensure config is loaded, then load cart and open
+            if (!this.config) {
+              await this.loadConfig();
+            }
+            
+            // Load fresh cart data
+            const cartResponse = await fetch('/cart.js');
+            this.cart = await cartResponse.json();
+            
+            // Mark that cart was just updated and open drawer
+            this.cartJustUpdated = true;
+            await this.open();
+            
+            // Load secondary data in background
+            this.loadSecondaryData();
+          } else {
+            console.error('Upsellity: Failed to add to cart', await response.text());
           }
         } catch (error) {
           console.error('Upsellity: Failed to add to cart', error);
+        } finally {
+          setTimeout(() => {
+            isHandlingAddToCart = false;
+          }, 500);
         }
       }
-    });
+    }, true); // Use capture phase to intercept early
 
+    // Intercept AJAX add to cart calls
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
+      const url = typeof args[0] === 'string' ? args[0] : args[0]?.url;
+      const isCartAdd = url && (url.includes('/cart/add.js') || url.includes('/cart/add'));
+      
+      // Call original fetch
       const response = await originalFetch(...args);
       
-      if (args[0]?.includes('/cart/add')) {
-        await this.loadCart();
-        this.open();
+      // Only open drawer if this is a cart add and we're not already handling it
+      if (isCartAdd && !isHandlingAddToCart) {
+        isHandlingAddToCart = true;
+        
+        // Clone response so the original caller can still use it
+        const clonedResponse = response.clone();
+        
+         try {
+           if (clonedResponse.ok) {
+             // Ensure config is loaded, then load cart and open
+             if (!this.config) {
+               await this.loadConfig();
+             }
+             
+             // Load fresh cart data
+             const cartResponse = await fetch('/cart.js');
+             this.cart = await cartResponse.json();
+             
+             // Mark that cart was just updated and open drawer
+             this.cartJustUpdated = true;
+             await this.open();
+             
+             // Load secondary data in background
+             this.loadSecondaryData();
+           }
+         } catch (error) {
+           console.error('Upsellity: Error handling cart add', error);
+         } finally {
+           setTimeout(() => {
+             isHandlingAddToCart = false;
+           }, 500);
+         }
       }
       
       return response;
@@ -143,14 +218,22 @@ export class UpsellityCartDrawer {
   }
 
   attachCartTriggers() {
+    // Intercept cart links with capture phase to prevent navigation early
     document.addEventListener('click', (e) => {
       const cartTrigger = e.target.closest('a[href="/cart"], a[href*="/cart"]');
-      if (cartTrigger && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        this.open();
+      if (cartTrigger && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        const href = cartTrigger.getAttribute('href');
+        // Only intercept if it's actually a cart link (not checkout or other pages)
+        if (href && (href === '/cart' || href.endsWith('/cart') || href.includes('/cart?'))) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          this.open();
+        }
       }
-    });
+    }, true); // Use capture phase
 
+    // Keyboard shortcut to open cart
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'C') {
         e.preventDefault();
@@ -171,6 +254,17 @@ export class UpsellityCartDrawer {
     `;
     
     document.body.appendChild(drawer);
+    
+    // Add overlay click handler to close drawer
+    const overlay = drawer.querySelector('.upsellity-drawer-overlay');
+    if (overlay) {
+      overlay.addEventListener('click', () => {
+        if (this.isOpen) {
+          this.close();
+        }
+      });
+    }
+    
     this.loadStyles();
   }
 
@@ -195,155 +289,91 @@ export class UpsellityCartDrawer {
       return;
     }
     
-    // For initial render, create the structure
-    if (this.isInitialRender) {
-      this.renderInitial(inner);
-      this.isInitialRender = false;
-    } else {
-      // For subsequent renders, only update the dynamic parts
-      this.renderUpdate(inner);
+    // Create or reuse React root
+    if (!this.reactRoot) {
+      this.reactRoot = createRoot(inner);
     }
-  }
-
-  renderInitial(inner) {
-    let html = `
-      <button class="upsellity-close-btn" onclick="window.upsellityDrawer.close()">×</button>
-      <h2 id="upsellity-cart-header" style="font-size: 20px; font-weight: 600; margin-bottom: 20px;">
-        Your Cart (${this.cart.item_count} items)
-      </h2>
-    `;
-
-    const { beforeItems, afterItems } = splitFeatureOrder(this.config?.featureOrder);
-
-    // Create containers for each section
-    beforeItems.forEach((id) => {
-      html += `<div id="upsellity-section-${id}" style="margin-bottom: 12px;"></div>`;
-    });
-
-    html += `<div id="upsellity-section-cart-items" style="margin-bottom: 12px;"></div>`;
-
-    afterItems.forEach((id) => {
-      html += `<div id="upsellity-section-${id}" style="margin-bottom: 12px;"></div>`;
-    });
-
-    html += `<div id="upsellity-section-cart-totals" style="margin-bottom: 12px;"></div>`;
-    html += `
-      <button class="upsellity-checkout-btn" id="upsellity-checkout-btn" onclick="window.location.href='${DiscountManager.getCheckoutUrl(this.appliedDiscount)}'">
-        Checkout
-      </button>
-      <div style="text-align: center; font-size: 12px; color: #6b7280; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 12px;">
-        <span style="display: flex; align-items: center; gap: 4px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-          </svg>
-          Secure Checkout
-        </span>
-        <span>•</span>
-        <span>Free Returns</span>
-      </div>
-    `;
-
-    inner.innerHTML = html;
     
-    // Now populate each section
-    this.updateAllSections();
-  }
-
-  renderUpdate(inner) {
-    // Update cart header
-    const header = inner.querySelector('#upsellity-cart-header');
-    if (header) {
-      header.textContent = `Your Cart (${this.cart.item_count} items)`;
-    }
-
-    // Update checkout button URL
-    const checkoutBtn = inner.querySelector('#upsellity-checkout-btn');
-    if (checkoutBtn) {
-      checkoutBtn.onclick = () => window.location.href = DiscountManager.getCheckoutUrl(this.appliedDiscount);
-    }
-
-    // Update all dynamic sections
-    this.updateAllSections();
-  }
-
-  updateAllSections() {
-    const sections = {
-      'free-shipping-bar': { 
-        render: () => renderFreeShippingBar(this.config, this.cart, this.reactRoots),
-        reactComponent: true
-      },
-      'promotional-banner': { 
-        render: () => renderPromotionalBanner(this.config, this.reactRoots),
-        reactComponent: true
-      },
-      'cart-items': { 
-        render: () => renderCartItems(this.cart, this.productCompareAtPrices, this.appliedDiscount, this.reactRoots),
-        reactComponent: true
-      },
-      'product-recommendations': { 
-        render: () => renderProductRecommendations(this.config, this.reactRoots),
-        reactComponent: true
-      },
-      'savings-display': { 
-        render: () => renderSavingsDisplay(this.config, this.cart, this.appliedDiscount, this.reactRoots),
-        reactComponent: true
-      },
-      'free-shipping-message': { 
-        render: () => renderFreeShippingMessage(this.config, this.cart, this.reactRoots),
-        reactComponent: true
-      },
-      'coupon-code': { 
-        render: () => renderCouponCodeField(this.config, this.appliedDiscount, this.availableDiscounts, this.showingAllOffers, this.reactRoots),
-        reactComponent: true
-      },
-      'cart-totals': { 
-        render: () => renderCartTotals(this.cart, this.appliedDiscount, this.reactRoots),
-        reactComponent: true
-      }
-    };
-
-    const { beforeItems, afterItems } = splitFeatureOrder(this.config?.featureOrder);
-
-    // Update sections in order
-    [...beforeItems, 'cart-items', ...afterItems, 'cart-totals'].forEach((id) => {
-      const section = sections[id];
-      if (!section) return;
-
-      const container = document.getElementById(`upsellity-section-${id}`);
-      if (!container) return;
-      
-      const content = section.render();
-      
-      if (section.reactComponent) {
-        // For React components, only set innerHTML if the nested container doesn't exist yet
-        // Each renderer returns HTML like: <div id="upsellity-cart-items-root"></div>
-        // We need this container div to exist before React can render into it
-        const innerContainerId = content.match(/id="([^"]+)"/)?.[1];
-        if (innerContainerId && !document.getElementById(innerContainerId)) {
-          container.innerHTML = content;
-        }
-        // The render function's setTimeout will call root.render() to update the component
-      } else {
-        // For non-React content, always update innerHTML
-        container.innerHTML = content;
-      }
-    });
+    // Render the unified React component
+    this.reactRoot.render(
+      React.createElement(UnifiedCartDrawer, {
+        config: this.config,
+        cart: this.cart,
+        appliedDiscount: this.appliedDiscount,
+        availableDiscounts: this.availableDiscounts,
+        productCompareAtPrices: this.productCompareAtPrices,
+        showingAllOffers: this.showingAllOffers,
+        onClose: () => this.close(),
+        onCheckout: () => window.location.href = DiscountManager.getCheckoutUrl(this.appliedDiscount),
+        onAddProductToCart: (variantId) => this.addProductToCart(variantId),
+        onUpdateQuantity: (itemKey, newQuantity) => this.updateQuantity(itemKey, newQuantity),
+        onRemoveItem: (itemKey) => this.removeItem(itemKey),
+        onApplyCoupon: (code) => this.applyCouponWithCode(code),
+        onRemoveDiscount: () => this.removeDiscount(),
+        onSwitchDiscount: (code) => this.switchDiscount(code),
+        onSlideCtaClick: (url) => this.handleSlideCtaClick(url)
+      })
+    );
   }
 
   async open() {
     const drawer = document.getElementById('upsellity-cart-drawer');
-    const wasOpen = this.isOpen;
-    drawer.classList.add('open');
-    this.isOpen = true;
     
-    // Only do initial render if drawer was previously closed
-    if (!wasOpen) {
-      this.isInitialRender = true;
+    // If cart was just updated (add to cart), render and open immediately
+    if (this.cartJustUpdated) {
+      this.cartJustUpdated = false;
+      this.render();
+      
+      // Open drawer immediately
+      document.body.style.overflow = 'hidden';
+      drawer.classList.add('open');
+      this.isOpen = true;
+    } else {
+      // Cart wasn't just updated, so reload to get fresh data
+      // Load config and cart in parallel
+      await Promise.all([
+        this.loadConfig(),
+        fetch('/cart.js').then(res => res.json()).then(cart => {
+          this.cart = cart;
+        })
+      ]);
+      
+      // Render and open drawer immediately after config + cart are loaded
+      this.render();
+      document.body.style.overflow = 'hidden';
+      drawer.classList.add('open');
+      this.isOpen = true;
+      
+      // Load secondary data in background (will re-render when done)
+      this.loadSecondaryData();
     }
-    
-    await this.loadConfig();
-    await this.loadCart();
+  }
+  
+  async loadSecondaryData() {
+    try {
+      // Load all secondary data in parallel
+      const [productCompareAtPrices, availableDiscounts] = await Promise.all([
+        ProductLoader.loadProductCompareAtPrices(this.cart),
+        DiscountManager.loadAvailableDiscounts(this.shop, this.config),
+        ProductLoader.loadShopifyRecommendations(this.cart, this.config)
+      ]);
+      
+      this.productCompareAtPrices = productCompareAtPrices;
+      this.availableDiscounts = availableDiscounts;
+      
+      // Auto-apply best discount only if user hasn't removed it recently
+      if (this.config?.features?.couponCodeField?.enableAutoApply && 
+          !this.appliedDiscount && 
+          this.availableDiscounts.length > 0 &&
+          !AutoApplyStorage.wasDiscountRemoved()) {
+        this.appliedDiscount = DiscountManager.autoApplyBestDiscount(this.availableDiscounts, this.cart, this.config);
+      }
+      
+      // Re-render with secondary data
+      this.render();
+    } catch (error) {
+      console.error('Upsellity: Failed to load secondary data', error);
+    }
   }
 
   close() {
@@ -351,15 +381,18 @@ export class UpsellityCartDrawer {
     drawer.classList.remove('open');
     this.isOpen = false;
     
-    // Clean up React roots when closing
-    Object.values(this.reactRoots).forEach(root => {
+    // Restore body scroll
+    document.body.style.overflow = '';
+    
+    // Clean up React root when closing
+    if (this.reactRoot) {
       try {
-        root.unmount();
+        this.reactRoot.unmount();
       } catch (e) {
         // Ignore errors during unmount
       }
-    });
-    this.reactRoots = {};
+      this.reactRoot = null;
+    }
   }
 
   // Handle promotional banner CTA clicks

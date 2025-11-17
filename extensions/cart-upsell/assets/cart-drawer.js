@@ -7871,52 +7871,11 @@
     }
   });
 
-  // extensions/cart-upsell/assets/modules/constants.js
-  var FEATURE_ORDER_SENTINEL = "__cart-items__";
-  var DEFAULT_FEATURE_ORDER = [
-    "free-shipping-bar",
-    "promotional-banner",
-    FEATURE_ORDER_SENTINEL,
-    "product-recommendations",
-    "savings-display",
-    "free-shipping-message",
-    "coupon-code"
-  ];
+  // extensions/cart-upsell/assets/modules/cart-drawer-class.js
+  var import_react6 = __toESM(require_react(), 1);
+  var import_client = __toESM(require_client(), 1);
 
   // extensions/cart-upsell/assets/modules/utils.js
-  function normalizeFeatureOrder(order) {
-    const allowed = new Set(DEFAULT_FEATURE_ORDER);
-    const raw = Array.isArray(order) ? order.filter((id) => allowed.has(id)) : [];
-    const missing = DEFAULT_FEATURE_ORDER.filter((id) => !raw.includes(id));
-    const normalized = raw.concat(missing);
-    const sentinelIndex = normalized.indexOf(FEATURE_ORDER_SENTINEL);
-    if (sentinelIndex === -1) {
-      const fallbackIndex = DEFAULT_FEATURE_ORDER.indexOf(FEATURE_ORDER_SENTINEL);
-      if (fallbackIndex === -1) {
-        normalized.push(FEATURE_ORDER_SENTINEL);
-      } else {
-        normalized.splice(fallbackIndex, 0, FEATURE_ORDER_SENTINEL);
-      }
-    } else {
-      for (let i = normalized.length - 1; i > sentinelIndex; i -= 1) {
-        if (normalized[i] === FEATURE_ORDER_SENTINEL) {
-          normalized.splice(i, 1);
-        }
-      }
-    }
-    return normalized;
-  }
-  function splitFeatureOrder(order) {
-    const normalized = normalizeFeatureOrder(order);
-    const sentinelIndex = normalized.indexOf(FEATURE_ORDER_SENTINEL);
-    if (sentinelIndex === -1) {
-      return { beforeItems: normalized, afterItems: [] };
-    }
-    return {
-      beforeItems: normalized.slice(0, sentinelIndex),
-      afterItems: normalized.slice(sentinelIndex + 1)
-    };
-  }
   function formatMoney(cents) {
     const amount = cents / 100;
     return `\u20B9${Math.round(amount)}`;
@@ -8519,9 +8478,8 @@
     }
   }
 
-  // extensions/cart-upsell/assets/modules/renderers/free-shipping-bar.js
-  var import_react = __toESM(require_react(), 1);
-  var import_client = __toESM(require_client(), 1);
+  // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
+  var import_react5 = __toESM(require_react(), 1);
 
   // app/components/shared/FreeShippingBar.tsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
@@ -8627,47 +8585,8 @@
     ] });
   };
 
-  // extensions/cart-upsell/assets/modules/renderers/free-shipping-bar.js
-  var CONTAINER_ID = "upsellity-free-shipping-bar-root";
-  function renderFreeShippingBar(config, cart, reactRoots = {}) {
-    var _a;
-    const bar = (_a = config == null ? void 0 : config.features) == null ? void 0 : _a.freeShippingProgressBar;
-    if (!bar) {
-      return "";
-    }
-    const html = `<div id="${CONTAINER_ID}"></div>`;
-    setTimeout(() => {
-      var _a2;
-      const container = document.getElementById(CONTAINER_ID);
-      if (!container)
-        return;
-      const props = {
-        thresholdMode: bar.thresholdMode || "amount",
-        thresholdAmount: parseFloat(bar.thresholdAmount) || 0,
-        thresholdCount: parseInt(bar.thresholdCount) || 0,
-        beforeThresholdMessage: bar.beforeThresholdMessage || "Add {remaining} for FREE shipping",
-        afterThresholdMessage: bar.afterThresholdMessage || "\u{1F389} You qualify for FREE shipping!",
-        backgroundColor: bar.backgroundColor || "#f0f9ff",
-        progressBarColor: bar.progressBarColor || "#3b82f6",
-        showPercentage: (_a2 = bar.showPercentage) != null ? _a2 : true,
-        currency: bar.currency || "INR",
-        cart,
-        isPreview: false
-      };
-      if (!reactRoots[CONTAINER_ID]) {
-        reactRoots[CONTAINER_ID] = (0, import_client.createRoot)(container);
-      }
-      reactRoots[CONTAINER_ID].render(import_react.default.createElement(FreeShippingBar, props));
-    }, 0);
-    return html;
-  }
-
-  // extensions/cart-upsell/assets/modules/renderers/promotional-banner.js
-  var import_react3 = __toESM(require_react(), 1);
-  var import_client2 = __toESM(require_client(), 1);
-
   // app/components/shared/PromotionalBannerCard.tsx
-  var import_react2 = __toESM(require_react(), 1);
+  var import_react = __toESM(require_react(), 1);
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
   var getYouTubeEmbedUrl = (url) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -8687,11 +8606,11 @@
     onCtaClick,
     isPreview = false
   }) => {
-    const [currentIndex, setCurrentIndex] = (0, import_react2.useState)(0);
-    const [canScrollLeft, setCanScrollLeft] = (0, import_react2.useState)(false);
-    const [canScrollRight, setCanScrollRight] = (0, import_react2.useState)(false);
-    const scrollContainerRef = (0, import_react2.useRef)(null);
-    const isScrolling = (0, import_react2.useRef)(false);
+    const [currentIndex, setCurrentIndex] = (0, import_react.useState)(0);
+    const [canScrollLeft, setCanScrollLeft] = (0, import_react.useState)(false);
+    const [canScrollRight, setCanScrollRight] = (0, import_react.useState)(false);
+    const scrollContainerRef = (0, import_react.useRef)(null);
+    const isScrolling = (0, import_react.useRef)(false);
     const updateScrollState = () => {
       const container = scrollContainerRef.current;
       if (!container || slides.length <= 1)
@@ -8704,7 +8623,7 @@
       const index = Math.round(scrollLeft / slideWidth);
       setCurrentIndex(Math.min(index, slides.length - 1));
     };
-    (0, import_react2.useEffect)(() => {
+    (0, import_react.useEffect)(() => {
       updateScrollState();
       const container = scrollContainerRef.current;
       if (container && slides.length > 1) {
@@ -8716,7 +8635,7 @@
         };
       }
     }, [slides]);
-    (0, import_react2.useEffect)(() => {
+    (0, import_react.useEffect)(() => {
       if (slides && slides.length > 1 && carouselSettings.autoRotate !== false && !isScrolling.current) {
         const interval = setInterval(() => {
           handleNext();
@@ -9172,46 +9091,8 @@
     ] });
   };
 
-  // extensions/cart-upsell/assets/modules/renderers/promotional-banner.js
-  var CONTAINER_ID2 = "upsellity-promo-banner-root";
-  function renderPromotionalBanner(config, reactRoots = {}) {
-    if (!config.features.promotionalBanner) {
-      return "";
-    }
-    const banner = config.features.promotionalBanner;
-    const slides = banner.images || [];
-    if (slides.length === 0) {
-      return `<div id="${CONTAINER_ID2}"></div>`;
-    }
-    const html = `<div id="${CONTAINER_ID2}"></div>`;
-    setTimeout(() => {
-      const container = document.getElementById(CONTAINER_ID2);
-      if (!container)
-        return;
-      const props = {
-        slides,
-        carouselSettings: banner.carouselSettings || {},
-        onCtaClick: (url) => {
-          if (url && window.upsellityDrawer) {
-            window.upsellityDrawer.handleSlideCtaClick(url);
-          }
-        },
-        isPreview: false
-      };
-      if (!reactRoots[CONTAINER_ID2]) {
-        reactRoots[CONTAINER_ID2] = (0, import_client2.createRoot)(container);
-      }
-      reactRoots[CONTAINER_ID2].render(import_react3.default.createElement(PromotionalBannerCard, props));
-    }, 0);
-    return html;
-  }
-
-  // extensions/cart-upsell/assets/modules/renderers/cart-items.js
-  var import_react5 = __toESM(require_react(), 1);
-  var import_client3 = __toESM(require_client(), 1);
-
   // app/components/shared/CartItems.tsx
-  var import_react4 = __toESM(require_react(), 1);
+  var import_react2 = __toESM(require_react(), 1);
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
   var CartItemRow = ({
     item,
@@ -9225,10 +9106,10 @@
     calculateItemPrices
   }) => {
     var _a;
-    const [inputValue, setInputValue] = (0, import_react4.useState)(item.quantity.toString());
-    const [isEditing, setIsEditing] = (0, import_react4.useState)(false);
-    const [error, setError] = (0, import_react4.useState)(null);
-    const [isUpdating, setIsUpdating] = (0, import_react4.useState)(false);
+    const [inputValue, setInputValue] = (0, import_react2.useState)(item.quantity.toString());
+    const [isEditing, setIsEditing] = (0, import_react2.useState)(false);
+    const [error, setError] = (0, import_react2.useState)(null);
+    const [isUpdating, setIsUpdating] = (0, import_react2.useState)(false);
     const handleInputChange = (e) => {
       const value = e.target.value;
       if (value === "" || /^\d+$/.test(value)) {
@@ -9269,7 +9150,7 @@
         e.currentTarget.blur();
       }
     };
-    import_react4.default.useEffect(() => {
+    import_react2.default.useEffect(() => {
       if (!isEditing) {
         setInputValue(item.quantity.toString());
       }
@@ -9566,44 +9447,8 @@
     )) });
   };
 
-  // extensions/cart-upsell/assets/modules/renderers/cart-items.js
-  var CONTAINER_ID3 = "upsellity-cart-items-root";
-  function renderCartItems(cart, productCompareAtPrices, appliedDiscount, reactRoots = {}) {
-    const html = `<div id="${CONTAINER_ID3}"></div>`;
-    setTimeout(() => {
-      const container = document.getElementById(CONTAINER_ID3);
-      if (!container)
-        return;
-      const props = {
-        items: cart.items,
-        productCompareAtPrices,
-        appliedDiscount,
-        onUpdateQuantity: (key, quantity) => {
-          if (window.upsellityDrawer) {
-            window.upsellityDrawer.updateQuantity(key, quantity);
-          }
-        },
-        onRemoveItem: (key) => {
-          if (window.upsellityDrawer) {
-            window.upsellityDrawer.removeItem(key);
-          }
-        },
-        isPreview: false
-      };
-      if (!reactRoots[CONTAINER_ID3]) {
-        reactRoots[CONTAINER_ID3] = (0, import_client3.createRoot)(container);
-      }
-      reactRoots[CONTAINER_ID3].render(import_react5.default.createElement(CartItems, props));
-    }, 0);
-    return html;
-  }
-
-  // extensions/cart-upsell/assets/modules/renderers/product-recommendations.js
-  var import_react7 = __toESM(require_react(), 1);
-  var import_client4 = __toESM(require_client(), 1);
-
   // app/components/shared/ProductRecommendations.tsx
-  var import_react6 = __toESM(require_react(), 1);
+  var import_react3 = __toESM(require_react(), 1);
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
   var ProductRecommendations = ({
     title = "You may also like",
@@ -9616,9 +9461,9 @@
     onAddToCart,
     isPreview = false
   }) => {
-    const [canScrollLeft, setCanScrollLeft] = (0, import_react6.useState)(false);
-    const [canScrollRight, setCanScrollRight] = (0, import_react6.useState)(false);
-    const scrollContainerRef = (0, import_react6.useRef)(null);
+    const [canScrollLeft, setCanScrollLeft] = (0, import_react3.useState)(false);
+    const [canScrollRight, setCanScrollRight] = (0, import_react3.useState)(false);
+    const scrollContainerRef = (0, import_react3.useRef)(null);
     const isGrid = layout === "grid";
     const displayProducts = products.slice(0, maxProducts);
     const updateScrollState = () => {
@@ -9630,7 +9475,7 @@
       setCanScrollLeft(currentScroll > 5);
       setCanScrollRight(currentScroll < maxScrollLeft - 5);
     };
-    (0, import_react6.useEffect)(() => {
+    (0, import_react3.useEffect)(() => {
       updateScrollState();
       const container = scrollContainerRef.current;
       if (container && !isGrid) {
@@ -9966,50 +9811,6 @@
     ] });
   };
 
-  // extensions/cart-upsell/assets/modules/renderers/product-recommendations.js
-  var CONTAINER_ID4 = "upsellity-product-recs-root";
-  function renderProductRecommendations(config, reactRoots = {}) {
-    if (!config.features.productRecommendations) {
-      return "";
-    }
-    const recommendations = config.features.productRecommendations;
-    const products = recommendations.products || [];
-    if (products.length === 0) {
-      return "";
-    }
-    const html = `<div id="${CONTAINER_ID4}"></div>`;
-    setTimeout(() => {
-      var _a, _b, _c;
-      const container = document.getElementById(CONTAINER_ID4);
-      if (!container)
-        return;
-      const props = {
-        title: recommendations.title || "You may also like",
-        products,
-        layout: recommendations.layout || "carousel",
-        maxProducts: recommendations.maxProducts || 4,
-        showDiscount: (_a = recommendations.showDiscount) != null ? _a : true,
-        showDiscountBadge: (_b = recommendations.showDiscountBadge) != null ? _b : true,
-        showAddButton: (_c = recommendations.showAddButton) != null ? _c : true,
-        onAddToCart: (variantId) => {
-          if (window.upsellityDrawer) {
-            window.upsellityDrawer.addProductToCart(variantId);
-          }
-        },
-        isPreview: false
-      };
-      if (!reactRoots[CONTAINER_ID4]) {
-        reactRoots[CONTAINER_ID4] = (0, import_client4.createRoot)(container);
-      }
-      reactRoots[CONTAINER_ID4].render(import_react7.default.createElement(ProductRecommendations, props));
-    }, 0);
-    return html;
-  }
-
-  // extensions/cart-upsell/assets/modules/renderers/savings-display.js
-  var import_react8 = __toESM(require_react(), 1);
-  var import_client5 = __toESM(require_client(), 1);
-
   // app/components/shared/SavingsDisplay.tsx
   var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
   var SavingsDisplay = ({
@@ -10038,45 +9839,6 @@
       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)"
     }, children: formattedMessage });
   };
-
-  // extensions/cart-upsell/assets/modules/renderers/savings-display.js
-  var CONTAINER_ID5 = "upsellity-savings-display-root";
-  function renderSavingsDisplay(config, cart, appliedDiscount, reactRoots = {}) {
-    if (!config.features.savingsDisplay) {
-      return "";
-    }
-    const savingsCfg = config.features.savingsDisplay;
-    const itemLevelSavings = cart.items.reduce((sum, item) => {
-      return sum + Math.max(0, item.original_price - item.final_price) * item.quantity;
-    }, 0);
-    const discountSavings = appliedDiscount ? calculateEstimatedDiscount(appliedDiscount, cart) : 0;
-    const totalSavings = Math.max(itemLevelSavings, discountSavings);
-    if (totalSavings <= 0) {
-      return "";
-    }
-    const html = `<div id="${CONTAINER_ID5}"></div>`;
-    setTimeout(() => {
-      const container = document.getElementById(CONTAINER_ID5);
-      if (!container)
-        return;
-      const props = {
-        message: savingsCfg.message || "You saved {amount}!",
-        amount: totalSavings,
-        backgroundColor: savingsCfg.backgroundColor || "#dcfce7",
-        textColor: savingsCfg.textColor || "#15803d",
-        isPreview: false
-      };
-      if (!reactRoots[CONTAINER_ID5]) {
-        reactRoots[CONTAINER_ID5] = (0, import_client5.createRoot)(container);
-      }
-      reactRoots[CONTAINER_ID5].render(import_react8.default.createElement(SavingsDisplay, props));
-    }, 0);
-    return html;
-  }
-
-  // extensions/cart-upsell/assets/modules/renderers/free-shipping-message.js
-  var import_react9 = __toESM(require_react(), 1);
-  var import_client6 = __toESM(require_client(), 1);
 
   // app/components/shared/FreeShippingMessage.tsx
   var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
@@ -10133,42 +9895,8 @@
     ] });
   };
 
-  // extensions/cart-upsell/assets/modules/renderers/free-shipping-message.js
-  var CONTAINER_ID6 = "upsellity-free-shipping-msg-root";
-  function renderFreeShippingMessage(config, cart, reactRoots = {}) {
-    if (!config.features.freeShippingMessage) {
-      return "";
-    }
-    const msg = config.features.freeShippingMessage;
-    const html = `<div id="${CONTAINER_ID6}"></div>`;
-    setTimeout(() => {
-      const container = document.getElementById(CONTAINER_ID6);
-      if (!container)
-        return;
-      const props = {
-        thresholdAmount: parseFloat(msg.thresholdAmount) || 0,
-        cartTotal: cart.total_price,
-        beforeThresholdMessage: msg.beforeThresholdMessage || "Add {remaining} more for FREE shipping",
-        achievedMessage: msg.achievedMessage || "You qualify for FREE shipping!",
-        backgroundColor: msg.backgroundColor || "#fef3c7",
-        textColor: msg.textColor || "#92400e",
-        currency: msg.currency || "INR",
-        isPreview: false
-      };
-      if (!reactRoots[CONTAINER_ID6]) {
-        reactRoots[CONTAINER_ID6] = (0, import_client6.createRoot)(container);
-      }
-      reactRoots[CONTAINER_ID6].render(import_react9.default.createElement(FreeShippingMessage, props));
-    }, 0);
-    return html;
-  }
-
-  // extensions/cart-upsell/assets/modules/renderers/coupon-code-field.js
-  var import_react11 = __toESM(require_react(), 1);
-  var import_client7 = __toESM(require_client(), 1);
-
   // app/components/shared/CouponCodeField.tsx
-  var import_react10 = __toESM(require_react(), 1);
+  var import_react4 = __toESM(require_react(), 1);
   var import_jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
   var CheckIcon = ({ size = 16, color = "currentColor" }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "3", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("polyline", { points: "20 6 9 17 4 12" }) });
   var ChevronDownIcon = ({ size = 16, color = "currentColor" }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("polyline", { points: "6 9 12 15 18 9" }) });
@@ -10193,8 +9921,8 @@
     },
     isPreview = false
   }) => {
-    const [couponCode, setCouponCode] = (0, import_react10.useState)("");
-    const [showingAllOffers, setShowingAllOffers] = (0, import_react10.useState)(false);
+    const [couponCode, setCouponCode] = (0, import_react4.useState)("");
+    const [showingAllOffers, setShowingAllOffers] = (0, import_react4.useState)(false);
     const handleApply = () => {
       if (couponCode.trim()) {
         onApplyCoupon(couponCode.trim());
@@ -10413,57 +10141,6 @@
     ] });
   };
 
-  // extensions/cart-upsell/assets/modules/renderers/coupon-code-field.js
-  var CONTAINER_ID7 = "upsellity-coupon-field-root";
-  var COMPONENT_ID = "upsellity-coupon-field";
-  function renderCouponCodeField(config, appliedDiscount, availableDiscounts, showingAllOffers, reactRoots = {}) {
-    if (!config.features.couponCodeField) {
-      return "";
-    }
-    const couponField = config.features.couponCodeField;
-    const html = `<div id="${CONTAINER_ID7}"></div>`;
-    setTimeout(() => {
-      const container = document.getElementById(CONTAINER_ID7);
-      if (!container)
-        return;
-      const props = {
-        id: COMPONENT_ID,
-        placeholder: couponField.placeholder || "Enter coupon code",
-        buttonText: couponField.buttonText || "Apply",
-        showAllOffers: couponField.showAllOffers || false,
-        showAllOffersButtonText: couponField.showAllOffersButtonText || "Show all offers",
-        enableAutoApply: couponField.enableAutoApply || false,
-        appliedDiscount,
-        availableDiscounts,
-        onApplyCoupon: (code) => {
-          if (window.upsellityDrawer) {
-            window.upsellityDrawer.applyCouponWithCode(code);
-          }
-        },
-        onRemoveDiscount: () => {
-          if (window.upsellityDrawer) {
-            window.upsellityDrawer.removeDiscount();
-          }
-        },
-        onSwitchDiscount: (code) => {
-          if (window.upsellityDrawer) {
-            window.upsellityDrawer.switchDiscount(code);
-          }
-        },
-        isPreview: false
-      };
-      if (!reactRoots[CONTAINER_ID7]) {
-        reactRoots[CONTAINER_ID7] = (0, import_client7.createRoot)(container);
-      }
-      reactRoots[CONTAINER_ID7].render(import_react11.default.createElement(CouponCodeField, props));
-    }, 0);
-    return html;
-  }
-
-  // extensions/cart-upsell/assets/modules/renderers/cart-totals.js
-  var import_react12 = __toESM(require_react(), 1);
-  var import_client8 = __toESM(require_client(), 1);
-
   // app/components/shared/CartTotals.tsx
   var import_jsx_runtime8 = __toESM(require_jsx_runtime(), 1);
   var CartTotals = ({
@@ -10586,27 +10263,270 @@
     ] });
   };
 
-  // extensions/cart-upsell/assets/modules/renderers/cart-totals.js
-  var CONTAINER_ID8 = "upsellity-cart-totals-root";
-  function renderCartTotals(cart, appliedDiscount, reactRoots = {}) {
-    const html = `<div id="${CONTAINER_ID8}"></div>`;
-    setTimeout(() => {
-      const container = document.getElementById(CONTAINER_ID8);
-      if (!container)
-        return;
-      const props = {
-        items: cart.items,
-        totalPrice: cart.total_price,
-        appliedDiscount,
-        isPreview: false
-      };
-      if (!reactRoots[CONTAINER_ID8]) {
-        reactRoots[CONTAINER_ID8] = (0, import_client8.createRoot)(container);
+  // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
+  var import_jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
+  var UnifiedCartDrawer = ({
+    config,
+    cart,
+    appliedDiscount,
+    availableDiscounts,
+    productCompareAtPrices,
+    showingAllOffers,
+    onClose,
+    onCheckout,
+    onAddProductToCart,
+    onUpdateQuantity,
+    onRemoveItem,
+    onApplyCoupon,
+    onRemoveDiscount,
+    onSwitchDiscount,
+    onSlideCtaClick
+  }) => {
+    const getFeatureOrder = () => {
+      const featureOrder = (config == null ? void 0 : config.featureOrder) || [];
+      let orderArray = [];
+      if (typeof featureOrder === "string") {
+        orderArray = featureOrder.split(",").filter(Boolean);
+      } else if (Array.isArray(featureOrder)) {
+        orderArray = featureOrder;
       }
-      reactRoots[CONTAINER_ID8].render(import_react12.default.createElement(CartTotals, props));
-    }, 0);
-    return html;
-  }
+      const cartItemsIndex = orderArray.findIndex(
+        (item) => item === "cart-items" || item === "__cart-items__"
+      );
+      if (cartItemsIndex === -1) {
+        return { beforeItems: orderArray, afterItems: [] };
+      }
+      const beforeItems2 = orderArray.slice(0, cartItemsIndex);
+      const afterItems2 = orderArray.slice(cartItemsIndex + 1);
+      return { beforeItems: beforeItems2, afterItems: afterItems2 };
+    };
+    const calculateSavings = () => {
+      var _a;
+      if (!((_a = config == null ? void 0 : config.features) == null ? void 0 : _a.savingsDisplay))
+        return 0;
+      const itemLevelSavings = cart.items.reduce((sum, item) => {
+        return sum + Math.max(0, item.original_price - item.final_price) * item.quantity;
+      }, 0);
+      const discountSavings = appliedDiscount ? calculateEstimatedDiscount2(appliedDiscount, cart) : 0;
+      return Math.max(itemLevelSavings, discountSavings);
+    };
+    const calculateEstimatedDiscount2 = (discount, cart2) => {
+      if (!discount)
+        return 0;
+      if (discount.type === "percentage") {
+        return cart2.total_price * discount.value / 100;
+      } else if (discount.type === "fixed_amount") {
+        return discount.value * 100;
+      }
+      return 0;
+    };
+    const getCheckoutUrl2 = () => {
+      let url = "/checkout";
+      if (appliedDiscount == null ? void 0 : appliedDiscount.code) {
+        url += `?discount=${encodeURIComponent(appliedDiscount.code)}`;
+      }
+      return url;
+    };
+    const renderFeature = (featureId) => {
+      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
+      switch (featureId) {
+        case "free-shipping-bar": {
+          const bar = (_a = config == null ? void 0 : config.features) == null ? void 0 : _a.freeShippingProgressBar;
+          if (!bar)
+            return null;
+          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+            FreeShippingBar,
+            {
+              thresholdMode: bar.thresholdMode || "amount",
+              thresholdAmount: parseFloat(bar.thresholdAmount) || 0,
+              thresholdCount: parseInt(bar.thresholdCount) || 0,
+              beforeThresholdMessage: bar.beforeThresholdMessage || "Add {remaining} for FREE shipping",
+              afterThresholdMessage: bar.afterThresholdMessage || "\u{1F389} You qualify for FREE shipping!",
+              backgroundColor: bar.backgroundColor || "#f0f9ff",
+              progressBarColor: bar.progressBarColor || "#3b82f6",
+              showPercentage: (_b = bar.showPercentage) != null ? _b : true,
+              currency: bar.currency || "INR",
+              cart,
+              isPreview: false
+            }
+          ) }, featureId);
+        }
+        case "promotional-banner": {
+          const banner = (_c = config == null ? void 0 : config.features) == null ? void 0 : _c.promotionalBanner;
+          if (!banner)
+            return null;
+          const slides = banner.images || [];
+          if (slides.length === 0)
+            return null;
+          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+            PromotionalBannerCard,
+            {
+              slides,
+              carouselSettings: banner.carouselSettings || {},
+              onCtaClick: onSlideCtaClick,
+              isPreview: false
+            }
+          ) }, featureId);
+        }
+        case "product-recommendations": {
+          const recommendations = (_d = config == null ? void 0 : config.features) == null ? void 0 : _d.productRecommendations;
+          if (!recommendations)
+            return null;
+          const products = recommendations.products || [];
+          if (products.length === 0)
+            return null;
+          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+            ProductRecommendations,
+            {
+              title: recommendations.title || "You may also like",
+              products,
+              layout: recommendations.layout || "carousel",
+              maxProducts: recommendations.maxProducts || 4,
+              showDiscount: (_e = recommendations.showDiscount) != null ? _e : true,
+              showDiscountBadge: (_f = recommendations.showDiscountBadge) != null ? _f : true,
+              showAddButton: (_g = recommendations.showAddButton) != null ? _g : true,
+              onAddToCart: onAddProductToCart,
+              isPreview: false
+            }
+          ) }, featureId);
+        }
+        case "savings-display": {
+          const savingsCfg = (_h = config == null ? void 0 : config.features) == null ? void 0 : _h.savingsDisplay;
+          if (!savingsCfg)
+            return null;
+          const totalSavings = calculateSavings();
+          if (totalSavings <= 0)
+            return null;
+          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+            SavingsDisplay,
+            {
+              message: savingsCfg.message || "You saved {amount}!",
+              amount: totalSavings,
+              backgroundColor: savingsCfg.backgroundColor || "#dcfce7",
+              textColor: savingsCfg.textColor || "#15803d",
+              isPreview: false
+            }
+          ) }, featureId);
+        }
+        case "free-shipping-message": {
+          const msg = (_i = config == null ? void 0 : config.features) == null ? void 0 : _i.freeShippingMessage;
+          if (!msg)
+            return null;
+          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+            FreeShippingMessage,
+            {
+              thresholdAmount: parseFloat(msg.thresholdAmount) || 0,
+              cartTotal: cart.total_price,
+              beforeThresholdMessage: msg.beforeThresholdMessage || "Add {remaining} more for FREE shipping",
+              achievedMessage: msg.achievedMessage || "You qualify for FREE shipping!",
+              backgroundColor: msg.backgroundColor || "#fef3c7",
+              textColor: msg.textColor || "#92400e",
+              currency: msg.currency || "INR",
+              isPreview: false
+            }
+          ) }, featureId);
+        }
+        case "coupon-code": {
+          const couponField = (_j = config == null ? void 0 : config.features) == null ? void 0 : _j.couponCodeField;
+          if (!couponField)
+            return null;
+          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+            CouponCodeField,
+            {
+              id: "upsellity-coupon-field",
+              placeholder: couponField.placeholder || "Enter coupon code",
+              buttonText: couponField.buttonText || "Apply",
+              showAllOffers: couponField.showAllOffers || false,
+              showAllOffersButtonText: couponField.showAllOffersButtonText || "Show all offers",
+              enableAutoApply: couponField.enableAutoApply || false,
+              appliedDiscount,
+              availableDiscounts,
+              onApplyCoupon,
+              onRemoveDiscount,
+              onSwitchDiscount,
+              isPreview: false
+            }
+          ) }, featureId);
+        }
+        default:
+          return null;
+      }
+    };
+    const { beforeItems, afterItems } = getFeatureOrder();
+    return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+        "button",
+        {
+          className: "upsellity-close-btn",
+          onClick: onClose,
+          style: { background: "none", border: "none", cursor: "pointer" },
+          children: "\xD7"
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+        "h2",
+        {
+          id: "upsellity-cart-header",
+          style: { fontSize: "20px", fontWeight: 600, marginBottom: "20px" },
+          children: [
+            "Your Cart (",
+            cart.item_count,
+            " items)"
+          ]
+        }
+      ),
+      beforeItems.map(renderFeature),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+        CartItems,
+        {
+          items: cart.items,
+          productCompareAtPrices,
+          appliedDiscount,
+          onUpdateQuantity,
+          onRemoveItem,
+          isPreview: false
+        }
+      ) }),
+      afterItems.map(renderFeature),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+        CartTotals,
+        {
+          items: cart.items,
+          totalPrice: cart.total_price,
+          appliedDiscount,
+          isPreview: false
+        }
+      ) }),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+        "button",
+        {
+          className: "upsellity-checkout-btn",
+          onClick: onCheckout,
+          children: "Checkout"
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
+        textAlign: "center",
+        fontSize: "12px",
+        color: "#6b7280",
+        marginTop: "8px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "12px"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "4px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("rect", { x: "3", y: "11", width: "18", height: "11", rx: "2", ry: "2" }),
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("path", { d: "M7 11V7a5 5 0 0 1 10 0v4" })
+          ] }),
+          "Secure Checkout"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: "\u2022" }),
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: "Free Returns" })
+      ] })
+    ] });
+  };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-class.js
   var UpsellityCartDrawer = class {
@@ -10620,8 +10540,8 @@
       this.availableDiscounts = [];
       this.showingAllOffers = false;
       this.productCompareAtPrices = {};
-      this.reactRoots = {};
-      this.isInitialRender = true;
+      this.reactRoot = null;
+      this.cartJustUpdated = false;
       this.init();
     }
     async init() {
@@ -10658,7 +10578,7 @@
         this.config = { enabled: false, features: {} };
       }
     }
-    async loadCart(cartData = null) {
+    async loadCart(cartData = null, skipRender = false) {
       var _a, _b, _c;
       try {
         if (cartData) {
@@ -10667,13 +10587,22 @@
           const response = await fetch("/cart.js");
           this.cart = await response.json();
         }
-        this.productCompareAtPrices = await loadProductCompareAtPrices(this.cart);
-        this.availableDiscounts = await loadAvailableDiscounts(this.shop, this.config);
+        if (!skipRender) {
+          this.render();
+        }
+        const [productCompareAtPrices, availableDiscounts] = await Promise.all([
+          loadProductCompareAtPrices(this.cart),
+          loadAvailableDiscounts(this.shop, this.config),
+          loadShopifyRecommendations(this.cart, this.config)
+        ]);
+        this.productCompareAtPrices = productCompareAtPrices;
+        this.availableDiscounts = availableDiscounts;
         if (((_c = (_b = (_a = this.config) == null ? void 0 : _a.features) == null ? void 0 : _b.couponCodeField) == null ? void 0 : _c.enableAutoApply) && !this.appliedDiscount && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
           this.appliedDiscount = autoApplyBestDiscount(this.availableDiscounts, this.cart, this.config);
         }
-        await loadShopifyRecommendations(this.cart, this.config);
-        this.render();
+        if (!skipRender) {
+          this.render();
+        }
       } catch (error) {
         console.error("Upsellity: Failed to load cart", error);
         this.cart = {
@@ -10681,14 +10610,22 @@
           total_price: 0,
           items: []
         };
-        this.render();
+        if (!skipRender) {
+          this.render();
+        }
       }
     }
     interceptAddToCart() {
+      let isHandlingAddToCart = false;
       document.addEventListener("submit", async (e) => {
         const form = e.target;
-        if (form.getAttribute("action") === "/cart/add") {
+        const action = form.getAttribute("action");
+        if (action && (action === "/cart/add" || action.endsWith("/cart/add") || action.includes("/cart/add"))) {
           e.preventDefault();
+          e.stopPropagation();
+          if (isHandlingAddToCart)
+            return;
+          isHandlingAddToCart = true;
           const formData = new FormData(form);
           try {
             const response = await fetch("/cart/add.js", {
@@ -10696,21 +10633,53 @@
               body: formData
             });
             if (response.ok) {
-              await this.loadCart();
-              this.open();
+              if (!this.config) {
+                await this.loadConfig();
+              }
+              const cartResponse = await fetch("/cart.js");
+              this.cart = await cartResponse.json();
+              this.cartJustUpdated = true;
+              await this.open();
+              this.loadSecondaryData();
+            } else {
+              console.error("Upsellity: Failed to add to cart", await response.text());
             }
           } catch (error) {
             console.error("Upsellity: Failed to add to cart", error);
+          } finally {
+            setTimeout(() => {
+              isHandlingAddToCart = false;
+            }, 500);
           }
         }
-      });
+      }, true);
       const originalFetch = window.fetch;
       window.fetch = async (...args) => {
         var _a;
+        const url = typeof args[0] === "string" ? args[0] : (_a = args[0]) == null ? void 0 : _a.url;
+        const isCartAdd = url && (url.includes("/cart/add.js") || url.includes("/cart/add"));
         const response = await originalFetch(...args);
-        if ((_a = args[0]) == null ? void 0 : _a.includes("/cart/add")) {
-          await this.loadCart();
-          this.open();
+        if (isCartAdd && !isHandlingAddToCart) {
+          isHandlingAddToCart = true;
+          const clonedResponse = response.clone();
+          try {
+            if (clonedResponse.ok) {
+              if (!this.config) {
+                await this.loadConfig();
+              }
+              const cartResponse = await fetch("/cart.js");
+              this.cart = await cartResponse.json();
+              this.cartJustUpdated = true;
+              await this.open();
+              this.loadSecondaryData();
+            }
+          } catch (error) {
+            console.error("Upsellity: Error handling cart add", error);
+          } finally {
+            setTimeout(() => {
+              isHandlingAddToCart = false;
+            }, 500);
+          }
         }
         return response;
       };
@@ -10718,11 +10687,16 @@
     attachCartTriggers() {
       document.addEventListener("click", (e) => {
         const cartTrigger = e.target.closest('a[href="/cart"], a[href*="/cart"]');
-        if (cartTrigger && !e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          this.open();
+        if (cartTrigger && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+          const href = cartTrigger.getAttribute("href");
+          if (href && (href === "/cart" || href.endsWith("/cart") || href.includes("/cart?"))) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            this.open();
+          }
         }
-      });
+      }, true);
       document.addEventListener("keydown", (e) => {
         if (e.ctrlKey && e.shiftKey && e.key === "C") {
           e.preventDefault();
@@ -10741,6 +10715,14 @@
       </div>
     `;
       document.body.appendChild(drawer);
+      const overlay = drawer.querySelector(".upsellity-drawer-overlay");
+      if (overlay) {
+        overlay.addEventListener("click", () => {
+          if (this.isOpen) {
+            this.close();
+          }
+        });
+      }
       this.loadStyles();
     }
     loadStyles() {
@@ -10761,138 +10743,81 @@
         console.error("Upsellity: Drawer inner element not found");
         return;
       }
-      if (this.isInitialRender) {
-        this.renderInitial(inner);
-        this.isInitialRender = false;
-      } else {
-        this.renderUpdate(inner);
+      if (!this.reactRoot) {
+        this.reactRoot = (0, import_client.createRoot)(inner);
       }
-    }
-    renderInitial(inner) {
-      var _a;
-      let html = `
-      <button class="upsellity-close-btn" onclick="window.upsellityDrawer.close()">\xD7</button>
-      <h2 id="upsellity-cart-header" style="font-size: 20px; font-weight: 600; margin-bottom: 20px;">
-        Your Cart (${this.cart.item_count} items)
-      </h2>
-    `;
-      const { beforeItems, afterItems } = splitFeatureOrder((_a = this.config) == null ? void 0 : _a.featureOrder);
-      beforeItems.forEach((id) => {
-        html += `<div id="upsellity-section-${id}" style="margin-bottom: 12px;"></div>`;
-      });
-      html += `<div id="upsellity-section-cart-items" style="margin-bottom: 12px;"></div>`;
-      afterItems.forEach((id) => {
-        html += `<div id="upsellity-section-${id}" style="margin-bottom: 12px;"></div>`;
-      });
-      html += `<div id="upsellity-section-cart-totals" style="margin-bottom: 12px;"></div>`;
-      html += `
-      <button class="upsellity-checkout-btn" id="upsellity-checkout-btn" onclick="window.location.href='${getCheckoutUrl(this.appliedDiscount)}'">
-        Checkout
-      </button>
-      <div style="text-align: center; font-size: 12px; color: #6b7280; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 12px;">
-        <span style="display: flex; align-items: center; gap: 4px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-          </svg>
-          Secure Checkout
-        </span>
-        <span>\u2022</span>
-        <span>Free Returns</span>
-      </div>
-    `;
-      inner.innerHTML = html;
-      this.updateAllSections();
-    }
-    renderUpdate(inner) {
-      const header = inner.querySelector("#upsellity-cart-header");
-      if (header) {
-        header.textContent = `Your Cart (${this.cart.item_count} items)`;
-      }
-      const checkoutBtn = inner.querySelector("#upsellity-checkout-btn");
-      if (checkoutBtn) {
-        checkoutBtn.onclick = () => window.location.href = getCheckoutUrl(this.appliedDiscount);
-      }
-      this.updateAllSections();
-    }
-    updateAllSections() {
-      var _a;
-      const sections = {
-        "free-shipping-bar": {
-          render: () => renderFreeShippingBar(this.config, this.cart, this.reactRoots),
-          reactComponent: true
-        },
-        "promotional-banner": {
-          render: () => renderPromotionalBanner(this.config, this.reactRoots),
-          reactComponent: true
-        },
-        "cart-items": {
-          render: () => renderCartItems(this.cart, this.productCompareAtPrices, this.appliedDiscount, this.reactRoots),
-          reactComponent: true
-        },
-        "product-recommendations": {
-          render: () => renderProductRecommendations(this.config, this.reactRoots),
-          reactComponent: true
-        },
-        "savings-display": {
-          render: () => renderSavingsDisplay(this.config, this.cart, this.appliedDiscount, this.reactRoots),
-          reactComponent: true
-        },
-        "free-shipping-message": {
-          render: () => renderFreeShippingMessage(this.config, this.cart, this.reactRoots),
-          reactComponent: true
-        },
-        "coupon-code": {
-          render: () => renderCouponCodeField(this.config, this.appliedDiscount, this.availableDiscounts, this.showingAllOffers, this.reactRoots),
-          reactComponent: true
-        },
-        "cart-totals": {
-          render: () => renderCartTotals(this.cart, this.appliedDiscount, this.reactRoots),
-          reactComponent: true
-        }
-      };
-      const { beforeItems, afterItems } = splitFeatureOrder((_a = this.config) == null ? void 0 : _a.featureOrder);
-      [...beforeItems, "cart-items", ...afterItems, "cart-totals"].forEach((id) => {
-        var _a2;
-        const section = sections[id];
-        if (!section)
-          return;
-        const container = document.getElementById(`upsellity-section-${id}`);
-        if (!container)
-          return;
-        const content = section.render();
-        if (section.reactComponent) {
-          const innerContainerId = (_a2 = content.match(/id="([^"]+)"/)) == null ? void 0 : _a2[1];
-          if (innerContainerId && !document.getElementById(innerContainerId)) {
-            container.innerHTML = content;
-          }
-        } else {
-          container.innerHTML = content;
-        }
-      });
+      this.reactRoot.render(
+        import_react6.default.createElement(UnifiedCartDrawer, {
+          config: this.config,
+          cart: this.cart,
+          appliedDiscount: this.appliedDiscount,
+          availableDiscounts: this.availableDiscounts,
+          productCompareAtPrices: this.productCompareAtPrices,
+          showingAllOffers: this.showingAllOffers,
+          onClose: () => this.close(),
+          onCheckout: () => window.location.href = getCheckoutUrl(this.appliedDiscount),
+          onAddProductToCart: (variantId) => this.addProductToCart(variantId),
+          onUpdateQuantity: (itemKey, newQuantity) => this.updateQuantity(itemKey, newQuantity),
+          onRemoveItem: (itemKey) => this.removeItem(itemKey),
+          onApplyCoupon: (code) => this.applyCouponWithCode(code),
+          onRemoveDiscount: () => this.removeDiscount(),
+          onSwitchDiscount: (code) => this.switchDiscount(code),
+          onSlideCtaClick: (url) => this.handleSlideCtaClick(url)
+        })
+      );
     }
     async open() {
       const drawer = document.getElementById("upsellity-cart-drawer");
-      const wasOpen = this.isOpen;
-      drawer.classList.add("open");
-      this.isOpen = true;
-      if (!wasOpen) {
-        this.isInitialRender = true;
+      if (this.cartJustUpdated) {
+        this.cartJustUpdated = false;
+        this.render();
+        document.body.style.overflow = "hidden";
+        drawer.classList.add("open");
+        this.isOpen = true;
+      } else {
+        await Promise.all([
+          this.loadConfig(),
+          fetch("/cart.js").then((res) => res.json()).then((cart) => {
+            this.cart = cart;
+          })
+        ]);
+        this.render();
+        document.body.style.overflow = "hidden";
+        drawer.classList.add("open");
+        this.isOpen = true;
+        this.loadSecondaryData();
       }
-      await this.loadConfig();
-      await this.loadCart();
+    }
+    async loadSecondaryData() {
+      var _a, _b, _c;
+      try {
+        const [productCompareAtPrices, availableDiscounts] = await Promise.all([
+          loadProductCompareAtPrices(this.cart),
+          loadAvailableDiscounts(this.shop, this.config),
+          loadShopifyRecommendations(this.cart, this.config)
+        ]);
+        this.productCompareAtPrices = productCompareAtPrices;
+        this.availableDiscounts = availableDiscounts;
+        if (((_c = (_b = (_a = this.config) == null ? void 0 : _a.features) == null ? void 0 : _b.couponCodeField) == null ? void 0 : _c.enableAutoApply) && !this.appliedDiscount && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
+          this.appliedDiscount = autoApplyBestDiscount(this.availableDiscounts, this.cart, this.config);
+        }
+        this.render();
+      } catch (error) {
+        console.error("Upsellity: Failed to load secondary data", error);
+      }
     }
     close() {
       const drawer = document.getElementById("upsellity-cart-drawer");
       drawer.classList.remove("open");
       this.isOpen = false;
-      Object.values(this.reactRoots).forEach((root) => {
+      document.body.style.overflow = "";
+      if (this.reactRoot) {
         try {
-          root.unmount();
+          this.reactRoot.unmount();
         } catch (e) {
         }
-      });
-      this.reactRoots = {};
+        this.reactRoot = null;
+      }
     }
     // Handle promotional banner CTA clicks
     handleSlideCtaClick(url) {
