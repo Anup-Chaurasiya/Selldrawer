@@ -8,7 +8,9 @@ import { createRoot } from 'react-dom/client';
 import { SavingsDisplay } from '../../../../../app/components/shared/SavingsDisplay.tsx';
 import { calculateEstimatedDiscount } from '../discount-manager.js';
 
-export function renderSavingsDisplay(config, cart, appliedDiscount) {
+const CONTAINER_ID = 'upsellity-savings-display-root';
+
+export function renderSavingsDisplay(config, cart, appliedDiscount, reactRoots = {}) {
   if (!config.features.savingsDisplay) {
     return '';
   }
@@ -26,23 +28,26 @@ export function renderSavingsDisplay(config, cart, appliedDiscount) {
     return '';
   }
 
-  const containerId = `upsellity-savings-display-root-${Date.now()}`;
-  const html = `<div id="${containerId}"></div>`;
+  const html = `<div id="${CONTAINER_ID}"></div>`;
 
   setTimeout(() => {
-    const container = document.getElementById(containerId);
-    if (container) {
-      const root = createRoot(container);
-      root.render(
-        React.createElement(SavingsDisplay, {
-          message: savingsCfg.message || 'You saved {amount}!',
-          amount: totalSavings,
-          backgroundColor: savingsCfg.backgroundColor || '#dcfce7',
-          textColor: savingsCfg.textColor || '#15803d',
-          isPreview: false
-        })
-      );
+    const container = document.getElementById(CONTAINER_ID);
+    if (!container) return;
+
+    const props = {
+      message: savingsCfg.message || 'You saved {amount}!',
+      amount: totalSavings,
+      backgroundColor: savingsCfg.backgroundColor || '#dcfce7',
+      textColor: savingsCfg.textColor || '#15803d',
+      isPreview: false
+    };
+
+    // Reuse existing root or create new one
+    if (!reactRoots[CONTAINER_ID]) {
+      reactRoots[CONTAINER_ID] = createRoot(container);
     }
+    
+    reactRoots[CONTAINER_ID].render(React.createElement(SavingsDisplay, props));
   }, 0);
 
   return html;

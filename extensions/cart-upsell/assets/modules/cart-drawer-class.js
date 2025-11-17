@@ -27,6 +27,8 @@ export class UpsellityCartDrawer {
     this.availableDiscounts = [];
     this.showingAllOffers = false;
     this.productCompareAtPrices = {};
+    this.reactRoots = {}; // Store React roots to avoid recreating them
+    this.isInitialRender = true;
     
     this.init();
   }
@@ -193,40 +195,40 @@ export class UpsellityCartDrawer {
       return;
     }
     
+    // For initial render, create the structure
+    if (this.isInitialRender) {
+      this.renderInitial(inner);
+      this.isInitialRender = false;
+    } else {
+      // For subsequent renders, only update the dynamic parts
+      this.renderUpdate(inner);
+    }
+  }
+
+  renderInitial(inner) {
     let html = `
       <button class="upsellity-close-btn" onclick="window.upsellityDrawer.close()">×</button>
-      <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 20px;">
+      <h2 id="upsellity-cart-header" style="font-size: 20px; font-weight: 600; margin-bottom: 20px;">
         Your Cart (${this.cart.item_count} items)
       </h2>
     `;
 
-    const sections = {
-      'free-shipping-bar': renderFreeShippingBar(this.config, this.cart),
-      'promotional-banner': renderPromotionalBanner(this.config),
-      [FEATURE_ORDER_SENTINEL]: renderCartItems(this.cart, this.productCompareAtPrices, this.appliedDiscount),
-      'product-recommendations': renderProductRecommendations(this.config),
-      'savings-display': renderSavingsDisplay(this.config, this.cart, this.appliedDiscount),
-      'free-shipping-message': renderFreeShippingMessage(this.config, this.cart),
-      'coupon-code': renderCouponCodeField(this.config, this.appliedDiscount, this.availableDiscounts, this.showingAllOffers),
-    };
-
     const { beforeItems, afterItems } = splitFeatureOrder(this.config?.featureOrder);
 
+    // Create containers for each section
     beforeItems.forEach((id) => {
-      if (sections[id]) html += `<div style="margin-bottom: 12px;">${sections[id]}</div>`;
+      html += `<div id="upsellity-section-${id}" style="margin-bottom: 12px;"></div>`;
     });
 
-    if (sections[FEATURE_ORDER_SENTINEL]) {
-      html += `<div style="margin-bottom: 12px;">${sections[FEATURE_ORDER_SENTINEL]}</div>`;
-    }
+    html += `<div id="upsellity-section-cart-items" style="margin-bottom: 12px;"></div>`;
 
     afterItems.forEach((id) => {
-      if (sections[id]) html += `<div style="margin-bottom: 12px;">${sections[id]}</div>`;
+      html += `<div id="upsellity-section-${id}" style="margin-bottom: 12px;"></div>`;
     });
 
-    html += `<div style="margin-bottom: 12px;">${renderCartTotals(this.cart, this.appliedDiscount)}</div>`;
+    html += `<div id="upsellity-section-cart-totals" style="margin-bottom: 12px;"></div>`;
     html += `
-      <button class="upsellity-checkout-btn" onclick="window.location.href='${DiscountManager.getCheckoutUrl(this.appliedDiscount)}'">
+      <button class="upsellity-checkout-btn" id="upsellity-checkout-btn" onclick="window.location.href='${DiscountManager.getCheckoutUrl(this.appliedDiscount)}'">
         Checkout
       </button>
       <div style="text-align: center; font-size: 12px; color: #6b7280; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 12px;">
@@ -243,12 +245,102 @@ export class UpsellityCartDrawer {
     `;
 
     inner.innerHTML = html;
+    
+    // Now populate each section
+    this.updateAllSections();
+  }
+
+  renderUpdate(inner) {
+    // Update cart header
+    const header = inner.querySelector('#upsellity-cart-header');
+    if (header) {
+      header.textContent = `Your Cart (${this.cart.item_count} items)`;
+    }
+
+    // Update checkout button URL
+    const checkoutBtn = inner.querySelector('#upsellity-checkout-btn');
+    if (checkoutBtn) {
+      checkoutBtn.onclick = () => window.location.href = DiscountManager.getCheckoutUrl(this.appliedDiscount);
+    }
+
+    // Update all dynamic sections
+    this.updateAllSections();
+  }
+
+  updateAllSections() {
+    const sections = {
+      'free-shipping-bar': { 
+        render: () => renderFreeShippingBar(this.config, this.cart, this.reactRoots),
+        reactComponent: true
+      },
+      'promotional-banner': { 
+        render: () => renderPromotionalBanner(this.config, this.reactRoots),
+        reactComponent: true
+      },
+      'cart-items': { 
+        render: () => renderCartItems(this.cart, this.productCompareAtPrices, this.appliedDiscount, this.reactRoots),
+        reactComponent: true
+      },
+      'product-recommendations': { 
+        render: () => renderProductRecommendations(this.config, this.reactRoots),
+        reactComponent: true
+      },
+      'savings-display': { 
+        render: () => renderSavingsDisplay(this.config, this.cart, this.appliedDiscount, this.reactRoots),
+        reactComponent: true
+      },
+      'free-shipping-message': { 
+        render: () => renderFreeShippingMessage(this.config, this.cart, this.reactRoots),
+        reactComponent: true
+      },
+      'coupon-code': { 
+        render: () => renderCouponCodeField(this.config, this.appliedDiscount, this.availableDiscounts, this.showingAllOffers, this.reactRoots),
+        reactComponent: true
+      },
+      'cart-totals': { 
+        render: () => renderCartTotals(this.cart, this.appliedDiscount, this.reactRoots),
+        reactComponent: true
+      }
+    };
+
+    const { beforeItems, afterItems } = splitFeatureOrder(this.config?.featureOrder);
+
+    // Update sections in order
+    [...beforeItems, 'cart-items', ...afterItems, 'cart-totals'].forEach((id) => {
+      const section = sections[id];
+      if (!section) return;
+
+      const container = document.getElementById(`upsellity-section-${id}`);
+      if (!container) return;
+      
+      const content = section.render();
+      
+      if (section.reactComponent) {
+        // For React components, only set innerHTML if the nested container doesn't exist yet
+        // Each renderer returns HTML like: <div id="upsellity-cart-items-root"></div>
+        // We need this container div to exist before React can render into it
+        const innerContainerId = content.match(/id="([^"]+)"/)?.[1];
+        if (innerContainerId && !document.getElementById(innerContainerId)) {
+          container.innerHTML = content;
+        }
+        // The render function's setTimeout will call root.render() to update the component
+      } else {
+        // For non-React content, always update innerHTML
+        container.innerHTML = content;
+      }
+    });
   }
 
   async open() {
     const drawer = document.getElementById('upsellity-cart-drawer');
+    const wasOpen = this.isOpen;
     drawer.classList.add('open');
     this.isOpen = true;
+    
+    // Only do initial render if drawer was previously closed
+    if (!wasOpen) {
+      this.isInitialRender = true;
+    }
     
     await this.loadConfig();
     await this.loadCart();
@@ -258,6 +350,16 @@ export class UpsellityCartDrawer {
     const drawer = document.getElementById('upsellity-cart-drawer');
     drawer.classList.remove('open');
     this.isOpen = false;
+    
+    // Clean up React roots when closing
+    Object.values(this.reactRoots).forEach(root => {
+      try {
+        root.unmount();
+      } catch (e) {
+        // Ignore errors during unmount
+      }
+    });
+    this.reactRoots = {};
   }
 
   // Handle promotional banner CTA clicks

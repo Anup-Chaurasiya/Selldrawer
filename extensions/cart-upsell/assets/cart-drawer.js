@@ -8628,35 +8628,36 @@
   };
 
   // extensions/cart-upsell/assets/modules/renderers/free-shipping-bar.js
-  function renderFreeShippingBar(config, cart) {
+  var CONTAINER_ID = "upsellity-free-shipping-bar-root";
+  function renderFreeShippingBar(config, cart, reactRoots = {}) {
     var _a;
     const bar = (_a = config == null ? void 0 : config.features) == null ? void 0 : _a.freeShippingProgressBar;
     if (!bar) {
       return "";
     }
-    const containerId = `upsellity-free-shipping-bar-root-${Date.now()}`;
-    const html = `<div id="${containerId}"></div>`;
+    const html = `<div id="${CONTAINER_ID}"></div>`;
     setTimeout(() => {
       var _a2;
-      const container = document.getElementById(containerId);
-      if (container) {
-        const root = (0, import_client.createRoot)(container);
-        root.render(
-          import_react.default.createElement(FreeShippingBar, {
-            thresholdMode: bar.thresholdMode || "amount",
-            thresholdAmount: parseFloat(bar.thresholdAmount) || 0,
-            thresholdCount: parseInt(bar.thresholdCount) || 0,
-            beforeThresholdMessage: bar.beforeThresholdMessage || "Add {remaining} for FREE shipping",
-            afterThresholdMessage: bar.afterThresholdMessage || "\u{1F389} You qualify for FREE shipping!",
-            backgroundColor: bar.backgroundColor || "#f0f9ff",
-            progressBarColor: bar.progressBarColor || "#3b82f6",
-            showPercentage: (_a2 = bar.showPercentage) != null ? _a2 : true,
-            currency: bar.currency || "INR",
-            cart,
-            isPreview: false
-          })
-        );
+      const container = document.getElementById(CONTAINER_ID);
+      if (!container)
+        return;
+      const props = {
+        thresholdMode: bar.thresholdMode || "amount",
+        thresholdAmount: parseFloat(bar.thresholdAmount) || 0,
+        thresholdCount: parseInt(bar.thresholdCount) || 0,
+        beforeThresholdMessage: bar.beforeThresholdMessage || "Add {remaining} for FREE shipping",
+        afterThresholdMessage: bar.afterThresholdMessage || "\u{1F389} You qualify for FREE shipping!",
+        backgroundColor: bar.backgroundColor || "#f0f9ff",
+        progressBarColor: bar.progressBarColor || "#3b82f6",
+        showPercentage: (_a2 = bar.showPercentage) != null ? _a2 : true,
+        currency: bar.currency || "INR",
+        cart,
+        isPreview: false
+      };
+      if (!reactRoots[CONTAINER_ID]) {
+        reactRoots[CONTAINER_ID] = (0, import_client.createRoot)(container);
       }
+      reactRoots[CONTAINER_ID].render(import_react.default.createElement(FreeShippingBar, props));
     }, 0);
     return html;
   }
@@ -9172,34 +9173,35 @@
   };
 
   // extensions/cart-upsell/assets/modules/renderers/promotional-banner.js
-  function renderPromotionalBanner(config) {
+  var CONTAINER_ID2 = "upsellity-promo-banner-root";
+  function renderPromotionalBanner(config, reactRoots = {}) {
     if (!config.features.promotionalBanner) {
       return "";
     }
     const banner = config.features.promotionalBanner;
     const slides = banner.images || [];
     if (slides.length === 0) {
-      return '<div id="upsellity-promo-banner-root"></div>';
+      return `<div id="${CONTAINER_ID2}"></div>`;
     }
-    const containerId = `upsellity-promo-banner-root-${Date.now()}`;
-    const html = `<div id="${containerId}"></div>`;
+    const html = `<div id="${CONTAINER_ID2}"></div>`;
     setTimeout(() => {
-      const container = document.getElementById(containerId);
-      if (container) {
-        const root = (0, import_client2.createRoot)(container);
-        root.render(
-          import_react3.default.createElement(PromotionalBannerCard, {
-            slides,
-            carouselSettings: banner.carouselSettings || {},
-            onCtaClick: (url) => {
-              if (url && window.upsellityDrawer) {
-                window.upsellityDrawer.handleSlideCtaClick(url);
-              }
-            },
-            isPreview: false
-          })
-        );
+      const container = document.getElementById(CONTAINER_ID2);
+      if (!container)
+        return;
+      const props = {
+        slides,
+        carouselSettings: banner.carouselSettings || {},
+        onCtaClick: (url) => {
+          if (url && window.upsellityDrawer) {
+            window.upsellityDrawer.handleSlideCtaClick(url);
+          }
+        },
+        isPreview: false
+      };
+      if (!reactRoots[CONTAINER_ID2]) {
+        reactRoots[CONTAINER_ID2] = (0, import_client2.createRoot)(container);
       }
+      reactRoots[CONTAINER_ID2].render(import_react3.default.createElement(PromotionalBannerCard, props));
     }, 0);
     return html;
   }
@@ -9565,32 +9567,33 @@
   };
 
   // extensions/cart-upsell/assets/modules/renderers/cart-items.js
-  function renderCartItems(cart, productCompareAtPrices, appliedDiscount) {
-    const containerId = `upsellity-cart-items-root-${Date.now()}`;
-    const html = `<div id="${containerId}"></div>`;
+  var CONTAINER_ID3 = "upsellity-cart-items-root";
+  function renderCartItems(cart, productCompareAtPrices, appliedDiscount, reactRoots = {}) {
+    const html = `<div id="${CONTAINER_ID3}"></div>`;
     setTimeout(() => {
-      const container = document.getElementById(containerId);
-      if (container) {
-        const root = (0, import_client3.createRoot)(container);
-        root.render(
-          import_react5.default.createElement(CartItems, {
-            items: cart.items,
-            productCompareAtPrices,
-            appliedDiscount,
-            onUpdateQuantity: (key, quantity) => {
-              if (window.upsellityDrawer) {
-                window.upsellityDrawer.updateQuantity(key, quantity);
-              }
-            },
-            onRemoveItem: (key) => {
-              if (window.upsellityDrawer) {
-                window.upsellityDrawer.removeItem(key);
-              }
-            },
-            isPreview: false
-          })
-        );
+      const container = document.getElementById(CONTAINER_ID3);
+      if (!container)
+        return;
+      const props = {
+        items: cart.items,
+        productCompareAtPrices,
+        appliedDiscount,
+        onUpdateQuantity: (key, quantity) => {
+          if (window.upsellityDrawer) {
+            window.upsellityDrawer.updateQuantity(key, quantity);
+          }
+        },
+        onRemoveItem: (key) => {
+          if (window.upsellityDrawer) {
+            window.upsellityDrawer.removeItem(key);
+          }
+        },
+        isPreview: false
+      };
+      if (!reactRoots[CONTAINER_ID3]) {
+        reactRoots[CONTAINER_ID3] = (0, import_client3.createRoot)(container);
       }
+      reactRoots[CONTAINER_ID3].render(import_react5.default.createElement(CartItems, props));
     }, 0);
     return html;
   }
@@ -9964,7 +9967,8 @@
   };
 
   // extensions/cart-upsell/assets/modules/renderers/product-recommendations.js
-  function renderProductRecommendations(config) {
+  var CONTAINER_ID4 = "upsellity-product-recs-root";
+  function renderProductRecommendations(config, reactRoots = {}) {
     if (!config.features.productRecommendations) {
       return "";
     }
@@ -9973,31 +9977,31 @@
     if (products.length === 0) {
       return "";
     }
-    const containerId = `upsellity-product-recs-root-${Date.now()}`;
-    const html = `<div id="${containerId}"></div>`;
+    const html = `<div id="${CONTAINER_ID4}"></div>`;
     setTimeout(() => {
       var _a, _b, _c;
-      const container = document.getElementById(containerId);
-      if (container) {
-        const root = (0, import_client4.createRoot)(container);
-        root.render(
-          import_react7.default.createElement(ProductRecommendations, {
-            title: recommendations.title || "You may also like",
-            products,
-            layout: recommendations.layout || "carousel",
-            maxProducts: recommendations.maxProducts || 4,
-            showDiscount: (_a = recommendations.showDiscount) != null ? _a : true,
-            showDiscountBadge: (_b = recommendations.showDiscountBadge) != null ? _b : true,
-            showAddButton: (_c = recommendations.showAddButton) != null ? _c : true,
-            onAddToCart: (variantId) => {
-              if (window.upsellityDrawer) {
-                window.upsellityDrawer.addProductToCart(variantId);
-              }
-            },
-            isPreview: false
-          })
-        );
+      const container = document.getElementById(CONTAINER_ID4);
+      if (!container)
+        return;
+      const props = {
+        title: recommendations.title || "You may also like",
+        products,
+        layout: recommendations.layout || "carousel",
+        maxProducts: recommendations.maxProducts || 4,
+        showDiscount: (_a = recommendations.showDiscount) != null ? _a : true,
+        showDiscountBadge: (_b = recommendations.showDiscountBadge) != null ? _b : true,
+        showAddButton: (_c = recommendations.showAddButton) != null ? _c : true,
+        onAddToCart: (variantId) => {
+          if (window.upsellityDrawer) {
+            window.upsellityDrawer.addProductToCart(variantId);
+          }
+        },
+        isPreview: false
+      };
+      if (!reactRoots[CONTAINER_ID4]) {
+        reactRoots[CONTAINER_ID4] = (0, import_client4.createRoot)(container);
       }
+      reactRoots[CONTAINER_ID4].render(import_react7.default.createElement(ProductRecommendations, props));
     }, 0);
     return html;
   }
@@ -10036,7 +10040,8 @@
   };
 
   // extensions/cart-upsell/assets/modules/renderers/savings-display.js
-  function renderSavingsDisplay(config, cart, appliedDiscount) {
+  var CONTAINER_ID5 = "upsellity-savings-display-root";
+  function renderSavingsDisplay(config, cart, appliedDiscount, reactRoots = {}) {
     if (!config.features.savingsDisplay) {
       return "";
     }
@@ -10049,22 +10054,22 @@
     if (totalSavings <= 0) {
       return "";
     }
-    const containerId = `upsellity-savings-display-root-${Date.now()}`;
-    const html = `<div id="${containerId}"></div>`;
+    const html = `<div id="${CONTAINER_ID5}"></div>`;
     setTimeout(() => {
-      const container = document.getElementById(containerId);
-      if (container) {
-        const root = (0, import_client5.createRoot)(container);
-        root.render(
-          import_react8.default.createElement(SavingsDisplay, {
-            message: savingsCfg.message || "You saved {amount}!",
-            amount: totalSavings,
-            backgroundColor: savingsCfg.backgroundColor || "#dcfce7",
-            textColor: savingsCfg.textColor || "#15803d",
-            isPreview: false
-          })
-        );
+      const container = document.getElementById(CONTAINER_ID5);
+      if (!container)
+        return;
+      const props = {
+        message: savingsCfg.message || "You saved {amount}!",
+        amount: totalSavings,
+        backgroundColor: savingsCfg.backgroundColor || "#dcfce7",
+        textColor: savingsCfg.textColor || "#15803d",
+        isPreview: false
+      };
+      if (!reactRoots[CONTAINER_ID5]) {
+        reactRoots[CONTAINER_ID5] = (0, import_client5.createRoot)(container);
       }
+      reactRoots[CONTAINER_ID5].render(import_react8.default.createElement(SavingsDisplay, props));
     }, 0);
     return html;
   }
@@ -10129,30 +10134,31 @@
   };
 
   // extensions/cart-upsell/assets/modules/renderers/free-shipping-message.js
-  function renderFreeShippingMessage(config, cart) {
+  var CONTAINER_ID6 = "upsellity-free-shipping-msg-root";
+  function renderFreeShippingMessage(config, cart, reactRoots = {}) {
     if (!config.features.freeShippingMessage) {
       return "";
     }
     const msg = config.features.freeShippingMessage;
-    const containerId = `upsellity-free-shipping-msg-root-${Date.now()}`;
-    const html = `<div id="${containerId}"></div>`;
+    const html = `<div id="${CONTAINER_ID6}"></div>`;
     setTimeout(() => {
-      const container = document.getElementById(containerId);
-      if (container) {
-        const root = (0, import_client6.createRoot)(container);
-        root.render(
-          import_react9.default.createElement(FreeShippingMessage, {
-            thresholdAmount: parseFloat(msg.thresholdAmount) || 0,
-            cartTotal: cart.total_price,
-            beforeThresholdMessage: msg.beforeThresholdMessage || "Add {remaining} more for FREE shipping",
-            achievedMessage: msg.achievedMessage || "You qualify for FREE shipping!",
-            backgroundColor: msg.backgroundColor || "#fef3c7",
-            textColor: msg.textColor || "#92400e",
-            currency: msg.currency || "INR",
-            isPreview: false
-          })
-        );
+      const container = document.getElementById(CONTAINER_ID6);
+      if (!container)
+        return;
+      const props = {
+        thresholdAmount: parseFloat(msg.thresholdAmount) || 0,
+        cartTotal: cart.total_price,
+        beforeThresholdMessage: msg.beforeThresholdMessage || "Add {remaining} more for FREE shipping",
+        achievedMessage: msg.achievedMessage || "You qualify for FREE shipping!",
+        backgroundColor: msg.backgroundColor || "#fef3c7",
+        textColor: msg.textColor || "#92400e",
+        currency: msg.currency || "INR",
+        isPreview: false
+      };
+      if (!reactRoots[CONTAINER_ID6]) {
+        reactRoots[CONTAINER_ID6] = (0, import_client6.createRoot)(container);
       }
+      reactRoots[CONTAINER_ID6].render(import_react9.default.createElement(FreeShippingMessage, props));
     }, 0);
     return html;
   }
@@ -10408,47 +10414,48 @@
   };
 
   // extensions/cart-upsell/assets/modules/renderers/coupon-code-field.js
-  function renderCouponCodeField(config, appliedDiscount, availableDiscounts, showingAllOffers) {
+  var CONTAINER_ID7 = "upsellity-coupon-field-root";
+  var COMPONENT_ID = "upsellity-coupon-field";
+  function renderCouponCodeField(config, appliedDiscount, availableDiscounts, showingAllOffers, reactRoots = {}) {
     if (!config.features.couponCodeField) {
       return "";
     }
     const couponField = config.features.couponCodeField;
-    const containerId = `upsellity-coupon-field-root-${Date.now()}`;
-    const componentId = `upsellity-coupon-field-${Date.now()}`;
-    const html = `<div id="${containerId}"></div>`;
+    const html = `<div id="${CONTAINER_ID7}"></div>`;
     setTimeout(() => {
-      const container = document.getElementById(containerId);
-      if (container && !document.getElementById(componentId)) {
-        const root = (0, import_client7.createRoot)(container);
-        root.render(
-          import_react11.default.createElement(CouponCodeField, {
-            id: componentId,
-            placeholder: couponField.placeholder || "Enter coupon code",
-            buttonText: couponField.buttonText || "Apply",
-            showAllOffers: couponField.showAllOffers || false,
-            showAllOffersButtonText: couponField.showAllOffersButtonText || "Show all offers",
-            enableAutoApply: couponField.enableAutoApply || false,
-            appliedDiscount,
-            availableDiscounts,
-            onApplyCoupon: (code) => {
-              if (window.upsellityDrawer) {
-                window.upsellityDrawer.applyCouponWithCode(code);
-              }
-            },
-            onRemoveDiscount: () => {
-              if (window.upsellityDrawer) {
-                window.upsellityDrawer.removeDiscount();
-              }
-            },
-            onSwitchDiscount: (code) => {
-              if (window.upsellityDrawer) {
-                window.upsellityDrawer.switchDiscount(code);
-              }
-            },
-            isPreview: false
-          })
-        );
+      const container = document.getElementById(CONTAINER_ID7);
+      if (!container)
+        return;
+      const props = {
+        id: COMPONENT_ID,
+        placeholder: couponField.placeholder || "Enter coupon code",
+        buttonText: couponField.buttonText || "Apply",
+        showAllOffers: couponField.showAllOffers || false,
+        showAllOffersButtonText: couponField.showAllOffersButtonText || "Show all offers",
+        enableAutoApply: couponField.enableAutoApply || false,
+        appliedDiscount,
+        availableDiscounts,
+        onApplyCoupon: (code) => {
+          if (window.upsellityDrawer) {
+            window.upsellityDrawer.applyCouponWithCode(code);
+          }
+        },
+        onRemoveDiscount: () => {
+          if (window.upsellityDrawer) {
+            window.upsellityDrawer.removeDiscount();
+          }
+        },
+        onSwitchDiscount: (code) => {
+          if (window.upsellityDrawer) {
+            window.upsellityDrawer.switchDiscount(code);
+          }
+        },
+        isPreview: false
+      };
+      if (!reactRoots[CONTAINER_ID7]) {
+        reactRoots[CONTAINER_ID7] = (0, import_client7.createRoot)(container);
       }
+      reactRoots[CONTAINER_ID7].render(import_react11.default.createElement(CouponCodeField, props));
     }, 0);
     return html;
   }
@@ -10580,22 +10587,23 @@
   };
 
   // extensions/cart-upsell/assets/modules/renderers/cart-totals.js
-  function renderCartTotals(cart, appliedDiscount) {
-    const containerId = `upsellity-cart-totals-root-${Date.now()}`;
-    const html = `<div id="${containerId}"></div>`;
+  var CONTAINER_ID8 = "upsellity-cart-totals-root";
+  function renderCartTotals(cart, appliedDiscount, reactRoots = {}) {
+    const html = `<div id="${CONTAINER_ID8}"></div>`;
     setTimeout(() => {
-      const container = document.getElementById(containerId);
-      if (container) {
-        const root = (0, import_client8.createRoot)(container);
-        root.render(
-          import_react12.default.createElement(CartTotals, {
-            items: cart.items,
-            totalPrice: cart.total_price,
-            appliedDiscount,
-            isPreview: false
-          })
-        );
+      const container = document.getElementById(CONTAINER_ID8);
+      if (!container)
+        return;
+      const props = {
+        items: cart.items,
+        totalPrice: cart.total_price,
+        appliedDiscount,
+        isPreview: false
+      };
+      if (!reactRoots[CONTAINER_ID8]) {
+        reactRoots[CONTAINER_ID8] = (0, import_client8.createRoot)(container);
       }
+      reactRoots[CONTAINER_ID8].render(import_react12.default.createElement(CartTotals, props));
     }, 0);
     return html;
   }
@@ -10612,6 +10620,8 @@
       this.availableDiscounts = [];
       this.showingAllOffers = false;
       this.productCompareAtPrices = {};
+      this.reactRoots = {};
+      this.isInitialRender = true;
       this.init();
     }
     async init() {
@@ -10739,7 +10749,6 @@
       }
     }
     render() {
-      var _a;
       if (!this.cart)
         return;
       const drawer = document.getElementById("upsellity-cart-drawer");
@@ -10752,36 +10761,32 @@
         console.error("Upsellity: Drawer inner element not found");
         return;
       }
+      if (this.isInitialRender) {
+        this.renderInitial(inner);
+        this.isInitialRender = false;
+      } else {
+        this.renderUpdate(inner);
+      }
+    }
+    renderInitial(inner) {
+      var _a;
       let html = `
       <button class="upsellity-close-btn" onclick="window.upsellityDrawer.close()">\xD7</button>
-      <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 20px;">
+      <h2 id="upsellity-cart-header" style="font-size: 20px; font-weight: 600; margin-bottom: 20px;">
         Your Cart (${this.cart.item_count} items)
       </h2>
     `;
-      const sections = {
-        "free-shipping-bar": renderFreeShippingBar(this.config, this.cart),
-        "promotional-banner": renderPromotionalBanner(this.config),
-        [FEATURE_ORDER_SENTINEL]: renderCartItems(this.cart, this.productCompareAtPrices, this.appliedDiscount),
-        "product-recommendations": renderProductRecommendations(this.config),
-        "savings-display": renderSavingsDisplay(this.config, this.cart, this.appliedDiscount),
-        "free-shipping-message": renderFreeShippingMessage(this.config, this.cart),
-        "coupon-code": renderCouponCodeField(this.config, this.appliedDiscount, this.availableDiscounts, this.showingAllOffers)
-      };
       const { beforeItems, afterItems } = splitFeatureOrder((_a = this.config) == null ? void 0 : _a.featureOrder);
       beforeItems.forEach((id) => {
-        if (sections[id])
-          html += `<div style="margin-bottom: 12px;">${sections[id]}</div>`;
+        html += `<div id="upsellity-section-${id}" style="margin-bottom: 12px;"></div>`;
       });
-      if (sections[FEATURE_ORDER_SENTINEL]) {
-        html += `<div style="margin-bottom: 12px;">${sections[FEATURE_ORDER_SENTINEL]}</div>`;
-      }
+      html += `<div id="upsellity-section-cart-items" style="margin-bottom: 12px;"></div>`;
       afterItems.forEach((id) => {
-        if (sections[id])
-          html += `<div style="margin-bottom: 12px;">${sections[id]}</div>`;
+        html += `<div id="upsellity-section-${id}" style="margin-bottom: 12px;"></div>`;
       });
-      html += `<div style="margin-bottom: 12px;">${renderCartTotals(this.cart, this.appliedDiscount)}</div>`;
+      html += `<div id="upsellity-section-cart-totals" style="margin-bottom: 12px;"></div>`;
       html += `
-      <button class="upsellity-checkout-btn" onclick="window.location.href='${getCheckoutUrl(this.appliedDiscount)}'">
+      <button class="upsellity-checkout-btn" id="upsellity-checkout-btn" onclick="window.location.href='${getCheckoutUrl(this.appliedDiscount)}'">
         Checkout
       </button>
       <div style="text-align: center; font-size: 12px; color: #6b7280; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 12px;">
@@ -10797,11 +10802,83 @@
       </div>
     `;
       inner.innerHTML = html;
+      this.updateAllSections();
+    }
+    renderUpdate(inner) {
+      const header = inner.querySelector("#upsellity-cart-header");
+      if (header) {
+        header.textContent = `Your Cart (${this.cart.item_count} items)`;
+      }
+      const checkoutBtn = inner.querySelector("#upsellity-checkout-btn");
+      if (checkoutBtn) {
+        checkoutBtn.onclick = () => window.location.href = getCheckoutUrl(this.appliedDiscount);
+      }
+      this.updateAllSections();
+    }
+    updateAllSections() {
+      var _a;
+      const sections = {
+        "free-shipping-bar": {
+          render: () => renderFreeShippingBar(this.config, this.cart, this.reactRoots),
+          reactComponent: true
+        },
+        "promotional-banner": {
+          render: () => renderPromotionalBanner(this.config, this.reactRoots),
+          reactComponent: true
+        },
+        "cart-items": {
+          render: () => renderCartItems(this.cart, this.productCompareAtPrices, this.appliedDiscount, this.reactRoots),
+          reactComponent: true
+        },
+        "product-recommendations": {
+          render: () => renderProductRecommendations(this.config, this.reactRoots),
+          reactComponent: true
+        },
+        "savings-display": {
+          render: () => renderSavingsDisplay(this.config, this.cart, this.appliedDiscount, this.reactRoots),
+          reactComponent: true
+        },
+        "free-shipping-message": {
+          render: () => renderFreeShippingMessage(this.config, this.cart, this.reactRoots),
+          reactComponent: true
+        },
+        "coupon-code": {
+          render: () => renderCouponCodeField(this.config, this.appliedDiscount, this.availableDiscounts, this.showingAllOffers, this.reactRoots),
+          reactComponent: true
+        },
+        "cart-totals": {
+          render: () => renderCartTotals(this.cart, this.appliedDiscount, this.reactRoots),
+          reactComponent: true
+        }
+      };
+      const { beforeItems, afterItems } = splitFeatureOrder((_a = this.config) == null ? void 0 : _a.featureOrder);
+      [...beforeItems, "cart-items", ...afterItems, "cart-totals"].forEach((id) => {
+        var _a2;
+        const section = sections[id];
+        if (!section)
+          return;
+        const container = document.getElementById(`upsellity-section-${id}`);
+        if (!container)
+          return;
+        const content = section.render();
+        if (section.reactComponent) {
+          const innerContainerId = (_a2 = content.match(/id="([^"]+)"/)) == null ? void 0 : _a2[1];
+          if (innerContainerId && !document.getElementById(innerContainerId)) {
+            container.innerHTML = content;
+          }
+        } else {
+          container.innerHTML = content;
+        }
+      });
     }
     async open() {
       const drawer = document.getElementById("upsellity-cart-drawer");
+      const wasOpen = this.isOpen;
       drawer.classList.add("open");
       this.isOpen = true;
+      if (!wasOpen) {
+        this.isInitialRender = true;
+      }
       await this.loadConfig();
       await this.loadCart();
     }
@@ -10809,6 +10886,13 @@
       const drawer = document.getElementById("upsellity-cart-drawer");
       drawer.classList.remove("open");
       this.isOpen = false;
+      Object.values(this.reactRoots).forEach((root) => {
+        try {
+          root.unmount();
+        } catch (e) {
+        }
+      });
+      this.reactRoots = {};
     }
     // Handle promotional banner CTA clicks
     handleSlideCtaClick(url) {

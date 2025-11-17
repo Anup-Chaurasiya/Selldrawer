@@ -7,7 +7,9 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { ProductRecommendations } from '../../../../../app/components/shared/ProductRecommendations.tsx';
 
-export function renderProductRecommendations(config) {
+const CONTAINER_ID = 'upsellity-product-recs-root';
+
+export function renderProductRecommendations(config, reactRoots = {}) {
   if (!config.features.productRecommendations) {
     return '';
   }
@@ -19,35 +21,34 @@ export function renderProductRecommendations(config) {
     return '';
   }
 
-  // Create a unique container for this render
-  const containerId = `upsellity-product-recs-root-${Date.now()}`;
+  const html = `<div id="${CONTAINER_ID}"></div>`;
 
-  // Return the container that will be hydrated with React
-  const html = `<div id="${containerId}"></div>`;
-
-  // Hydrate the React component after DOM is ready
   setTimeout(() => {
-    const container = document.getElementById(containerId);
-    if (container) {
-      const root = createRoot(container);
-      root.render(
-        React.createElement(ProductRecommendations, {
-          title: recommendations.title || "You may also like",
-          products: products,
-          layout: recommendations.layout || 'carousel',
-          maxProducts: recommendations.maxProducts || 4,
-          showDiscount: recommendations.showDiscount ?? true,
-          showDiscountBadge: recommendations.showDiscountBadge ?? true,
-          showAddButton: recommendations.showAddButton ?? true,
-          onAddToCart: (variantId) => {
-            if (window.upsellityDrawer) {
-              window.upsellityDrawer.addProductToCart(variantId);
-            }
-          },
-          isPreview: false
-        })
-      );
+    const container = document.getElementById(CONTAINER_ID);
+    if (!container) return;
+
+    const props = {
+      title: recommendations.title || "You may also like",
+      products: products,
+      layout: recommendations.layout || 'carousel',
+      maxProducts: recommendations.maxProducts || 4,
+      showDiscount: recommendations.showDiscount ?? true,
+      showDiscountBadge: recommendations.showDiscountBadge ?? true,
+      showAddButton: recommendations.showAddButton ?? true,
+      onAddToCart: (variantId) => {
+        if (window.upsellityDrawer) {
+          window.upsellityDrawer.addProductToCart(variantId);
+        }
+      },
+      isPreview: false
+    };
+
+    // Reuse existing root or create new one
+    if (!reactRoots[CONTAINER_ID]) {
+      reactRoots[CONTAINER_ID] = createRoot(container);
     }
+    
+    reactRoots[CONTAINER_ID].render(React.createElement(ProductRecommendations, props));
   }, 0);
 
   return html;

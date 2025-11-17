@@ -7,40 +7,41 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { FreeShippingBar } from '../../../../../app/components/shared/FreeShippingBar.tsx';
 
-export function renderFreeShippingBar(config, cart) {
+const CONTAINER_ID = 'upsellity-free-shipping-bar-root';
+
+export function renderFreeShippingBar(config, cart, reactRoots = {}) {
   const bar = config?.features?.freeShippingProgressBar;
   
   if (!bar) {
     return '';
   }
 
-  // Create a unique container for this render
-  const containerId = `upsellity-free-shipping-bar-root-${Date.now()}`;
+  const html = `<div id="${CONTAINER_ID}"></div>`;
 
-  // Return the container that will be hydrated with React
-  const html = `<div id="${containerId}"></div>`;
-
-  // Hydrate the React component after DOM is ready
   setTimeout(() => {
-    const container = document.getElementById(containerId);
-    if (container) {
-      const root = createRoot(container);
-      root.render(
-        React.createElement(FreeShippingBar, {
-          thresholdMode: bar.thresholdMode || 'amount',
-          thresholdAmount: parseFloat(bar.thresholdAmount) || 0,
-          thresholdCount: parseInt(bar.thresholdCount) || 0,
-          beforeThresholdMessage: bar.beforeThresholdMessage || 'Add {remaining} for FREE shipping',
-          afterThresholdMessage: bar.afterThresholdMessage || '🎉 You qualify for FREE shipping!',
-          backgroundColor: bar.backgroundColor || '#f0f9ff',
-          progressBarColor: bar.progressBarColor || '#3b82f6',
-          showPercentage: bar.showPercentage ?? true,
-          currency: bar.currency || 'INR',
-          cart: cart,
-          isPreview: false
-        })
-      );
+    const container = document.getElementById(CONTAINER_ID);
+    if (!container) return;
+
+    const props = {
+      thresholdMode: bar.thresholdMode || 'amount',
+      thresholdAmount: parseFloat(bar.thresholdAmount) || 0,
+      thresholdCount: parseInt(bar.thresholdCount) || 0,
+      beforeThresholdMessage: bar.beforeThresholdMessage || 'Add {remaining} for FREE shipping',
+      afterThresholdMessage: bar.afterThresholdMessage || '🎉 You qualify for FREE shipping!',
+      backgroundColor: bar.backgroundColor || '#f0f9ff',
+      progressBarColor: bar.progressBarColor || '#3b82f6',
+      showPercentage: bar.showPercentage ?? true,
+      currency: bar.currency || 'INR',
+      cart: cart,
+      isPreview: false
+    };
+
+    // Reuse existing root or create new one
+    if (!reactRoots[CONTAINER_ID]) {
+      reactRoots[CONTAINER_ID] = createRoot(container);
     }
+    
+    reactRoots[CONTAINER_ID].render(React.createElement(FreeShippingBar, props));
   }, 0);
 
   return html;

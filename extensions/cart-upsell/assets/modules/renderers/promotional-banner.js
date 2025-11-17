@@ -7,7 +7,9 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { PromotionalBannerCard } from '../../../../../app/components/shared/PromotionalBannerCard.tsx';
 
-export function renderPromotionalBanner(config) {
+const CONTAINER_ID = 'upsellity-promo-banner-root';
+
+export function renderPromotionalBanner(config, reactRoots = {}) {
   if (!config.features.promotionalBanner) {
     return '';
   }
@@ -16,34 +18,32 @@ export function renderPromotionalBanner(config) {
   const slides = banner.images || [];
   
   if (slides.length === 0) {
-    // Return a placeholder div that will be hydrated
-    return '<div id="upsellity-promo-banner-root"></div>';
+    return `<div id="${CONTAINER_ID}"></div>`;
   }
 
-  // Create a unique container for this render
-  const containerId = `upsellity-promo-banner-root-${Date.now()}`;
+  const html = `<div id="${CONTAINER_ID}"></div>`;
   
-  // Return the container that will be hydrated with React
-  const html = `<div id="${containerId}"></div>`;
-  
-  // Hydrate the React component after DOM is ready
   setTimeout(() => {
-    const container = document.getElementById(containerId);
-    if (container) {
-      const root = createRoot(container);
-      root.render(
-        React.createElement(PromotionalBannerCard, {
-          slides: slides,
-          carouselSettings: banner.carouselSettings || {},
-          onCtaClick: (url) => {
-            if (url && window.upsellityDrawer) {
-              window.upsellityDrawer.handleSlideCtaClick(url);
-            }
-          },
-          isPreview: false
-        })
-      );
+    const container = document.getElementById(CONTAINER_ID);
+    if (!container) return;
+
+    const props = {
+      slides: slides,
+      carouselSettings: banner.carouselSettings || {},
+      onCtaClick: (url) => {
+        if (url && window.upsellityDrawer) {
+          window.upsellityDrawer.handleSlideCtaClick(url);
+        }
+      },
+      isPreview: false
+    };
+
+    // Reuse existing root or create new one
+    if (!reactRoots[CONTAINER_ID]) {
+      reactRoots[CONTAINER_ID] = createRoot(container);
     }
+    
+    reactRoots[CONTAINER_ID].render(React.createElement(PromotionalBannerCard, props));
   }, 0);
   
   return html;
