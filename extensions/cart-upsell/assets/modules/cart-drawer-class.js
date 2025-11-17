@@ -73,6 +73,7 @@ export class UpsellityCartDrawer {
 
   async loadCart(cartData = null, skipRender = false) {
     try {
+      // Load cart data first (required for rendering)
       if (cartData) {
         this.cart = cartData;
       } else {
@@ -80,9 +81,21 @@ export class UpsellityCartDrawer {
         this.cart = await response.json();
       }
       
-      this.productCompareAtPrices = await ProductLoader.loadProductCompareAtPrices(this.cart);
+      // Render immediately if we're not skipping render
+      // This ensures drawer opens as soon as we have cart + config
+      if (!skipRender) {
+        this.render();
+      }
       
-      this.availableDiscounts = await DiscountManager.loadAvailableDiscounts(this.shop, this.config);
+      // Load all secondary data in parallel (can complete after drawer is open)
+      const [productCompareAtPrices, availableDiscounts] = await Promise.all([
+        ProductLoader.loadProductCompareAtPrices(this.cart),
+        DiscountManager.loadAvailableDiscounts(this.shop, this.config),
+        ProductLoader.loadShopifyRecommendations(this.cart, this.config)
+      ]);
+      
+      this.productCompareAtPrices = productCompareAtPrices;
+      this.availableDiscounts = availableDiscounts;
       
       // Auto-apply best discount only if user hasn't removed it recently
       if (this.config?.features?.couponCodeField?.enableAutoApply && 
@@ -92,8 +105,7 @@ export class UpsellityCartDrawer {
         this.appliedDiscount = DiscountManager.autoApplyBestDiscount(this.availableDiscounts, this.cart, this.config);
       }
       
-      await ProductLoader.loadShopifyRecommendations(this.cart, this.config);
-      
+      // Re-render after secondary data is loaded
       if (!skipRender) {
         this.render();
       }
@@ -136,10 +148,21 @@ export class UpsellityCartDrawer {
           });
           
           if (response.ok) {
-            // Load cart data without rendering, then open will handle the render
+            // Ensure config is loaded, then load cart and open
+            if (!this.config) {
+              await this.loadConfig();
+            }
+            
+            // Load fresh cart data
+            const cartResponse = await fetch('/cart.js');
+            this.cart = await cartResponse.json();
+            
+            // Mark that cart was just updated and open drawer
             this.cartJustUpdated = true;
-            await this.loadCart(null, true);
             await this.open();
+            
+            // Load secondary data in background
+            this.loadSecondaryData();
           } else {
             console.error('Upsellity: Failed to add to cart', await response.text());
           }
@@ -171,10 +194,21 @@ export class UpsellityCartDrawer {
         
          try {
            if (clonedResponse.ok) {
-             // Load cart data without rendering, then open will handle the render
+             // Ensure config is loaded, then load cart and open
+             if (!this.config) {
+               await this.loadConfig();
+             }
+             
+             // Load fresh cart data
+             const cartResponse = await fetch('/cart.js');
+             this.cart = await cartResponse.json();
+             
+             // Mark that cart was just updated and open drawer
              this.cartJustUpdated = true;
-             await this.loadCart(null, true);
              await this.open();
+             
+             // Load secondary data in background
+             this.loadSecondaryData();
            }
          } catch (error) {
            console.error('Upsellity: Error handling cart add', error);
@@ -406,21 +440,61 @@ export class UpsellityCartDrawer {
       this.isInitialRender = true;
     }
     
-    // If cart was just updated (add to cart), don't reload, just render
+    // If cart was just updated (add to cart), render and open immediately
     if (this.cartJustUpdated) {
       this.cartJustUpdated = false;
       this.render();
+      
+      // Open drawer immediately
+      document.body.style.overflow = 'hidden';
+      drawer.classList.add('open');
+      this.isOpen = true;
     } else {
       // Cart wasn't just updated, so reload to get fresh data
-      await this.loadConfig();
-      await this.loadCart();
+      // Load config and cart in parallel
+      await Promise.all([
+        this.loadConfig(),
+        fetch('/cart.js').then(res => res.json()).then(cart => {
+          this.cart = cart;
+        })
+      ]);
+      
+      // Render and open drawer immediately after config + cart are loaded
+      this.render();
+      document.body.style.overflow = 'hidden';
+      drawer.classList.add('open');
+      this.isOpen = true;
+      
+      // Load secondary data in background (will re-render when done)
+      this.loadSecondaryData();
     }
-    
-    // Prevent body scroll when drawer opens
-    document.body.style.overflow = 'hidden';
-    
-    drawer.classList.add('open');
-    this.isOpen = true;
+  }
+  
+  async loadSecondaryData() {
+    try {
+      // Load all secondary data in parallel
+      const [productCompareAtPrices, availableDiscounts] = await Promise.all([
+        ProductLoader.loadProductCompareAtPrices(this.cart),
+        DiscountManager.loadAvailableDiscounts(this.shop, this.config),
+        ProductLoader.loadShopifyRecommendations(this.cart, this.config)
+      ]);
+      
+      this.productCompareAtPrices = productCompareAtPrices;
+      this.availableDiscounts = availableDiscounts;
+      
+      // Auto-apply best discount only if user hasn't removed it recently
+      if (this.config?.features?.couponCodeField?.enableAutoApply && 
+          !this.appliedDiscount && 
+          this.availableDiscounts.length > 0 &&
+          !AutoApplyStorage.wasDiscountRemoved()) {
+        this.appliedDiscount = DiscountManager.autoApplyBestDiscount(this.availableDiscounts, this.cart, this.config);
+      }
+      
+      // Re-render with secondary data
+      this.render();
+    } catch (error) {
+      console.error('Upsellity: Failed to load secondary data', error);
+    }
   }
 
   close() {
