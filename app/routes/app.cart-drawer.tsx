@@ -1068,7 +1068,12 @@ export default function CartDrawerIndex() {
         <div style={{ 
           flex: '0 0 40%', 
           minWidth: '350px',
-          paddingLeft: '12px'
+          paddingLeft: '12px',
+          position: 'sticky',
+          top: '0',
+          height: 'fit-content',
+          maxHeight: 'calc(100vh)',
+          overflowY: 'auto' 
         }}>
           <MiniCartDrawerPreview
             cartDrawer={cartDrawer}
