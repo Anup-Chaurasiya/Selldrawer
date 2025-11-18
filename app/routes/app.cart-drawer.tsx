@@ -34,6 +34,7 @@ import {
   reorderFeatureOrder,
   splitFeatureOrder,
 } from "../utils/featureOrder";
+import { checkAppEmbedEnabled } from "../utils/appEmbed.server";
 import { PromotionalBannerCard } from "../components/shared/PromotionalBannerCard";
 import { ProductRecommendations } from "../components/shared/ProductRecommendations";
 import { FreeShippingBar } from "../components/shared/FreeShippingBar";
@@ -68,26 +69,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const error = url.searchParams.get("error");
 
   // Check if app embed is enabled
-  let appEmbedEnabled = false;
-  try {
-    // Query to check if theme app extension is enabled
-    const response = await admin.graphql(
-      `#graphql
-        query {
-          app {
-            installation {
-              launchUrl
-            }
-          }
-        }
-      `
-    );
-    // In a real implementation, you'd need to check the specific theme settings
-    // For now, we'll default to false - the merchant needs to enable it manually
-    appEmbedEnabled = false;
-  } catch (error) {
-    console.error("Error checking app embed status:", error);
-  }
+  const appEmbedEnabled = await checkAppEmbedEnabled(admin, session);
 
   // Get or create cart drawer configuration
   let cartDrawer = await prisma.cartDrawer.findUnique({
@@ -492,7 +474,6 @@ function MiniCartDrawerPreview({
               amount={Math.round(sampleCart.savings * 100)} // Convert to cents
               backgroundColor={savingsDisplay.backgroundColor || '#dcfce7'}
               textColor={savingsDisplay.textColor || '#15803d'}
-              isPreview={true}
             />
           )
         );
@@ -643,7 +624,6 @@ function MiniCartDrawerPreview({
             }]}
             totalPrice={Math.round(sampleCart.total * 100)} // Convert to cents
             appliedDiscount={null}
-            isPreview={true}
           />
 
           {/* Checkout Button */}
@@ -879,17 +859,20 @@ export default function CartDrawerIndex() {
                         {appEmbedEnabled ? "Enabled" : "Disabled"}
                       </Badge>
                     </InlineStack>
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      Enable and configure features to enhance your cart drawer. Toggle features on/off to see how they enhance the shopping experience.
-                    </Text>
+                    {!appEmbedEnabled &&
+                      <Text as="p" variant="bodyMd" tone="subdued">
+                        Enable and configure features to enhance your cart drawer. Toggle features on/off to see how they enhance the shopping experience.
+                      </Text>}
                   </BlockStack>
-                  <Button
-                    url="/app/cart-drawer/installation"
-                    variant="secondary"
-                  >
-                    View Installation Instructions
-                  </Button>
-                </InlineStack>
+                  {!appEmbedEnabled &&
+                    <Button
+                      url="/app/cart-drawer/installation"
+                      variant="secondary"
+                    >
+                      View Installation Instructions
+                    </Button>
+                  }
+                  </InlineStack>
               </BlockStack>
             </Card>
 

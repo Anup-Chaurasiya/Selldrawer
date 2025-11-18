@@ -20,6 +20,7 @@ import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { CheckIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { checkAppEmbedEnabled } from "../utils/appEmbed.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing, session, admin } = await authenticate.admin(request);
@@ -31,46 +32,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   });
 
   // Check if app embed is enabled
-  let appEmbedEnabled = false;
-  try {
-    const response = await admin.graphql(
-      `#graphql
-        query {
-          app {
-            installation {
-              activeSubscriptions {
-                id
-                name
-                status
-                trialDays
-                currentPeriodEnd
-              }
-            }
-          }
-        }
-      `
-    );
-    const data = await response.json();
-    
-    // Check theme app extensions status
-    const themeResponse = await admin.graphql(
-      `#graphql
-        query {
-          app {
-            installation {
-              launchUrl
-            }
-          }
-        }
-      `
-    );
-    
-    // For now, we'll assume app embed is disabled by default
-    // In production, you'd query the theme to check if the app embed block is enabled
-    appEmbedEnabled = false;
-  } catch (error) {
-    console.error("Error checking app embed status:", error);
-  }
+  const appEmbedEnabled = await checkAppEmbedEnabled(admin, session);
 
   // Get available plans from billing configuration
   const plans = [
@@ -312,41 +274,37 @@ export default function Index() {
                   </Text>
                   
                   {/* App Embed Status Banner */}
-                  <Banner
-                    title={appEmbedEnabled ? "Upsellity Enabled" : "Upsellity Disabled"}
-                    tone={appEmbedEnabled ? "success" : "warning"}
-                  >
-                    <BlockStack gap="200">
-                      {appEmbedEnabled ? (
-                        <Text as="p" variant="bodyMd">
-                          Your Upsellity app embed is active and running on your store.
-                        </Text>
-                      ) : (
-                        <>
-                          <Text as="p" variant="bodyMd">
-                            Now that you've installed Upsellity, you need to enable the <strong>Upsellity Bridge</strong> in your Shopify theme. This will not set your cart live yet.
-                          </Text>
-                          <BlockStack gap="100">
-                            <Text as="p" variant="bodyMd" fontWeight="semibold">
-                              1. Click the button below to enable the Upsellity Bridge from your theme editor.
+                  {!appEmbedEnabled && (
+                    <Banner
+                      title={"Upsellity Disabled"}
+                      tone={"warning"}
+                    >
+                      <BlockStack gap="200">
+                          <>
+                            <Text as="p" variant="bodyMd">
+                              Now that you've installed Upsellity, you need to enable the <strong>Upsellity Bridge</strong> in your Shopify theme. This will not set your cart live yet.
                             </Text>
-                            <Text as="p" variant="bodyMd" fontWeight="semibold">
-                              2. Ensure the Upsellity Bridge is toggled on and click save.
-                            </Text>
-                          </BlockStack>
-                          <Box paddingBlockStart="300">
-                            <Button
-                              variant="primary"
-                              url={`https://${shopDomain}/admin/themes/current/editor?context=apps&activateAppId=${apiKey}/cart-drawer-embed`}
-                              target="_blank"
-                            >
-                              Enable Upsellity Bridge
-                            </Button>
-                          </Box>
-                        </>
-                      )}
-                    </BlockStack>
-                  </Banner>
+                            <BlockStack gap="100">
+                              <Text as="p" variant="bodyMd" fontWeight="semibold">
+                                1. Click the button below to enable the Upsellity Bridge from your theme editor.
+                              </Text>
+                              <Text as="p" variant="bodyMd" fontWeight="semibold">
+                                2. Ensure the Upsellity Bridge is toggled on and click save.
+                              </Text>
+                            </BlockStack>
+                            <Box paddingBlockStart="300">
+                              <Button
+                                variant="primary"
+                                url={`https://${shopDomain}/admin/themes/current/editor?context=apps&activateAppId=${apiKey}/cart-drawer-embed`}
+                                target="_blank"
+                              >
+                                Enable Upsellity Bridge
+                              </Button>
+                            </Box>
+                          </>
+                      </BlockStack>
+                    </Banner>
+                  )}
 
                   <Divider />
 
