@@ -7,7 +7,7 @@
 
 {% comment %} Get app URL from settings or use default {% endcomment %}
 {% if block.settings.app_url != blank %}
-  {% assign app_url = "https://betty-accepted-focused-times.trycloudflare.com" %}
+  {% assign app_url = block.settings.app_url %}
 {% else %}
   {% assign app_url = "https://app.upsellity.com" %}
 {% endif %}
