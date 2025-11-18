@@ -89,10 +89,10 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
 
   // Auto-rotate carousel
   useEffect(() => {
-    if (slides && 
-        slides.length > 1 && 
-        carouselSettings.autoRotate !== false &&
-        !isScrolling.current) {
+    if (slides &&
+      slides.length > 1 &&
+      carouselSettings.autoRotate !== false &&
+      !isScrolling.current) {
       const interval = setInterval(() => {
         handleNext();
       }, carouselSettings.rotationSpeed || 5000);
@@ -116,16 +116,16 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
           height: '200px',
           backgroundColor: '#f9fafb'
         }}>
-          <img 
+          <img
             src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=200&fit=crop&crop=center"
             alt="Sample promotional banner"
-            style={{ 
-              width: '100%', 
-              height: '100%', 
+            style={{
+              width: '100%',
+              height: '100%',
               objectFit: 'cover'
             }}
           />
-          
+
           {/* Dot Indicators */}
           <div style={{
             position: 'absolute',
@@ -204,7 +204,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
             ›
           </button>
         </div>
-        
+
         {/* Text Content Section */}
         <div style={{
           backgroundColor: '#fff',
@@ -216,14 +216,14 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
           minHeight: '70px'
         }}>
           {/* Title & Description - Left Side */}
-          <div style={{ 
+          <div style={{
             flex: 1,
             textAlign: 'left',
             minWidth: 0
           }}>
-            <div style={{ 
-              fontWeight: '700', 
-              fontSize: '15px', 
+            <div style={{
+              fontWeight: '700',
+              fontSize: '15px',
               color: '#111827',
               marginBottom: '4px',
               lineHeight: '1.3',
@@ -231,8 +231,8 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
             }}>
               Summer Sale
             </div>
-            <div style={{ 
-              fontSize: '12px', 
+            <div style={{
+              fontSize: '12px',
               color: '#6b7280',
               lineHeight: '1.4',
               wordBreak: 'break-word'
@@ -270,11 +270,11 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         const embedUrl = getYouTubeEmbedUrl(slide.videoUrl);
         if (embedUrl) {
           return (
-            <div style={{ 
-              position: 'relative', 
-              width: '100%', 
+            <div style={{
+              width: '100%',
               height: '100%',
-              overflow: 'hidden'
+              objectFit: 'cover',
+              borderRadius: '12px' 
             }}>
               <iframe
                 src={embedUrl}
@@ -331,12 +331,12 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
     }
     // Fallback to image
     return (
-      <img 
+      <img
         src={slide.imageUrl || 'https://via.placeholder.com/400x200'}
         alt="Promotional banner"
-        style={{ 
-          width: '100%', 
-          height: '100%', 
+        style={{
+          width: '100%',
+          height: '100%',
           objectFit: 'cover'
         }}
       />
@@ -521,29 +521,22 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                 cursor: slide.ctaUrl ? 'pointer' : 'default',
                 transition: 'transform 0.2s ease, box-shadow 0.2s ease'
               }}
-              onMouseEnter={(e) => {
-                if (slide.ctaUrl) {
-                  e.currentTarget.style.transform = 'scale(1.02)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (slide.ctaUrl) {
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
-                }
-              }}
             >
               {/* Media Section */}
-              <div style={{
-                position: 'relative',
-                overflow: 'hidden',
-                height: '200px',
-                backgroundColor: '#f9fafb'
-              }}>
+              <div
+                style={{
+                  position: 'relative',
+                  overflow: 'hidden',
+                  aspectRatio: '16 / 9',      // 🔥 maintains consistent shape
+                  width: '100%',              // full width
+                  maxWidth: '360px',          // ideal container size
+                  height: 'auto',
+                  backgroundColor: '#f9fafb',
+                  borderRadius: '12px',
+                }}
+              >
                 {renderMedia(slide)}
               </div>
-
               {/* Text Content Section */}
               <div style={{
                 backgroundColor: '#fff',
@@ -556,15 +549,15 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
               }}>
                 {/* Title & Description */}
                 {(slide.title || slide.description) && (
-                  <div style={{ 
+                  <div style={{
                     flex: 1,
                     textAlign: 'left',
                     minWidth: 0
                   }}>
                     {slide.title && (
-                      <div style={{ 
-                        fontWeight: '700', 
-                        fontSize: '15px', 
+                      <div style={{
+                        fontWeight: '700',
+                        fontSize: '15px',
                         color: '#111827',
                         marginBottom: slide.description ? '4px' : '0',
                         lineHeight: '1.3',
@@ -574,8 +567,8 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                       </div>
                     )}
                     {slide.description && (
-                      <div style={{ 
-                        fontSize: '12px', 
+                      <div style={{
+                        fontSize: '12px',
                         color: '#6b7280',
                         lineHeight: '1.4',
                         wordBreak: 'break-word'
@@ -589,7 +582,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                 {/* CTA Button */}
                 {slide.ctaText && (
                   <div style={{ flexShrink: 0 }}>
-                    <button 
+                    <button
                       onClick={(e) => handleCtaClick(slide, e)}
                       style={{
                         backgroundColor: '#f3f4f6',
@@ -622,8 +615,8 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
             marginTop: '8px'
           }}>
             {slides.map((_, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 onClick={(e) => handleDotClick(index, e)}
                 style={{
                   width: '8px',
@@ -633,7 +626,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                   transition: 'all 0.2s ease',
                   cursor: 'pointer',
                   boxShadow: index === currentIndex ? '0 2px 4px rgba(0, 123, 255, 0.3)' : 'none'
-                }} 
+                }}
               />
             ))}
           </div>

@@ -1275,7 +1275,7 @@ export default function FrequentlyBoughtTogether() {
                           transition: 'all 0.2s'
                         }}
                       >
-                        Specific Trigger
+                        Specific Product
                       </button>
                       <span style={{ color: '#6b7280', fontWeight: '600', fontSize: '12px' }}>OR</span>
                       <button
@@ -1300,9 +1300,9 @@ export default function FrequentlyBoughtTogether() {
                     {/* Display Selected Trigger */}
                     {row.selectedTriggerProduct && (
                       <div style={{
-                        padding: '12px',
+                        padding: '16px',
                         border: '2px solid #3b82f6',
-                        borderRadius: '8px',
+                        borderRadius: '10px',
                         backgroundColor: '#ffffff',
                         boxShadow: '0 2px 4px rgba(59, 130, 246, 0.1)'
                       }}>
@@ -1385,7 +1385,8 @@ export default function FrequentlyBoughtTogether() {
 
                 {/* Upsell Product Column */}
                 <div style={{
-                  padding: '16px',
+                  
+                  padding: '18px',
                   backgroundColor: '#f0fdf4',
                   border: '2px solid #10b981',
                   borderRadius: '10px',
@@ -1402,7 +1403,7 @@ export default function FrequentlyBoughtTogether() {
                       onClick={() => updateUpsellRow(row.id, { showUpsellModal: true })}
                       tone="success"
                     >
-                      Add Recommended Product
+                      Add Recommended Products
                     </Button>
 
                     {/* Display Selected Upsell Products */}
@@ -1507,7 +1508,7 @@ export default function FrequentlyBoughtTogether() {
               tone="critical"
               icon={PlusIcon}
             >
-              Add New Rule
+              Add More Rule
             </Button>
 
           </BlockStack>

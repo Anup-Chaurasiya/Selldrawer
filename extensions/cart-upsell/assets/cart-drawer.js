@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.1
- * Built: 2025-11-18T09:10:41.978Z
+ * Built: 2025-11-18T15:15:34.632Z
  */
 "use strict";
 (() => {
@@ -8802,10 +8802,10 @@
           const embedUrl = getYouTubeEmbedUrl(slide.videoUrl);
           if (embedUrl) {
             return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-              position: "relative",
               width: "100%",
               height: "100%",
-              overflow: "hidden"
+              objectFit: "cover",
+              borderRadius: "12px"
             }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "iframe",
               {
@@ -9038,25 +9038,26 @@
                   cursor: slide.ctaUrl ? "pointer" : "default",
                   transition: "transform 0.2s ease, box-shadow 0.2s ease"
                 },
-                onMouseEnter: (e) => {
-                  if (slide.ctaUrl) {
-                    e.currentTarget.style.transform = "scale(1.02)";
-                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
-                  }
-                },
-                onMouseLeave: (e) => {
-                  if (slide.ctaUrl) {
-                    e.currentTarget.style.transform = "scale(1)";
-                    e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)";
-                  }
-                },
                 children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-                    position: "relative",
-                    overflow: "hidden",
-                    height: "200px",
-                    backgroundColor: "#f9fafb"
-                  }, children: renderMedia(slide) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "div",
+                    {
+                      style: {
+                        position: "relative",
+                        overflow: "hidden",
+                        aspectRatio: "16 / 9",
+                        // 🔥 maintains consistent shape
+                        width: "100%",
+                        // full width
+                        maxWidth: "360px",
+                        // ideal container size
+                        height: "auto",
+                        backgroundColor: "#f9fafb",
+                        borderRadius: "12px"
+                      },
+                      children: renderMedia(slide)
+                    }
+                  ),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
                     backgroundColor: "#fff",
                     padding: "12px 16px",

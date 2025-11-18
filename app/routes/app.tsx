@@ -25,8 +25,8 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/cart-drawer">Cart Drawer</Link>
-        {/* <Link to="/app/fbt">Frequently Bought Together</Link> */}
-        {/* <Link to="/app/nudge">Nudge Upsell</Link> */}
+        <Link to="/app/fbt">Frequently Bought Together</Link>
+        <Link to="/app/nudge">Nudge Upsell</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>
