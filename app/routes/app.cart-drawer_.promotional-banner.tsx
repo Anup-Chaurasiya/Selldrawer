@@ -377,6 +377,24 @@ function SlideEditor({
     ctaUrl: slide?.ctaUrl || "",
   });
 
+  // Character limits
+  const MAX_TITLE_LENGTH = 30;
+  const MAX_DESCRIPTION_LENGTH = 30;
+  const MAX_CTA_TEXT_LENGTH = 12;
+
+  // Validation errors
+  const titleError = formData.title.length > MAX_TITLE_LENGTH 
+    ? `Title must be ${MAX_TITLE_LENGTH} characters or less` 
+    : undefined;
+  const descriptionError = formData.description.length > MAX_DESCRIPTION_LENGTH 
+    ? `Description must be ${MAX_DESCRIPTION_LENGTH} characters or less` 
+    : undefined;
+  const ctaTextError = formData.ctaText.length > MAX_CTA_TEXT_LENGTH 
+    ? `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less` 
+    : undefined;
+
+  const hasValidationErrors = !!(titleError || descriptionError || ctaTextError);
+
   return (
     <Card>
       <BlockStack gap="400">
@@ -400,8 +418,10 @@ function SlideEditor({
             value={formData.title}
             onChange={(value) => setFormData({ ...formData, title: value })}
             placeholder="Summer Sale"
-            helpText="Title displayed on bottom-right"
+            helpText={`${formData.title.length}/${MAX_TITLE_LENGTH} characters`}
             autoComplete="off"
+            error={titleError}
+            maxLength={MAX_TITLE_LENGTH}
           />
 
           <TextField
@@ -409,9 +429,11 @@ function SlideEditor({
             value={formData.description}
             onChange={(value) => setFormData({ ...formData, description: value })}
             placeholder="Get 20% off all summer items"
-            helpText="Description displayed on bottom-right"
+            helpText={`${formData.description.length}/${MAX_DESCRIPTION_LENGTH} characters`}
             autoComplete="off"
             multiline={2}
+            error={descriptionError}
+            maxLength={MAX_DESCRIPTION_LENGTH}
           />
 
           <TextField
@@ -419,8 +441,10 @@ function SlideEditor({
             value={formData.ctaText}
             onChange={(value) => setFormData({ ...formData, ctaText: value })}
             placeholder="Shop Now"
-            helpText="Button text displayed on bottom-left"
+            helpText={`${formData.ctaText.length}/${MAX_CTA_TEXT_LENGTH} characters`}
             autoComplete="off"
+            error={ctaTextError}
+            maxLength={MAX_CTA_TEXT_LENGTH}
           />
 
           <TextField
@@ -439,7 +463,7 @@ function SlideEditor({
             variant="primary" 
             onClick={() => onSave(formData)}
             loading={isLoading}
-            disabled={!formData.mediaUrl}
+            disabled={!formData.mediaUrl || hasValidationErrors}
           >
             {slide ? "Update Slide" : "Add Slide"}
           </Button>

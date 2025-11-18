@@ -34,7 +34,7 @@ const getYouTubeEmbedUrl = (url: string): string | null => {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
   const videoId = (match && match[2].length === 11) ? match[2] : null;
-  return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0` : null;
+  return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0` : null;
 };
 
 // Helper function to get Vimeo embed URL
@@ -270,17 +270,27 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         const embedUrl = getYouTubeEmbedUrl(slide.videoUrl);
         if (embedUrl) {
           return (
-            <iframe
-              src={embedUrl}
-              style={{
-                width: '100%',
-                height: '100%',
-                border: 'none',
-                objectFit: 'cover'
-              }}
-              allow="autoplay; encrypted-media"
-              allowFullScreen
-            />
+            <div style={{ 
+              position: 'relative', 
+              width: '100%', 
+              height: '100%',
+              overflow: 'hidden'
+            }}>
+              <iframe
+                src={embedUrl}
+                style={{
+                  position: 'absolute',
+                  top: '-60px',
+                  left: '0',
+                  width: '100%',
+                  height: 'calc(100% + 120px)',
+                  border: 'none',
+                  pointerEvents: 'none'
+                }}
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+              />
+            </div>
           );
         }
       } else if (slide.videoType === 'vimeo') {
@@ -293,7 +303,8 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                 width: '100%',
                 height: '100%',
                 border: 'none',
-                objectFit: 'cover'
+                objectFit: 'cover',
+                pointerEvents: 'none'
               }}
               allow="autoplay; encrypted-media"
               allowFullScreen
@@ -307,7 +318,8 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover'
+              objectFit: 'cover',
+              pointerEvents: 'none'
             }}
             autoPlay
             loop
@@ -350,21 +362,39 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
     }, 500);
   };
 
-  const handlePrevious = () => {
+  const handlePrevious = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
     const newIndex = currentIndex > 0 ? currentIndex - 1 : slides.length - 1;
     scrollToIndex(newIndex);
   };
 
-  const handleNext = () => {
+  const handleNext = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
     const newIndex = currentIndex < slides.length - 1 ? currentIndex + 1 : 0;
     scrollToIndex(newIndex);
   };
 
-  const handleDotClick = (index: number) => {
+  const handleDotClick = (index: number, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
     scrollToIndex(index);
   };
 
-  const handleCtaClick = (slide: Slide) => {
+  const handleCtaClick = (slide: Slide, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    if (slide.ctaUrl && onCtaClick) {
+      onCtaClick(slide.ctaUrl);
+    }
+  };
+
+  const handleBannerClick = (slide: Slide) => {
     if (slide.ctaUrl && onCtaClick) {
       onCtaClick(slide.ctaUrl);
     }
@@ -386,7 +416,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         {/* Left Arrow */}
         {slides.length > 1 && canScrollLeft && (carouselSettings.showArrows !== false) && (
           <button
-            onClick={handlePrevious}
+            onClick={(e) => handlePrevious(e)}
             style={{
               position: 'absolute',
               left: '8px',
@@ -425,7 +455,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         {/* Right Arrow */}
         {slides.length > 1 && canScrollRight && (carouselSettings.showArrows !== false) && (
           <button
-            onClick={handleNext}
+            onClick={(e) => handleNext(e)}
             style={{
               position: 'absolute',
               right: '8px',
@@ -477,6 +507,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
           {slides.map((slide, index) => (
             <div
               key={index}
+              onClick={() => handleBannerClick(slide)}
               style={{
                 minWidth: slides.length > 1 ? '80%' : '100%',
                 maxWidth: slides.length > 1 ? '80%' : '100%',
@@ -486,7 +517,21 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                 overflow: 'hidden',
                 backgroundColor: '#fff',
                 border: '1px solid #e5e7eb',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                cursor: slide.ctaUrl ? 'pointer' : 'default',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (slide.ctaUrl) {
+                  e.currentTarget.style.transform = 'scale(1.02)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (slide.ctaUrl) {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+                }
               }}
             >
               {/* Media Section */}
@@ -545,7 +590,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                 {slide.ctaText && (
                   <div style={{ flexShrink: 0 }}>
                     <button 
-                      onClick={() => handleCtaClick(slide)}
+                      onClick={(e) => handleCtaClick(slide, e)}
                       style={{
                         backgroundColor: '#f3f4f6',
                         color: '#374151',
@@ -579,7 +624,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
             {slides.map((_, index) => (
               <div 
                 key={index} 
-                onClick={() => handleDotClick(index)}
+                onClick={(e) => handleDotClick(index, e)}
                 style={{
                   width: '8px',
                   height: '8px',

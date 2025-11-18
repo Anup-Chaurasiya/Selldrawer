@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.0
- * Built: 2025-11-17T16:59:06.066Z
+ * Built: 2025-11-18T06:44:15.328Z
  */
 "use strict";
 (() => {
@@ -8596,7 +8596,7 @@
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     const videoId = match && match[2].length === 11 ? match[2] : null;
-    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0` : null;
+    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0` : null;
   };
   var getVimeoEmbedUrl = (url) => {
     const regExp = /(?:vimeo)\.com.*(?:videos|video|channels|)\/([\d]+)/i;
@@ -8801,20 +8801,28 @@
         if (slide.videoType === "youtube") {
           const embedUrl = getYouTubeEmbedUrl(slide.videoUrl);
           if (embedUrl) {
-            return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+            return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+              position: "relative",
+              width: "100%",
+              height: "100%",
+              overflow: "hidden"
+            }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "iframe",
               {
                 src: embedUrl,
                 style: {
+                  position: "absolute",
+                  top: "-60px",
+                  left: "0",
                   width: "100%",
-                  height: "100%",
+                  height: "calc(100% + 120px)",
                   border: "none",
-                  objectFit: "cover"
+                  pointerEvents: "none"
                 },
                 allow: "autoplay; encrypted-media",
                 allowFullScreen: true
               }
-            );
+            ) });
           }
         } else if (slide.videoType === "vimeo") {
           const embedUrl = getVimeoEmbedUrl(slide.videoUrl);
@@ -8827,7 +8835,8 @@
                   width: "100%",
                   height: "100%",
                   border: "none",
-                  objectFit: "cover"
+                  objectFit: "cover",
+                  pointerEvents: "none"
                 },
                 allow: "autoplay; encrypted-media",
                 allowFullScreen: true
@@ -8842,7 +8851,8 @@
               style: {
                 width: "100%",
                 height: "100%",
-                objectFit: "cover"
+                objectFit: "cover",
+                pointerEvents: "none"
               },
               autoPlay: true,
               loop: true,
@@ -8880,18 +8890,35 @@
         isScrolling.current = false;
       }, 500);
     };
-    const handlePrevious = () => {
+    const handlePrevious = (e) => {
+      if (e) {
+        e.stopPropagation();
+      }
       const newIndex = currentIndex > 0 ? currentIndex - 1 : slides.length - 1;
       scrollToIndex(newIndex);
     };
-    const handleNext = () => {
+    const handleNext = (e) => {
+      if (e) {
+        e.stopPropagation();
+      }
       const newIndex = currentIndex < slides.length - 1 ? currentIndex + 1 : 0;
       scrollToIndex(newIndex);
     };
-    const handleDotClick = (index) => {
+    const handleDotClick = (index, e) => {
+      if (e) {
+        e.stopPropagation();
+      }
       scrollToIndex(index);
     };
-    const handleCtaClick = (slide) => {
+    const handleCtaClick = (slide, e) => {
+      if (e) {
+        e.stopPropagation();
+      }
+      if (slide.ctaUrl && onCtaClick) {
+        onCtaClick(slide.ctaUrl);
+      }
+    };
+    const handleBannerClick = (slide) => {
       if (slide.ctaUrl && onCtaClick) {
         onCtaClick(slide.ctaUrl);
       }
@@ -8910,7 +8937,7 @@
         slides.length > 1 && canScrollLeft && carouselSettings.showArrows !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "button",
           {
-            onClick: handlePrevious,
+            onClick: (e) => handlePrevious(e),
             style: {
               position: "absolute",
               left: "8px",
@@ -8947,7 +8974,7 @@
         slides.length > 1 && canScrollRight && carouselSettings.showArrows !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "button",
           {
-            onClick: handleNext,
+            onClick: (e) => handleNext(e),
             style: {
               position: "absolute",
               right: "8px",
@@ -8997,6 +9024,7 @@
             children: slides.map((slide, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
               "div",
               {
+                onClick: () => handleBannerClick(slide),
                 style: {
                   minWidth: slides.length > 1 ? "80%" : "100%",
                   maxWidth: slides.length > 1 ? "80%" : "100%",
@@ -9006,7 +9034,21 @@
                   overflow: "hidden",
                   backgroundColor: "#fff",
                   border: "1px solid #e5e7eb",
-                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                  cursor: slide.ctaUrl ? "pointer" : "default",
+                  transition: "transform 0.2s ease, box-shadow 0.2s ease"
+                },
+                onMouseEnter: (e) => {
+                  if (slide.ctaUrl) {
+                    e.currentTarget.style.transform = "scale(1.02)";
+                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
+                  }
+                },
+                onMouseLeave: (e) => {
+                  if (slide.ctaUrl) {
+                    e.currentTarget.style.transform = "scale(1)";
+                    e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)";
+                  }
                 },
                 children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
@@ -9047,7 +9089,7 @@
                     slide.ctaText && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                       "button",
                       {
-                        onClick: () => handleCtaClick(slide),
+                        onClick: (e) => handleCtaClick(slide, e),
                         style: {
                           backgroundColor: "#f3f4f6",
                           color: "#374151",
@@ -9078,7 +9120,7 @@
         }, children: slides.map((_, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "div",
           {
-            onClick: () => handleDotClick(index),
+            onClick: (e) => handleDotClick(index, e),
             style: {
               width: "8px",
               height: "8px",
