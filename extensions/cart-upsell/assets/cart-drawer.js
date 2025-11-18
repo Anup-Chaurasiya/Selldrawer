@@ -1,6 +1,6 @@
 /**
- * Upsellity Cart Drawer v1.0.0
- * Built: 2025-11-18T06:44:15.328Z
+ * Upsellity Cart Drawer v1.0.1
+ * Built: 2025-11-18T09:10:41.978Z
  */
 "use strict";
 (() => {
@@ -10931,7 +10931,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var CART_DRAWER_VERSION = true ? "1.0.0" : "dev";
+  var CART_DRAWER_VERSION = true ? "1.0.1" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {
       window.upsellityDrawer = new UpsellityCartDrawer();

@@ -8,7 +8,7 @@
 <script>
   (function() {
     // Version number for cache busting (update this when you release new versions)
-    var version = '{{ block.settings.version | default: "1.0.0" }}';
+    var version = '{{ block.settings.version | default: "1.0.1" }}';
     
     // Load the cart drawer CSS
     var link = document.createElement('link');
@@ -42,7 +42,7 @@
       "id": "version",
       "label": "Version",
       "info": "Version number for cache busting. Update this when you release new versions.",
-      "default": "1.0.0"
+      "default": "1.0.1"
     }
   ]
 }
