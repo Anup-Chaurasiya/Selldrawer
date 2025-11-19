@@ -3,12 +3,15 @@
  * Used in both production FBT widget and Remix preview
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FBTProductCard, FBTProduct } from './FBTProductCard';
+import { FBTTemplateCompact } from './FBTTemplateCompact';
+import { FBTTemplateMinimal } from './FBTTemplateMinimal';
 
 interface FBTConfig {
   title?: string;
   layout?: 'horizontal' | 'vertical' | 'grid';
+  templateType?: 'classic' | 'compact' | 'minimal';
   buttonText?: string;
   buttonColor?: string;
   buttonTextColor?: string;
@@ -47,10 +50,44 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
   );
   const [isAdding, setIsAdding] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isMobileCarousel, setIsMobileCarousel] = useState(false);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   const maxUpsells = config.limitUpsellsInCart && config.maxUpsellsInCart 
     ? config.maxUpsellsInCart 
     : null;
+
+  // Check if we should show mobile carousel
+  useEffect(() => {
+    const checkMobile = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobileCarousel(window.innerWidth <= 768);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const handlePrevSlide = () => {
+    setCurrentSlide(prev => Math.max(0, prev - 1));
+  };
+
+  const handleNextSlide = () => {
+    setCurrentSlide(prev => Math.min(recommendations.length - 1, prev + 1));
+  };
+
+  useEffect(() => {
+    if (carouselRef.current && isMobileCarousel) {
+      const slideWidth = carouselRef.current.offsetWidth;
+      carouselRef.current.scrollTo({
+        left: currentSlide * slideWidth,
+        behavior: 'smooth'
+      });
+    }
+  }, [currentSlide, isMobileCarousel]);
 
   const handleToggle = (variantId: string, checked: boolean) => {
     const newSelected = new Set(selectedProducts);
@@ -151,15 +188,12 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
   };
 
   const layout = config.layout || 'horizontal';
+  const templateType = config.templateType || 'classic';
   const total = calculateTotal();
   const originalTotal = calculateOriginalTotal();
   const hasDiscount = config.showDiscount && originalTotal > total;
   const selectedCount = selectedProducts.size;
   const isAtLimit = maxUpsells !== null && selectedCount >= maxUpsells;
-
-  // Check if running in browser (SSR safe)
-  const isBrowser = typeof window !== 'undefined';
-  const isMobile = isBrowser ? window.innerWidth <= 768 : false;
 
   if (showSuccess) {
     return (
@@ -175,36 +209,139 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
     );
   }
 
-  return (
-    <div className="upsellity-fbt-content">
-      <h2 
-        className="upsellity-fbt-title"
-        style={{
-          fontSize: '1.5rem',
-          fontWeight: '600',
-          marginBottom: '1.5rem',
-          color: '#111827',
-          lineHeight: 1.2
-        }}
-      >
-        {config.title || 'Frequently Bought Together'}
-      </h2>
+  // Render template based on type
+  const renderTemplate = () => {
+    if (templateType === 'compact') {
+      return (
+        <FBTTemplateCompact
+          recommendations={recommendations}
+          selectedProducts={selectedProducts}
+          config={config}
+          handleToggle={handleToggle}
+          isPreview={isPreview}
+          isAtLimit={isAtLimit}
+        />
+      );
+    } else if (templateType === 'minimal') {
+      return (
+        <FBTTemplateMinimal
+          recommendations={recommendations}
+          selectedProducts={selectedProducts}
+          config={config}
+          handleToggle={handleToggle}
+          isPreview={isPreview}
+          isAtLimit={isAtLimit}
+        />
+      );
+    } else {
+      // Classic template with carousel support for mobile
+      if (isMobileCarousel && recommendations.length > 1) {
+        return (
+          <div style={{ position: 'relative' }}>
+            <div 
+              ref={carouselRef}
+              className="upsellity-fbt-carousel"
+              style={{
+                display: 'flex',
+                overflow: 'hidden',
+                scrollSnapType: 'x mandatory',
+                gap: '1rem',
+                marginBottom: '1rem'
+              }}
+            >
+              {recommendations.map((product) => {
+                const variantId = product.variantId || product.id;
+                const isSelected = selectedProducts.has(variantId);
+                const isDisabled = isAtLimit && !isSelected;
+                
+                return (
+                  <div 
+                    key={variantId}
+                    style={{
+                      minWidth: '100%',
+                      scrollSnapAlign: 'start',
+                      flexShrink: 0
+                    }}
+                  >
+                    <FBTProductCard
+                      product={product}
+                      isSelected={isSelected}
+                      isDisabled={isDisabled}
+                      showCheckbox={config.showCheckboxes ?? true}
+                      showDiscount={config.showDiscount ?? true}
+                      showIndividualPrices={config.showIndividualPrices ?? true}
+                      showReviews={config.showProductReviews ?? false}
+                      onToggle={handleToggle}
+                      isPreview={isPreview}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            
+            {/* Carousel Controls */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <button
+                onClick={handlePrevSlide}
+                disabled={currentSlide === 0}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: currentSlide === 0 ? '#e5e7eb' : '#3b82f6',
+                  color: currentSlide === 0 ? '#9ca3af' : 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: currentSlide === 0 ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: '600'
+                }}
+              >
+                ← Prev
+              </button>
+              <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                {recommendations.map((_, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => setCurrentSlide(idx)}
+                    style={{
+                      width: idx === currentSlide ? '24px' : '8px',
+                      height: '8px',
+                      borderRadius: '4px',
+                      background: idx === currentSlide ? '#3b82f6' : '#d1d5db',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={handleNextSlide}
+                disabled={currentSlide === recommendations.length - 1}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: currentSlide === recommendations.length - 1 ? '#e5e7eb' : '#3b82f6',
+                  color: currentSlide === recommendations.length - 1 ? '#9ca3af' : 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: currentSlide === recommendations.length - 1 ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: '600'
+                }}
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        );
+      }
       
-      <div 
-        className="upsellity-fbt-layout"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : '1fr 320px',
-          gap: '1.25rem',
-          alignItems: 'center'
-        }}
-      >
+      // Classic desktop layout
+      return (
         <div 
           className={`upsellity-fbt-products layout-${layout}`}
           style={{
             display: layout === 'grid' ? 'grid' : 'flex',
-            gap: '1rem',
-            marginBottom: '1.5rem',
+            gap: '0.5rem',
+            marginBottom: '0.75rem',
             flexWrap: 'wrap',
             alignItems: 'stretch',
             ...(layout === 'horizontal' ? { flexDirection: 'row' } : {}),
@@ -239,10 +376,10 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '1.5rem',
+                      fontSize: '1rem',
                       color: '#6b7280',
                       fontWeight: '600',
-                      minWidth: '40px',
+                      minWidth: '20px',
                       flexShrink: 0
                     }}
                   >
@@ -253,6 +390,35 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
             );
           })}
         </div>
+      );
+    }
+  };
+
+  return (
+    <div className="upsellity-fbt-content">
+      <h2 
+        className="upsellity-fbt-title"
+        style={{
+          fontSize: '1rem',
+          fontWeight: '600',
+          marginBottom: '0.75rem',
+          color: '#111827',
+          lineHeight: 1.2
+        }}
+      >
+        {config.title || 'Frequently Bought Together'}
+      </h2>
+      
+      <div 
+        className="upsellity-fbt-layout"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: isMobileCarousel ? '1fr' : '1fr 240px',
+          gap: '0.75rem',
+          alignItems: 'center'
+        }}
+      >
+        {renderTemplate()}
         
         <div 
           className="upsellity-fbt-sidebar"
@@ -272,17 +438,17 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '1rem',
+                padding: '0.5rem 0.625rem',
                 background: '#f9fafb',
-                borderRadius: '6px',
-                marginBottom: '1rem',
+                borderRadius: '4px',
+                marginBottom: '0.5rem',
                 border: '1px solid #e5e7eb'
               }}
             >
               <span 
                 className="upsellity-fbt-total-label"
                 style={{
-                  fontSize: '1rem',
+                  fontSize: '0.8125rem',
                   fontWeight: '600',
                   color: '#111827'
                 }}
@@ -296,8 +462,8 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                     style={{
                       textDecoration: 'line-through',
                       color: '#9ca3af',
-                      marginRight: '0.5rem',
-                      fontSize: '1rem',
+                      marginRight: '0.375rem',
+                      fontSize: '0.8125rem',
                       fontWeight: '400'
                     }}
                   >
@@ -307,7 +473,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                 <span 
                   className="upsellity-fbt-total-price"
                   style={{
-                    fontSize: '1.25rem',
+                    fontSize: '1rem',
                     fontWeight: '700',
                     color: '#111827'
                   }}
@@ -324,10 +490,10 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
             disabled={selectedCount === 0 || isAdding || isPreview}
             style={{
               width: '100%',
-              padding: '1rem',
+              padding: '0.625rem',
               border: 'none',
-              borderRadius: '6px',
-              fontSize: '1rem',
+              borderRadius: '4px',
+              fontSize: '0.875rem',
               fontWeight: '600',
               cursor: (selectedCount === 0 || isAdding || isPreview) ? 'not-allowed' : 'pointer',
               transition: 'opacity 0.2s, transform 0.1s',

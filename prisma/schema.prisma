@@ -346,6 +346,7 @@ model FrequentlyBoughtTogether {
   maxUpsellsInCart        Int       @default(3)
   showProductReviews      Boolean   @default(false)
   layout                  String    @default("horizontal")
+  templateType            String    @default("classic")
   buttonText              String    @default("Add selected items")
   buttonColor             String    @default("#000000")
   buttonTextColor         String    @default("#FFFFFF")

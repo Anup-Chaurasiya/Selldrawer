@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.1
- * Built: 2025-11-19T11:24:46.735Z
+ * Built: 2025-11-19T14:05:10.861Z
  */
 "use strict";
 (() => {
@@ -44,9 +44,9 @@
     mod
   ));
 
-  // ../../node_modules/react/cjs/react.production.min.js
+  // node_modules/react/cjs/react.production.min.js
   var require_react_production_min = __commonJS({
-    "../../node_modules/react/cjs/react.production.min.js"(exports) {
+    "node_modules/react/cjs/react.production.min.js"(exports) {
       "use strict";
       var l = Symbol.for("react.element");
       var n = Symbol.for("react.portal");
@@ -343,9 +343,9 @@
     }
   });
 
-  // ../../node_modules/react/index.js
+  // node_modules/react/index.js
   var require_react = __commonJS({
-    "../../node_modules/react/index.js"(exports, module) {
+    "node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production_min();
@@ -355,9 +355,9 @@
     }
   });
 
-  // ../../node_modules/scheduler/cjs/scheduler.production.min.js
+  // node_modules/scheduler/cjs/scheduler.production.min.js
   var require_scheduler_production_min = __commonJS({
-    "../../node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
+    "node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
       "use strict";
       function f(a, b) {
         var c = a.length;
@@ -626,9 +626,9 @@
     }
   });
 
-  // ../../node_modules/scheduler/index.js
+  // node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "../../node_modules/scheduler/index.js"(exports, module) {
+    "node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production_min();
@@ -638,9 +638,9 @@
     }
   });
 
-  // ../../node_modules/react-dom/cjs/react-dom.production.min.js
+  // node_modules/react-dom/cjs/react-dom.production.min.js
   var require_react_dom_production_min = __commonJS({
-    "../../node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
+    "node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
       "use strict";
       var aa = require_react();
       var ca = require_scheduler();
@@ -7778,9 +7778,9 @@
     }
   });
 
-  // ../../node_modules/react-dom/index.js
+  // node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "../../node_modules/react-dom/index.js"(exports, module) {
+    "node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -7804,9 +7804,9 @@
     }
   });
 
-  // ../../node_modules/react-dom/client.js
+  // node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "../../node_modules/react-dom/client.js"(exports) {
+    "node_modules/react-dom/client.js"(exports) {
       "use strict";
       var m = require_react_dom();
       if (true) {
@@ -7835,9 +7835,9 @@
     }
   });
 
-  // ../../node_modules/react/cjs/react-jsx-runtime.production.min.js
+  // node_modules/react/cjs/react-jsx-runtime.production.min.js
   var require_react_jsx_runtime_production_min = __commonJS({
-    "../../node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
+    "node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
       "use strict";
       var f = require_react();
       var k = Symbol.for("react.element");
@@ -7863,9 +7863,9 @@
     }
   });
 
-  // ../../node_modules/react/jsx-runtime.js
+  // node_modules/react/jsx-runtime.js
   var require_jsx_runtime = __commonJS({
-    "../../node_modules/react/jsx-runtime.js"(exports, module) {
+    "node_modules/react/jsx-runtime.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_jsx_runtime_production_min();
@@ -7875,14 +7875,14 @@
     }
   });
 
-  // assets/modules/fbt-widget-entry.js
-  var import_react2 = __toESM(require_react(), 1);
+  // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
+  var import_react3 = __toESM(require_react(), 1);
   var import_client = __toESM(require_client(), 1);
 
-  // ../../app/components/shared/FBTWidget.tsx
-  var import_react = __toESM(require_react(), 1);
+  // app/components/shared/FBTWidget.tsx
+  var import_react2 = __toESM(require_react(), 1);
 
-  // ../../app/components/shared/FBTProductCard.tsx
+  // app/components/shared/FBTProductCard.tsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
   var FBTProductCard = ({
     product,
@@ -7909,10 +7909,10 @@
         "data-variant-id": variantId,
         style: {
           flex: 1,
-          minWidth: "150px",
+          minWidth: "100px",
           border: "1px solid #e5e7eb",
-          borderRadius: "6px",
-          padding: "1rem",
+          borderRadius: "4px",
+          padding: "0.5rem",
           background: "#ffffff",
           position: "relative",
           transition: "transform 0.2s, box-shadow 0.2s"
@@ -7929,16 +7929,16 @@
               onChange: handleCheckboxChange,
               style: {
                 position: "absolute",
-                top: "0.5rem",
-                left: "0.5rem",
-                width: "20px",
-                height: "20px",
+                top: "0.25rem",
+                left: "0.25rem",
+                width: "16px",
+                height: "16px",
                 cursor: isDisabled ? "not-allowed" : "pointer",
                 zIndex: 10
               }
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "upsellity-fbt-product-image-wrapper", style: { position: "relative", marginBottom: "0.75rem" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "upsellity-fbt-product-image-wrapper", style: { position: "relative", marginBottom: "0.375rem" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               "img",
               {
@@ -7947,7 +7947,7 @@
                 className: "upsellity-fbt-product-image",
                 style: {
                   width: "100%",
-                  height: "150px",
+                  height: "80px",
                   objectFit: "cover",
                   borderRadius: "4px",
                   background: "#f3f4f6"
@@ -7960,16 +7960,16 @@
                 className: "upsellity-fbt-discount-badge",
                 style: {
                   position: "absolute",
-                  top: "0.5rem",
-                  right: "0.5rem",
+                  top: "0.25rem",
+                  right: "0.25rem",
                   background: "#10b981",
                   color: "white",
-                  padding: "0.25rem 0.5rem",
-                  borderRadius: "4px",
-                  fontSize: "0.75rem",
+                  padding: "0.125rem 0.375rem",
+                  borderRadius: "3px",
+                  fontSize: "0.6875rem",
                   fontWeight: "500",
                   zIndex: 5,
-                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
+                  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1)"
                 },
                 children: [
                   "Save ",
@@ -7984,12 +7984,12 @@
             {
               className: "upsellity-fbt-product-title",
               style: {
-                fontSize: "0.875rem",
+                fontSize: "0.75rem",
                 fontWeight: "500",
-                marginBottom: "0.5rem",
+                marginBottom: "0.25rem",
                 color: "#111827",
-                lineHeight: 1.25,
-                minHeight: "2.5rem",
+                lineHeight: 1.2,
+                minHeight: "1.75rem",
                 display: "-webkit-box",
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: "vertical",
@@ -8003,7 +8003,7 @@
             {
               className: "upsellity-fbt-product-price",
               style: {
-                fontSize: "0.875rem",
+                fontSize: "0.8125rem",
                 fontWeight: "600",
                 color: "#111827",
                 marginTop: "auto"
@@ -8048,8 +8048,358 @@
     );
   };
 
-  // ../../app/components/shared/FBTWidget.tsx
+  // app/components/shared/FBTTemplateCompact.tsx
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
+  var FBTTemplateCompact = ({
+    recommendations,
+    selectedProducts,
+    config,
+    handleToggle,
+    isPreview,
+    isAtLimit
+  }) => {
+    return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+      "div",
+      {
+        className: "upsellity-fbt-template-compact",
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: "1rem"
+        },
+        children: recommendations.map((product) => {
+          const variantId = product.variantId || product.id;
+          const isSelected = selectedProducts.has(variantId);
+          const isDisabled = isAtLimit && !isSelected;
+          const discountPercent = product.compareAtPrice && product.price < product.compareAtPrice ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
+          return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+            "div",
+            {
+              className: `upsellity-fbt-compact-card ${isDisabled ? "disabled" : ""} ${isSelected ? "selected" : ""}`,
+              style: {
+                display: "flex",
+                gap: "1rem",
+                padding: "1rem",
+                border: isSelected ? "2px solid #10b981" : "1px solid #e5e7eb",
+                borderRadius: "8px",
+                background: isSelected ? "#f0fdf4" : "#ffffff",
+                alignItems: "center",
+                transition: "all 0.2s",
+                opacity: isDisabled ? 0.5 : 1,
+                cursor: "pointer",
+                position: "relative"
+              },
+              onClick: () => !isDisabled && handleToggle(variantId, !isSelected),
+              children: [
+                config.showCheckboxes && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "input",
+                  {
+                    type: "checkbox",
+                    checked: isSelected,
+                    disabled: isDisabled,
+                    onChange: (e) => {
+                      e.stopPropagation();
+                      handleToggle(variantId, e.target.checked);
+                    },
+                    style: {
+                      width: "24px",
+                      height: "24px",
+                      cursor: isDisabled ? "not-allowed" : "pointer",
+                      flexShrink: 0
+                    }
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative", flexShrink: 0 }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "img",
+                    {
+                      src: product.imageUrl || "https://via.placeholder.com/100",
+                      alt: product.title,
+                      style: {
+                        width: "100px",
+                        height: "100px",
+                        objectFit: "cover",
+                        borderRadius: "6px",
+                        background: "#f3f4f6"
+                      }
+                    }
+                  ),
+                  discountPercent > 0 && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                    "div",
+                    {
+                      style: {
+                        position: "absolute",
+                        top: "4px",
+                        right: "4px",
+                        background: "#10b981",
+                        color: "white",
+                        padding: "4px 8px",
+                        borderRadius: "4px",
+                        fontSize: "0.75rem",
+                        fontWeight: "600",
+                        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
+                      },
+                      children: [
+                        "-",
+                        discountPercent,
+                        "%"
+                      ]
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "h4",
+                    {
+                      style: {
+                        fontSize: "1rem",
+                        fontWeight: "600",
+                        marginBottom: "0.5rem",
+                        color: "#111827",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap"
+                      },
+                      children: product.title
+                    }
+                  ),
+                  config.showIndividualPrices && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "0.25rem" }, children: [
+                    product.compareAtPrice && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                      "span",
+                      {
+                        style: {
+                          textDecoration: "line-through",
+                          color: "#9ca3af",
+                          marginRight: "0.5rem",
+                          fontSize: "0.875rem"
+                        },
+                        children: [
+                          "$",
+                          product.compareAtPrice.toFixed(2)
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                      "span",
+                      {
+                        style: {
+                          fontSize: "1.125rem",
+                          fontWeight: "700",
+                          color: "#111827"
+                        },
+                        children: [
+                          "$",
+                          product.price.toFixed(2)
+                        ]
+                      }
+                    )
+                  ] }),
+                  config.showProductReviews && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "0.75rem", color: "#f59e0b" }, children: "\u2605\u2605\u2605\u2605\u2605 (0)" })
+                ] }),
+                isSelected && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "div",
+                  {
+                    style: {
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "50%",
+                      background: "#10b981",
+                      color: "white",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "1.25rem",
+                      fontWeight: "600",
+                      flexShrink: 0
+                    },
+                    children: "\u2713"
+                  }
+                )
+              ]
+            },
+            variantId
+          );
+        })
+      }
+    );
+  };
+
+  // app/components/shared/FBTTemplateMinimal.tsx
+  var import_react = __toESM(require_react(), 1);
+  var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
+  var FBTTemplateMinimal = ({
+    recommendations,
+    selectedProducts,
+    config,
+    handleToggle,
+    isPreview,
+    isAtLimit
+  }) => {
+    return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+      "div",
+      {
+        className: "upsellity-fbt-template-minimal",
+        style: {
+          display: "flex",
+          gap: "0.75rem",
+          flexWrap: "wrap",
+          alignItems: "center",
+          padding: "1rem",
+          background: "#f9fafb",
+          borderRadius: "8px",
+          border: "1px solid #e5e7eb"
+        },
+        children: recommendations.map((product, index) => {
+          const variantId = product.variantId || product.id;
+          const isSelected = selectedProducts.has(variantId);
+          const isDisabled = isAtLimit && !isSelected;
+          const discountPercent = product.compareAtPrice && product.price < product.compareAtPrice ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
+          return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_react.default.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+              "div",
+              {
+                className: `upsellity-fbt-minimal-card ${isDisabled ? "disabled" : ""} ${isSelected ? "selected" : ""}`,
+                style: {
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  padding: "0.75rem",
+                  border: isSelected ? "2px solid #10b981" : "1px solid #e5e7eb",
+                  borderRadius: "6px",
+                  background: isSelected ? "#f0fdf4" : "#ffffff",
+                  minWidth: "120px",
+                  maxWidth: "150px",
+                  flex: "1",
+                  transition: "all 0.2s",
+                  opacity: isDisabled ? 0.5 : 1,
+                  cursor: "pointer",
+                  position: "relative"
+                },
+                onClick: () => !isDisabled && handleToggle(variantId, !isSelected),
+                children: [
+                  config.showCheckboxes && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    "input",
+                    {
+                      type: "checkbox",
+                      checked: isSelected,
+                      disabled: isDisabled,
+                      onChange: (e) => {
+                        e.stopPropagation();
+                        handleToggle(variantId, e.target.checked);
+                      },
+                      style: {
+                        position: "absolute",
+                        top: "4px",
+                        left: "4px",
+                        width: "18px",
+                        height: "18px",
+                        cursor: isDisabled ? "not-allowed" : "pointer"
+                      }
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { position: "relative", width: "100%" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                      "img",
+                      {
+                        src: product.imageUrl || "https://via.placeholder.com/80",
+                        alt: product.title,
+                        style: {
+                          width: "100%",
+                          height: "80px",
+                          objectFit: "cover",
+                          borderRadius: "4px",
+                          background: "#f3f4f6"
+                        }
+                      }
+                    ),
+                    discountPercent > 0 && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+                      "div",
+                      {
+                        style: {
+                          position: "absolute",
+                          top: "2px",
+                          right: "2px",
+                          background: "#10b981",
+                          color: "white",
+                          padding: "2px 6px",
+                          borderRadius: "3px",
+                          fontSize: "0.625rem",
+                          fontWeight: "600",
+                          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
+                        },
+                        children: [
+                          "-",
+                          discountPercent,
+                          "%"
+                        ]
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { width: "100%", textAlign: "center" }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                      "h5",
+                      {
+                        style: {
+                          fontSize: "0.75rem",
+                          fontWeight: "600",
+                          marginBottom: "0.25rem",
+                          color: "#111827",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap"
+                        },
+                        children: product.title
+                      }
+                    ),
+                    config.showIndividualPrices && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { fontSize: "0.875rem", fontWeight: "700", color: "#111827" }, children: [
+                      "$",
+                      product.price.toFixed(2)
+                    ] })
+                  ] }),
+                  isSelected && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    "div",
+                    {
+                      style: {
+                        position: "absolute",
+                        top: "4px",
+                        right: "4px",
+                        width: "20px",
+                        height: "20px",
+                        borderRadius: "50%",
+                        background: "#10b981",
+                        color: "white",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "0.75rem",
+                        fontWeight: "600"
+                      },
+                      children: "\u2713"
+                    }
+                  )
+                ]
+              }
+            ),
+            index < recommendations.length - 1 && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              "div",
+              {
+                style: {
+                  fontSize: "1.25rem",
+                  color: "#6b7280",
+                  fontWeight: "600"
+                },
+                children: "+"
+              }
+            )
+          ] }, variantId);
+        })
+      }
+    );
+  };
+
+  // app/components/shared/FBTWidget.tsx
+  var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
   var FBTWidget = ({
     config,
     recommendations,
@@ -8058,14 +8408,42 @@
     onAddToCart,
     isPreview = false
   }) => {
-    const [selectedProducts, setSelectedProducts] = (0, import_react.useState)(
+    const [selectedProducts, setSelectedProducts] = (0, import_react2.useState)(
       initialSelectedIds || new Set(
         recommendations.slice(0, config.maxUpsellsInCart || recommendations.length).map((r) => r.variantId || r.id)
       )
     );
-    const [isAdding, setIsAdding] = (0, import_react.useState)(false);
-    const [showSuccess, setShowSuccess] = (0, import_react.useState)(false);
+    const [isAdding, setIsAdding] = (0, import_react2.useState)(false);
+    const [showSuccess, setShowSuccess] = (0, import_react2.useState)(false);
+    const [currentSlide, setCurrentSlide] = (0, import_react2.useState)(0);
+    const [isMobileCarousel, setIsMobileCarousel] = (0, import_react2.useState)(false);
+    const carouselRef = (0, import_react2.useRef)(null);
     const maxUpsells = config.limitUpsellsInCart && config.maxUpsellsInCart ? config.maxUpsellsInCart : null;
+    (0, import_react2.useEffect)(() => {
+      const checkMobile = () => {
+        if (typeof window !== "undefined") {
+          setIsMobileCarousel(window.innerWidth <= 768);
+        }
+      };
+      checkMobile();
+      window.addEventListener("resize", checkMobile);
+      return () => window.removeEventListener("resize", checkMobile);
+    }, []);
+    const handlePrevSlide = () => {
+      setCurrentSlide((prev) => Math.max(0, prev - 1));
+    };
+    const handleNextSlide = () => {
+      setCurrentSlide((prev) => Math.min(recommendations.length - 1, prev + 1));
+    };
+    (0, import_react2.useEffect)(() => {
+      if (carouselRef.current && isMobileCarousel) {
+        const slideWidth = carouselRef.current.offsetWidth;
+        carouselRef.current.scrollTo({
+          left: currentSlide * slideWidth,
+          behavior: "smooth"
+        });
+      }
+    }, [currentSlide, isMobileCarousel]);
     const handleToggle = (variantId, checked) => {
       const newSelected = new Set(selectedProducts);
       if (checked) {
@@ -8150,101 +8528,231 @@
       }
     };
     const layout = config.layout || "horizontal";
+    const templateType = config.templateType || "classic";
     const total = calculateTotal();
     const originalTotal = calculateOriginalTotal();
     const hasDiscount = config.showDiscount && originalTotal > total;
     const selectedCount = selectedProducts.size;
     const isAtLimit = maxUpsells !== null && selectedCount >= maxUpsells;
-    const isBrowser = typeof window !== "undefined";
-    const isMobile = isBrowser ? window.innerWidth <= 768 : false;
     if (showSuccess) {
-      return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "upsellity-fbt-content", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { textAlign: "center", padding: "2rem" }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "3rem", marginBottom: "1rem" }, children: "\u2713" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("h3", { style: { fontSize: "1.25rem", fontWeight: "600", color: "#10b981", marginBottom: "0.5rem" }, children: "Items added to cart!" }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { color: "#6b7280" }, children: "Opening cart drawer..." })
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "upsellity-fbt-content", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { textAlign: "center", padding: "2rem" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { fontSize: "3rem", marginBottom: "1rem" }, children: "\u2713" }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h3", { style: { fontSize: "1.25rem", fontWeight: "600", color: "#10b981", marginBottom: "0.5rem" }, children: "Items added to cart!" }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { style: { color: "#6b7280" }, children: "Opening cart drawer..." })
       ] }) });
     }
-    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { className: "upsellity-fbt-content", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+    const renderTemplate = () => {
+      if (templateType === "compact") {
+        return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          FBTTemplateCompact,
+          {
+            recommendations,
+            selectedProducts,
+            config,
+            handleToggle,
+            isPreview,
+            isAtLimit
+          }
+        );
+      } else if (templateType === "minimal") {
+        return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          FBTTemplateMinimal,
+          {
+            recommendations,
+            selectedProducts,
+            config,
+            handleToggle,
+            isPreview,
+            isAtLimit
+          }
+        );
+      } else {
+        if (isMobileCarousel && recommendations.length > 1) {
+          return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { position: "relative" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              "div",
+              {
+                ref: carouselRef,
+                className: "upsellity-fbt-carousel",
+                style: {
+                  display: "flex",
+                  overflow: "hidden",
+                  scrollSnapType: "x mandatory",
+                  gap: "1rem",
+                  marginBottom: "1rem"
+                },
+                children: recommendations.map((product) => {
+                  var _a, _b, _c, _d;
+                  const variantId = product.variantId || product.id;
+                  const isSelected = selectedProducts.has(variantId);
+                  const isDisabled = isAtLimit && !isSelected;
+                  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                    "div",
+                    {
+                      style: {
+                        minWidth: "100%",
+                        scrollSnapAlign: "start",
+                        flexShrink: 0
+                      },
+                      children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                        FBTProductCard,
+                        {
+                          product,
+                          isSelected,
+                          isDisabled,
+                          showCheckbox: (_a = config.showCheckboxes) != null ? _a : true,
+                          showDiscount: (_b = config.showDiscount) != null ? _b : true,
+                          showIndividualPrices: (_c = config.showIndividualPrices) != null ? _c : true,
+                          showReviews: (_d = config.showProductReviews) != null ? _d : false,
+                          onToggle: handleToggle,
+                          isPreview
+                        }
+                      )
+                    },
+                    variantId
+                  );
+                })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", justifyContent: "center", gap: "0.5rem", marginBottom: "1rem" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                "button",
+                {
+                  onClick: handlePrevSlide,
+                  disabled: currentSlide === 0,
+                  style: {
+                    padding: "0.5rem 1rem",
+                    background: currentSlide === 0 ? "#e5e7eb" : "#3b82f6",
+                    color: currentSlide === 0 ? "#9ca3af" : "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: currentSlide === 0 ? "not-allowed" : "pointer",
+                    fontSize: "0.875rem",
+                    fontWeight: "600"
+                  },
+                  children: "\u2190 Prev"
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { display: "flex", gap: "0.25rem", alignItems: "center" }, children: recommendations.map((_, idx) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                "div",
+                {
+                  onClick: () => setCurrentSlide(idx),
+                  style: {
+                    width: idx === currentSlide ? "24px" : "8px",
+                    height: "8px",
+                    borderRadius: "4px",
+                    background: idx === currentSlide ? "#3b82f6" : "#d1d5db",
+                    cursor: "pointer",
+                    transition: "all 0.2s"
+                  }
+                },
+                idx
+              )) }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                "button",
+                {
+                  onClick: handleNextSlide,
+                  disabled: currentSlide === recommendations.length - 1,
+                  style: {
+                    padding: "0.5rem 1rem",
+                    background: currentSlide === recommendations.length - 1 ? "#e5e7eb" : "#3b82f6",
+                    color: currentSlide === recommendations.length - 1 ? "#9ca3af" : "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: currentSlide === recommendations.length - 1 ? "not-allowed" : "pointer",
+                    fontSize: "0.875rem",
+                    fontWeight: "600"
+                  },
+                  children: "Next \u2192"
+                }
+              )
+            ] })
+          ] });
+        }
+        return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          "div",
+          {
+            className: `upsellity-fbt-products layout-${layout}`,
+            style: __spreadValues(__spreadValues(__spreadValues({
+              display: layout === "grid" ? "grid" : "flex",
+              gap: "0.5rem",
+              marginBottom: "0.75rem",
+              flexWrap: "wrap",
+              alignItems: "stretch"
+            }, layout === "horizontal" ? { flexDirection: "row" } : {}), layout === "vertical" ? { flexDirection: "column" } : {}), layout === "grid" ? {
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))"
+            } : {}),
+            children: recommendations.map((product, index) => {
+              var _a, _b, _c, _d;
+              const variantId = product.variantId || product.id;
+              const isSelected = selectedProducts.has(variantId);
+              const isDisabled = isAtLimit && !isSelected;
+              return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_react2.default.Fragment, { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                  FBTProductCard,
+                  {
+                    product,
+                    isSelected,
+                    isDisabled,
+                    showCheckbox: (_a = config.showCheckboxes) != null ? _a : true,
+                    showDiscount: (_b = config.showDiscount) != null ? _b : true,
+                    showIndividualPrices: (_c = config.showIndividualPrices) != null ? _c : true,
+                    showReviews: (_d = config.showProductReviews) != null ? _d : false,
+                    onToggle: handleToggle,
+                    isPreview
+                  }
+                ),
+                index < recommendations.length - 1 && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                  "div",
+                  {
+                    className: "upsellity-fbt-plus",
+                    style: {
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "1rem",
+                      color: "#6b7280",
+                      fontWeight: "600",
+                      minWidth: "20px",
+                      flexShrink: 0
+                    },
+                    children: "+"
+                  }
+                )
+              ] }, variantId);
+            })
+          }
+        );
+      }
+    };
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "upsellity-fbt-content", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
         "h2",
         {
           className: "upsellity-fbt-title",
           style: {
-            fontSize: "1.5rem",
+            fontSize: "1rem",
             fontWeight: "600",
-            marginBottom: "1.5rem",
+            marginBottom: "0.75rem",
             color: "#111827",
             lineHeight: 1.2
           },
           children: config.title || "Frequently Bought Together"
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
         "div",
         {
           className: "upsellity-fbt-layout",
           style: {
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "1fr 320px",
-            gap: "1.25rem",
+            gridTemplateColumns: isMobileCarousel ? "1fr" : "1fr 240px",
+            gap: "0.75rem",
             alignItems: "center"
           },
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-              "div",
-              {
-                className: `upsellity-fbt-products layout-${layout}`,
-                style: __spreadValues(__spreadValues(__spreadValues({
-                  display: layout === "grid" ? "grid" : "flex",
-                  gap: "1rem",
-                  marginBottom: "1.5rem",
-                  flexWrap: "wrap",
-                  alignItems: "stretch"
-                }, layout === "horizontal" ? { flexDirection: "row" } : {}), layout === "vertical" ? { flexDirection: "column" } : {}), layout === "grid" ? {
-                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))"
-                } : {}),
-                children: recommendations.map((product, index) => {
-                  var _a, _b, _c, _d;
-                  const variantId = product.variantId || product.id;
-                  const isSelected = selectedProducts.has(variantId);
-                  const isDisabled = isAtLimit && !isSelected;
-                  return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_react.default.Fragment, { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                      FBTProductCard,
-                      {
-                        product,
-                        isSelected,
-                        isDisabled,
-                        showCheckbox: (_a = config.showCheckboxes) != null ? _a : true,
-                        showDiscount: (_b = config.showDiscount) != null ? _b : true,
-                        showIndividualPrices: (_c = config.showIndividualPrices) != null ? _c : true,
-                        showReviews: (_d = config.showProductReviews) != null ? _d : false,
-                        onToggle: handleToggle,
-                        isPreview
-                      }
-                    ),
-                    index < recommendations.length - 1 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                      "div",
-                      {
-                        className: "upsellity-fbt-plus",
-                        style: {
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "1.5rem",
-                          color: "#6b7280",
-                          fontWeight: "600",
-                          minWidth: "40px",
-                          flexShrink: 0
-                        },
-                        children: "+"
-                      }
-                    )
-                  ] }, variantId);
-                })
-              }
-            ),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+            renderTemplate(),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
               "div",
               {
                 className: "upsellity-fbt-sidebar",
@@ -8257,7 +8765,7 @@
                   minHeight: "100%"
                 },
                 children: [
-                  config.showTotalPrice && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                  config.showTotalPrice && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
                     "div",
                     {
                       className: "upsellity-fbt-total",
@@ -8265,35 +8773,35 @@
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
-                        padding: "1rem",
+                        padding: "0.5rem 0.625rem",
                         background: "#f9fafb",
-                        borderRadius: "6px",
-                        marginBottom: "1rem",
+                        borderRadius: "4px",
+                        marginBottom: "0.5rem",
                         border: "1px solid #e5e7eb"
                       },
                       children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
                           "span",
                           {
                             className: "upsellity-fbt-total-label",
                             style: {
-                              fontSize: "1rem",
+                              fontSize: "0.8125rem",
                               fontWeight: "600",
                               color: "#111827"
                             },
                             children: "Total price:"
                           }
                         ),
-                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
-                          hasDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
+                          hasDiscount && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
                             "span",
                             {
                               className: "upsellity-fbt-total-original",
                               style: {
                                 textDecoration: "line-through",
                                 color: "#9ca3af",
-                                marginRight: "0.5rem",
-                                fontSize: "1rem",
+                                marginRight: "0.375rem",
+                                fontSize: "0.8125rem",
                                 fontWeight: "400"
                               },
                               children: [
@@ -8302,12 +8810,12 @@
                               ]
                             }
                           ),
-                          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
                             "span",
                             {
                               className: "upsellity-fbt-total-price",
                               style: {
-                                fontSize: "1.25rem",
+                                fontSize: "1rem",
                                 fontWeight: "700",
                                 color: "#111827"
                               },
@@ -8321,7 +8829,7 @@
                       ]
                     }
                   ),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
                     "button",
                     {
                       className: "upsellity-fbt-button",
@@ -8329,10 +8837,10 @@
                       disabled: selectedCount === 0 || isAdding || isPreview,
                       style: {
                         width: "100%",
-                        padding: "1rem",
+                        padding: "0.625rem",
                         border: "none",
-                        borderRadius: "6px",
-                        fontSize: "1rem",
+                        borderRadius: "4px",
+                        fontSize: "0.875rem",
                         fontWeight: "600",
                         cursor: selectedCount === 0 || isAdding || isPreview ? "not-allowed" : "pointer",
                         transition: "opacity 0.2s, transform 0.1s",
@@ -8353,7 +8861,7 @@
     ] });
   };
 
-  // assets/modules/fbt-widget-entry.js
+  // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;
@@ -8499,7 +9007,7 @@
           this.reactRoot = (0, import_client.createRoot)(this.container);
         }
         this.reactRoot.render(
-          import_react2.default.createElement(FBTWidget, {
+          import_react3.default.createElement(FBTWidget, {
             config: this.config,
             recommendations: this.recommendations,
             selectedProductIds: this.selectedProducts,

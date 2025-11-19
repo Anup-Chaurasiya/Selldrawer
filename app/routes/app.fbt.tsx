@@ -207,6 +207,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       maxUpsellsInCart: parseInt(formData.get("maxUpsellsInCart") as string || "3"),
       showProductReviews: formData.get("showProductReviews") === "true",
       layout: formData.get("layout") as string,
+      templateType: formData.get("templateType") as string,
       buttonText: formData.get("buttonText") as string,
       buttonColor: formData.get("buttonColor") as string,
       buttonTextColor: formData.get("buttonTextColor") as string,
@@ -340,6 +341,7 @@ export default function FrequentlyBoughtTogether() {
     maxUpsellsInCart: fbtConfig?.maxUpsellsInCart?.toString() || "3",
     showProductReviews: fbtConfig?.showProductReviews ?? false,
     layout: fbtConfig?.layout || "horizontal",
+    templateType: (fbtConfig as any)?.templateType || "classic",
     buttonText: fbtConfig?.buttonText || "Add selected items",
     buttonColor: fbtConfig?.buttonColor || "#000000",
     buttonTextColor: fbtConfig?.buttonTextColor || "#FFFFFF",
@@ -521,16 +523,34 @@ export default function FrequentlyBoughtTogether() {
     );
   };
 
+  const getSampleProducts = () => {
+    // Generate sample products based on template type
+    const productCount = formState.templateType === 'minimal' ? 3 : formState.templateType === 'compact' ? 2 : 3;
+    
+    return Array.from({ length: productCount }, (_, i) => ({
+      id: `sample-${i}`,
+      variantId: `sample-variant-${i}`,
+      title: `Sample Product ${i + 1}`,
+      handle: `sample-product-${i}`,
+      price: 29.99 + (i * 10),
+      compareAtPrice: 39.99 + (i * 10),
+      imageUrl: `https://via.placeholder.com/300x300/4F46E5/FFFFFF?text=Product+${i + 1}`
+    }));
+  };
+
   const getPreviewProducts = () => {
     // If AI only mode, show sample products from shop
     if (formState.recommendationType === "ai") {
-      return shopProducts.slice(0, 3).map((product: any) => ({
-        id: product.id,
-        title: product.title,
-        price: product.variants?.[0]?.price || "0.00",
-        imageUrl: product.images?.[0]?.src || null,
-        handle: product.handle
-      }));
+      if (shopProducts.length > 0) {
+        return shopProducts.slice(0, 3).map((product: any) => ({
+          id: product.id,
+          title: product.title,
+          price: product.variants?.[0]?.price || "0.00",
+          imageUrl: product.images?.[0]?.src || null,
+          handle: product.handle
+        }));
+      }
+      return getSampleProducts();
     }
     
     // If hybrid mode, prioritize manual but show AI as fallback
@@ -550,14 +570,17 @@ export default function FrequentlyBoughtTogether() {
         return fbtConfig.rules[0].products.slice(0, 3);
       }
       
-      // Fallback to AI preview if no manual rules
-      return shopProducts.slice(0, 3).map((product: any) => ({
-        id: product.id,
-        title: product.title,
-        price: product.variants?.[0]?.price || "0.00",
-        imageUrl: product.images?.[0]?.src || null,
-        handle: product.handle
-      }));
+      // Fallback to sample products if no shop products
+      if (shopProducts.length > 0) {
+        return shopProducts.slice(0, 3).map((product: any) => ({
+          id: product.id,
+          title: product.title,
+          price: product.variants?.[0]?.price || "0.00",
+          imageUrl: product.images?.[0]?.src || null,
+          handle: product.handle
+        }));
+      }
+      return getSampleProducts();
     }
     
     // Manual mode: show configured products
@@ -576,8 +599,8 @@ export default function FrequentlyBoughtTogether() {
       return fbtConfig.rules[0].products.slice(0, 3);
     }
     
-    // Return empty array if no products are configured
-    return [];
+    // Show sample products if nothing is configured
+    return getSampleProducts();
   };
 
   const calculatePreviewTotal = (products: any[]) => {
@@ -702,6 +725,18 @@ export default function FrequentlyBoughtTogether() {
                     value={formState.title}
                     onChange={(value) => setFormState({ ...formState, title: value })}
                     autoComplete="off"
+                  />
+
+                  <Select
+                    label="Template Type"
+                    options={[
+                      { label: "Classic - Traditional Layout", value: "classic" },
+                      { label: "Compact - Card Style", value: "compact" },
+                      { label: "Minimal - Single Row", value: "minimal" },
+                    ]}
+                    value={formState.templateType}
+                    onChange={(value) => setFormState({ ...formState, templateType: value })}
+                    helpText="Choose the visual style of your FBT widget"
                   />
 
                   <Select
@@ -994,33 +1029,38 @@ export default function FrequentlyBoughtTogether() {
         <Layout.Section variant="oneThird">
           <Card>
             <BlockStack gap="400">
-              <Text as="h3" variant="headingMd">
-                Preview
-              </Text>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text as="h3" variant="headingMd">
+                  Live Preview
+                </Text>
+                <Badge tone={previewProducts.length === 0 ? 'info' : 'success'}>
+                  {formState.templateType === 'classic' ? 'Classic' : 
+                   formState.templateType === 'compact' ? 'Compact' : 
+                   'Minimal'}
+                </Badge>
+              </div>
               
               <div style={{
                 border: '2px solid #e5e7eb',
-                borderRadius: '8px',
-                padding: '16px',
-                backgroundColor: '#ffffff'
+                borderRadius: '12px',
+                padding: '20px',
+                backgroundColor: '#fafbfc',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                maxHeight: '800px',
+                overflowY: 'auto'
               }}>
-                {previewProducts.length === 0 ? (
-                  <div style={{
-                    textAlign: 'center',
-                    padding: '32px 16px',
-                    color: '#9ca3af',
-                    fontSize: '14px'
-                  }}>
-                    <p>No products configured yet</p>
-                    <p style={{ fontSize: '12px', marginTop: '8px' }}>
-                      Configure products in "Manual Configuration" to see preview
-                    </p>
-                  </div>
-                ) : (
+                <div style={{
+                  transform: 'scale(0.85)',
+                  transformOrigin: 'top center',
+                  width: '117.647%',
+                  marginLeft: '-8.824%',
+                  marginBottom: '-15%'
+                }}>
                   <FBTWidget
                     config={{
                       title: formState.title,
                       layout: formState.layout as 'horizontal' | 'vertical' | 'grid',
+                      templateType: formState.templateType as 'classic' | 'compact' | 'minimal',
                       buttonText: formState.buttonText,
                       buttonColor: formState.buttonColor,
                       buttonTextColor: formState.buttonTextColor,
@@ -1050,7 +1090,7 @@ export default function FrequentlyBoughtTogether() {
                       
                       return {
                         id: product.id,
-                        variantId: product.shopifyVariantId || product.variants?.[0]?.id,
+                        variantId: product.shopifyVariantId || product.variantId || product.variants?.[0]?.id || product.id,
                         title: product.title,
                         handle: product.handle,
                         price: productPrice,
@@ -1060,11 +1100,22 @@ export default function FrequentlyBoughtTogether() {
                     })}
                     isPreview={true}
                   />
-                )}
+                </div>
+              </div>
+
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#f0f9ff',
+                borderRadius: '8px',
+                border: '1px solid #bfdbfe'
+              }}>
+                <Text as="p" variant="bodySm">
+                  <strong>💡 Preview Tip:</strong> {previewProducts.length === 0 ? 'Using sample products. Configure products above to see your actual products.' : 'Showing your configured products. Change template type to see different layouts.'}
+                </Text>
               </div>
 
               <Text as="p" variant="bodyMd" tone="subdued">
-                This is how the FBT widget will appear on product pages.
+                This preview shows how the FBT widget will appear on your product pages.
               </Text>
             </BlockStack>
           </Card>
