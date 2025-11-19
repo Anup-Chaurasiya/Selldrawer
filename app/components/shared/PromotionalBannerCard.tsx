@@ -534,7 +534,6 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                   overflow: 'hidden',
                   aspectRatio: '16 / 9',      // 🔥 maintains consistent shape
                   width: '100%',              // full width
-                  maxWidth: '360px',          // ideal container size
                   height: 'auto',
                   backgroundColor: '#f9fafb',
                   borderRadius: '12px',
@@ -547,73 +546,74 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                 backgroundColor: '#fff',
                 padding: '10px 14px',
                 display: 'flex',
-                flexDirection: 'column',
-                gap: '6px'
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '10px'
               }}>
-                {/* Title - Full Width Row */}
-                {slide.title && (
-                  <div style={{
-                    fontWeight: '700',
-                    fontSize: '15px',
-                    color: '#111827',
-                    lineHeight: '1.2',
-                    textAlign: slide.ctaText ? 'left' : 'center',
-                    wordBreak: 'break-word',
-                    marginBottom: slide.description ? '0' : '0'
-                  }}>
-                    {slide.title}
-                  </div>
-                )}
+                {/* Title and Description Container */}
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                  flex: 1,
+                  minWidth: 0
+                }}>
+                  {/* Title */}
+                  {slide.title && (
+                    <div style={{
+                      fontWeight: '700',
+                      fontSize: '15px',
+                      color: '#111827',
+                      lineHeight: '1.2',
+                      textAlign: 'left',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {slide.title}
+                    </div>
+                  )}
+                  
+                  {/* Description */}
+                  {slide.description && (
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      lineHeight: '1.3',
+                      textAlign: 'left',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {slide.description}
+                    </div>
+                  )}
+                </div>
                 
-                {/* Description and CTA Button Row */}
-                {(slide.description || slide.ctaText) && (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: slide.ctaText ? 'center' : 'flex-start',
-                    justifyContent: slide.ctaText ? 'space-between' : 'center',
-                    gap: '10px'
-                  }}>
-                    {/* Description */}
-                    {slide.description && (
-                      <div style={{
-                        fontSize: '12px',
-                        color: '#6b7280',
-                        lineHeight: '1.3',
-                        textAlign: slide.ctaText ? 'left' : 'center',
-                        flex: slide.ctaText ? 1 : 'none',
-                        minWidth: 0,
-                        width: slide.ctaText ? 'auto' : '100%',
-                        wordBreak: 'break-word'
-                      }}>
-                        {slide.description}
-                      </div>
-                    )}
-
-                    {/* CTA Button */}
-                    {slide.ctaText && (
-                      <div style={{ flexShrink: 0 }}>
-                        <button
-                          onClick={(e) => handleCtaClick(slide, e)}
-                          style={{
-                            backgroundColor: '#f3f4f6',
-                            color: '#374151',
-                            border: '1px solid #e5e7eb',
-                            padding: '6px 14px',
-                            borderRadius: '8px',
-                            fontWeight: '500',
-                            cursor: 'pointer',
-                            fontSize: '13px',
-                            transition: 'all 0.2s ease',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {slide.ctaText}
-                        </button>
-                      </div>
-                    )}
+                {/* CTA Button - Spans full height */}
+                {slide.ctaText && (
+                  <div style={{ flexShrink: 0, alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>
+                    <button
+                      onClick={(e) => handleCtaClick(slide, e)}
+                      style={{
+                        backgroundColor: '#f3f4f6',
+                        color: '#374151',
+                        border: '1px solid #e5e7eb',
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        transition: 'all 0.2s ease',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {slide.ctaText}
+                    </button>
                   </div>
                 )}
               </div>
+              
             </div>
           ))}
         </div>
