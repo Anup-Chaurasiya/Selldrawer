@@ -125,12 +125,16 @@
   z-index: 10;
 }
 
+.upsellity-fbt-product-image-wrapper {
+  position: relative;
+  margin-bottom: 0.75rem;
+}
+
 .upsellity-fbt-product-image {
   width: 100%;
   height: 150px;
   object-fit: cover;
   border-radius: 4px;
-  margin-bottom: 0.75rem;
   background: #f3f4f6;
 }
 
@@ -163,14 +167,17 @@
 }
 
 .upsellity-fbt-discount-badge {
-  display: inline-block;
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
   background: #10b981;
   color: white;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.75rem;
-  margin-top: 0.5rem;
   font-weight: 500;
+  z-index: 5;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .upsellity-fbt-plus {

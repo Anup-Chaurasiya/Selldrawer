@@ -23,6 +23,8 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback } from "react";
 import { DeleteIcon, PlusIcon } from "@shopify/polaris-icons";
+import { FBTWidget } from "../components/shared/FBTWidget";
+import type { FBTProduct } from "../components/shared/FBTProductCard";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -727,7 +729,7 @@ export default function FrequentlyBoughtTogether() {
                         value={formState.buttonColor}
                         onChange={(value) => setFormState({ ...formState, buttonColor: value })}
                         autoComplete="off"
-                        helpText="Hex color code (e.g., #000000)"
+                        {...({ type: "color" } as any)}
                       />
                     </div>
                     <div style={{ flex: 1 }}>
@@ -736,7 +738,7 @@ export default function FrequentlyBoughtTogether() {
                         value={formState.buttonTextColor}
                         onChange={(value) => setFormState({ ...formState, buttonTextColor: value })}
                         autoComplete="off"
-                        helpText="Hex color code (e.g., #FFFFFF)"
+                        {...({ type: "color" } as any)}
                       />
                     </div>
                   </InlineStack>
@@ -1002,15 +1004,6 @@ export default function FrequentlyBoughtTogether() {
                 padding: '16px',
                 backgroundColor: '#ffffff'
               }}>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: '600', 
-                  marginBottom: '16px',
-                  color: '#111827'
-                }}>
-                  {formState.title}
-                </div>
-                
                 {previewProducts.length === 0 ? (
                   <div style={{
                     textAlign: 'center',
@@ -1024,99 +1017,49 @@ export default function FrequentlyBoughtTogether() {
                     </p>
                   </div>
                 ) : (
-                  <>
-                    <div style={{
-                      display: formState.layout === 'horizontal' ? 'flex' : 'grid',
-                      gap: '12px',
-                      gridTemplateColumns: formState.layout === 'grid' ? 'repeat(2, 1fr)' : undefined,
-                      flexDirection: formState.layout === 'vertical' ? 'column' : 'row',
-                      marginBottom: '16px'
-                    }}>
-                      {previewProducts.map((product: any, index: number) => (
-                        <div
-                          key={product.id || index}
-                          style={{
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '6px',
-                            padding: '12px',
-                            flex: formState.layout === 'horizontal' ? '1' : undefined,
-                            minWidth: formState.layout === 'horizontal' ? '100px' : undefined
-                          }}
-                        >
-                          {formState.showCheckboxes && (
-                            <div style={{ marginBottom: '8px' }}>
-                              <input type="checkbox" defaultChecked={index === 0} />
-                            </div>
-                          )}
-                          <div
-                            style={{
-                              width: '100%',
-                              height: '80px',
-                              backgroundColor: '#f3f4f6',
-                              borderRadius: '4px',
-                              marginBottom: '8px',
-                              backgroundImage: product.imageUrl ? `url('${product.imageUrl}')` : undefined,
-                              backgroundSize: 'cover',
-                              backgroundPosition: 'center'
-                            }}
-                          />
-                          <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {product.title}
-                          </div>
-                          {formState.showIndividualPrices && (
-                            <div style={{ fontSize: '12px', fontWeight: '600', color: '#111827' }}>
-                              ${typeof product.price === 'number' ? product.price.toFixed(2) : product.price}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    {formState.showTotalPrice && (
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '12px',
-                        padding: '8px',
-                        backgroundColor: '#f9fafb',
-                        borderRadius: '4px'
-                      }}>
-                        <span style={{ fontSize: '14px', fontWeight: '600' }}>Total price:</span>
-                        <div>
-                          {formState.showDiscount && original !== discounted && (
-                            <span style={{
-                              textDecoration: 'line-through',
-                              color: '#9ca3af',
-                              marginRight: '8px',
-                              fontSize: '13px'
-                            }}>
-                              ${original}
-                            </span>
-                          )}
-                          <span style={{ fontSize: '16px', fontWeight: '700', color: '#111827' }}>
-                            ${discounted}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    <button
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: 'none',
-                        borderRadius: '6px',
-                        backgroundColor: formState.buttonColor,
-                        color: formState.buttonTextColor,
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {formState.buttonText}
-                    </button>
-                  </>
+                  <FBTWidget
+                    config={{
+                      title: formState.title,
+                      layout: formState.layout as 'horizontal' | 'vertical' | 'grid',
+                      buttonText: formState.buttonText,
+                      buttonColor: formState.buttonColor,
+                      buttonTextColor: formState.buttonTextColor,
+                      showDiscount: formState.showDiscount,
+                      showTotalPrice: formState.showTotalPrice,
+                      showIndividualPrices: formState.showIndividualPrices,
+                      showCheckboxes: formState.showCheckboxes,
+                      showProductReviews: formState.showProductReviews,
+                      discountType: formState.discountType as 'percentage' | 'fixed',
+                      discountValue: formState.discountValue ? parseFloat(formState.discountValue) : undefined,
+                      limitUpsellsInCart: formState.limitUpsellsInCart,
+                      maxUpsellsInCart: parseInt(formState.maxUpsellsInCart)
+                    }}
+                    recommendations={previewProducts.map((product: any) => {
+                      const productPrice = typeof product.price === 'number' 
+                        ? product.price 
+                        : parseFloat(product.price) || 0;
+                      const compareAtPrice = product.compareAtPrice 
+                        ? (typeof product.compareAtPrice === 'number' 
+                            ? product.compareAtPrice 
+                            : parseFloat(product.compareAtPrice))
+                        : (product.variants?.[0]?.compare_at_price 
+                            ? (typeof product.variants[0].compare_at_price === 'number'
+                                ? product.variants[0].compare_at_price
+                                : parseFloat(product.variants[0].compare_at_price))
+                            : null);
+                      
+                      return {
+                        id: product.id,
+                        variantId: product.shopifyVariantId || product.variants?.[0]?.id,
+                        title: product.title,
+                        handle: product.handle,
+                        price: productPrice,
+                        compareAtPrice: compareAtPrice,
+                        imageUrl: product.imageUrl || product.images?.[0]?.src
+                      } as FBTProduct;
+                    })}
+                    isPreview={true}
+                  />
                 )}
               </div>
 
