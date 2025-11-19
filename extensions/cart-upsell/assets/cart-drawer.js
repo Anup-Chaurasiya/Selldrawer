@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.1
- * Built: 2025-11-18T15:15:34.632Z
+ * Built: 2025-11-19T08:29:07.068Z
  */
 "use strict";
 (() => {
@@ -8754,45 +8754,47 @@
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
           backgroundColor: "#fff",
-          padding: "12px 16px",
+          padding: "10px 14px",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "12px",
-          minHeight: "70px"
+          flexDirection: "column",
+          gap: "6px"
         }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-            flex: 1,
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+            fontWeight: "700",
+            fontSize: "15px",
+            color: "#111827",
+            lineHeight: "1.2",
             textAlign: "left",
-            minWidth: 0
+            wordBreak: "break-word"
+          }, children: "Summer Sale" }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "10px"
           }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-              fontWeight: "700",
-              fontSize: "15px",
-              color: "#111827",
-              marginBottom: "4px",
-              lineHeight: "1.3",
-              wordBreak: "break-word"
-            }, children: "Summer Sale" }),
             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
               fontSize: "12px",
               color: "#6b7280",
-              lineHeight: "1.4",
+              lineHeight: "1.3",
+              textAlign: "left",
+              flex: 1,
+              minWidth: 0,
               wordBreak: "break-word"
-            }, children: "Get 20% Off on Summer Items" })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { style: {
-            backgroundColor: "#f3f4f6",
-            color: "#374151",
-            border: "1px solid #e5e7eb",
-            padding: "8px 20px",
-            borderRadius: "8px",
-            fontWeight: "500",
-            cursor: "pointer",
-            fontSize: "13px",
-            transition: "all 0.2s ease",
-            minWidth: "80px"
-          }, children: "shop" }) })
+            }, children: "Get 20% Off on Summer Items" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { style: {
+              backgroundColor: "#f3f4f6",
+              color: "#374151",
+              border: "1px solid #e5e7eb",
+              padding: "6px 14px",
+              borderRadius: "8px",
+              fontWeight: "500",
+              cursor: "pointer",
+              fontSize: "13px",
+              transition: "all 0.2s ease",
+              whiteSpace: "nowrap"
+            }, children: "shop" }) })
+          ] })
         ] })
       ] });
     }
@@ -9060,52 +9062,56 @@
                   ),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
                     backgroundColor: "#fff",
-                    padding: "12px 16px",
+                    padding: "10px 14px",
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "12px",
-                    minHeight: "70px"
+                    flexDirection: "column",
+                    gap: "6px"
                   }, children: [
-                    (slide.title || slide.description) && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-                      flex: 1,
-                      textAlign: "left",
-                      minWidth: 0
+                    slide.title && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                      fontWeight: "700",
+                      fontSize: "15px",
+                      color: "#111827",
+                      lineHeight: "1.2",
+                      textAlign: slide.ctaText ? "left" : "center",
+                      wordBreak: "break-word",
+                      marginBottom: slide.description ? "0" : "0"
+                    }, children: slide.title }),
+                    (slide.description || slide.ctaText) && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+                      display: "flex",
+                      alignItems: slide.ctaText ? "center" : "flex-start",
+                      justifyContent: slide.ctaText ? "space-between" : "center",
+                      gap: "10px"
                     }, children: [
-                      slide.title && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-                        fontWeight: "700",
-                        fontSize: "15px",
-                        color: "#111827",
-                        marginBottom: slide.description ? "4px" : "0",
-                        lineHeight: "1.3",
-                        wordBreak: "break-word"
-                      }, children: slide.title }),
                       slide.description && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
                         fontSize: "12px",
                         color: "#6b7280",
-                        lineHeight: "1.4",
+                        lineHeight: "1.3",
+                        textAlign: slide.ctaText ? "left" : "center",
+                        flex: slide.ctaText ? 1 : "none",
+                        minWidth: 0,
+                        width: slide.ctaText ? "auto" : "100%",
                         wordBreak: "break-word"
-                      }, children: slide.description })
-                    ] }),
-                    slide.ctaText && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                      "button",
-                      {
-                        onClick: (e) => handleCtaClick(slide, e),
-                        style: {
-                          backgroundColor: "#f3f4f6",
-                          color: "#374151",
-                          border: "1px solid #e5e7eb",
-                          padding: "8px 20px",
-                          borderRadius: "8px",
-                          fontWeight: "500",
-                          cursor: "pointer",
-                          fontSize: "13px",
-                          transition: "all 0.2s ease",
-                          minWidth: "80px"
-                        },
-                        children: slide.ctaText
-                      }
-                    ) })
+                      }, children: slide.description }),
+                      slide.ctaText && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                        "button",
+                        {
+                          onClick: (e) => handleCtaClick(slide, e),
+                          style: {
+                            backgroundColor: "#f3f4f6",
+                            color: "#374151",
+                            border: "1px solid #e5e7eb",
+                            padding: "6px 14px",
+                            borderRadius: "8px",
+                            fontWeight: "500",
+                            cursor: "pointer",
+                            fontSize: "13px",
+                            transition: "all 0.2s ease",
+                            whiteSpace: "nowrap"
+                          },
+                          children: slide.ctaText
+                        }
+                      ) })
+                    ] })
                   ] })
                 ]
               },

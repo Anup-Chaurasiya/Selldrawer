@@ -184,6 +184,29 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const ctaText = formData.get("ctaText") as string || null;
     const ctaUrl = formData.get("ctaUrl") as string || null;
     
+    // Validate character limits
+    const MIN_TITLE_LENGTH = 10;
+    const MAX_TITLE_LENGTH = 25;
+    const MIN_DESCRIPTION_LENGTH = 15;
+    const MAX_DESCRIPTION_LENGTH = 35;
+    const MAX_CTA_TEXT_LENGTH = 12;
+    
+    if (title && (title.length < MIN_TITLE_LENGTH || title.length > MAX_TITLE_LENGTH)) {
+      return json({ 
+        error: `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters` 
+      }, { status: 400 });
+    }
+    if (description && (description.length < MIN_DESCRIPTION_LENGTH || description.length > MAX_DESCRIPTION_LENGTH)) {
+      return json({ 
+        error: `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters` 
+      }, { status: 400 });
+    }
+    if (ctaText && ctaText.length > MAX_CTA_TEXT_LENGTH) {
+      return json({ 
+        error: `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less` 
+      }, { status: 400 });
+    }
+    
     const maxOrder = await prisma.promotionalBannerImage.findFirst({
       where: { bannerId },
       orderBy: { order: 'desc' },
@@ -251,6 +274,29 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     if (!slideId) {
       return json({ error: "Slide ID is required" }, { status: 400 });
+    }
+    
+    // Validate character limits
+    const MIN_TITLE_LENGTH = 10;
+    const MAX_TITLE_LENGTH = 23;
+    const MIN_DESCRIPTION_LENGTH = 15;
+    const MAX_DESCRIPTION_LENGTH = 35;
+    const MAX_CTA_TEXT_LENGTH = 10;
+    
+    if (title && (title.length < MIN_TITLE_LENGTH || title.length > MAX_TITLE_LENGTH)) {
+      return json({ 
+        error: `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters` 
+      }, { status: 400 });
+    }
+    if (description && (description.length < MIN_DESCRIPTION_LENGTH || description.length > MAX_DESCRIPTION_LENGTH)) {
+      return json({ 
+        error: `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters` 
+      }, { status: 400 });
+    }
+    if (ctaText && ctaText.length > MAX_CTA_TEXT_LENGTH) {
+      return json({ 
+        error: `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less` 
+      }, { status: 400 });
     }
 
     try {
@@ -378,16 +424,22 @@ function SlideEditor({
   });
 
   // Character limits
-  const MAX_TITLE_LENGTH = 30;
-  const MAX_DESCRIPTION_LENGTH = 30;
+  const MIN_TITLE_LENGTH = 10;
+  const MAX_TITLE_LENGTH = 25;
+  const MIN_DESCRIPTION_LENGTH = 15;
+  const MAX_DESCRIPTION_LENGTH = 35;
   const MAX_CTA_TEXT_LENGTH = 12;
 
   // Validation errors
-  const titleError = formData.title.length > MAX_TITLE_LENGTH 
-    ? `Title must be ${MAX_TITLE_LENGTH} characters or less` 
+  const titleError = formData.title.length > 0 && formData.title.length < MIN_TITLE_LENGTH
+    ? `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters`
+    : formData.title.length > MAX_TITLE_LENGTH 
+    ? `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters` 
     : undefined;
-  const descriptionError = formData.description.length > MAX_DESCRIPTION_LENGTH 
-    ? `Description must be ${MAX_DESCRIPTION_LENGTH} characters or less` 
+  const descriptionError = formData.description.length > 0 && formData.description.length < MIN_DESCRIPTION_LENGTH
+    ? `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters`
+    : formData.description.length > MAX_DESCRIPTION_LENGTH 
+    ? `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters` 
     : undefined;
   const ctaTextError = formData.ctaText.length > MAX_CTA_TEXT_LENGTH 
     ? `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less` 
@@ -418,7 +470,7 @@ function SlideEditor({
             value={formData.title}
             onChange={(value) => setFormData({ ...formData, title: value })}
             placeholder="Summer Sale"
-            helpText={`${formData.title.length}/${MAX_TITLE_LENGTH} characters`}
+            helpText={`${formData.title.length}/${MAX_TITLE_LENGTH} characters (min ${MIN_TITLE_LENGTH})`}
             autoComplete="off"
             error={titleError}
             maxLength={MAX_TITLE_LENGTH}
@@ -429,7 +481,7 @@ function SlideEditor({
             value={formData.description}
             onChange={(value) => setFormData({ ...formData, description: value })}
             placeholder="Get 20% off all summer items"
-            helpText={`${formData.description.length}/${MAX_DESCRIPTION_LENGTH} characters`}
+            helpText={`${formData.description.length}/${MAX_DESCRIPTION_LENGTH} characters (min ${MIN_DESCRIPTION_LENGTH})`}
             autoComplete="off"
             multiline={2}
             error={descriptionError}
