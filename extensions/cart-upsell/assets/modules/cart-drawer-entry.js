@@ -13,7 +13,6 @@ function initializeCartDrawer() {
   if (typeof window !== 'undefined') {
     window.upsellityDrawer = new UpsellityCartDrawer();
     window.upsellityDrawer.version = CART_DRAWER_VERSION;
-    console.log(`Upsellity Cart Drawer v${CART_DRAWER_VERSION} initialized`);
   }
 }
 

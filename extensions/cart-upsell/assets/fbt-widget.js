@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.1
- * Built: 2025-11-20T07:39:57.275Z
+ * Built: 2025-11-20T09:28:05.613Z
  */
 "use strict";
 (() => {
@@ -30,9 +30,9 @@
     mod
   ));
 
-  // node_modules/react/cjs/react.production.min.js
+  // ../../node_modules/react/cjs/react.production.min.js
   var require_react_production_min = __commonJS({
-    "node_modules/react/cjs/react.production.min.js"(exports) {
+    "../../node_modules/react/cjs/react.production.min.js"(exports) {
       "use strict";
       var l = Symbol.for("react.element");
       var n = Symbol.for("react.portal");
@@ -329,9 +329,9 @@
     }
   });
 
-  // node_modules/react/index.js
+  // ../../node_modules/react/index.js
   var require_react = __commonJS({
-    "node_modules/react/index.js"(exports, module) {
+    "../../node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production_min();
@@ -341,9 +341,9 @@
     }
   });
 
-  // node_modules/scheduler/cjs/scheduler.production.min.js
+  // ../../node_modules/scheduler/cjs/scheduler.production.min.js
   var require_scheduler_production_min = __commonJS({
-    "node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
+    "../../node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
       "use strict";
       function f(a, b) {
         var c = a.length;
@@ -612,9 +612,9 @@
     }
   });
 
-  // node_modules/scheduler/index.js
+  // ../../node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "node_modules/scheduler/index.js"(exports, module) {
+    "../../node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production_min();
@@ -624,9 +624,9 @@
     }
   });
 
-  // node_modules/react-dom/cjs/react-dom.production.min.js
+  // ../../node_modules/react-dom/cjs/react-dom.production.min.js
   var require_react_dom_production_min = __commonJS({
-    "node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
+    "../../node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
       "use strict";
       var aa = require_react();
       var ca = require_scheduler();
@@ -7764,9 +7764,9 @@
     }
   });
 
-  // node_modules/react-dom/index.js
+  // ../../node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "node_modules/react-dom/index.js"(exports, module) {
+    "../../node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -7790,9 +7790,9 @@
     }
   });
 
-  // node_modules/react-dom/client.js
+  // ../../node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "node_modules/react-dom/client.js"(exports) {
+    "../../node_modules/react-dom/client.js"(exports) {
       "use strict";
       var m = require_react_dom();
       if (true) {
@@ -7821,9 +7821,9 @@
     }
   });
 
-  // node_modules/react/cjs/react-jsx-runtime.production.min.js
+  // ../../node_modules/react/cjs/react-jsx-runtime.production.min.js
   var require_react_jsx_runtime_production_min = __commonJS({
-    "node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
+    "../../node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
       "use strict";
       var f = require_react();
       var k = Symbol.for("react.element");
@@ -7849,9 +7849,9 @@
     }
   });
 
-  // node_modules/react/jsx-runtime.js
+  // ../../node_modules/react/jsx-runtime.js
   var require_jsx_runtime = __commonJS({
-    "node_modules/react/jsx-runtime.js"(exports, module) {
+    "../../node_modules/react/jsx-runtime.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_jsx_runtime_production_min();
@@ -7861,14 +7861,14 @@
     }
   });
 
-  // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var import_react4 = __toESM(require_react(), 1);
+  // assets/modules/fbt-widget-entry.js
+  var import_react5 = __toESM(require_react(), 1);
   var import_client = __toESM(require_client(), 1);
 
-  // app/components/shared/FBTWidget.tsx
-  var import_react3 = __toESM(require_react(), 1);
+  // ../../app/components/shared/FBTWidget.tsx
+  var import_react4 = __toESM(require_react(), 1);
 
-  // app/components/shared/FBTProductCard.tsx
+  // ../../app/components/shared/FBTProductCard.tsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
   var FBTProductCard = ({
     product,
@@ -7883,6 +7883,10 @@
   }) => {
     const variantId = product.variantId || product.id;
     const discountPercent = product.compareAtPrice && product.price < product.compareAtPrice ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
+    const formatMoney = (price) => {
+      const amount = price > 1e4 ? price / 100 : price;
+      return `\u20B9${Math.round(amount)}`;
+    };
     const handleCheckboxChange = (e) => {
       if (onToggle && !isDisabled) {
         onToggle(variantId, e.target.checked);
@@ -7995,7 +7999,7 @@
                 marginTop: "auto"
               },
               children: [
-                product.compareAtPrice && showDiscount && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                product.compareAtPrice && showDiscount && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                   "span",
                   {
                     className: "upsellity-fbt-product-compare-price",
@@ -8006,14 +8010,10 @@
                       fontSize: "0.75rem",
                       fontWeight: "400"
                     },
-                    children: [
-                      "$",
-                      product.compareAtPrice.toFixed(2)
-                    ]
+                    children: formatMoney(product.compareAtPrice)
                   }
                 ),
-                "$",
-                product.price.toFixed(2)
+                formatMoney(product.price)
               ]
             }
           ),
@@ -8034,7 +8034,7 @@
     );
   };
 
-  // app/components/shared/FBTTemplateCompact.tsx
+  // ../../app/components/shared/FBTTemplateCompact.tsx
   var import_react = __toESM(require_react(), 1);
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
   var FBTTemplateCompact = ({
@@ -8051,6 +8051,10 @@
     isAdding = false
   }) => {
     const hasDiscount = config.showDiscount && originalTotal > total;
+    const formatMoney = (price) => {
+      const amount = price > 1e4 ? price / 100 : price;
+      return `\u20B9${Math.round(amount)}`;
+    };
     return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
       "div",
       {
@@ -8183,7 +8187,7 @@
                             marginBottom: "0.25rem"
                           }, children: "\u2605\u2605\u2605\u2605\u2605 (0)" }),
                           config.showIndividualPrices && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "auto" }, children: [
-                            product.compareAtPrice && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                            product.compareAtPrice && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                               "span",
                               {
                                 style: {
@@ -8193,13 +8197,10 @@
                                   fontSize: "0.75rem",
                                   fontWeight: "400"
                                 },
-                                children: [
-                                  "$",
-                                  product.compareAtPrice.toFixed(2)
-                                ]
+                                children: formatMoney(product.compareAtPrice)
                               }
                             ),
-                            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                               "span",
                               {
                                 style: {
@@ -8207,10 +8208,7 @@
                                   fontWeight: "700",
                                   color: "#111827"
                                 },
-                                children: [
-                                  "$",
-                                  product.price.toFixed(2)
-                                ]
+                                children: formatMoney(product.price)
                               }
                             )
                           ] })
@@ -8275,7 +8273,7 @@
                     }
                   ),
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem" }, children: [
-                    hasDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                    hasDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                       "span",
                       {
                         style: {
@@ -8284,13 +8282,10 @@
                           fontSize: "0.875rem",
                           fontWeight: "400"
                         },
-                        children: [
-                          "$",
-                          originalTotal.toFixed(2)
-                        ]
+                        children: formatMoney(originalTotal)
                       }
                     ),
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                       "span",
                       {
                         style: {
@@ -8298,10 +8293,7 @@
                           fontWeight: "700",
                           color: "#111827"
                         },
-                        children: [
-                          "$",
-                          total.toFixed(2)
-                        ]
+                        children: formatMoney(total)
                       }
                     )
                   ] })
@@ -8355,7 +8347,8 @@
     );
   };
 
-  // app/components/shared/FBTTemplateMinimal.tsx
+  // ../../app/components/shared/FBTTemplateMinimal.tsx
+  var import_react2 = __toESM(require_react(), 1);
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
   var FBTTemplateMinimal = ({
     recommendations,
@@ -8363,186 +8356,228 @@
     config,
     handleToggle,
     isPreview,
-    isAtLimit
+    isAtLimit,
+    total,
+    originalTotal = 0,
+    selectedCount,
+    onAddToCart,
+    isAdding = false
   }) => {
-    return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+    const hasDiscount = config.showDiscount && originalTotal > total;
+    const formatMoney = (price) => {
+      const amount = price > 1e4 ? price / 100 : price;
+      return `\u20B9${Math.round(amount)}`;
+    };
+    return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
       "div",
       {
         className: "upsellity-fbt-template-minimal",
         style: {
           display: "flex",
           flexDirection: "column",
-          gap: "0.75rem",
-          padding: "1rem",
-          background: "#f9fafb",
-          borderRadius: "8px",
-          border: "1px solid #e5e7eb"
+          gap: "1rem"
         },
-        children: recommendations.map((product) => {
-          const variantId = product.variantId || product.id;
-          const isSelected = selectedProducts.has(variantId);
-          const isDisabled = isAtLimit && !isSelected;
-          const discountPercent = product.compareAtPrice && product.price < product.compareAtPrice ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
-          return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
             "div",
             {
-              className: `upsellity-fbt-minimal-card ${isDisabled ? "disabled" : ""} ${isSelected ? "selected" : ""}`,
               style: {
                 display: "flex",
-                flexDirection: "column",
-                padding: "0.75rem",
-                border: isSelected ? "2px solid #10b981" : "1px solid #e5e7eb",
-                borderRadius: "6px",
-                background: isSelected ? "#f0fdf4" : "#ffffff",
-                width: "100%",
-                transition: "all 0.2s",
-                opacity: isDisabled ? 0.5 : 1,
-                position: "relative"
+                flexDirection: "row",
+                gap: "0.75rem",
+                padding: "1rem",
+                background: "#ffffff",
+                borderRadius: "10px",
+                border: "1px solid #e5e7eb"
               },
-              children: [
-                config.showCheckboxes && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                  "input",
-                  {
-                    type: "checkbox",
-                    checked: isSelected,
-                    disabled: isDisabled,
-                    onChange: (e) => {
-                      e.stopPropagation();
-                      handleToggle(variantId, e.target.checked);
-                    },
-                    style: {
-                      position: "absolute",
-                      top: "4px",
-                      left: "4px",
-                      width: "18px",
-                      height: "18px",
-                      cursor: isDisabled ? "not-allowed" : "pointer",
-                      zIndex: 10
-                    }
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
-                  display: "flex",
-                  gap: "0.75rem",
-                  marginBottom: "0.75rem",
-                  alignItems: "flex-start"
-                }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { position: "relative", flexShrink: 0, width: "80px", height: "80px" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                      "img",
-                      {
-                        src: product.imageUrl || "https://via.placeholder.com/80",
-                        alt: product.title,
-                        style: {
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                          borderRadius: "4px",
-                          background: "#f3f4f6"
-                        }
-                      }
-                    ),
-                    discountPercent > 0 && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
-                      "div",
-                      {
-                        style: {
-                          position: "absolute",
-                          top: "2px",
-                          right: "2px",
-                          background: "#10b981",
-                          color: "white",
-                          padding: "2px 6px",
-                          borderRadius: "3px",
-                          fontSize: "0.625rem",
-                          fontWeight: "600",
-                          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
-                        },
-                        children: [
-                          "-",
-                          discountPercent,
-                          "%"
-                        ]
-                      }
-                    )
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: { flex: 1, minWidth: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                    "h5",
+              children: recommendations.map((product, index) => {
+                const variantId = product.variantId || product.id;
+                const isSelected = selectedProducts.has(variantId);
+                const isDisabled = isAtLimit && !isSelected;
+                return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_react2.default.Fragment, { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+                    "div",
                     {
+                      className: `upsellity-fbt-minimal-card ${isDisabled ? "disabled" : ""} ${isSelected ? "selected" : ""}`,
                       style: {
-                        fontSize: "0.875rem",
-                        fontWeight: "600",
-                        marginBottom: "0.25rem",
-                        color: "#111827",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        lineHeight: "1.3"
+                        width: "100%",
+                        padding: "0.75rem",
+                        border: isSelected ? "2px solid #10b981" : "1px solid #d1d5db",
+                        borderRadius: "12px",
+                        background: "#f9fafb",
+                        transition: "all 0.2s",
+                        opacity: isDisabled ? 0.5 : 1,
+                        cursor: "pointer",
+                        position: "relative",
+                        boxShadow: isSelected ? "0 6px 14px rgba(16, 185, 129, 0.15)" : "0 4px 10px rgba(15, 23, 42, 0.08)"
                       },
-                      children: product.title
+                      onClick: () => !isDisabled && handleToggle(variantId, !isSelected),
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: { position: "relative", width: "100%" }, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                          "img",
+                          {
+                            src: product.imageUrl || "https://via.placeholder.com/80",
+                            alt: product.title,
+                            style: {
+                              width: "100%",
+                              height: "110px",
+                              objectFit: "cover",
+                              borderRadius: "8px",
+                              background: "#f3f4f6"
+                            }
+                          }
+                        ) }),
+                        isSelected && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                          "div",
+                          {
+                            style: {
+                              position: "absolute",
+                              top: "4px",
+                              right: "4px",
+                              width: "20px",
+                              height: "20px",
+                              borderRadius: "50%",
+                              background: "#10b981",
+                              color: "white",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "0.75rem",
+                              fontWeight: "600"
+                            },
+                            children: "\u2713"
+                          }
+                        )
+                      ]
                     }
-                  ) }),
-                  isSelected && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  ),
+                  index < recommendations.length - 1 && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                     "div",
                     {
                       style: {
-                        flexShrink: 0,
-                        width: "20px",
-                        height: "20px",
-                        borderRadius: "50%",
-                        background: "#10b981",
-                        color: "white",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "0.75rem",
+                        fontSize: "1.25rem",
+                        color: "#6b7280",
                         fontWeight: "600"
                       },
-                      children: "\u2713"
+                      children: "+"
                     }
                   )
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                ] }, variantId);
+              })
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+            "div",
+            {
+              style: {
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                paddingTop: "1rem",
+                borderTop: "1px solid #e5e7eb",
+                gap: "1rem"
+              },
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: { flex: 1 }, children: selectedCount === 0 ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  "span",
+                  {
+                    style: {
+                      fontSize: "0.875rem",
+                      color: "#6b7280",
+                      fontStyle: "italic"
+                    },
+                    children: "Please add at least 1 add-on item to proceed"
+                  }
+                ) : config.showTotalPrice !== false ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: "0.25rem" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    "span",
+                    {
+                      style: {
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        fontWeight: "400"
+                      },
+                      children: "Total price:"
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem" }, children: [
+                    hasDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                      "span",
+                      {
+                        style: {
+                          textDecoration: "line-through",
+                          color: "#9ca3af",
+                          fontSize: "0.875rem",
+                          fontWeight: "400"
+                        },
+                        children: formatMoney(originalTotal)
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                      "span",
+                      {
+                        style: {
+                          fontSize: "1rem",
+                          fontWeight: "700",
+                          color: "#111827"
+                        },
+                        children: formatMoney(total)
+                      }
+                    )
+                  ] })
+                ] }) : null }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
                   "button",
                   {
-                    onClick: () => !isDisabled && handleToggle(variantId, !isSelected),
-                    disabled: isDisabled,
+                    onClick: onAddToCart,
+                    disabled: selectedCount === 0 || isAdding || isPreview,
                     style: {
-                      width: "100%",
-                      padding: "0.625rem",
-                      background: isSelected ? "#10b981" : "#ffffff",
-                      color: isSelected ? "#ffffff" : "#111827",
-                      border: isSelected ? "1px solid #10b981" : "1px solid #e5e7eb",
-                      borderRadius: "4px",
+                      padding: "0.75rem 1.5rem",
+                      border: "none",
+                      borderRadius: "6px",
                       fontSize: "0.875rem",
                       fontWeight: "600",
-                      cursor: isDisabled ? "not-allowed" : "pointer",
+                      cursor: selectedCount === 0 || isAdding || isPreview ? "not-allowed" : "pointer",
                       transition: "all 0.2s",
+                      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+                      backgroundColor: config.buttonColor || "#000000",
+                      color: config.buttonTextColor || "#FFFFFF",
+                      opacity: selectedCount === 0 || isAdding ? 0.5 : 1,
+                      lineHeight: 1.2,
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center"
+                      gap: "0.5rem",
+                      whiteSpace: "nowrap"
                     },
-                    children: config.showIndividualPrices && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { style: {
-                      fontSize: "0.875rem",
-                      fontWeight: "700"
-                    }, children: [
-                      "$",
-                      product.price.toFixed(2)
-                    ] })
+                    onMouseEnter: (e) => {
+                      if (selectedCount > 0 && !isAdding && !isPreview) {
+                        e.currentTarget.style.opacity = "0.9";
+                        e.currentTarget.style.transform = "translateY(-1px)";
+                      }
+                    },
+                    onMouseLeave: (e) => {
+                      if (selectedCount > 0 && !isAdding && !isPreview) {
+                        e.currentTarget.style.opacity = "1";
+                        e.currentTarget.style.transform = "translateY(0)";
+                      }
+                    },
+                    children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { children: "\u{1F6D2}" }),
+                      isAdding ? "Adding..." : config.buttonText || "ADD TO CART"
+                    ]
                   }
                 )
               ]
-            },
-            variantId
-          );
-        })
+            }
+          )
+        ]
       }
     );
   };
 
-  // app/components/shared/FBTTemplateClassic.tsx
-  var import_react2 = __toESM(require_react(), 1);
+  // ../../app/components/shared/FBTTemplateClassic.tsx
+  var import_react3 = __toESM(require_react(), 1);
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
   var FBTTemplateClassic = ({
     recommendations,
@@ -8569,7 +8604,7 @@
           const variantId = product.variantId || product.id;
           const isSelected = selectedProducts.has(variantId);
           const isDisabled = isAtLimit && !isSelected;
-          return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_react2.default.Fragment, { children: [
+          return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_react3.default.Fragment, { children: [
             /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
               FBTProductCard,
               {
@@ -8607,7 +8642,7 @@
     );
   };
 
-  // app/components/shared/FBTWidget.tsx
+  // ../../app/components/shared/FBTWidget.tsx
   var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
   var FBTWidget = ({
     config,
@@ -8617,21 +8652,21 @@
     onAddToCart,
     isPreview = false
   }) => {
-    const [selectedProducts, setSelectedProducts] = (0, import_react3.useState)(
+    const [selectedProducts, setSelectedProducts] = (0, import_react4.useState)(
       initialSelectedIds || new Set(
         recommendations.slice(0, config.maxUpsellsInCart || recommendations.length).map((r) => r.variantId || r.id)
       )
     );
-    const [isAdding, setIsAdding] = (0, import_react3.useState)(false);
-    const [showSuccess, setShowSuccess] = (0, import_react3.useState)(false);
-    const [currentSlide, setCurrentSlide] = (0, import_react3.useState)(0);
-    const [isMobileCarousel, setIsMobileCarousel] = (0, import_react3.useState)(false);
-    const carouselRef = (0, import_react3.useRef)(null);
-    const [isDragging, setIsDragging] = (0, import_react3.useState)(false);
-    const [startX, setStartX] = (0, import_react3.useState)(0);
-    const [scrollLeft, setScrollLeft] = (0, import_react3.useState)(0);
+    const [isAdding, setIsAdding] = (0, import_react4.useState)(false);
+    const [showSuccess, setShowSuccess] = (0, import_react4.useState)(false);
+    const [currentSlide, setCurrentSlide] = (0, import_react4.useState)(0);
+    const [isMobileCarousel, setIsMobileCarousel] = (0, import_react4.useState)(false);
+    const carouselRef = (0, import_react4.useRef)(null);
+    const [isDragging, setIsDragging] = (0, import_react4.useState)(false);
+    const [startX, setStartX] = (0, import_react4.useState)(0);
+    const [scrollLeft, setScrollLeft] = (0, import_react4.useState)(0);
     const maxUpsells = config.limitUpsellsInCart && config.maxUpsellsInCart ? config.maxUpsellsInCart : null;
-    (0, import_react3.useEffect)(() => {
+    (0, import_react4.useEffect)(() => {
       const checkMobile = () => {
         if (typeof window !== "undefined") {
           setIsMobileCarousel(window.innerWidth <= 768);
@@ -8731,19 +8766,44 @@
         messageDiv.remove();
       }, 3e3);
     };
+    const parsePrice = (price) => {
+      if (price == null || price === void 0)
+        return 0;
+      if (typeof price === "number")
+        return price;
+      if (typeof price === "string") {
+        const parsed = parseFloat(price);
+        return isNaN(parsed) ? 0 : parsed;
+      }
+      if (typeof price === "object" && "toNumber" in price) {
+        return price.toNumber();
+      }
+      try {
+        const parsed = parseFloat(String(price));
+        return isNaN(parsed) ? 0 : parsed;
+      } catch (e) {
+        return 0;
+      }
+    };
+    const formatMoney = (price) => {
+      const amount = price > 1e4 ? price / 100 : price;
+      return `\u20B9${Math.round(amount)}`;
+    };
     const calculateTotal = () => {
       let total2 = 0;
       recommendations.forEach((product) => {
         const variantId = product.variantId || product.id;
         if (selectedProducts.has(variantId)) {
-          total2 += product.price || 0;
+          const price = parsePrice(product.price);
+          total2 += price;
         }
       });
       if (config.discountValue && config.discountType) {
+        const discountValue = parsePrice(config.discountValue);
         if (config.discountType === "percentage") {
-          total2 = total2 * (1 - config.discountValue / 100);
+          total2 = total2 * (1 - discountValue / 100);
         } else if (config.discountType === "fixed") {
-          total2 = Math.max(0, total2 - config.discountValue);
+          total2 = Math.max(0, total2 - discountValue);
         }
       }
       return total2;
@@ -8753,7 +8813,9 @@
       recommendations.forEach((product) => {
         const variantId = product.variantId || product.id;
         if (selectedProducts.has(variantId)) {
-          total2 += product.compareAtPrice || product.price || 0;
+          const comparePrice = parsePrice(product.compareAtPrice);
+          const regularPrice = parsePrice(product.price);
+          total2 += comparePrice > 0 ? comparePrice : regularPrice;
         }
       });
       return total2;
@@ -8789,7 +8851,106 @@
       ] }) });
     }
     const renderTemplate = () => {
+      const useCarousel = layout === "carousel" || isMobileCarousel && recommendations.length > 1;
       if (templateType === "compact") {
+        if (useCarousel) {
+          return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { position: "relative" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+              "div",
+              {
+                ref: carouselRef,
+                className: "upsellity-fbt-carousel",
+                onMouseDown: handleMouseDown,
+                onMouseLeave: handleMouseLeave,
+                onMouseUp: handleMouseUp,
+                onMouseMove: handleMouseMove,
+                style: {
+                  display: "flex",
+                  overflow: "auto",
+                  scrollSnapType: "x mandatory",
+                  gap: "0.75rem",
+                  marginBottom: "1rem",
+                  cursor: "grab",
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                  WebkitOverflowScrolling: "touch",
+                  userSelect: "none"
+                },
+                children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+                  FBTTemplateCompact,
+                  {
+                    recommendations,
+                    selectedProducts,
+                    config,
+                    handleToggle,
+                    isPreview,
+                    isAtLimit,
+                    total,
+                    originalTotal,
+                    selectedCount,
+                    onAddToCart: handleAddToCart,
+                    isAdding
+                  }
+                )
+              }
+            ),
+            !isMobileCarousel && recommendations.length > 2 && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { display: "flex", justifyContent: "center", gap: "0.5rem", marginBottom: "0.5rem" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+                "button",
+                {
+                  onClick: handlePrevSlide,
+                  style: {
+                    padding: "0.5rem 1rem",
+                    background: "#3b82f6",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "0.875rem",
+                    fontWeight: "600",
+                    transition: "all 0.2s"
+                  },
+                  onMouseEnter: (e) => e.currentTarget.style.background = "#2563eb",
+                  onMouseLeave: (e) => e.currentTarget.style.background = "#3b82f6",
+                  children: "\u2190 Prev"
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+                "button",
+                {
+                  onClick: handleNextSlide,
+                  style: {
+                    padding: "0.5rem 1rem",
+                    background: "#3b82f6",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "0.875rem",
+                    fontWeight: "600",
+                    transition: "all 0.2s"
+                  },
+                  onMouseEnter: (e) => e.currentTarget.style.background = "#2563eb",
+                  onMouseLeave: (e) => e.currentTarget.style.background = "#3b82f6",
+                  children: "Next \u2192"
+                }
+              )
+            ] }),
+            isMobileCarousel && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { display: "flex", justifyContent: "center", gap: "0.25rem", marginBottom: "0.75rem" }, children: recommendations.map((_, idx) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+              "div",
+              {
+                style: {
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "4px",
+                  background: "#d1d5db",
+                  transition: "all 0.2s"
+                }
+              },
+              idx
+            )) })
+          ] });
+        }
         return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
           FBTTemplateCompact,
           {
@@ -8807,6 +8968,104 @@
           }
         );
       } else if (templateType === "minimal") {
+        if (useCarousel) {
+          return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { position: "relative" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+              "div",
+              {
+                ref: carouselRef,
+                className: "upsellity-fbt-carousel",
+                onMouseDown: handleMouseDown,
+                onMouseLeave: handleMouseLeave,
+                onMouseUp: handleMouseUp,
+                onMouseMove: handleMouseMove,
+                style: {
+                  display: "flex",
+                  overflow: "auto",
+                  scrollSnapType: "x mandatory",
+                  gap: "0.75rem",
+                  marginBottom: "1rem",
+                  cursor: "grab",
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                  WebkitOverflowScrolling: "touch",
+                  userSelect: "none"
+                },
+                children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+                  FBTTemplateMinimal,
+                  {
+                    recommendations,
+                    selectedProducts,
+                    config,
+                    handleToggle,
+                    isPreview,
+                    isAtLimit,
+                    total,
+                    originalTotal,
+                    selectedCount,
+                    onAddToCart: handleAddToCart,
+                    isAdding
+                  }
+                )
+              }
+            ),
+            !isMobileCarousel && recommendations.length > 2 && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { display: "flex", justifyContent: "center", gap: "0.5rem", marginBottom: "0.5rem" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+                "button",
+                {
+                  onClick: handlePrevSlide,
+                  style: {
+                    padding: "0.5rem 1rem",
+                    background: "#3b82f6",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "0.875rem",
+                    fontWeight: "600",
+                    transition: "all 0.2s"
+                  },
+                  onMouseEnter: (e) => e.currentTarget.style.background = "#2563eb",
+                  onMouseLeave: (e) => e.currentTarget.style.background = "#3b82f6",
+                  children: "\u2190 Prev"
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+                "button",
+                {
+                  onClick: handleNextSlide,
+                  style: {
+                    padding: "0.5rem 1rem",
+                    background: "#3b82f6",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "0.875rem",
+                    fontWeight: "600",
+                    transition: "all 0.2s"
+                  },
+                  onMouseEnter: (e) => e.currentTarget.style.background = "#2563eb",
+                  onMouseLeave: (e) => e.currentTarget.style.background = "#3b82f6",
+                  children: "Next \u2192"
+                }
+              )
+            ] }),
+            isMobileCarousel && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { display: "flex", justifyContent: "center", gap: "0.25rem", marginBottom: "0.75rem" }, children: recommendations.map((_, idx) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+              "div",
+              {
+                style: {
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "4px",
+                  background: "#d1d5db",
+                  transition: "all 0.2s"
+                }
+              },
+              idx
+            )) })
+          ] });
+        }
         return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
           FBTTemplateMinimal,
           {
@@ -8815,11 +9074,16 @@
             config,
             handleToggle,
             isPreview,
-            isAtLimit
+            isAtLimit,
+            total,
+            originalTotal,
+            selectedCount,
+            onAddToCart: handleAddToCart,
+            isAdding
           }
         );
       } else {
-        if (layout === "carousel" || isMobileCarousel && recommendations.length > 1) {
+        if (useCarousel) {
           return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { position: "relative" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
               "div",
@@ -8965,14 +9229,14 @@
         {
           className: "upsellity-fbt-layout",
           style: {
-            display: templateType === "compact" ? "block" : "grid",
-            gridTemplateColumns: templateType === "compact" ? "1fr" : isMobileCarousel ? "1fr" : "1fr 220px",
+            display: templateType === "compact" || templateType === "minimal" ? "block" : "grid",
+            gridTemplateColumns: templateType === "compact" || templateType === "minimal" ? "1fr" : isMobileCarousel ? "1fr" : "1fr 220px",
             gap: "0.75rem",
             alignItems: "center"
           },
           children: [
             renderTemplate(),
-            templateType !== "compact" && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+            templateType !== "compact" && templateType !== "minimal" && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
               "div",
               {
                 className: "upsellity-fbt-sidebar",
@@ -9013,7 +9277,7 @@
                           }
                         ),
                         /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { children: [
-                          hasDiscount && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+                          hasDiscount && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
                             "span",
                             {
                               className: "upsellity-fbt-total-original",
@@ -9024,13 +9288,10 @@
                                 fontSize: "0.8125rem",
                                 fontWeight: "400"
                               },
-                              children: [
-                                "$",
-                                originalTotal.toFixed(2)
-                              ]
+                              children: formatMoney(originalTotal)
                             }
                           ),
-                          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+                          /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
                             "span",
                             {
                               className: "upsellity-fbt-total-price",
@@ -9039,10 +9300,7 @@
                                 fontWeight: "700",
                                 color: "#111827"
                               },
-                              children: [
-                                "$",
-                                total.toFixed(2)
-                              ]
+                              children: formatMoney(total)
                             }
                           )
                         ] })
@@ -9082,7 +9340,7 @@
     ] });
   };
 
-  // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
+  // assets/modules/fbt-widget-entry.js
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;
@@ -9228,7 +9486,7 @@
           this.reactRoot = (0, import_client.createRoot)(this.container);
         }
         this.reactRoot.render(
-          import_react4.default.createElement(FBTWidget, {
+          import_react5.default.createElement(FBTWidget, {
             config: this.config,
             recommendations: this.recommendations,
             selectedProductIds: this.selectedProducts,

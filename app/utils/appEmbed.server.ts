@@ -33,7 +33,6 @@ export async function checkAppEmbedEnabled(
     const activeTheme = themeData?.data?.themes?.nodes?.[0];
     
     if (!activeTheme) {
-      console.log("No active theme found");
       return false;
     }
 
@@ -41,7 +40,6 @@ export async function checkAppEmbedEnabled(
     const themeId = activeTheme.id.split('/').pop();
     
     if (!themeId) {
-      console.log("Failed to extract theme ID");
       return false;
     }
     
@@ -56,7 +54,6 @@ export async function checkAppEmbedEnabled(
     });
     
     if (!settingsResponse.ok) {
-      console.log("Failed to fetch settings_data.json:", settingsResponse.status);
       return false;
     }
 
@@ -64,7 +61,6 @@ export async function checkAppEmbedEnabled(
     
     // STEP 3: Check if app embed is enabled in settings_data.json
     if (!settingsData?.asset?.value) {
-      console.log("No asset value in settings_data.json");
       return false;
     }
 

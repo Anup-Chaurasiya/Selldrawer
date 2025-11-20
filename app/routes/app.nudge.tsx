@@ -31,6 +31,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback } from "react";
 import { DeleteIcon, EditIcon } from "@shopify/polaris-icons";
+import { NudgeWidget } from "../components/shared/NudgeWidget";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -470,6 +471,51 @@ export default function NudgePopup() {
     collection.title.toLowerCase().includes(modalConfig.searchQuery.toLowerCase())
   );
 
+  // Get products for preview
+  const getPreviewProducts = () => {
+    // Check if there are any rules with products
+    if (nudgeConfig?.rules && nudgeConfig.rules.length > 0) {
+      for (const rule of nudgeConfig.rules) {
+        if (rule.products && rule.products.length > 0) {
+          return rule.products
+            .slice(0, parseInt(formState.maxProducts))
+            .map(product => ({
+              id: product.shopifyProductId || product.id,
+              variantId: product.shopifyVariantId || '',
+              title: product.title,
+              handle: product.handle,
+              price: product.price ? parseFloat(product.price.toString()) : 0,
+              compareAtPrice: product.compareAtPrice ? parseFloat(product.compareAtPrice.toString()) : undefined,
+              imageUrl: product.imageUrl,
+              description: product.description || ''
+            }));
+        }
+      }
+    }
+
+    // Fallback to sample products from shop
+    if (shopProducts.length > 0) {
+      return shopProducts.slice(0, Math.min(parseInt(formState.maxProducts), 3)).map((product: any) => ({
+        id: product.shopifyProductId || product.id,
+        variantId: product.shopifyVariantId || product.variants?.[0]?.id || '',
+        title: product.title,
+        handle: product.handle,
+        price: product.price ? parseFloat(product.price) : 
+               (product.variants?.[0]?.price ? parseFloat(product.variants[0].price) : 0),
+        compareAtPrice: product.compareAtPrice ? parseFloat(product.compareAtPrice) :
+                       (product.variants?.[0]?.compare_at_price ? parseFloat(product.variants[0].compare_at_price) : undefined),
+        imageUrl: product.imageUrl || product.images?.[0]?.src || '',
+        description: product.description || ''
+      }));
+    }
+
+    // Ultimate fallback to empty array
+    return [];
+  };
+
+  const previewProducts = getPreviewProducts();
+  const [showPreview, setShowPreview] = useState(false);
+
   return (
     <Page title="Nudge Upsell">
       <TitleBar title="Nudge Upsell" />
@@ -819,6 +865,101 @@ export default function NudgePopup() {
               </BlockStack>
             </Card>
           </Layout.Section>
+
+        {/* Preview Section */}
+        <Layout.Section variant="oneThird">
+          <Card>
+            <BlockStack gap="400">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text as="h3" variant="headingMd">
+                  Live Preview
+                </Text>
+                <Badge tone={previewProducts.length === 0 ? 'info' : 'success'}>
+                  {formState.layout === 'grid' ? 'Grid' : 
+                   formState.layout === 'list' ? 'List' : 
+                   'Carousel'}
+                </Badge>
+              </div>
+              
+              <Button 
+                onClick={() => setShowPreview(!showPreview)}
+                variant={showPreview ? 'primary' : 'secondary'}
+                fullWidth
+              >
+                {showPreview ? 'Hide Preview' : 'Show Preview'}
+              </Button>
+
+              {showPreview && (
+                <div style={{
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  backgroundColor: '#fafbfc',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                  maxHeight: '800px',
+                  overflowY: 'auto',
+                  position: 'relative'
+                }}>
+                  <div style={{
+                    transform: 'scale(0.7)',
+                    transformOrigin: 'top center',
+                    width: '142.857%',
+                    marginLeft: '-21.429%',
+                    marginBottom: '-30%'
+                  }}>
+                    <NudgeWidget
+                      config={{
+                        title: formState.title,
+                        subtitle: formState.subtitle,
+                        layout: formState.layout as 'grid' | 'list' | 'carousel',
+                        maxProducts: parseInt(formState.maxProducts),
+                        showProductImage: formState.showProductImage,
+                        showProductDescription: formState.showProductDescription,
+                        showProductPrice: formState.showProductPrice,
+                        showProductComparePrice: formState.showProductComparePrice,
+                        continueButtonText: formState.continueButtonText,
+                        continueButtonColor: formState.continueButtonColor,
+                        continueButtonTextColor: formState.continueButtonTextColor,
+                        selectButtonText: formState.selectButtonText,
+                        selectButtonColor: formState.selectButtonColor,
+                        selectButtonTextColor: formState.selectButtonTextColor,
+                        overlayColor: formState.overlayColor,
+                        overlayOpacity: parseInt(formState.overlayOpacity),
+                        popupBackgroundColor: formState.popupBackgroundColor,
+                        popupBorderRadius: parseInt(formState.popupBorderRadius),
+                        closeButtonColor: formState.closeButtonColor,
+                        titleColor: formState.titleColor,
+                        subtitleColor: formState.subtitleColor,
+                        enableAnimation: formState.enableAnimation,
+                        animationType: formState.animationType as 'fade' | 'slide-up' | 'scale',
+                        popupDelay: parseInt(formState.popupDelay),
+                        showOnAddToCart: formState.showOnAddToCart
+                      }}
+                      recommendations={previewProducts}
+                      isVisible={true}
+                      isPreview={true}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#f0f9ff',
+                borderRadius: '8px',
+                border: '1px solid #bfdbfe'
+              }}>
+                <Text as="p" variant="bodySm">
+                  <strong>💡 Preview Tip:</strong> {previewProducts.length === 0 ? 'Using sample products. Configure rules above to see your actual products.' : 'Showing your configured products. Change layout to see different styles.'}
+                </Text>
+              </div>
+
+              <Text as="p" variant="bodyMd" tone="subdued">
+                This preview shows how the nudge popup will appear when customers click "Add to Cart".
+              </Text>
+            </BlockStack>
+          </Card>
+        </Layout.Section>
       </Layout>
 
       {/* Add Rule Modal */}

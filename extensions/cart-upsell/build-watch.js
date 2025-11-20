@@ -18,34 +18,35 @@ function getVersion() {
   }
 }
 
-// Plugin to add version banner after each build
-const versionBannerPlugin = {
-  name: 'version-banner',
-  setup(build) {
-    build.onEnd((result) => {
-      if (result.errors.length === 0) {
-        const version = getVersion();
-        const outfile = join(__dirname, 'assets/cart-drawer.js');
-        try {
-          const content = readFileSync(outfile, 'utf-8');
-          // Only add banner if it's not already there
-          if (!content.startsWith('/**\n * Upsellity Cart Drawer')) {
-            const banner = `/**\n * Upsellity Cart Drawer v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
-            writeFileSync(outfile, banner + content);
+// Create version banner plugin for a specific file
+function createVersionBannerPlugin(outfile, moduleName) {
+  return {
+    name: 'version-banner',
+    setup(build) {
+      build.onEnd((result) => {
+        if (result.errors.length === 0) {
+          const version = getVersion();
+          try {
+            const content = readFileSync(outfile, 'utf-8');
+            // Only add banner if it's not already there
+            if (!content.startsWith(`/**\n * Upsellity ${moduleName}`)) {
+              const banner = `/**\n * Upsellity ${moduleName} v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
+              writeFileSync(outfile, banner + content);
+            }
+          } catch (error) {
+            console.error(`Error adding version banner for ${moduleName}:`, error);
           }
-        } catch (error) {
-          console.error('Error adding version banner:', error);
         }
-      }
-    });
-  },
-};
+      });
+    },
+  };
+}
 
 async function watch() {
   const version = getVersion();
-  console.log(`👀 Watching cart-drawer files for changes... (v${version})`);
   
-  const context = await esbuild.context({
+  // Watch Cart Drawer
+  const cartDrawerContext = await esbuild.context({
     entryPoints: [join(__dirname, 'assets/modules/cart-drawer-entry.js')],
     bundle: true,
     outfile: join(__dirname, 'assets/cart-drawer.js'),
@@ -68,11 +69,68 @@ async function watch() {
       '__CART_DRAWER_VERSION__': `"${version}"`
     },
     external: [],
-    plugins: [versionBannerPlugin],
+    plugins: [createVersionBannerPlugin(join(__dirname, 'assets/cart-drawer.js'), 'Cart Drawer')],
   });
 
-  await context.watch();
-  console.log('✅ Watching for changes... Press Ctrl+C to stop.');
+  // Watch FBT Widget
+  const fbtWidgetContext = await esbuild.context({
+    entryPoints: [join(__dirname, 'assets/modules/fbt-widget-entry.js')],
+    bundle: true,
+    outfile: join(__dirname, 'assets/fbt-widget.js'),
+    format: 'iife',
+    target: 'es2017',
+    minify: false,
+    sourcemap: false,
+    platform: 'browser',
+    logLevel: 'info',
+    jsx: 'automatic',
+    jsxImportSource: 'react',
+    loader: {
+      '.tsx': 'tsx',
+      '.ts': 'ts',
+      '.jsx': 'jsx',
+      '.js': 'js',
+    },
+    define: {
+      'process.env.NODE_ENV': '"production"',
+      '__FBT_VERSION__': `"${version}"`
+    },
+    external: [],
+    plugins: [createVersionBannerPlugin(join(__dirname, 'assets/fbt-widget.js'), 'FBT Widget')],
+  });
+
+  // Watch Nudge Popup
+  const nudgePopupContext = await esbuild.context({
+    entryPoints: [join(__dirname, 'assets/modules/nudge-popup-entry.js')],
+    bundle: true,
+    outfile: join(__dirname, 'assets/nudge-popup.js'),
+    format: 'iife',
+    target: 'es2017',
+    minify: false,
+    sourcemap: false,
+    platform: 'browser',
+    logLevel: 'info',
+    jsx: 'automatic',
+    jsxImportSource: 'react',
+    loader: {
+      '.tsx': 'tsx',
+      '.ts': 'ts',
+      '.jsx': 'jsx',
+      '.js': 'js',
+    },
+    define: {
+      'process.env.NODE_ENV': '"production"',
+      '__NUDGE_VERSION__': `"${version}"`
+    },
+    external: [],
+    plugins: [createVersionBannerPlugin(join(__dirname, 'assets/nudge-popup.js'), 'Nudge Popup')],
+  });
+
+  // Start watching all contexts
+  await cartDrawerContext.watch();
+  await fbtWidgetContext.watch();
+  await nudgePopupContext.watch();
+  
 }
 
 watch().catch((error) => {

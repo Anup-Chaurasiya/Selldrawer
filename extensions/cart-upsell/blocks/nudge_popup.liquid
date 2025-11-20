@@ -1,9 +1,8 @@
 {% comment %}
   Nudge Popup Widget
   Shows alternative products in a popup when "Add to Cart" is clicked
+  Built with React and bundled via esbuild
 {% endcomment %}
-
-{{ 'nudge-popup.css' | asset_url | stylesheet_tag }}
 
 {% comment %} Get app URL from settings or use default {% endcomment %}
 {% if block.settings.app_url != blank %}
@@ -15,12 +14,20 @@
 {% comment %} Add meta tag for shop domain {% endcomment %}
 <meta name="shopify-shop" content="{{ shop.permanent_domain }}">
 
-{% comment %} Load the script with app URL as data attribute {% endcomment %}
-<script 
-  src="{{ 'nudge-popup.js' | asset_url }}" 
-  defer
-  data-nudge-app-url="{{ app_url }}"
-></script>
+<script>
+  (function() {
+    // Version number for cache busting
+    var version = '{{ block.settings.version | default: "1.0.1" }}';
+    var appUrl = '{{ app_url }}';
+    
+    // Load the Nudge Popup script
+    var script = document.createElement('script');
+    script.src = '{{ 'nudge-popup.js' | asset_url }}' + '?v=' + version;
+    script.async = true;
+    script.setAttribute('data-nudge-app-url', appUrl);
+    document.head.appendChild(script);
+  })();
+</script>
 
 {% schema %}
 {
@@ -44,6 +51,13 @@
       "label": "App URL",
       "default": "https://app.upsellity.com",
       "info": "The URL of your Upsellity app (leave default if unsure)"
+    },
+    {
+      "type": "text",
+      "id": "version",
+      "label": "Version",
+      "info": "Version number for cache busting. Update this when you release new versions.",
+      "default": "1.0.1"
     }
   ]
 }
