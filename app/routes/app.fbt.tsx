@@ -742,12 +742,12 @@ export default function FrequentlyBoughtTogether() {
                   <Select
                     label="Layout"
                     options={[
-                      { label: "Horizontal", value: "horizontal" },
-                      { label: "Vertical", value: "vertical" },
-                      { label: "Grid", value: "grid" },
+                      { label: "Horizontal - Side by side", value: "horizontal" },
+                      { label: "Carousel - Swipeable slider", value: "carousel" },
                     ]}
                     value={formState.layout}
                     onChange={(value) => setFormState({ ...formState, layout: value })}
+                    helpText="Carousel layout allows smooth mouse/touch dragging for better user experience"
                   />
 
                   <TextField
@@ -1059,7 +1059,7 @@ export default function FrequentlyBoughtTogether() {
                   <FBTWidget
                     config={{
                       title: formState.title,
-                      layout: formState.layout as 'horizontal' | 'vertical' | 'grid',
+                      layout: formState.layout as 'horizontal' | 'carousel',
                       templateType: formState.templateType as 'classic' | 'compact' | 'minimal',
                       buttonText: formState.buttonText,
                       buttonColor: formState.buttonColor,

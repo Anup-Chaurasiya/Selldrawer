@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.1
- * Built: 2025-11-19T14:05:10.861Z
+ * Built: 2025-11-20T07:39:57.275Z
  */
 "use strict";
 (() => {
@@ -8,22 +8,8 @@
   var __defProp = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __getOwnPropNames = Object.getOwnPropertyNames;
-  var __getOwnPropSymbols = Object.getOwnPropertySymbols;
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
-  var __propIsEnum = Object.prototype.propertyIsEnumerable;
-  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-  var __spreadValues = (a, b) => {
-    for (var prop in b || (b = {}))
-      if (__hasOwnProp.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
-    if (__getOwnPropSymbols)
-      for (var prop of __getOwnPropSymbols(b)) {
-        if (__propIsEnum.call(b, prop))
-          __defNormalProp(a, prop, b[prop]);
-      }
-    return a;
-  };
   var __commonJS = (cb, mod) => function __require() {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
   };
@@ -7876,11 +7862,11 @@
   });
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var import_react3 = __toESM(require_react(), 1);
+  var import_react4 = __toESM(require_react(), 1);
   var import_client = __toESM(require_client(), 1);
 
   // app/components/shared/FBTWidget.tsx
-  var import_react2 = __toESM(require_react(), 1);
+  var import_react3 = __toESM(require_react(), 1);
 
   // app/components/shared/FBTProductCard.tsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
@@ -8049,6 +8035,7 @@
   };
 
   // app/components/shared/FBTTemplateCompact.tsx
+  var import_react = __toESM(require_react(), 1);
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
   var FBTTemplateCompact = ({
     recommendations,
@@ -8056,9 +8043,15 @@
     config,
     handleToggle,
     isPreview,
-    isAtLimit
+    isAtLimit,
+    total,
+    originalTotal = 0,
+    selectedCount,
+    onAddToCart,
+    isAdding = false
   }) => {
-    return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+    const hasDiscount = config.showDiscount && originalTotal > total;
+    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
       "div",
       {
         className: "upsellity-fbt-template-compact",
@@ -8067,115 +8060,233 @@
           flexDirection: "column",
           gap: "1rem"
         },
-        children: recommendations.map((product) => {
-          const variantId = product.variantId || product.id;
-          const isSelected = selectedProducts.has(variantId);
-          const isDisabled = isAtLimit && !isSelected;
-          const discountPercent = product.compareAtPrice && product.price < product.compareAtPrice ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
-          return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
             "div",
             {
-              className: `upsellity-fbt-compact-card ${isDisabled ? "disabled" : ""} ${isSelected ? "selected" : ""}`,
               style: {
                 display: "flex",
-                gap: "1rem",
-                padding: "1rem",
-                border: isSelected ? "2px solid #10b981" : "1px solid #e5e7eb",
-                borderRadius: "8px",
-                background: isSelected ? "#f0fdf4" : "#ffffff",
-                alignItems: "center",
-                transition: "all 0.2s",
-                opacity: isDisabled ? 0.5 : 1,
-                cursor: "pointer",
-                position: "relative"
+                flexDirection: "row",
+                gap: "0.5rem",
+                alignItems: "stretch",
+                flexWrap: "wrap",
+                width: "100%"
               },
-              onClick: () => !isDisabled && handleToggle(variantId, !isSelected),
-              children: [
-                config.showCheckboxes && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                  "input",
-                  {
-                    type: "checkbox",
-                    checked: isSelected,
-                    disabled: isDisabled,
-                    onChange: (e) => {
-                      e.stopPropagation();
-                      handleToggle(variantId, e.target.checked);
-                    },
-                    style: {
-                      width: "24px",
-                      height: "24px",
-                      cursor: isDisabled ? "not-allowed" : "pointer",
-                      flexShrink: 0
-                    }
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative", flexShrink: 0 }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                    "img",
-                    {
-                      src: product.imageUrl || "https://via.placeholder.com/100",
-                      alt: product.title,
-                      style: {
-                        width: "100px",
-                        height: "100px",
-                        objectFit: "cover",
-                        borderRadius: "6px",
-                        background: "#f3f4f6"
-                      }
-                    }
-                  ),
-                  discountPercent > 0 && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+              children: recommendations.map((product, index) => {
+                const variantId = product.variantId || product.id;
+                const isSelected = selectedProducts.has(variantId);
+                const isDisabled = isAtLimit && !isSelected;
+                const discountPercent = product.compareAtPrice && product.price < product.compareAtPrice ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
+                return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_react.default.Fragment, { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "div",
                     {
+                      className: `upsellity-fbt-compact-card ${isDisabled ? "disabled" : ""} ${isSelected ? "selected" : ""}`,
                       style: {
-                        position: "absolute",
-                        top: "4px",
-                        right: "4px",
-                        background: "#10b981",
-                        color: "white",
-                        padding: "4px 8px",
-                        borderRadius: "4px",
-                        fontSize: "0.75rem",
-                        fontWeight: "600",
-                        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
+                        display: "flex",
+                        flexDirection: "column",
+                        padding: "0.75rem",
+                        border: isSelected ? "2px solid #10b981" : "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        background: "#ffffff",
+                        transition: "all 0.2s",
+                        opacity: isDisabled ? 0.5 : 1,
+                        cursor: "pointer",
+                        position: "relative",
+                        minWidth: "180px",
+                        flex: "1 1 0",
+                        maxWidth: "220px",
+                        boxSizing: "border-box"
                       },
+                      onClick: () => !isDisabled && handleToggle(variantId, !isSelected),
                       children: [
-                        "-",
-                        discountPercent,
-                        "%"
+                        config.showCheckboxes && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                          "input",
+                          {
+                            type: "checkbox",
+                            checked: isSelected,
+                            disabled: isDisabled,
+                            onChange: (e) => {
+                              e.stopPropagation();
+                              handleToggle(variantId, e.target.checked);
+                            },
+                            style: {
+                              position: "absolute",
+                              top: "0.5rem",
+                              right: "0.5rem",
+                              width: "20px",
+                              height: "20px",
+                              cursor: isDisabled ? "not-allowed" : "pointer",
+                              zIndex: 10
+                            }
+                          }
+                        ),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative", marginBottom: "0.5rem", width: "100%" }, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                            "img",
+                            {
+                              src: product.imageUrl || "https://via.placeholder.com/150",
+                              alt: product.title,
+                              style: {
+                                width: "100%",
+                                height: "150px",
+                                objectFit: "cover",
+                                borderRadius: "6px",
+                                background: "#f3f4f6"
+                              }
+                            }
+                          ),
+                          discountPercent > 0 && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                            "div",
+                            {
+                              style: {
+                                position: "absolute",
+                                top: "8px",
+                                left: "8px",
+                                background: "#10b981",
+                                color: "white",
+                                padding: "4px 8px",
+                                borderRadius: "4px",
+                                fontSize: "0.75rem",
+                                fontWeight: "600",
+                                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
+                              },
+                              children: [
+                                discountPercent,
+                                "% off"
+                              ]
+                            }
+                          )
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { flex: 1, display: "flex", flexDirection: "column", gap: "0.25rem" }, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                            "h4",
+                            {
+                              style: {
+                                fontSize: "0.875rem",
+                                fontWeight: "500",
+                                color: "#111827",
+                                lineHeight: 1.4,
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                                minHeight: "2.5rem",
+                                marginBottom: "0.25rem"
+                              },
+                              children: product.title
+                            }
+                          ),
+                          config.showProductReviews && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                            fontSize: "0.75rem",
+                            color: "#f59e0b",
+                            marginBottom: "0.25rem"
+                          }, children: "\u2605\u2605\u2605\u2605\u2605 (0)" }),
+                          config.showIndividualPrices && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginTop: "auto" }, children: [
+                            product.compareAtPrice && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                              "span",
+                              {
+                                style: {
+                                  textDecoration: "line-through",
+                                  color: "#9ca3af",
+                                  marginRight: "0.5rem",
+                                  fontSize: "0.75rem",
+                                  fontWeight: "400"
+                                },
+                                children: [
+                                  "$",
+                                  product.compareAtPrice.toFixed(2)
+                                ]
+                              }
+                            ),
+                            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                              "span",
+                              {
+                                style: {
+                                  fontSize: "1rem",
+                                  fontWeight: "700",
+                                  color: "#111827"
+                                },
+                                children: [
+                                  "$",
+                                  product.price.toFixed(2)
+                                ]
+                              }
+                            )
+                          ] })
+                        ] })
                       ]
                     }
+                  ),
+                  index < recommendations.length - 1 && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                    "div",
+                    {
+                      className: "upsellity-fbt-plus",
+                      style: {
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "1.25rem",
+                        color: "#6b7280",
+                        fontWeight: "600",
+                        minWidth: "24px",
+                        flexShrink: 0
+                      },
+                      children: "+"
+                    }
                   )
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
+                ] }, variantId);
+              })
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+            "div",
+            {
+              style: {
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                paddingTop: "1rem",
+                borderTop: "1px solid #e5e7eb",
+                gap: "1rem"
+              },
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flex: 1 }, children: selectedCount === 0 ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "span",
+                  {
+                    style: {
+                      fontSize: "0.875rem",
+                      color: "#6b7280",
+                      fontStyle: "italic"
+                    },
+                    children: "Please add at least 1 add-on item to proceed"
+                  }
+                ) : config.showTotalPrice ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: "0.25rem" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                    "h4",
+                    "span",
                     {
                       style: {
-                        fontSize: "1rem",
-                        fontWeight: "600",
-                        marginBottom: "0.5rem",
-                        color: "#111827",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap"
+                        fontSize: "0.75rem",
+                        color: "#6b7280",
+                        fontWeight: "400"
                       },
-                      children: product.title
+                      children: "Total price:"
                     }
                   ),
-                  config.showIndividualPrices && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "0.25rem" }, children: [
-                    product.compareAtPrice && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "0.5rem" }, children: [
+                    hasDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                       "span",
                       {
                         style: {
                           textDecoration: "line-through",
                           color: "#9ca3af",
-                          marginRight: "0.5rem",
-                          fontSize: "0.875rem"
+                          fontSize: "0.875rem",
+                          fontWeight: "400"
                         },
                         children: [
                           "$",
-                          product.compareAtPrice.toFixed(2)
+                          originalTotal.toFixed(2)
                         ]
                       }
                     ),
@@ -8183,49 +8294,68 @@
                       "span",
                       {
                         style: {
-                          fontSize: "1.125rem",
+                          fontSize: "1rem",
                           fontWeight: "700",
                           color: "#111827"
                         },
                         children: [
                           "$",
-                          product.price.toFixed(2)
+                          total.toFixed(2)
                         ]
                       }
                     )
-                  ] }),
-                  config.showProductReviews && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "0.75rem", color: "#f59e0b" }, children: "\u2605\u2605\u2605\u2605\u2605 (0)" })
-                ] }),
-                isSelected && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                  "div",
+                  ] })
+                ] }) : null }),
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                  "button",
                   {
+                    onClick: onAddToCart,
+                    disabled: selectedCount === 0 || isAdding || isPreview,
                     style: {
-                      width: "32px",
-                      height: "32px",
-                      borderRadius: "50%",
-                      background: "#10b981",
-                      color: "white",
+                      padding: "0.75rem 1.5rem",
+                      border: "none",
+                      borderRadius: "6px",
+                      fontSize: "0.875rem",
+                      fontWeight: "600",
+                      cursor: selectedCount === 0 || isAdding || isPreview ? "not-allowed" : "pointer",
+                      transition: "all 0.2s",
+                      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+                      backgroundColor: config.buttonColor || "#000000",
+                      color: config.buttonTextColor || "#FFFFFF",
+                      opacity: selectedCount === 0 || isAdding ? 0.5 : 1,
+                      lineHeight: 1.2,
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "1.25rem",
-                      fontWeight: "600",
-                      flexShrink: 0
+                      gap: "0.5rem",
+                      whiteSpace: "nowrap"
                     },
-                    children: "\u2713"
+                    onMouseEnter: (e) => {
+                      if (selectedCount > 0 && !isAdding && !isPreview) {
+                        e.currentTarget.style.opacity = "0.9";
+                        e.currentTarget.style.transform = "translateY(-1px)";
+                      }
+                    },
+                    onMouseLeave: (e) => {
+                      if (selectedCount > 0 && !isAdding && !isPreview) {
+                        e.currentTarget.style.opacity = "1";
+                        e.currentTarget.style.transform = "translateY(0)";
+                      }
+                    },
+                    children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: "\u{1F6D2}" }),
+                      isAdding ? "Adding..." : config.buttonText || "ADD TO CART"
+                    ]
                   }
                 )
               ]
-            },
-            variantId
-          );
-        })
+            }
+          )
+        ]
       }
     );
   };
 
   // app/components/shared/FBTTemplateMinimal.tsx
-  var import_react = __toESM(require_react(), 1);
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
   var FBTTemplateMinimal = ({
     recommendations,
@@ -8241,64 +8371,63 @@
         className: "upsellity-fbt-template-minimal",
         style: {
           display: "flex",
+          flexDirection: "column",
           gap: "0.75rem",
-          flexWrap: "wrap",
-          alignItems: "center",
           padding: "1rem",
           background: "#f9fafb",
           borderRadius: "8px",
           border: "1px solid #e5e7eb"
         },
-        children: recommendations.map((product, index) => {
+        children: recommendations.map((product) => {
           const variantId = product.variantId || product.id;
           const isSelected = selectedProducts.has(variantId);
           const isDisabled = isAtLimit && !isSelected;
           const discountPercent = product.compareAtPrice && product.price < product.compareAtPrice ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
-          return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_react.default.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
-              "div",
-              {
-                className: `upsellity-fbt-minimal-card ${isDisabled ? "disabled" : ""} ${isSelected ? "selected" : ""}`,
-                style: {
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.75rem",
-                  border: isSelected ? "2px solid #10b981" : "1px solid #e5e7eb",
-                  borderRadius: "6px",
-                  background: isSelected ? "#f0fdf4" : "#ffffff",
-                  minWidth: "120px",
-                  maxWidth: "150px",
-                  flex: "1",
-                  transition: "all 0.2s",
-                  opacity: isDisabled ? 0.5 : 1,
-                  cursor: "pointer",
-                  position: "relative"
-                },
-                onClick: () => !isDisabled && handleToggle(variantId, !isSelected),
-                children: [
-                  config.showCheckboxes && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                    "input",
-                    {
-                      type: "checkbox",
-                      checked: isSelected,
-                      disabled: isDisabled,
-                      onChange: (e) => {
-                        e.stopPropagation();
-                        handleToggle(variantId, e.target.checked);
-                      },
-                      style: {
-                        position: "absolute",
-                        top: "4px",
-                        left: "4px",
-                        width: "18px",
-                        height: "18px",
-                        cursor: isDisabled ? "not-allowed" : "pointer"
-                      }
+          return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+            "div",
+            {
+              className: `upsellity-fbt-minimal-card ${isDisabled ? "disabled" : ""} ${isSelected ? "selected" : ""}`,
+              style: {
+                display: "flex",
+                flexDirection: "column",
+                padding: "0.75rem",
+                border: isSelected ? "2px solid #10b981" : "1px solid #e5e7eb",
+                borderRadius: "6px",
+                background: isSelected ? "#f0fdf4" : "#ffffff",
+                width: "100%",
+                transition: "all 0.2s",
+                opacity: isDisabled ? 0.5 : 1,
+                position: "relative"
+              },
+              children: [
+                config.showCheckboxes && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  "input",
+                  {
+                    type: "checkbox",
+                    checked: isSelected,
+                    disabled: isDisabled,
+                    onChange: (e) => {
+                      e.stopPropagation();
+                      handleToggle(variantId, e.target.checked);
+                    },
+                    style: {
+                      position: "absolute",
+                      top: "4px",
+                      left: "4px",
+                      width: "18px",
+                      height: "18px",
+                      cursor: isDisabled ? "not-allowed" : "pointer",
+                      zIndex: 10
                     }
-                  ),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { position: "relative", width: "100%" }, children: [
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+                  display: "flex",
+                  gap: "0.75rem",
+                  marginBottom: "0.75rem",
+                  alignItems: "flex-start"
+                }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { position: "relative", flexShrink: 0, width: "80px", height: "80px" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                       "img",
                       {
@@ -8306,7 +8435,7 @@
                         alt: product.title,
                         style: {
                           width: "100%",
-                          height: "80px",
+                          height: "100%",
                           objectFit: "cover",
                           borderRadius: "4px",
                           background: "#f3f4f6"
@@ -8336,34 +8465,29 @@
                       }
                     )
                   ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { width: "100%", textAlign: "center" }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                      "h5",
-                      {
-                        style: {
-                          fontSize: "0.75rem",
-                          fontWeight: "600",
-                          marginBottom: "0.25rem",
-                          color: "#111827",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap"
-                        },
-                        children: product.title
-                      }
-                    ),
-                    config.showIndividualPrices && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { fontSize: "0.875rem", fontWeight: "700", color: "#111827" }, children: [
-                      "$",
-                      product.price.toFixed(2)
-                    ] })
-                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: { flex: 1, minWidth: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    "h5",
+                    {
+                      style: {
+                        fontSize: "0.875rem",
+                        fontWeight: "600",
+                        marginBottom: "0.25rem",
+                        color: "#111827",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        lineHeight: "1.3"
+                      },
+                      children: product.title
+                    }
+                  ) }),
                   isSelected && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                     "div",
                     {
                       style: {
-                        position: "absolute",
-                        top: "4px",
-                        right: "4px",
+                        flexShrink: 0,
                         width: "20px",
                         height: "20px",
                         borderRadius: "50%",
@@ -8378,16 +8502,101 @@
                       children: "\u2713"
                     }
                   )
-                ]
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  "button",
+                  {
+                    onClick: () => !isDisabled && handleToggle(variantId, !isSelected),
+                    disabled: isDisabled,
+                    style: {
+                      width: "100%",
+                      padding: "0.625rem",
+                      background: isSelected ? "#10b981" : "#ffffff",
+                      color: isSelected ? "#ffffff" : "#111827",
+                      border: isSelected ? "1px solid #10b981" : "1px solid #e5e7eb",
+                      borderRadius: "4px",
+                      fontSize: "0.875rem",
+                      fontWeight: "600",
+                      cursor: isDisabled ? "not-allowed" : "pointer",
+                      transition: "all 0.2s",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    },
+                    children: config.showIndividualPrices && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { style: {
+                      fontSize: "0.875rem",
+                      fontWeight: "700"
+                    }, children: [
+                      "$",
+                      product.price.toFixed(2)
+                    ] })
+                  }
+                )
+              ]
+            },
+            variantId
+          );
+        })
+      }
+    );
+  };
+
+  // app/components/shared/FBTTemplateClassic.tsx
+  var import_react2 = __toESM(require_react(), 1);
+  var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
+  var FBTTemplateClassic = ({
+    recommendations,
+    selectedProducts,
+    config,
+    handleToggle,
+    isPreview,
+    isAtLimit
+  }) => {
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+      "div",
+      {
+        className: "upsellity-fbt-template-classic",
+        style: {
+          display: "flex",
+          flexDirection: "row",
+          gap: "0.5rem",
+          width: "100%",
+          alignItems: "stretch",
+          flexWrap: "wrap"
+        },
+        children: recommendations.map((product, index) => {
+          var _a, _b, _c, _d;
+          const variantId = product.variantId || product.id;
+          const isSelected = selectedProducts.has(variantId);
+          const isDisabled = isAtLimit && !isSelected;
+          return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_react2.default.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              FBTProductCard,
+              {
+                product,
+                isSelected,
+                isDisabled,
+                showCheckbox: (_a = config.showCheckboxes) != null ? _a : true,
+                showDiscount: (_b = config.showDiscount) != null ? _b : true,
+                showIndividualPrices: (_c = config.showIndividualPrices) != null ? _c : true,
+                showReviews: (_d = config.showProductReviews) != null ? _d : false,
+                onToggle: handleToggle,
+                isPreview
               }
             ),
-            index < recommendations.length - 1 && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+            index < recommendations.length - 1 && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
               "div",
               {
+                className: "upsellity-fbt-plus",
                 style: {
-                  fontSize: "1.25rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1rem",
                   color: "#6b7280",
-                  fontWeight: "600"
+                  fontWeight: "600",
+                  minWidth: "20px",
+                  flexShrink: 0
                 },
                 children: "+"
               }
@@ -8399,7 +8608,7 @@
   };
 
   // app/components/shared/FBTWidget.tsx
-  var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
   var FBTWidget = ({
     config,
     recommendations,
@@ -8408,18 +8617,21 @@
     onAddToCart,
     isPreview = false
   }) => {
-    const [selectedProducts, setSelectedProducts] = (0, import_react2.useState)(
+    const [selectedProducts, setSelectedProducts] = (0, import_react3.useState)(
       initialSelectedIds || new Set(
         recommendations.slice(0, config.maxUpsellsInCart || recommendations.length).map((r) => r.variantId || r.id)
       )
     );
-    const [isAdding, setIsAdding] = (0, import_react2.useState)(false);
-    const [showSuccess, setShowSuccess] = (0, import_react2.useState)(false);
-    const [currentSlide, setCurrentSlide] = (0, import_react2.useState)(0);
-    const [isMobileCarousel, setIsMobileCarousel] = (0, import_react2.useState)(false);
-    const carouselRef = (0, import_react2.useRef)(null);
+    const [isAdding, setIsAdding] = (0, import_react3.useState)(false);
+    const [showSuccess, setShowSuccess] = (0, import_react3.useState)(false);
+    const [currentSlide, setCurrentSlide] = (0, import_react3.useState)(0);
+    const [isMobileCarousel, setIsMobileCarousel] = (0, import_react3.useState)(false);
+    const carouselRef = (0, import_react3.useRef)(null);
+    const [isDragging, setIsDragging] = (0, import_react3.useState)(false);
+    const [startX, setStartX] = (0, import_react3.useState)(0);
+    const [scrollLeft, setScrollLeft] = (0, import_react3.useState)(0);
     const maxUpsells = config.limitUpsellsInCart && config.maxUpsellsInCart ? config.maxUpsellsInCart : null;
-    (0, import_react2.useEffect)(() => {
+    (0, import_react3.useEffect)(() => {
       const checkMobile = () => {
         if (typeof window !== "undefined") {
           setIsMobileCarousel(window.innerWidth <= 768);
@@ -8430,20 +8642,55 @@
       return () => window.removeEventListener("resize", checkMobile);
     }, []);
     const handlePrevSlide = () => {
-      setCurrentSlide((prev) => Math.max(0, prev - 1));
-    };
-    const handleNextSlide = () => {
-      setCurrentSlide((prev) => Math.min(recommendations.length - 1, prev + 1));
-    };
-    (0, import_react2.useEffect)(() => {
-      if (carouselRef.current && isMobileCarousel) {
-        const slideWidth = carouselRef.current.offsetWidth;
-        carouselRef.current.scrollTo({
-          left: currentSlide * slideWidth,
+      var _a;
+      if (carouselRef.current) {
+        const cardWidth = ((_a = carouselRef.current.querySelector(".upsellity-fbt-product")) == null ? void 0 : _a.clientWidth) || 200;
+        const gap = 12;
+        carouselRef.current.scrollBy({
+          left: -(cardWidth + gap),
           behavior: "smooth"
         });
       }
-    }, [currentSlide, isMobileCarousel]);
+    };
+    const handleNextSlide = () => {
+      var _a;
+      if (carouselRef.current) {
+        const cardWidth = ((_a = carouselRef.current.querySelector(".upsellity-fbt-product")) == null ? void 0 : _a.clientWidth) || 200;
+        const gap = 12;
+        carouselRef.current.scrollBy({
+          left: cardWidth + gap,
+          behavior: "smooth"
+        });
+      }
+    };
+    const handleMouseDown = (e) => {
+      if (!carouselRef.current)
+        return;
+      setIsDragging(true);
+      setStartX(e.pageX - carouselRef.current.offsetLeft);
+      setScrollLeft(carouselRef.current.scrollLeft);
+      carouselRef.current.style.cursor = "grabbing";
+    };
+    const handleMouseLeave = () => {
+      setIsDragging(false);
+      if (carouselRef.current) {
+        carouselRef.current.style.cursor = "grab";
+      }
+    };
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      if (carouselRef.current) {
+        carouselRef.current.style.cursor = "grab";
+      }
+    };
+    const handleMouseMove = (e) => {
+      if (!isDragging || !carouselRef.current)
+        return;
+      e.preventDefault();
+      const x = e.pageX - carouselRef.current.offsetLeft;
+      const walk = (x - startX) * 2;
+      carouselRef.current.scrollLeft = scrollLeft - walk;
+    };
     const handleToggle = (variantId, checked) => {
       const newSelected = new Set(selectedProducts);
       if (checked) {
@@ -8535,15 +8782,15 @@
     const selectedCount = selectedProducts.size;
     const isAtLimit = maxUpsells !== null && selectedCount >= maxUpsells;
     if (showSuccess) {
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "upsellity-fbt-content", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { textAlign: "center", padding: "2rem" }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { fontSize: "3rem", marginBottom: "1rem" }, children: "\u2713" }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h3", { style: { fontSize: "1.25rem", fontWeight: "600", color: "#10b981", marginBottom: "0.5rem" }, children: "Items added to cart!" }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { style: { color: "#6b7280" }, children: "Opening cart drawer..." })
+      return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "upsellity-fbt-content", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { textAlign: "center", padding: "2rem" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { fontSize: "3rem", marginBottom: "1rem" }, children: "\u2713" }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("h3", { style: { fontSize: "1.25rem", fontWeight: "600", color: "#10b981", marginBottom: "0.5rem" }, children: "Items added to cart!" }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("p", { style: { color: "#6b7280" }, children: "Opening cart drawer..." })
       ] }) });
     }
     const renderTemplate = () => {
       if (templateType === "compact") {
-        return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+        return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
           FBTTemplateCompact,
           {
             recommendations,
@@ -8551,11 +8798,16 @@
             config,
             handleToggle,
             isPreview,
-            isAtLimit
+            isAtLimit,
+            total,
+            originalTotal,
+            selectedCount,
+            onAddToCart: handleAddToCart,
+            isAdding
           }
         );
       } else if (templateType === "minimal") {
-        return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+        return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
           FBTTemplateMinimal,
           {
             recommendations,
@@ -8567,34 +8819,43 @@
           }
         );
       } else {
-        if (isMobileCarousel && recommendations.length > 1) {
-          return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { position: "relative" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+        if (layout === "carousel" || isMobileCarousel && recommendations.length > 1) {
+          return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { position: "relative" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
               "div",
               {
                 ref: carouselRef,
                 className: "upsellity-fbt-carousel",
+                onMouseDown: handleMouseDown,
+                onMouseLeave: handleMouseLeave,
+                onMouseUp: handleMouseUp,
+                onMouseMove: handleMouseMove,
                 style: {
                   display: "flex",
-                  overflow: "hidden",
+                  overflow: "auto",
                   scrollSnapType: "x mandatory",
-                  gap: "1rem",
-                  marginBottom: "1rem"
+                  gap: "0.75rem",
+                  marginBottom: "1rem",
+                  cursor: "grab",
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                  WebkitOverflowScrolling: "touch",
+                  userSelect: "none"
                 },
                 children: recommendations.map((product) => {
                   var _a, _b, _c, _d;
                   const variantId = product.variantId || product.id;
                   const isSelected = selectedProducts.has(variantId);
                   const isDisabled = isAtLimit && !isSelected;
-                  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
                     "div",
                     {
                       style: {
-                        minWidth: "100%",
+                        minWidth: isMobileCarousel ? "100%" : "180px",
                         scrollSnapAlign: "start",
                         flexShrink: 0
                       },
-                      children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                      children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
                         FBTProductCard,
                         {
                           product,
@@ -8614,119 +8875,78 @@
                 })
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", justifyContent: "center", gap: "0.5rem", marginBottom: "1rem" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+            !isMobileCarousel && recommendations.length > 3 && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { style: { display: "flex", justifyContent: "center", gap: "0.5rem", marginBottom: "0.5rem" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
                 "button",
                 {
                   onClick: handlePrevSlide,
-                  disabled: currentSlide === 0,
                   style: {
                     padding: "0.5rem 1rem",
-                    background: currentSlide === 0 ? "#e5e7eb" : "#3b82f6",
-                    color: currentSlide === 0 ? "#9ca3af" : "white",
+                    background: "#3b82f6",
+                    color: "white",
                     border: "none",
                     borderRadius: "6px",
-                    cursor: currentSlide === 0 ? "not-allowed" : "pointer",
+                    cursor: "pointer",
                     fontSize: "0.875rem",
-                    fontWeight: "600"
+                    fontWeight: "600",
+                    transition: "all 0.2s"
                   },
+                  onMouseEnter: (e) => e.currentTarget.style.background = "#2563eb",
+                  onMouseLeave: (e) => e.currentTarget.style.background = "#3b82f6",
                   children: "\u2190 Prev"
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { display: "flex", gap: "0.25rem", alignItems: "center" }, children: recommendations.map((_, idx) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-                "div",
-                {
-                  onClick: () => setCurrentSlide(idx),
-                  style: {
-                    width: idx === currentSlide ? "24px" : "8px",
-                    height: "8px",
-                    borderRadius: "4px",
-                    background: idx === currentSlide ? "#3b82f6" : "#d1d5db",
-                    cursor: "pointer",
-                    transition: "all 0.2s"
-                  }
-                },
-                idx
-              )) }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
                 "button",
                 {
                   onClick: handleNextSlide,
-                  disabled: currentSlide === recommendations.length - 1,
                   style: {
                     padding: "0.5rem 1rem",
-                    background: currentSlide === recommendations.length - 1 ? "#e5e7eb" : "#3b82f6",
-                    color: currentSlide === recommendations.length - 1 ? "#9ca3af" : "white",
+                    background: "#3b82f6",
+                    color: "white",
                     border: "none",
                     borderRadius: "6px",
-                    cursor: currentSlide === recommendations.length - 1 ? "not-allowed" : "pointer",
+                    cursor: "pointer",
                     fontSize: "0.875rem",
-                    fontWeight: "600"
+                    fontWeight: "600",
+                    transition: "all 0.2s"
                   },
+                  onMouseEnter: (e) => e.currentTarget.style.background = "#2563eb",
+                  onMouseLeave: (e) => e.currentTarget.style.background = "#3b82f6",
                   children: "Next \u2192"
                 }
               )
-            ] })
+            ] }),
+            isMobileCarousel && /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { display: "flex", justifyContent: "center", gap: "0.25rem", marginBottom: "0.75rem" }, children: recommendations.map((_, idx) => /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+              "div",
+              {
+                style: {
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "4px",
+                  background: "#d1d5db",
+                  transition: "all 0.2s"
+                }
+              },
+              idx
+            )) })
           ] });
         }
-        return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-          "div",
+        return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+          FBTTemplateClassic,
           {
-            className: `upsellity-fbt-products layout-${layout}`,
-            style: __spreadValues(__spreadValues(__spreadValues({
-              display: layout === "grid" ? "grid" : "flex",
-              gap: "0.5rem",
-              marginBottom: "0.75rem",
-              flexWrap: "wrap",
-              alignItems: "stretch"
-            }, layout === "horizontal" ? { flexDirection: "row" } : {}), layout === "vertical" ? { flexDirection: "column" } : {}), layout === "grid" ? {
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))"
-            } : {}),
-            children: recommendations.map((product, index) => {
-              var _a, _b, _c, _d;
-              const variantId = product.variantId || product.id;
-              const isSelected = selectedProducts.has(variantId);
-              const isDisabled = isAtLimit && !isSelected;
-              return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_react2.default.Fragment, { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-                  FBTProductCard,
-                  {
-                    product,
-                    isSelected,
-                    isDisabled,
-                    showCheckbox: (_a = config.showCheckboxes) != null ? _a : true,
-                    showDiscount: (_b = config.showDiscount) != null ? _b : true,
-                    showIndividualPrices: (_c = config.showIndividualPrices) != null ? _c : true,
-                    showReviews: (_d = config.showProductReviews) != null ? _d : false,
-                    onToggle: handleToggle,
-                    isPreview
-                  }
-                ),
-                index < recommendations.length - 1 && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-                  "div",
-                  {
-                    className: "upsellity-fbt-plus",
-                    style: {
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "1rem",
-                      color: "#6b7280",
-                      fontWeight: "600",
-                      minWidth: "20px",
-                      flexShrink: 0
-                    },
-                    children: "+"
-                  }
-                )
-              ] }, variantId);
-            })
+            recommendations,
+            selectedProducts,
+            config,
+            handleToggle,
+            isPreview,
+            isAtLimit
           }
         );
       }
     };
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "upsellity-fbt-content", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "upsellity-fbt-content", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
         "h2",
         {
           className: "upsellity-fbt-title",
@@ -8740,47 +8960,47 @@
           children: config.title || "Frequently Bought Together"
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
         "div",
         {
           className: "upsellity-fbt-layout",
           style: {
-            display: "grid",
-            gridTemplateColumns: isMobileCarousel ? "1fr" : "1fr 240px",
+            display: templateType === "compact" ? "block" : "grid",
+            gridTemplateColumns: templateType === "compact" ? "1fr" : isMobileCarousel ? "1fr" : "1fr 220px",
             gap: "0.75rem",
             alignItems: "center"
           },
           children: [
             renderTemplate(),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+            templateType !== "compact" && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
               "div",
               {
                 className: "upsellity-fbt-sidebar",
                 style: {
                   display: "flex",
                   flexDirection: "column",
-                  gap: "0.75rem",
+                  gap: "0.5rem",
                   alignItems: "stretch",
                   justifyContent: "center",
                   minHeight: "100%"
                 },
                 children: [
-                  config.showTotalPrice && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+                  config.showTotalPrice && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
                     "div",
                     {
                       className: "upsellity-fbt-total",
                       style: {
                         display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
+                        flexDirection: "column",
+                        gap: "0.25rem",
                         padding: "0.5rem 0.625rem",
                         background: "#f9fafb",
                         borderRadius: "4px",
-                        marginBottom: "0.5rem",
+                        marginBottom: "0.25rem",
                         border: "1px solid #e5e7eb"
                       },
                       children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
                           "span",
                           {
                             className: "upsellity-fbt-total-label",
@@ -8792,8 +9012,8 @@
                             children: "Total price:"
                           }
                         ),
-                        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
-                          hasDiscount && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+                        /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { children: [
+                          hasDiscount && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
                             "span",
                             {
                               className: "upsellity-fbt-total-original",
@@ -8810,7 +9030,7 @@
                               ]
                             }
                           ),
-                          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+                          /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
                             "span",
                             {
                               className: "upsellity-fbt-total-price",
@@ -8829,7 +9049,7 @@
                       ]
                     }
                   ),
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
                     "button",
                     {
                       className: "upsellity-fbt-button",
@@ -8837,17 +9057,18 @@
                       disabled: selectedCount === 0 || isAdding || isPreview,
                       style: {
                         width: "100%",
-                        padding: "0.625rem",
+                        padding: "0.75rem 0.625rem",
                         border: "none",
                         borderRadius: "4px",
-                        fontSize: "0.875rem",
+                        fontSize: "0.8125rem",
                         fontWeight: "600",
                         cursor: selectedCount === 0 || isAdding || isPreview ? "not-allowed" : "pointer",
                         transition: "opacity 0.2s, transform 0.1s",
                         boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
                         backgroundColor: config.buttonColor || "#000000",
                         color: config.buttonTextColor || "#FFFFFF",
-                        opacity: selectedCount === 0 || isAdding ? 0.5 : 1
+                        opacity: selectedCount === 0 || isAdding ? 0.5 : 1,
+                        lineHeight: 1.2
                       },
                       children: isAdding ? "Adding..." : `${config.buttonText || "Add selected items"} ${selectedCount > 0 ? `(${selectedCount})` : ""}`
                     }
@@ -9007,7 +9228,7 @@
           this.reactRoot = (0, import_client.createRoot)(this.container);
         }
         this.reactRoot.render(
-          import_react3.default.createElement(FBTWidget, {
+          import_react4.default.createElement(FBTWidget, {
             config: this.config,
             recommendations: this.recommendations,
             selectedProductIds: this.selectedProducts,

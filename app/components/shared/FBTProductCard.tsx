@@ -44,6 +44,14 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
     ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
     : 0;
 
+  // Format money like cart drawer (₹ symbol, proper decimal parsing)
+  const formatMoney = (price: number): string => {
+    // If price is in cents (very large number), convert to currency unit
+    const amount = price > 10000 ? price / 100 : price;
+    // Round to whole number like cart drawer
+    return `₹${Math.round(amount)}`;
+  };
+
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (onToggle && !isDisabled) {
       onToggle(variantId, e.target.checked);
@@ -159,10 +167,10 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
                 fontWeight: '400'
               }}
             >
-              ${product.compareAtPrice.toFixed(2)}
+              {formatMoney(product.compareAtPrice)}
             </span>
           )}
-          ${product.price.toFixed(2)}
+          {formatMoney(product.price)}
         </div>
       )}
       

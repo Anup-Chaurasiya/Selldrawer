@@ -1,12 +1,13 @@
 /* Frequently Bought Together Widget Styles */
 
 .upsellity-fbt-container {
-  margin: 0.75rem 0;
+  margin: 0.75rem auto;
   padding: 0.75rem;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  max-width: 1200px; /* Limit width on desktop */
 }
 
 .upsellity-fbt-loading {
@@ -49,7 +50,7 @@
 /* Two-column layout to match preview (products left, totals/button right) */
 .upsellity-fbt-layout {
   display: grid;
-  grid-template-columns: 1fr 240px;
+  grid-template-columns: 1fr 220px;
   gap: 0.75rem;
   align-items: center;
 }
@@ -57,7 +58,7 @@
 .upsellity-fbt-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
   align-items: stretch;
   justify-content: center;
   min-height: 100%;
@@ -75,18 +76,23 @@
   flex-direction: row;
 }
 
-.upsellity-fbt-products.layout-vertical {
-  flex-direction: column;
+.upsellity-fbt-products.layout-carousel {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.upsellity-fbt-products.layout-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+.upsellity-fbt-products.layout-carousel::-webkit-scrollbar {
+  display: none;
 }
 
 .upsellity-fbt-product {
   flex: 1;
-  min-width: 100px;
+  min-width: 90px;
+  max-width: 180px;
   border: 1px solid #e5e7eb;
   border-radius: 4px;
   padding: 0.5rem;
@@ -132,7 +138,7 @@
 
 .upsellity-fbt-product-image {
   width: 100%;
-  height: 80px;
+  height: 100px;
   object-fit: cover;
   border-radius: 4px;
   background: #f3f4f6;
@@ -193,12 +199,12 @@
 
 .upsellity-fbt-total {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.25rem;
   padding: 0.5rem 0.625rem;
   background: #f9fafb;
   border-radius: 4px;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   border: 1px solid #e5e7eb;
 }
 
@@ -224,14 +230,15 @@
 
 .upsellity-fbt-button {
   width: 100%;
-  padding: 0.625rem;
+  padding: 0.75rem 0.625rem;
   border: none;
   border-radius: 4px;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.2s, transform 0.1s;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  line-height: 1.2;
 }
 
 .upsellity-fbt-button:hover:not(:disabled) {
@@ -289,13 +296,14 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .upsellity-fbt-container {
-    padding: 1rem;
-    margin: 1rem 0;
+    padding: 0.875rem;
+    margin: 0.75rem;
+    max-width: 100%;
   }
 
   .upsellity-fbt-title {
-    font-size: 1.25rem;
-    margin-bottom: 1rem;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
   }
 
   .upsellity-fbt-products {
@@ -304,18 +312,26 @@
 
   .upsellity-fbt-layout {
     display: block;
+    grid-template-columns: 1fr;
   }
 
   .upsellity-fbt-sidebar {
     margin-top: 0.75rem;
   }
 
-  .upsellity-fbt-products.layout-grid {
-    grid-template-columns: 1fr;
+  .upsellity-fbt-products.layout-carousel {
+    flex-wrap: nowrap;
+    overflow-x: auto;
   }
 
   .upsellity-fbt-product {
     min-width: 100%;
+    max-width: 100%;
+  }
+
+  .upsellity-fbt-products.layout-carousel .upsellity-fbt-product {
+    min-width: 100%;
+    scroll-snap-align: start;
   }
 
   .upsellity-fbt-plus {
@@ -323,14 +339,19 @@
   }
 
   .upsellity-fbt-total {
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: space-between;
     gap: 0.5rem;
-    text-align: center;
+    padding: 0.625rem;
   }
 
   .upsellity-fbt-button {
     padding: 0.875rem;
     font-size: 0.9375rem;
+  }
+
+  .upsellity-fbt-product-image {
+    height: 140px;
   }
 
   /* Compact Template Mobile */
@@ -366,18 +387,28 @@
 @media (max-width: 480px) {
   .upsellity-fbt-container {
     padding: 0.75rem;
+    margin: 0.5rem;
   }
 
   .upsellity-fbt-title {
-    font-size: 1.125rem;
+    font-size: 0.9375rem;
   }
 
   .upsellity-fbt-product {
-    padding: 0.75rem;
+    padding: 0.625rem;
   }
 
   .upsellity-fbt-product-image {
     height: 120px;
+  }
+
+  .upsellity-fbt-total {
+    padding: 0.5rem;
+  }
+
+  .upsellity-fbt-button {
+    padding: 0.75rem;
+    font-size: 0.875rem;
   }
 }
 
@@ -462,15 +493,24 @@
 /* Carousel Styles */
 .upsellity-fbt-carousel {
   display: flex;
-  overflow: hidden;
+  overflow: auto;
   scroll-snap-type: x mandatory;
-  gap: 1rem;
+  gap: 0.75rem;
   margin-bottom: 1rem;
   -webkit-overflow-scrolling: touch;
+  cursor: grab;
+  user-select: none;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scroll-behavior: smooth;
 }
 
 .upsellity-fbt-carousel::-webkit-scrollbar {
-  display: none;
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.upsellity-fbt-carousel:active {
+  cursor: grabbing;
 }
 
 /* Carousel Controls */

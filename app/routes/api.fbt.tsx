@@ -70,16 +70,39 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         }
 
         if (matchingRule) {
-          recommendations = matchingRule.products.map((product: any) => ({
-            id: product.shopifyProductId,
-            variantId: product.shopifyVariantId,
-            title: product.title,
-            handle: product.handle,
-            price: typeof product.price === 'number' ? product.price : parseFloat(product.price.toString()),
-            compareAtPrice: product.compareAtPrice ? (typeof product.compareAtPrice === 'number' ? product.compareAtPrice : parseFloat(product.compareAtPrice.toString())) : null,
-            imageUrl: product.imageUrl,
-            position: product.position
-          }));
+          recommendations = matchingRule.products.map((product: any) => {
+            // Helper to convert price to number (handles Prisma Decimal)
+            const parsePrice = (price: any): number => {
+              if (price == null || price === undefined) return 0;
+              if (typeof price === 'number') return price;
+              if (typeof price === 'string') {
+                const parsed = parseFloat(price);
+                return isNaN(parsed) ? 0 : parsed;
+              }
+              // Handle Prisma Decimal type
+              if (typeof price === 'object' && 'toNumber' in price) {
+                return price.toNumber();
+              }
+              // Try to convert to string then parse
+              try {
+                const parsed = parseFloat(String(price));
+                return isNaN(parsed) ? 0 : parsed;
+              } catch {
+                return 0;
+              }
+            };
+
+            return {
+              id: product.shopifyProductId,
+              variantId: product.shopifyVariantId || product.shopifyProductId, // Fallback to productId if variantId is null
+              title: product.title,
+              handle: product.handle,
+              price: parsePrice(product.price),
+              compareAtPrice: product.compareAtPrice ? parsePrice(product.compareAtPrice) : null,
+              imageUrl: product.imageUrl,
+              position: product.position
+            };
+          });
           
           // Limit recommendations if limitUpsellsInCart is enabled
           if (fbtConfig.limitUpsellsInCart && fbtConfig.maxUpsellsInCart) {
@@ -99,6 +122,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       config: {
         title: fbtConfig.title,
         layout: fbtConfig.layout,
+        templateType: fbtConfig.templateType,
         buttonText: fbtConfig.buttonText,
         buttonColor: fbtConfig.buttonColor,
         buttonTextColor: fbtConfig.buttonTextColor,

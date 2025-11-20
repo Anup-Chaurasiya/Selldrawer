@@ -13,6 +13,11 @@ interface FBTTemplateCompactProps {
   handleToggle: (variantId: string, checked: boolean) => void;
   isPreview?: boolean;
   isAtLimit: boolean;
+  total: number;
+  originalTotal?: number;
+  selectedCount: number;
+  onAddToCart?: () => void;
+  isAdding?: boolean;
 }
 
 export const FBTTemplateCompact: React.FC<FBTTemplateCompactProps> = ({
@@ -21,8 +26,23 @@ export const FBTTemplateCompact: React.FC<FBTTemplateCompactProps> = ({
   config,
   handleToggle,
   isPreview,
-  isAtLimit
+  isAtLimit,
+  total,
+  originalTotal = 0,
+  selectedCount,
+  onAddToCart,
+  isAdding = false
 }) => {
+  const hasDiscount = config.showDiscount && originalTotal > total;
+
+  // Format money like cart drawer (₹ symbol, proper decimal parsing)
+  const formatMoney = (price: number): string => {
+    // If price is in cents (very large number), convert to currency unit
+    const amount = price > 10000 ? price / 100 : price;
+    // Round to whole number like cart drawer
+    return `₹${Math.round(amount)}`;
+  };
+
   return (
     <div 
       className="upsellity-fbt-template-compact"
@@ -32,7 +52,17 @@ export const FBTTemplateCompact: React.FC<FBTTemplateCompactProps> = ({
         gap: '1rem'
       }}
     >
-      {recommendations.map((product) => {
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          gap: '0.5rem',
+          alignItems: 'stretch',
+          flexWrap: 'wrap',
+          width: '100%'
+        }}
+      >
+      {recommendations.map((product, index) => {
         const variantId = product.variantId || product.id;
         const isSelected = selectedProducts.has(variantId);
         const isDisabled = isAtLimit && !isSelected;
@@ -41,144 +71,257 @@ export const FBTTemplateCompact: React.FC<FBTTemplateCompactProps> = ({
           : 0;
 
         return (
-          <div
-            key={variantId}
-            className={`upsellity-fbt-compact-card ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
-            style={{
-              display: 'flex',
-              gap: '1rem',
-              padding: '1rem',
-              border: isSelected ? '2px solid #10b981' : '1px solid #e5e7eb',
-              borderRadius: '8px',
-              background: isSelected ? '#f0fdf4' : '#ffffff',
-              alignItems: 'center',
-              transition: 'all 0.2s',
-              opacity: isDisabled ? 0.5 : 1,
-              cursor: 'pointer',
-              position: 'relative'
-            }}
-            onClick={() => !isDisabled && handleToggle(variantId, !isSelected)}
-          >
-            {config.showCheckboxes && (
-              <input
-                type="checkbox"
-                checked={isSelected}
-                disabled={isDisabled}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  handleToggle(variantId, e.target.checked);
-                }}
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  cursor: isDisabled ? 'not-allowed' : 'pointer',
-                  flexShrink: 0
-                }}
-              />
-            )}
-
-            <div style={{ position: 'relative', flexShrink: 0 }}>
-              <img
-                src={product.imageUrl || 'https://via.placeholder.com/100'}
-                alt={product.title}
-                style={{
-                  width: '100px',
-                  height: '100px',
-                  objectFit: 'cover',
-                  borderRadius: '6px',
-                  background: '#f3f4f6'
-                }}
-              />
-              {discountPercent > 0 && config.showDiscount && (
-                <div
+          <React.Fragment key={variantId}>
+            <div
+              className={`upsellity-fbt-compact-card ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '0.75rem',
+                border: isSelected ? '2px solid #10b981' : '1px solid #e5e7eb',
+                borderRadius: '8px',
+                background: '#ffffff',
+                transition: 'all 0.2s',
+                opacity: isDisabled ? 0.5 : 1,
+                cursor: 'pointer',
+                position: 'relative',
+                minWidth: '180px',
+                flex: '1 1 0',
+                maxWidth: '220px',
+                boxSizing: 'border-box'
+              }}
+              onClick={() => !isDisabled && handleToggle(variantId, !isSelected)}
+            >
+              {config.showCheckboxes && (
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  disabled={isDisabled}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    handleToggle(variantId, e.target.checked);
+                  }}
                   style={{
                     position: 'absolute',
-                    top: '4px',
-                    right: '4px',
-                    background: '#10b981',
-                    color: 'white',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                    top: '0.5rem',
+                    right: '0.5rem',
+                    width: '20px',
+                    height: '20px',
+                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                    zIndex: 10
                   }}
-                >
-                  -{discountPercent}%
-                </div>
+                />
               )}
-            </div>
 
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h4
-                style={{
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  marginBottom: '0.5rem',
-                  color: '#111827',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {product.title}
-              </h4>
-              
-              {config.showIndividualPrices && (
-                <div style={{ marginBottom: '0.25rem' }}>
-                  {product.compareAtPrice && config.showDiscount && (
-                    <span
-                      style={{
-                        textDecoration: 'line-through',
-                        color: '#9ca3af',
-                        marginRight: '0.5rem',
-                        fontSize: '0.875rem'
-                      }}
-                    >
-                      ${product.compareAtPrice.toFixed(2)}
-                    </span>
-                  )}
-                  <span
+              <div style={{ position: 'relative', marginBottom: '0.5rem', width: '100%' }}>
+                <img
+                  src={product.imageUrl || 'https://via.placeholder.com/150'}
+                  alt={product.title}
+                  style={{
+                    width: '100%',
+                    height: '150px',
+                    objectFit: 'cover',
+                    borderRadius: '6px',
+                    background: '#f3f4f6'
+                  }}
+                />
+                {discountPercent > 0 && config.showDiscount && (
+                  <div
                     style={{
-                      fontSize: '1.125rem',
-                      fontWeight: '700',
-                      color: '#111827'
+                      position: 'absolute',
+                      top: '8px',
+                      left: '8px',
+                      background: '#10b981',
+                      color: 'white',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
                     }}
                   >
-                    ${product.price.toFixed(2)}
-                  </span>
-                </div>
-              )}
+                    {discountPercent}% off
+                  </div>
+                )}
+              </div>
 
-              {config.showProductReviews && (
-                <div style={{ fontSize: '0.75rem', color: '#f59e0b' }}>
-                  ★★★★★ (0)
-                </div>
-              )}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <h4
+                  style={{
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    color: '#111827',
+                    lineHeight: 1.4,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    minHeight: '2.5rem',
+                    marginBottom: '0.25rem'
+                  }}
+                >
+                  {product.title}
+                </h4>
+                
+                {config.showProductReviews && (
+                  <div style={{ 
+                    fontSize: '0.75rem', 
+                    color: '#f59e0b',
+                    marginBottom: '0.25rem'
+                  }}>
+                    ★★★★★ (0)
+                  </div>
+                )}
+
+                {config.showIndividualPrices && (
+                  <div style={{ marginTop: 'auto' }}>
+                    {product.compareAtPrice && config.showDiscount && (
+                      <span
+                        style={{
+                          textDecoration: 'line-through',
+                          color: '#9ca3af',
+                          marginRight: '0.5rem',
+                          fontSize: '0.75rem',
+                          fontWeight: '400'
+                        }}
+                      >
+                        {formatMoney(product.compareAtPrice)}
+                      </span>
+                    )}
+                    <span
+                      style={{
+                        fontSize: '1rem',
+                        fontWeight: '700',
+                        color: '#111827'
+                      }}
+                    >
+                      {formatMoney(product.price)}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
-
-            {isSelected && (
-              <div
+            {index < recommendations.length - 1 && (
+              <div 
+                className="upsellity-fbt-plus"
                 style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  background: '#10b981',
-                  color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '1.25rem',
+                  color: '#6b7280',
                   fontWeight: '600',
+                  minWidth: '24px',
                   flexShrink: 0
                 }}
               >
-                ✓
+                +
               </div>
             )}
-          </div>
+          </React.Fragment>
         );
       })}
+      </div>
+
+      {/* Button with Total Price */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingTop: '1rem',
+          borderTop: '1px solid #e5e7eb',
+          gap: '1rem'
+        }}
+      >
+        <div style={{ flex: 1 }}>
+          {selectedCount === 0 ? (
+            <span
+              style={{
+                fontSize: '0.875rem',
+                color: '#6b7280',
+                fontStyle: 'italic'
+              }}
+            >
+              Please add at least 1 add-on item to proceed
+            </span>
+          ) : config.showTotalPrice ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  color: '#6b7280',
+                  fontWeight: '400'
+                }}
+              >
+                Total price:
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {hasDiscount && (
+                  <span
+                    style={{
+                      textDecoration: 'line-through',
+                      color: '#9ca3af',
+                      fontSize: '0.875rem',
+                      fontWeight: '400'
+                    }}
+                  >
+                    {formatMoney(originalTotal)}
+                  </span>
+                )}
+                <span
+                  style={{
+                    fontSize: '1rem',
+                    fontWeight: '700',
+                    color: '#111827'
+                  }}
+                >
+                  {formatMoney(total)}
+                </span>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <button
+          onClick={onAddToCart}
+          disabled={selectedCount === 0 || isAdding || isPreview}
+          style={{
+            padding: '0.75rem 1.5rem',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            cursor: (selectedCount === 0 || isAdding || isPreview) ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            backgroundColor: config.buttonColor || '#000000',
+            color: config.buttonTextColor || '#FFFFFF',
+            opacity: (selectedCount === 0 || isAdding) ? 0.5 : 1,
+            lineHeight: 1.2,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            whiteSpace: 'nowrap'
+          }}
+          onMouseEnter={(e) => {
+            if (selectedCount > 0 && !isAdding && !isPreview) {
+              e.currentTarget.style.opacity = '0.9';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (selectedCount > 0 && !isAdding && !isPreview) {
+              e.currentTarget.style.opacity = '1';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }
+          }}
+        >
+          <span>🛒</span>
+          {isAdding ? 'Adding...' : (config.buttonText || 'ADD TO CART')}
+        </button>
+      </div>
     </div>
   );
 };
