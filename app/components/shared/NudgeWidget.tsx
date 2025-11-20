@@ -3,7 +3,7 @@
  * Used in both production nudge widget and Remix preview
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, CSSProperties } from 'react';
 
 export interface NudgeProduct {
   id: string;
@@ -98,6 +98,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
   };
 
   const handleOverlayClick = (e: React.MouseEvent) => {
+    if (isPreview) return;
     if (e.target === e.currentTarget && onClose) {
       onClose();
     }
@@ -107,41 +108,72 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
 
   if (!isVisible) return null;
 
+  const overlayOpacity = isPreview ? Math.min(config.overlayOpacity, 60) : config.overlayOpacity;
+
+  const overlayStyle: CSSProperties = {
+    backgroundColor: hexToRgba(config.overlayColor, overlayOpacity / 100),
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: isPreview || !config.enableAnimation ? 1 : animationClass ? 1 : 0,
+    transition: 'opacity 0.3s ease'
+  };
+
+  const popupStyle: CSSProperties = {
+    position: 'relative',
+    maxWidth: '900px',
+    width: '90%',
+    maxHeight: '90vh',
+    overflowY: 'auto',
+    padding: '2rem',
+    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    backgroundColor: config.popupBackgroundColor,
+    borderRadius: `${config.popupBorderRadius}px`
+  };
+
+  if (isPreview) {
+    Object.assign(overlayStyle, {
+      position: 'relative',
+      width: '100%',
+      height: '100%',
+      minHeight: '520px',
+      borderRadius: '20px',
+      padding: '1.5rem',
+      boxSizing: 'border-box'
+    });
+
+    Object.assign(popupStyle, {
+      maxWidth: '520px',
+      width: '100%',
+      maxHeight: '100%',
+      padding: '1.5rem',
+      boxShadow: '0 25px 60px rgba(15, 23, 42, 0.25)',
+      transform: 'scale(0.95)',
+      transformOrigin: 'top center'
+    });
+  } else {
+    Object.assign(overlayStyle, {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 99999
+    });
+  }
+
   return (
     <div 
-      className={`upsellity-nudge-overlay ${config.enableAnimation ? `upsellity-nudge-animation-${config.animationType}` : ''} ${animationClass}`}
-      style={{
-        backgroundColor: hexToRgba(config.overlayColor, config.overlayOpacity / 100),
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 99999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: animationClass ? 1 : 0,
-        transition: 'opacity 0.3s ease'
-      }}
+      className={`upsellity-nudge-overlay ${config.enableAnimation && !isPreview ? `upsellity-nudge-animation-${config.animationType}` : ''} ${animationClass}`}
+      style={overlayStyle}
       onClick={handleOverlayClick}
     >
       <div 
         className="upsellity-nudge-popup"
-        style={{
-          position: 'relative',
-          maxWidth: '900px',
-          width: '90%',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          padding: '2rem',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          backgroundColor: config.popupBackgroundColor,
-          borderRadius: `${config.popupBorderRadius}px`
-        }}
+        style={popupStyle}
       >
         {/* Close Button */}
         <button
