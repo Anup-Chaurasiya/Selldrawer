@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.1
- * Built: 2025-11-20T10:12:40.548Z
+ * Built: 2025-11-21T05:36:57.766Z
  */
 "use strict";
 (() => {
@@ -9051,8 +9051,6 @@
                         // 🔥 maintains consistent shape
                         width: "100%",
                         // full width
-                        maxWidth: "360px",
-                        // ideal container size
                         height: "auto",
                         backgroundColor: "#f9fafb",
                         borderRadius: "12px"
@@ -9064,54 +9062,56 @@
                     backgroundColor: "#fff",
                     padding: "10px 14px",
                     display: "flex",
-                    flexDirection: "column",
-                    gap: "6px"
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "10px"
                   }, children: [
-                    slide.title && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-                      fontWeight: "700",
-                      fontSize: "15px",
-                      color: "#111827",
-                      lineHeight: "1.2",
-                      textAlign: slide.ctaText ? "left" : "center",
-                      wordBreak: "break-word",
-                      marginBottom: slide.description ? "0" : "0"
-                    }, children: slide.title }),
-                    (slide.description || slide.ctaText) && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
                       display: "flex",
-                      alignItems: slide.ctaText ? "center" : "flex-start",
-                      justifyContent: slide.ctaText ? "space-between" : "center",
-                      gap: "10px"
+                      flexDirection: "column",
+                      gap: "4px",
+                      flex: 1,
+                      minWidth: 0
                     }, children: [
+                      slide.title && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                        fontWeight: "700",
+                        fontSize: "15px",
+                        color: "#111827",
+                        lineHeight: "1.2",
+                        textAlign: "left",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap"
+                      }, children: slide.title }),
                       slide.description && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
                         fontSize: "12px",
                         color: "#6b7280",
                         lineHeight: "1.3",
-                        textAlign: slide.ctaText ? "left" : "center",
-                        flex: slide.ctaText ? 1 : "none",
-                        minWidth: 0,
-                        width: slide.ctaText ? "auto" : "100%",
-                        wordBreak: "break-word"
-                      }, children: slide.description }),
-                      slide.ctaText && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                        "button",
-                        {
-                          onClick: (e) => handleCtaClick(slide, e),
-                          style: {
-                            backgroundColor: "#f3f4f6",
-                            color: "#374151",
-                            border: "1px solid #e5e7eb",
-                            padding: "6px 14px",
-                            borderRadius: "8px",
-                            fontWeight: "500",
-                            cursor: "pointer",
-                            fontSize: "13px",
-                            transition: "all 0.2s ease",
-                            whiteSpace: "nowrap"
-                          },
-                          children: slide.ctaText
-                        }
-                      ) })
-                    ] })
+                        textAlign: "left",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap"
+                      }, children: slide.description })
+                    ] }),
+                    slide.ctaText && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flexShrink: 0, alignSelf: "stretch", display: "flex", alignItems: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                      "button",
+                      {
+                        onClick: (e) => handleCtaClick(slide, e),
+                        style: {
+                          backgroundColor: "#f3f4f6",
+                          color: "#374151",
+                          border: "1px solid #e5e7eb",
+                          padding: "6px 14px",
+                          borderRadius: "8px",
+                          fontWeight: "500",
+                          cursor: "pointer",
+                          fontSize: "13px",
+                          transition: "all 0.2s ease",
+                          whiteSpace: "nowrap"
+                        },
+                        children: slide.ctaText
+                      }
+                    ) })
                   ] })
                 ]
               },
