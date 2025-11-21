@@ -141,7 +141,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
       height: '100%',
       minHeight: '520px',
       borderRadius: '20px',
-      padding: '1.5rem',
+      // padding: '1.5rem',
       boxSizing: 'border-box'
     });
 
@@ -149,7 +149,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
       maxWidth: '520px',
       width: '100%',
       maxHeight: '100%',
-      padding: '1.5rem',
+      // padding: '1.5rem',
       boxShadow: '0 25px 60px rgba(15, 23, 42, 0.25)',
       transform: 'scale(0.95)',
       transformOrigin: 'top center'

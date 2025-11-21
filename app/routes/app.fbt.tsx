@@ -325,7 +325,13 @@ export default function FrequentlyBoughtTogether() {
   const { fbtConfig, shopProducts, shopCollections } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
-  const isLoading = navigation.state === "submitting";
+  
+  // Check which action is being submitted
+  const formData = navigation.formData;
+  const submittingIntent = formData?.get("intent") as string | null;
+  const isSubmitting = navigation.state === "submitting";
+  const isToggleLoading = isSubmitting && submittingIntent === "toggle";
+  const isSaveSettingsLoading = isSubmitting && submittingIntent === "save-settings";
 
   const [formState, setFormState] = useState(() => {
     const recommendationType = fbtConfig?.recommendationType || "manual";
@@ -638,13 +644,13 @@ export default function FrequentlyBoughtTogether() {
       primaryAction={{
         content: "Save Settings",
         onAction: handleSaveSettings,
-        loading: isLoading,
+        loading: isSaveSettingsLoading,
       }}
     >
       <TitleBar title="Frequently Bought Together" />
       
       <Layout>
-        <Layout.Section>
+        <Layout.Section variant="oneHalf">
           <BlockStack gap="400">
             {/* Status Card */}
             <Card>
@@ -660,7 +666,7 @@ export default function FrequentlyBoughtTogether() {
                         : "FBT feature is currently disabled"}
                     </Text>
                   </BlockStack>
-                  <Button onClick={handleToggle} loading={isLoading}>
+                  <Button onClick={handleToggle} loading={isToggleLoading}>
                     {fbtConfig?.isActive ? "Disable" : "Enable"}
                   </Button>
                 </InlineStack>
@@ -1026,7 +1032,7 @@ export default function FrequentlyBoughtTogether() {
         </Layout.Section>
 
         {/* Preview Section */}
-        <Layout.Section variant="oneThird">
+        <Layout.Section variant="oneHalf">
           <Card>
             <BlockStack gap="400">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

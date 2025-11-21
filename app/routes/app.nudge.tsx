@@ -341,7 +341,13 @@ export default function NudgePopup() {
   const { nudgeConfig, shopProducts, shopCollections } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
-  const isLoading = navigation.state === "submitting";
+  
+  // Check which action is being submitted
+  const formData = navigation.formData;
+  const submittingIntent = formData?.get("intent") as string | null;
+  const isSubmitting = navigation.state === "submitting";
+  const isToggleLoading = isSubmitting && submittingIntent === "toggle";
+  const isSaveSettingsLoading = isSubmitting && submittingIntent === "save-settings";
 
   const [formState, setFormState] = useState(() => {
     return {
@@ -516,48 +522,43 @@ export default function NudgePopup() {
   const previewProducts = getPreviewProducts();
 
   return (
-    <Page title="Nudge Upsell">
+    <Page
+      title="Nudge Upsell"
+      primaryAction={{
+        content: "Save Settings",
+        onAction: handleSaveSettings,
+        loading: isSaveSettingsLoading,
+      }}
+    >
       <TitleBar title="Nudge Upsell" />
       
       <Layout>
-        <Layout.Section>
+        <Layout.Section variant="oneHalf">
           <BlockStack gap="400">
-            {!nudgeConfig?.isActive && (
-              <Banner
-                title="Nudge Upsell is currently disabled"
-                tone="warning"
-              >
-                <p>Enable the Nudge Upsell to start showing product alternatives when customers click "Add to Cart".</p>
-              </Banner>
-            )}
-
+            {/* Status Card */}
             <Card>
-              <BlockStack gap="300">
+              <BlockStack gap="400">
                 <InlineStack align="space-between" blockAlign="center">
-                  <Text as="h2" variant="headingMd">
-                    Nudge Controls
-                  </Text>
-                  <Badge tone={nudgeConfig?.isActive ? 'success' : 'warning'}>
-                    {nudgeConfig?.isActive ? 'Live' : 'Disabled'}
-                  </Badge>
-                </InlineStack>
-                <InlineStack gap="300" wrap>
-                  <Button
-                    variant={nudgeConfig?.isActive ? "primary" : "secondary"}
-                    tone={nudgeConfig?.isActive ? "critical" : "success"}
-                    onClick={handleToggle}
-                    loading={isLoading}
-                  >
+                  <BlockStack gap="100">
+                    <Text as="h2" variant="headingMd">
+                      Status
+                    </Text>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      {nudgeConfig?.isActive 
+                        ? "Nudge Upsell feature is currently enabled" 
+                        : "Nudge Upsell feature is currently disabled"}
+                    </Text>
+                  </BlockStack>
+                  <Button onClick={handleToggle} loading={isToggleLoading}>
                     {nudgeConfig?.isActive ? "Disable" : "Enable"}
                   </Button>
-                  <Button
-                    variant="primary"
-                    onClick={handleSaveSettings}
-                    loading={isLoading}
-                  >
-                    Save Settings
-                  </Button>
                 </InlineStack>
+                
+                {!nudgeConfig?.isActive && (
+                  <Banner tone="warning">
+                    Enable this feature to show product alternatives when customers click "Add to Cart".
+                  </Banner>
+                )}
               </BlockStack>
             </Card>
 
@@ -868,8 +869,8 @@ export default function NudgePopup() {
         </Layout.Section>
 
         {/* Preview Section */}
-        <Layout.Section variant="oneThird">
-          <div style={{ position: 'sticky', top: '24px' }}>
+        <Layout.Section variant="oneHalf">
+          <div style={{ position: 'sticky', top: '24px'}}>
             <Card>
               <BlockStack gap="400">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -886,24 +887,23 @@ export default function NudgePopup() {
                 <div style={{
                   border: '2px solid #e5e7eb',
                   borderRadius: '12px',
-                  padding: '24px 12px',
+                  // padding: '32px 24px',
                   backgroundColor: '#fafbfc',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                  // boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
                   maxHeight: 'calc(100vh - 240px)',
                   overflowY: 'auto',
-                  position: 'relative'
+                  position: 'relative',
+                  minHeight: '600px'
                 }}>
                   <div style={{
                     display: 'flex',
                     justifyContent: 'center',
                     width: '100%',
-                    padding: '12px 0'
+                    // padding: '20px 0'
                   }}>
                     <div style={{
-                      transform: 'scale(0.85)',
-                      transformOrigin: 'top center',
                       width: '100%',
-                      maxWidth: '460px'
+                      maxWidth: '800px'
                     }}>
                       <NudgeWidget
                         config={{
