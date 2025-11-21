@@ -274,6 +274,23 @@ export const UnifiedCartDrawer = ({
           items={cart.items}
           totalPrice={cart.total_price}
           appliedDiscount={appliedDiscount}
+          config={config?.features?.cartTotals ? {
+            showOriginalPrice: config.features.cartTotals.showOriginalPrice ?? true,
+            showItemDiscounts: config.features.cartTotals.showItemDiscounts ?? true,
+            showSubtotal: config.features.cartTotals.showSubtotal ?? true,
+            showCouponDiscount: config.features.cartTotals.showCouponDiscount ?? true,
+            showTaxNotice: config.features.cartTotals.showTaxNotice ?? true,
+            subtotalLabel: config.features.cartTotals.subtotalLabel || "Subtotal",
+            totalLabel: config.features.cartTotals.totalLabel || "Total",
+            taxNoticeText: config.features.cartTotals.taxNoticeText || "Taxes and shipping calculated at checkout",
+            originalPriceLabel: config.features.cartTotals.originalPriceLabel || "Original Price",
+            itemDiscountsLabel: config.features.cartTotals.itemDiscountsLabel || "Item Discounts",
+            borderColor: config.features.cartTotals.borderColor || "#e5e7eb",
+            backgroundColor: config.features.cartTotals.backgroundColor || "#ffffff",
+            textColor: config.features.cartTotals.textColor || "#374151",
+            totalTextColor: config.features.cartTotals.totalTextColor || "#111827",
+            discountColor: config.features.cartTotals.discountColor || "#f59e0b",
+          } : undefined}
           isPreview={false}
         />
       </div>

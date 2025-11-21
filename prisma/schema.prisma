@@ -69,6 +69,7 @@ model CartDrawer {
   couponCodeFieldEnabled         Boolean                   @default(false)
   savingsDisplayEnabled          Boolean                   @default(true)
   freeShippingMessageEnabled     Boolean                   @default(true)
+  cartTotalsEnabled              Boolean                   @default(true)
   createdAt                      DateTime                  @default(now())
   updatedAt                      DateTime                  @updatedAt
   featureOrder                   String[]                  @default([])
@@ -78,6 +79,7 @@ model CartDrawer {
   productRecommendations         ProductRecommendation[]
   promotionalBanners             PromotionalBanner[]
   savingsDisplays                SavingsDisplay[]
+  cartTotals                     CartTotals[]
 
   @@index([shop])
 }
@@ -271,6 +273,34 @@ model FreeShippingMessage {
   createdAt              DateTime   @default(now())
   updatedAt              DateTime   @updatedAt
   cartDrawer             CartDrawer @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
+
+  @@index([cartDrawerId])
+  @@index([shop, isActive])
+}
+
+model CartTotals {
+  id                   String     @id @default(cuid())
+  cartDrawerId         String
+  shop                 String
+  isActive             Boolean    @default(true)
+  showOriginalPrice    Boolean    @default(true)
+  showItemDiscounts    Boolean    @default(true)
+  showSubtotal         Boolean    @default(true)
+  showCouponDiscount   Boolean    @default(true)
+  showTaxNotice        Boolean    @default(true)
+  subtotalLabel        String     @default("Subtotal")
+  totalLabel           String     @default("Total")
+  taxNoticeText        String     @default("Taxes and shipping calculated at checkout")
+  originalPriceLabel   String     @default("Original Price")
+  itemDiscountsLabel   String     @default("Item Discounts")
+  borderColor          String     @default("#e5e7eb")
+  backgroundColor      String     @default("#ffffff")
+  textColor            String     @default("#374151")
+  totalTextColor       String     @default("#111827")
+  discountColor        String     @default("#f59e0b")
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  cartDrawer           CartDrawer @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
 
   @@index([cartDrawerId])
   @@index([shop, isActive])
