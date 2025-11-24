@@ -126,10 +126,38 @@ async function watch() {
     plugins: [createVersionBannerPlugin(join(__dirname, 'assets/nudge-popup.js'), 'Nudge Popup')],
   });
 
+  // Watch Promotional Banner Block
+  const promotionalBannerContext = await esbuild.context({
+    entryPoints: [join(__dirname, 'assets/modules/promotional-banner-entry.js')],
+    bundle: true,
+    outfile: join(__dirname, 'assets/promotional-banner.js'),
+    format: 'iife',
+    target: 'es2017',
+    minify: false,
+    sourcemap: false,
+    platform: 'browser',
+    logLevel: 'info',
+    jsx: 'automatic',
+    jsxImportSource: 'react',
+    loader: {
+      '.tsx': 'tsx',
+      '.ts': 'ts',
+      '.jsx': 'jsx',
+      '.js': 'jsx',
+    },
+    define: {
+      'process.env.NODE_ENV': '"production"',
+      '__PROMOTIONAL_BANNER_VERSION__': `"${version}"`
+    },
+    external: [],
+    plugins: [createVersionBannerPlugin(join(__dirname, 'assets/promotional-banner.js'), 'Promotional Banner Block')],
+  });
+
   // Start watching all contexts
   await cartDrawerContext.watch();
   await fbtWidgetContext.watch();
   await nudgePopupContext.watch();
+  await promotionalBannerContext.watch();
   
 }
 

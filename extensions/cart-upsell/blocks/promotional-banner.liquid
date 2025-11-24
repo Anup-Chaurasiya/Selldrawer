@@ -1,0 +1,138 @@
+{% comment %}
+  Upsellity Promotional Banner Block
+  Standalone promotional banner that can be placed anywhere on the site
+  Displays carousel with images/videos, titles, descriptions, and CTA buttons
+{% endcomment %}
+
+{% comment %} Get app URL from settings or use default {% endcomment %}
+{% if block.settings.app_url != blank %}
+  {% assign app_url = block.settings.app_url %}
+{% else %}
+  {% assign app_url = "https://app.upsellity.com" %}
+{% endif %}
+
+{% comment %} Only render if enabled {% endcomment %}
+{% if block.settings.enabled %}
+  <div 
+    class="upsellity-promotional-banner-container"
+    data-app-url="{{ app_url }}"
+    data-shop="{{ shop.permanent_domain }}"
+    style="margin: {{ block.settings.margin_top }}px 0 {{ block.settings.margin_bottom }}px 0; max-width: {{ block.settings.max_width }}; margin-left: auto; margin-right: auto;"
+  >
+    <!-- Loading placeholder will be replaced by JavaScript -->
+    <div style="
+      padding: 40px 20px;
+      text-align: center;
+      background: #f9fafb;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+    ">
+      <p style="
+        color: #6b7280;
+        font-size: 14px;
+        margin: 0;
+      ">Loading...</p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // Version number for cache busting
+      var version = '{{ block.settings.version | default: "1.0.1" }}';
+      
+      // Load the promotional banner script
+      var script = document.createElement('script');
+      script.src = '{{ 'promotional-banner.js' | asset_url }}' + '?v=' + version;
+      script.async = true;
+      document.head.appendChild(script);
+    })();
+  </script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Promotional Banner",
+  "target": "section",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Display promotional banners with carousel, images/videos, and CTA buttons. Configure the banner content in the Upsellity admin panel."
+    },
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "Enable Promotional Banner",
+      "default": true,
+      "info": "You can also enable/disable from the Upsellity admin panel"
+    },
+    {
+      "type": "text",
+      "id": "app_url",
+      "label": "App URL",
+      "default": "https://app.upsellity.com",
+      "info": "Enter your Upsellity app URL (e.g., https://your-app.fly.dev)"
+    },
+    {
+      "type": "text",
+      "id": "version",
+      "label": "Version",
+      "default": "1.0.1",
+      "info": "Version number for cache busting. Update this when you release new versions."
+    },
+    {
+      "type": "header",
+      "content": "Layout Settings"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Top Margin",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Bottom Margin",
+      "default": 20
+    },
+    {
+      "type": "select",
+      "id": "max_width",
+      "label": "Maximum Width",
+      "options": [
+        {
+          "value": "100%",
+          "label": "Full Width"
+        },
+        {
+          "value": "1200px",
+          "label": "1200px"
+        },
+        {
+          "value": "1000px",
+          "label": "1000px"
+        },
+        {
+          "value": "800px",
+          "label": "800px"
+        },
+        {
+          "value": "600px",
+          "label": "600px"
+        }
+      ],
+      "default": "1200px",
+      "info": "Maximum width of the promotional banner"
+    }
+  ]
+}
+{% endschema %}
+
