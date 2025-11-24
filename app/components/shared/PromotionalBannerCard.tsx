@@ -60,6 +60,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
   const [canScrollRight, setCanScrollRight] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isScrolling = useRef(false);
+  const currentIndexRef = useRef(0);
 
   // Determine if we're in block context (standalone promotional banner)
   const isBlockContext = context === 'block';
@@ -79,8 +80,15 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
     const gap = isBlockContext ? 16 : 8;
     const slideWidth = container.clientWidth + gap;
     const index = Math.round(scrollLeft / slideWidth);
-    setCurrentIndex(Math.min(index, slides.length - 1));
+    const newIndex = Math.min(index, slides.length - 1);
+    setCurrentIndex(newIndex);
+    currentIndexRef.current = newIndex;
   };
+
+  // Initialize ref with current index
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
 
   useEffect(() => {
     updateScrollState();
@@ -97,16 +105,45 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
 
   // Auto-rotate carousel
   useEffect(() => {
-    if (slides &&
-      slides.length > 1 &&
-      carouselSettings.autoRotate !== false &&
-      !isScrolling.current) {
-      const interval = setInterval(() => {
-        handleNext();
-      }, carouselSettings.rotationSpeed || 5000);
-      return () => clearInterval(interval);
+    if (!slides || slides.length <= 1 || carouselSettings.autoRotate === false) {
+      return;
     }
-  }, [slides, carouselSettings, currentIndex]);
+
+    const interval = setInterval(() => {
+      // Skip if currently scrolling
+      if (isScrolling.current) {
+        return;
+      }
+
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      
+      isScrolling.current = true;
+      const gap = isBlockContext ? 16 : 8;
+      const slideWidth = container.clientWidth + gap;
+      
+      // Use ref to get the latest index without causing effect re-run
+      const currentIdx = currentIndexRef.current;
+      const nextIndex = currentIdx < slides.length - 1 ? currentIdx + 1 : 0;
+      const targetScroll = nextIndex * slideWidth;
+      
+      // Update index immediately for smooth indicator transition
+      setCurrentIndex(nextIndex);
+      currentIndexRef.current = nextIndex;
+      
+      container.scrollTo({
+        left: targetScroll,
+        behavior: 'smooth'
+      });
+      
+      // Reset scrolling flag after animation
+      setTimeout(() => {
+        isScrolling.current = false;
+      }, 500);
+    }, carouselSettings.rotationSpeed || 5000);
+    
+    return () => clearInterval(interval);
+  }, [slides.length, carouselSettings.autoRotate, carouselSettings.rotationSpeed, isBlockContext]);
 
   if (!slides || slides.length === 0) {
     return (
@@ -361,6 +398,10 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
     if (!container) return;
 
     isScrolling.current = true;
+    // Update index immediately for smooth indicator transition
+    setCurrentIndex(index);
+    currentIndexRef.current = index;
+    
     const gap = isBlockContext ? 16 : 8;
     const slideWidth = container.clientWidth + gap;
     const targetScroll = index * slideWidth;
@@ -425,6 +466,19 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
           scrollbar-width: none;
         }
         
+        /* Ensure indicators are always visible */
+        .upsellity-promo-indicators {
+          display: flex !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+        }
+        
+        .upsellity-promo-indicator {
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+        }
+        
         /* Block context responsive styles */
         ${isBlockContext ? `
           .upsellity-promo-block-media {
@@ -448,7 +502,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         ` : ''}
       `}</style>
 
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', overflow: 'visible' }}>
         {/* Left Arrow */}
         {slides.length > 1 && canScrollLeft && (carouselSettings.showArrows !== false) && (
           <button
@@ -581,113 +635,151 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
               >
                 {renderMedia(slide)}
               </div>
-              {/* Text Content Section */}
-              <div style={{
-                backgroundColor: '#fff',
-                padding: isBlockContext ? '12px 16px' : '10px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: isBlockContext ? '16px' : '10px'
-              }}>
-                {/* Title and Description Container */}
+              {/* Text Content Section - Only render if there's title, description, or CTA */}
+              {(slide.title || slide.description || slide.ctaText) && (
                 <div style={{
+                  backgroundColor: '#fff',
+                  padding: isBlockContext ? '12px 16px' : '10px 14px',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                  flex: 1,
-                  minWidth: 0
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: isBlockContext ? '16px' : '10px'
                 }}>
-                  {/* Title */}
-                  {slide.title && (
+                  {/* Title and Description Container */}
+                  {(slide.title || slide.description) && (
                     <div style={{
-                      fontWeight: isBlockContext ? '600' : '700',
-                      fontSize: isBlockContext ? '16px' : '15px',
-                      color: '#111827',
-                      lineHeight: '1.3',
-                      textAlign: 'left',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      flex: 1,
+                      minWidth: 0
                     }}>
-                      {slide.title}
+                      {/* Title */}
+                      {slide.title && (
+                        <div style={{
+                          fontWeight: isBlockContext ? '600' : '700',
+                          fontSize: isBlockContext ? '16px' : '15px',
+                          color: '#111827',
+                          lineHeight: '1.3',
+                          textAlign: 'left',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {slide.title}
+                        </div>
+                      )}
+                      
+                      {/* Description */}
+                      {slide.description && (
+                        <div style={{
+                          fontSize: isBlockContext ? '13px' : '12px',
+                          color: '#6b7280',
+                          lineHeight: '1.4',
+                          textAlign: 'left',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {slide.description}
+                        </div>
+                      )}
                     </div>
                   )}
                   
-                  {/* Description */}
-                  {slide.description && (
-                    <div style={{
-                      fontSize: isBlockContext ? '13px' : '12px',
-                      color: '#6b7280',
-                      lineHeight: '1.4',
-                      textAlign: 'left',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {slide.description}
+                  {/* CTA Button - Spans full height */}
+                  {slide.ctaText && (
+                    <div style={{ flexShrink: 0, alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>
+                      <button
+                        onClick={(e) => handleCtaClick(slide, e)}
+                        style={{
+                          backgroundColor: isBlockContext ? '#2563eb' : '#f3f4f6',
+                          color: isBlockContext ? '#ffffff' : '#374151',
+                          border: isBlockContext ? 'none' : '1px solid #e5e7eb',
+                          padding: isBlockContext ? '8px 20px' : '6px 14px',
+                          borderRadius: isBlockContext ? '6px' : '8px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          fontSize: isBlockContext ? '14px' : '13px',
+                          transition: 'all 0.2s ease',
+                          whiteSpace: 'nowrap'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (isBlockContext) {
+                            e.currentTarget.style.backgroundColor = '#1d4ed8';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (isBlockContext) {
+                            e.currentTarget.style.backgroundColor = '#2563eb';
+                          }
+                        }}
+                      >
+                        {slide.ctaText}
+                      </button>
                     </div>
                   )}
                 </div>
-                
-                {/* CTA Button - Spans full height */}
-                {slide.ctaText && (
-                  <div style={{ flexShrink: 0, alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>
-                    <button
-                      onClick={(e) => handleCtaClick(slide, e)}
-                      style={{
-                        backgroundColor: isBlockContext ? '#2563eb' : '#f3f4f6',
-                        color: isBlockContext ? '#ffffff' : '#374151',
-                        border: isBlockContext ? 'none' : '1px solid #e5e7eb',
-                        padding: isBlockContext ? '8px 20px' : '6px 14px',
-                        borderRadius: isBlockContext ? '6px' : '8px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        fontSize: isBlockContext ? '14px' : '13px',
-                        transition: 'all 0.2s ease',
-                        whiteSpace: 'nowrap'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (isBlockContext) {
-                          e.currentTarget.style.backgroundColor = '#1d4ed8';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (isBlockContext) {
-                          e.currentTarget.style.backgroundColor = '#2563eb';
-                        }
-                      }}
-                    >
-                      {slide.ctaText}
-                    </button>
-                  </div>
-                )}
-              </div>
+              )}
               
             </div>
           ))}
         </div>
 
-        {/* Dot Indicators */}
-        {slides.length > 1 && (carouselSettings.showDots !== false) && (
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '6px',
-            marginTop: isBlockContext ? '12px' : '8px'
-          }}>
+        {/* Dot Indicators - Rounded rectangles like Flipkart style */}
+        {slides.length > 1 && carouselSettings?.showDots !== false && (
+          <div 
+            className="upsellity-promo-indicators"
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: isBlockContext ? '6px' : '5px',
+              marginTop: isBlockContext ? '' : '8px',
+              padding: isBlockContext ? '8px 0' : '4px 0',
+              minHeight: isBlockContext ? '8px' : '6px',
+              width: '100%',
+              position: 'relative',
+              zIndex: 10,
+              visibility: 'visible',
+              opacity: 1,
+              boxSizing: 'border-box'
+            }}
+          >
             {slides.map((_, index) => (
               <div
-                key={index}
+                key={`indicator-${index}`}
+                className={`upsellity-promo-indicator ${index === currentIndex ? 'active' : ''}`}
                 onClick={(e) => handleDotClick(index, e)}
                 style={{
-                  width: isBlockContext ? '10px' : '8px',
-                  height: isBlockContext ? '10px' : '8px',
-                  borderRadius: '50%',
-                  backgroundColor: index === currentIndex ? (isBlockContext ? '#2563eb' : '#007bff') : '#d1d5db',
-                  transition: 'all 0.2s ease',
+                  width: isBlockContext ? '24px' : '20px',
+                  height: isBlockContext ? '4px' : '3px',
+                  borderRadius: '2px',
+                  backgroundColor: index === currentIndex 
+                    ? '#000000' 
+                    : '#d1d5db',
+                  transition: 'all 0.3s ease',
                   cursor: 'pointer',
-                  boxShadow: index === currentIndex ? (isBlockContext ? '0 2px 4px rgba(37, 99, 235, 0.3)' : '0 2px 4px rgba(0, 123, 255, 0.3)') : 'none'
+                  opacity: index === currentIndex ? 1 : 0.6,
+                  transform: index === currentIndex ? 'scaleY(1.2)' : 'scaleY(1)',
+                  flexShrink: 0,
+                  visibility: 'visible',
+                  display: 'block',
+                  boxSizing: 'border-box',
+                  minWidth: isBlockContext ? '24px' : '20px',
+                  minHeight: isBlockContext ? '4px' : '3px'
+                }}
+                onMouseEnter={(e) => {
+                  if (index !== currentIndex) {
+                    e.currentTarget.style.opacity = '0.8';
+                    e.currentTarget.style.transform = 'scaleY(1.1)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (index !== currentIndex) {
+                    e.currentTarget.style.opacity = '0.6';
+                    e.currentTarget.style.transform = 'scaleY(1)';
+                  }
                 }}
               />
             ))}

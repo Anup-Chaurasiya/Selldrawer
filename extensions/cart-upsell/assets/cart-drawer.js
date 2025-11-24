@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.1
- * Built: 2025-11-24T07:44:34.305Z
+ * Built: 2025-11-24T11:48:09.561Z
  */
 "use strict";
 (() => {
@@ -8620,6 +8620,7 @@
     const [canScrollRight, setCanScrollRight] = (0, import_react.useState)(false);
     const scrollContainerRef = (0, import_react.useRef)(null);
     const isScrolling = (0, import_react.useRef)(false);
+    const currentIndexRef = (0, import_react.useRef)(0);
     const isBlockContext = context === "block";
     const updateScrollState = () => {
       const container = scrollContainerRef.current;
@@ -8632,8 +8633,13 @@
       const gap = isBlockContext ? 16 : 8;
       const slideWidth = container.clientWidth + gap;
       const index = Math.round(scrollLeft / slideWidth);
-      setCurrentIndex(Math.min(index, slides.length - 1));
+      const newIndex = Math.min(index, slides.length - 1);
+      setCurrentIndex(newIndex);
+      currentIndexRef.current = newIndex;
     };
+    (0, import_react.useEffect)(() => {
+      currentIndexRef.current = currentIndex;
+    }, [currentIndex]);
     (0, import_react.useEffect)(() => {
       updateScrollState();
       const container = scrollContainerRef.current;
@@ -8647,13 +8653,34 @@
       }
     }, [slides]);
     (0, import_react.useEffect)(() => {
-      if (slides && slides.length > 1 && carouselSettings.autoRotate !== false && !isScrolling.current) {
-        const interval = setInterval(() => {
-          handleNext();
-        }, carouselSettings.rotationSpeed || 5e3);
-        return () => clearInterval(interval);
+      if (!slides || slides.length <= 1 || carouselSettings.autoRotate === false) {
+        return;
       }
-    }, [slides, carouselSettings, currentIndex]);
+      const interval = setInterval(() => {
+        if (isScrolling.current) {
+          return;
+        }
+        const container = scrollContainerRef.current;
+        if (!container)
+          return;
+        isScrolling.current = true;
+        const gap = isBlockContext ? 16 : 8;
+        const slideWidth = container.clientWidth + gap;
+        const currentIdx = currentIndexRef.current;
+        const nextIndex = currentIdx < slides.length - 1 ? currentIdx + 1 : 0;
+        const targetScroll = nextIndex * slideWidth;
+        setCurrentIndex(nextIndex);
+        currentIndexRef.current = nextIndex;
+        container.scrollTo({
+          left: targetScroll,
+          behavior: "smooth"
+        });
+        setTimeout(() => {
+          isScrolling.current = false;
+        }, 500);
+      }, carouselSettings.rotationSpeed || 5e3);
+      return () => clearInterval(interval);
+    }, [slides.length, carouselSettings.autoRotate, carouselSettings.rotationSpeed, isBlockContext]);
     if (!slides || slides.length === 0) {
       return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
         borderRadius: "12px",
@@ -8889,6 +8916,8 @@
       if (!container)
         return;
       isScrolling.current = true;
+      setCurrentIndex(index);
+      currentIndexRef.current = index;
       const gap = isBlockContext ? 16 : 8;
       const slideWidth = container.clientWidth + gap;
       const targetScroll = index * slideWidth;
@@ -8943,6 +8972,19 @@
           scrollbar-width: none;
         }
         
+        /* Ensure indicators are always visible */
+        .upsellity-promo-indicators {
+          display: flex !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+        }
+        
+        .upsellity-promo-indicator {
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+        }
+        
         /* Block context responsive styles */
         ${isBlockContext ? `
           .upsellity-promo-block-media {
@@ -8965,7 +9007,7 @@
           }
         ` : ""}
       ` }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative", overflow: "visible" }, children: [
         slides.length > 1 && canScrollLeft && carouselSettings.showArrows !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "button",
           {
@@ -9091,7 +9133,7 @@
                       children: renderMedia(slide)
                     }
                   ),
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+                  (slide.title || slide.description || slide.ctaText) && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
                     backgroundColor: "#fff",
                     padding: isBlockContext ? "12px 16px" : "10px 14px",
                     display: "flex",
@@ -9099,7 +9141,7 @@
                     justifyContent: "space-between",
                     gap: isBlockContext ? "16px" : "10px"
                   }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+                    (slide.title || slide.description) && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
                       display: "flex",
                       flexDirection: "column",
                       gap: "4px",
@@ -9162,27 +9204,63 @@
             ))
           }
         ),
-        slides.length > 1 && carouselSettings.showDots !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-          display: "flex",
-          justifyContent: "center",
-          gap: "6px",
-          marginTop: isBlockContext ? "12px" : "8px"
-        }, children: slides.map((_, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        slides.length > 1 && (carouselSettings == null ? void 0 : carouselSettings.showDots) !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "div",
           {
-            onClick: (e) => handleDotClick(index, e),
+            className: "upsellity-promo-indicators",
             style: {
-              width: isBlockContext ? "10px" : "8px",
-              height: isBlockContext ? "10px" : "8px",
-              borderRadius: "50%",
-              backgroundColor: index === currentIndex ? isBlockContext ? "#2563eb" : "#007bff" : "#d1d5db",
-              transition: "all 0.2s ease",
-              cursor: "pointer",
-              boxShadow: index === currentIndex ? isBlockContext ? "0 2px 4px rgba(37, 99, 235, 0.3)" : "0 2px 4px rgba(0, 123, 255, 0.3)" : "none"
-            }
-          },
-          index
-        )) })
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: isBlockContext ? "6px" : "5px",
+              marginTop: isBlockContext ? "" : "8px",
+              padding: isBlockContext ? "8px 0" : "4px 0",
+              minHeight: isBlockContext ? "8px" : "6px",
+              width: "100%",
+              position: "relative",
+              zIndex: 10,
+              visibility: "visible",
+              opacity: 1,
+              boxSizing: "border-box"
+            },
+            children: slides.map((_, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              "div",
+              {
+                className: `upsellity-promo-indicator ${index === currentIndex ? "active" : ""}`,
+                onClick: (e) => handleDotClick(index, e),
+                style: {
+                  width: isBlockContext ? "24px" : "20px",
+                  height: isBlockContext ? "4px" : "3px",
+                  borderRadius: "2px",
+                  backgroundColor: index === currentIndex ? "#000000" : "#d1d5db",
+                  transition: "all 0.3s ease",
+                  cursor: "pointer",
+                  opacity: index === currentIndex ? 1 : 0.6,
+                  transform: index === currentIndex ? "scaleY(1.2)" : "scaleY(1)",
+                  flexShrink: 0,
+                  visibility: "visible",
+                  display: "block",
+                  boxSizing: "border-box",
+                  minWidth: isBlockContext ? "24px" : "20px",
+                  minHeight: isBlockContext ? "4px" : "3px"
+                },
+                onMouseEnter: (e) => {
+                  if (index !== currentIndex) {
+                    e.currentTarget.style.opacity = "0.8";
+                    e.currentTarget.style.transform = "scaleY(1.1)";
+                  }
+                },
+                onMouseLeave: (e) => {
+                  if (index !== currentIndex) {
+                    e.currentTarget.style.opacity = "0.6";
+                    e.currentTarget.style.transform = "scaleY(1)";
+                  }
+                }
+              },
+              `indicator-${index}`
+            ))
+          }
+        )
       ] })
     ] });
   };
