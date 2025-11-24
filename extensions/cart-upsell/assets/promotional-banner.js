@@ -1,15 +1,32 @@
 /**
  * Upsellity Promotional Banner Block v1.0.1
- * Built: 2025-11-24T06:43:48.548Z
+ * Built: 2025-11-24T07:44:34.326Z
  */
 "use strict";
 (() => {
   var __create = Object.create;
   var __defProp = Object.defineProperty;
+  var __defProps = Object.defineProperties;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
   var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __getOwnPropSymbols = Object.getOwnPropertySymbols;
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __propIsEnum = Object.prototype.propertyIsEnumerable;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __spreadValues = (a, b) => {
+    for (var prop in b || (b = {}))
+      if (__hasOwnProp.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    if (__getOwnPropSymbols)
+      for (var prop of __getOwnPropSymbols(b)) {
+        if (__propIsEnum.call(b, prop))
+          __defNormalProp(a, prop, b[prop]);
+      }
+    return a;
+  };
+  var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   var __commonJS = (cb, mod) => function __require() {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
   };
@@ -7887,13 +7904,16 @@
     slides,
     carouselSettings = {},
     onCtaClick,
-    isPreview = false
+    isPreview = false,
+    context = "cart-drawer",
+    maxHeight = "180px"
   }) => {
     const [currentIndex, setCurrentIndex] = (0, import_react.useState)(0);
     const [canScrollLeft, setCanScrollLeft] = (0, import_react.useState)(false);
     const [canScrollRight, setCanScrollRight] = (0, import_react.useState)(false);
     const scrollContainerRef = (0, import_react.useRef)(null);
     const isScrolling = (0, import_react.useRef)(false);
+    const isBlockContext = context === "block";
     const updateScrollState = () => {
       const container = scrollContainerRef.current;
       if (!container || slides.length <= 1)
@@ -7902,7 +7922,8 @@
       const maxScrollLeft = container.scrollWidth - container.clientWidth;
       setCanScrollLeft(scrollLeft > 10);
       setCanScrollRight(scrollLeft < maxScrollLeft - 10);
-      const slideWidth = container.clientWidth * 0.8 + 8;
+      const gap = isBlockContext ? 16 : 8;
+      const slideWidth = container.clientWidth + gap;
       const index = Math.round(scrollLeft / slideWidth);
       setCurrentIndex(Math.min(index, slides.length - 1));
     };
@@ -8161,7 +8182,8 @@
       if (!container)
         return;
       isScrolling.current = true;
-      const slideWidth = container.clientWidth * 0.8 + 8;
+      const gap = isBlockContext ? 16 : 8;
+      const slideWidth = container.clientWidth + gap;
       const targetScroll = index * slideWidth;
       container.scrollTo({
         left: targetScroll,
@@ -8204,7 +8226,7 @@
         onCtaClick(slide.ctaUrl);
       }
     };
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginBottom: "16px" }, children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginBottom: isBlockContext ? "0" : "16px" }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("style", { children: `
         .upsellity-promo-scroll::-webkit-scrollbar {
           display: none;
@@ -8213,6 +8235,28 @@
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
+        
+        /* Block context responsive styles */
+        ${isBlockContext ? `
+          .upsellity-promo-block-media {
+            height: ${maxHeight === "auto" ? "auto" : maxHeight};
+            ${maxHeight === "auto" ? "aspect-ratio: 16 / 9;" : ""}
+          }
+          
+          @media (max-width: 768px) {
+            .upsellity-promo-block-media {
+              height: ${maxHeight === "auto" ? "auto" : `calc(${maxHeight} * 0.78)`};
+              ${maxHeight === "auto" ? "aspect-ratio: 16 / 9;" : ""}
+            }
+          }
+          
+          @media (max-width: 480px) {
+            .upsellity-promo-block-media {
+              height: ${maxHeight === "auto" ? "auto" : `calc(${maxHeight} * 0.67)`};
+              ${maxHeight === "auto" ? "aspect-ratio: 16 / 9;" : ""}
+            }
+          }
+        ` : ""}
       ` }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { position: "relative" }, children: [
         slides.length > 1 && canScrollLeft && carouselSettings.showArrows !== false && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
@@ -8296,7 +8340,7 @@
             className: "upsellity-promo-scroll",
             style: {
               display: "flex",
-              gap: "8px",
+              gap: isBlockContext ? "16px" : "8px",
               overflowX: "auto",
               scrollBehavior: "smooth",
               scrollSnapType: "x mandatory",
@@ -8307,15 +8351,15 @@
               {
                 onClick: () => handleBannerClick(slide),
                 style: {
-                  minWidth: slides.length > 1 ? "80%" : "100%",
-                  maxWidth: slides.length > 1 ? "80%" : "100%",
+                  minWidth: slides.length > 1 ? isBlockContext ? "100%" : "80%" : "100%",
+                  maxWidth: slides.length > 1 ? isBlockContext ? "100%" : "80%" : "100%",
                   flexShrink: 0,
                   scrollSnapAlign: "start",
-                  borderRadius: "12px",
+                  borderRadius: isBlockContext ? "" : "12px",
                   overflow: "hidden",
                   backgroundColor: "#fff",
-                  border: "1px solid #e5e7eb",
-                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                  border: isBlockContext ? "none" : "1px solid #e5e7eb",
+                  boxShadow: isBlockContext ? "none" : "0 1px 3px rgba(0, 0, 0, 0.1)",
                   cursor: slide.ctaUrl ? "pointer" : "default",
                   transition: "transform 0.2s ease, box-shadow 0.2s ease"
                 },
@@ -8323,27 +8367,30 @@
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                     "div",
                     {
-                      style: {
+                      className: isBlockContext ? "upsellity-promo-block-media" : "",
+                      style: __spreadProps(__spreadValues({
                         position: "relative",
-                        overflow: "hidden",
+                        overflow: "hidden"
+                      }, isBlockContext ? {
+                        width: "100%"
+                      } : {
                         aspectRatio: "16 / 9",
-                        // 🔥 maintains consistent shape
                         width: "100%",
-                        // full width
-                        height: "auto",
+                        height: "auto"
+                      }), {
                         backgroundColor: "#f9fafb",
-                        borderRadius: "12px"
-                      },
+                        borderRadius: isBlockContext ? "" : "12px"
+                      }),
                       children: renderMedia(slide)
                     }
                   ),
                   /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
                     backgroundColor: "#fff",
-                    padding: "10px 14px",
+                    padding: isBlockContext ? "12px 16px" : "10px 14px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    gap: "10px"
+                    gap: isBlockContext ? "16px" : "10px"
                   }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
                       display: "flex",
@@ -8353,19 +8400,19 @@
                       minWidth: 0
                     }, children: [
                       slide.title && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-                        fontWeight: "700",
-                        fontSize: "15px",
+                        fontWeight: isBlockContext ? "600" : "700",
+                        fontSize: isBlockContext ? "16px" : "15px",
                         color: "#111827",
-                        lineHeight: "1.2",
+                        lineHeight: "1.3",
                         textAlign: "left",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap"
                       }, children: slide.title }),
                       slide.description && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-                        fontSize: "12px",
+                        fontSize: isBlockContext ? "13px" : "12px",
                         color: "#6b7280",
-                        lineHeight: "1.3",
+                        lineHeight: "1.4",
                         textAlign: "left",
                         overflow: "hidden",
                         textOverflow: "ellipsis",
@@ -8377,16 +8424,26 @@
                       {
                         onClick: (e) => handleCtaClick(slide, e),
                         style: {
-                          backgroundColor: "#f3f4f6",
-                          color: "#374151",
-                          border: "1px solid #e5e7eb",
-                          padding: "6px 14px",
-                          borderRadius: "8px",
-                          fontWeight: "500",
+                          backgroundColor: isBlockContext ? "#2563eb" : "#f3f4f6",
+                          color: isBlockContext ? "#ffffff" : "#374151",
+                          border: isBlockContext ? "none" : "1px solid #e5e7eb",
+                          padding: isBlockContext ? "8px 20px" : "6px 14px",
+                          borderRadius: isBlockContext ? "6px" : "8px",
+                          fontWeight: "600",
                           cursor: "pointer",
-                          fontSize: "13px",
+                          fontSize: isBlockContext ? "14px" : "13px",
                           transition: "all 0.2s ease",
                           whiteSpace: "nowrap"
+                        },
+                        onMouseEnter: (e) => {
+                          if (isBlockContext) {
+                            e.currentTarget.style.backgroundColor = "#1d4ed8";
+                          }
+                        },
+                        onMouseLeave: (e) => {
+                          if (isBlockContext) {
+                            e.currentTarget.style.backgroundColor = "#2563eb";
+                          }
                         },
                         children: slide.ctaText
                       }
@@ -8402,19 +8459,19 @@
           display: "flex",
           justifyContent: "center",
           gap: "6px",
-          marginTop: "8px"
+          marginTop: isBlockContext ? "12px" : "8px"
         }, children: slides.map((_, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
           "div",
           {
             onClick: (e) => handleDotClick(index, e),
             style: {
-              width: "8px",
-              height: "8px",
+              width: isBlockContext ? "10px" : "8px",
+              height: isBlockContext ? "10px" : "8px",
               borderRadius: "50%",
-              backgroundColor: index === currentIndex ? "#007bff" : "#d1d5db",
+              backgroundColor: index === currentIndex ? isBlockContext ? "#2563eb" : "#007bff" : "#d1d5db",
               transition: "all 0.2s ease",
               cursor: "pointer",
-              boxShadow: index === currentIndex ? "0 2px 4px rgba(0, 123, 255, 0.3)" : "none"
+              boxShadow: index === currentIndex ? isBlockContext ? "0 2px 4px rgba(37, 99, 235, 0.3)" : "0 2px 4px rgba(0, 123, 255, 0.3)" : "none"
             }
           },
           index
@@ -8428,7 +8485,8 @@
   var PromotionalBannerWrapper = ({
     slides,
     carouselSettings,
-    isPreview = false
+    isPreview = false,
+    maxHeight = "180px"
   }) => {
     const handleCtaClick = (url) => {
       if (url && !isPreview) {
@@ -8441,7 +8499,9 @@
         slides,
         carouselSettings,
         onCtaClick: handleCtaClick,
-        isPreview
+        isPreview,
+        context: "block",
+        maxHeight
       }
     ) });
   };
@@ -8459,6 +8519,7 @@
     containers.forEach((container) => {
       const appUrl = container.getAttribute("data-app-url");
       const shop = container.getAttribute("data-shop");
+      const maxHeight = container.getAttribute("data-max-height") || "180px";
       if (!appUrl || !shop) {
         console.error("Missing required attributes: data-app-url or data-shop");
         return;
@@ -8512,7 +8573,8 @@
             {
               slides: data.slides,
               carouselSettings: data.carouselSettings,
-              isPreview: false
+              isPreview: false,
+              maxHeight
             }
           )
         );

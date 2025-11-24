@@ -27,6 +27,7 @@ function initPromotionalBannerBlocks() {
   containers.forEach((container) => {
     const appUrl = container.getAttribute('data-app-url');
     const shop = container.getAttribute('data-shop');
+    const maxHeight = container.getAttribute('data-max-height') || '180px';
 
     if (!appUrl || !shop) {
       console.error('Missing required attributes: data-app-url or data-shop');
@@ -92,6 +93,7 @@ function initPromotionalBannerBlocks() {
             slides={data.slides}
             carouselSettings={data.carouselSettings}
             isPreview={false}
+            maxHeight={maxHeight}
           />
         );
       })

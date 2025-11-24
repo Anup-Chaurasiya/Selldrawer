@@ -13,11 +13,41 @@
 
 {% comment %} Only render if enabled {% endcomment %}
 {% if block.settings.enabled %}
+  {% assign is_full_width = false %}
+  {% if block.settings.max_width == "100%" %}
+    {% assign is_full_width = true %}
+  {% endif %}
+  
+  {% if is_full_width %}
+    <style>
+      /* Break out of Shopify container constraints for full width */
+      .upsellity-promotional-banner-fullwidth-wrapper {
+        width: 100vw;
+        position: relative;
+        left: 50%;
+        right: 50%;
+        margin-left: -50vw;
+        margin-right: -50vw;
+        max-width: 100vw;
+      }
+      
+      /* Ensure inner container takes full width */
+      .upsellity-promotional-banner-fullwidth {
+        max-width: 100% !important;
+        width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+      }
+    </style>
+    <div class="upsellity-promotional-banner-fullwidth-wrapper">
+  {% endif %}
+  
   <div 
-    class="upsellity-promotional-banner-container"
+    class="upsellity-promotional-banner-container{% if is_full_width %} upsellity-promotional-banner-fullwidth{% endif %}"
     data-app-url="{{ app_url }}"
     data-shop="{{ shop.permanent_domain }}"
-    style="margin: {{ block.settings.margin_top }}px 0 {{ block.settings.margin_bottom }}px 0; max-width: {{ block.settings.max_width }}; margin-left: auto; margin-right: auto;"
+    data-max-height="{{ block.settings.max_height }}"
+    style="margin: {{ block.settings.margin_top }}px 0 {{ block.settings.margin_bottom }}px 0; {% if is_full_width %}width: 100%; max-width: 100%;{% else %}max-width: {{ block.settings.max_width }}; width: 100%; margin-left: auto; margin-right: auto;{% endif %} padding: 0 {{ block.settings.horizontal_padding }}px;"
   >
     <!-- Loading placeholder will be replaced by JavaScript -->
     <div style="
@@ -34,6 +64,10 @@
       ">Loading...</p>
     </div>
   </div>
+  
+  {% if is_full_width %}
+    </div>
+  {% endif %}
 
   <script>
     (function() {
@@ -113,6 +147,10 @@
           "label": "Full Width"
         },
         {
+          "value": "1400px",
+          "label": "1400px"
+        },
+        {
           "value": "1200px",
           "label": "1200px"
         },
@@ -131,6 +169,54 @@
       ],
       "default": "1200px",
       "info": "Maximum width of the promotional banner"
+    },
+    {
+      "type": "range",
+      "id": "horizontal_padding",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Horizontal Padding",
+      "default": 0,
+      "info": "Left and right padding (useful when using Full Width)"
+    },
+    {
+      "type": "select",
+      "id": "max_height",
+      "label": "Maximum Height",
+      "options": [
+        {
+          "value": "auto",
+          "label": "Auto (Default)"
+        },
+        {
+          "value": "120px",
+          "label": "120px (Compact)"
+        },
+        {
+          "value": "150px",
+          "label": "150px"
+        },
+        {
+          "value": "180px",
+          "label": "180px (Recommended)"
+        },
+        {
+          "value": "200px",
+          "label": "200px"
+        },
+        {
+          "value": "250px",
+          "label": "250px"
+        },
+        {
+          "value": "300px",
+          "label": "300px (Large)"
+        }
+      ],
+      "default": "180px",
+      "info": "Maximum height of the banner image/video section"
     }
   ]
 }

@@ -9,7 +9,8 @@ import { PromotionalBannerCard } from '../../../../../app/components/shared/Prom
 export const PromotionalBannerWrapper = ({
   slides,
   carouselSettings,
-  isPreview = false
+  isPreview = false,
+  maxHeight = '180px'
 }) => {
   // Handle CTA clicks
   const handleCtaClick = (url) => {
@@ -25,6 +26,8 @@ export const PromotionalBannerWrapper = ({
         carouselSettings={carouselSettings}
         onCtaClick={handleCtaClick}
         isPreview={isPreview}
+        context="block"
+        maxHeight={maxHeight}
       />
     </div>
   );
