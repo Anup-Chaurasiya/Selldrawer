@@ -70,7 +70,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Fetch products from Shopify
   let shopProducts: any[] = [];
   let shopCollections: any[] = [];
-  
+
   try {
     const response = await admin.graphql(`
       query getProducts($first: Int!) {
@@ -107,13 +107,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
 
     const responseJson = await response.json();
-    
+
     if (responseJson.data?.products?.edges) {
       shopProducts = responseJson.data.products.edges.map((edge: any) => {
         const product = edge.node;
         const image = product.images.edges[0]?.node;
         const variant = product.variants.edges[0]?.node;
-        
+
         return {
           id: product.handle,
           shopifyProductId: product.id.replace('gid://shopify/Product/', ''),
@@ -153,7 +153,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
 
     const collectionsJson = await collectionsResponse.json();
-    
+
     if (collectionsJson.data?.collections?.edges) {
       shopCollections = collectionsJson.data.collections.edges.map((edge: any) => {
         const collection = edge.node;
@@ -254,7 +254,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Add upsell products
     for (let i = 0; i < upsellProducts.length; i++) {
       const productHandle = upsellProducts[i];
-      
+
       try {
         const response = await admin.graphql(`
           query getProductByHandle($handle: String!) {
@@ -285,12 +285,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         });
 
         const responseJson = await response.json();
-        
+
         if (responseJson.data?.productByHandle) {
           const product = responseJson.data.productByHandle;
           const variant = product.variants.edges[0]?.node;
           const image = product.images.edges[0]?.node;
-          
+
           if (variant) {
             await prisma.fBTProduct.create({
               data: {
@@ -330,7 +330,7 @@ export default function FrequentlyBoughtTogether() {
   const { fbtConfig, shopProducts, shopCollections } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
-  
+
   // Check which action is being submitted
   const formData = navigation.formData;
   const submittingIntent = formData?.get("intent") as string | null;
@@ -347,18 +347,18 @@ export default function FrequentlyBoughtTogether() {
       algorithm: fbtConfig?.algorithm || "related",
       useAI: fbtConfig?.useAI ?? useAI,
       useSmartVariantMatching: fbtConfig?.useSmartVariantMatching ?? false,
-    showOfferIfInCart: fbtConfig?.showOfferIfInCart ?? false,
-    limitUpsellsInCart: fbtConfig?.limitUpsellsInCart ?? false,
-    maxUpsellsInCart: fbtConfig?.maxUpsellsInCart?.toString() || "3",
-    showProductReviews: fbtConfig?.showProductReviews ?? false,
-    layout: fbtConfig?.layout || "horizontal",
-    templateType: (fbtConfig as any)?.templateType || "classic",
-    buttonText: fbtConfig?.buttonText || "Add selected items",
-    buttonColor: fbtConfig?.buttonColor || "#000000",
-    buttonTextColor: fbtConfig?.buttonTextColor || "#FFFFFF",
-    showDiscount: fbtConfig?.showDiscount ?? true,
-    showTotalPrice: fbtConfig?.showTotalPrice ?? true,
-    showIndividualPrices: fbtConfig?.showIndividualPrices ?? true,
+      showOfferIfInCart: fbtConfig?.showOfferIfInCart ?? false,
+      limitUpsellsInCart: fbtConfig?.limitUpsellsInCart ?? false,
+      maxUpsellsInCart: fbtConfig?.maxUpsellsInCart?.toString() || "3",
+      showProductReviews: fbtConfig?.showProductReviews ?? false,
+      layout: fbtConfig?.layout || "horizontal",
+      templateType: (fbtConfig as any)?.templateType || "classic",
+      buttonText: fbtConfig?.buttonText || "Add selected items",
+      buttonColor: fbtConfig?.buttonColor || "#000000",
+      buttonTextColor: fbtConfig?.buttonTextColor || "#FFFFFF",
+      showDiscount: fbtConfig?.showDiscount ?? true,
+      showTotalPrice: fbtConfig?.showTotalPrice ?? true,
+      showIndividualPrices: fbtConfig?.showIndividualPrices ?? true,
       showCheckboxes: fbtConfig?.showCheckboxes ?? true,
       discountType: fbtConfig?.discountType || "percentage",
       discountValue: fbtConfig?.discountValue?.toString() || "",
@@ -366,7 +366,7 @@ export default function FrequentlyBoughtTogether() {
   });
 
   const [showManualModal, setShowManualModal] = useState(false);
-  
+
   // State for managing multiple upsell rows
   interface UpsellRow {
     id: string;
@@ -381,7 +381,7 @@ export default function FrequentlyBoughtTogether() {
     showTriggerModal: boolean;
     showUpsellModal: boolean;
   }
-  
+
   const [upsellRows, setUpsellRows] = useState<UpsellRow[]>([
     {
       id: '1',
@@ -436,7 +436,7 @@ export default function FrequentlyBoughtTogether() {
   }, []);
 
   const updateUpsellRow = useCallback((rowId: string, updates: Partial<UpsellRow>) => {
-    setUpsellRows(prev => prev.map(row => 
+    setUpsellRows(prev => prev.map(row =>
       row.id === rowId ? { ...row, ...updates } : row
     ));
   }, []);
@@ -485,7 +485,7 @@ export default function FrequentlyBoughtTogether() {
       formData.append("triggerProductId", triggerProductId);
       formData.append("triggerTitle", triggerTitle);
       formData.append("upsellProducts", JSON.stringify(row.selectedUpsellProducts));
-      
+
       await submit(formData, { method: "post" });
     }
 
@@ -537,7 +537,7 @@ export default function FrequentlyBoughtTogether() {
   const getSampleProducts = () => {
     // Generate sample products based on template type
     const productCount = formState.templateType === 'minimal' ? 3 : formState.templateType === 'compact' ? 2 : 3;
-    
+
     return Array.from({ length: productCount }, (_, i) => ({
       id: `sample-${i}`,
       variantId: `sample-variant-${i}`,
@@ -563,7 +563,7 @@ export default function FrequentlyBoughtTogether() {
       }
       return getSampleProducts();
     }
-    
+
     // If hybrid mode, prioritize manual but show AI as fallback
     if (formState.recommendationType === "hybrid") {
       // First, check if there are products being configured in the modal
@@ -575,12 +575,12 @@ export default function FrequentlyBoughtTogether() {
             .filter(Boolean);
         }
       }
-      
+
       // Otherwise, use products from the first configured rule
       if (fbtConfig?.rules && fbtConfig.rules.length > 0) {
         return fbtConfig.rules[0].products.slice(0, 3);
       }
-      
+
       // Fallback to sample products if no shop products
       if (shopProducts.length > 0) {
         return shopProducts.slice(0, 3).map((product: any) => ({
@@ -593,7 +593,7 @@ export default function FrequentlyBoughtTogether() {
       }
       return getSampleProducts();
     }
-    
+
     // Manual mode: show configured products
     // First, check if there are products being configured in the modal
     for (const row of upsellRows) {
@@ -604,26 +604,26 @@ export default function FrequentlyBoughtTogether() {
           .filter(Boolean);
       }
     }
-    
+
     // Otherwise, use products from the first configured rule
     if (fbtConfig?.rules && fbtConfig.rules.length > 0) {
       return fbtConfig.rules[0].products.slice(0, 3);
     }
-    
+
     // Show sample products if nothing is configured
     return getSampleProducts();
   };
 
   const calculatePreviewTotal = (products: any[]) => {
     if (products.length === 0) return { original: 0, discounted: 0 };
-    
+
     const total = products.reduce((sum, product) => {
-      const price = typeof product.price === 'number' 
-        ? product.price 
+      const price = typeof product.price === 'number'
+        ? product.price
         : parseFloat(product.price) || 0;
       return sum + price;
     }, 0);
-    
+
     let discountedTotal = total;
     if (formState.discountValue) {
       const discountValue = parseFloat(formState.discountValue);
@@ -633,10 +633,10 @@ export default function FrequentlyBoughtTogether() {
         discountedTotal = Math.max(0, total - discountValue);
       }
     }
-    
-    return { 
-      original: total.toFixed(2), 
-      discounted: discountedTotal.toFixed(2) 
+
+    return {
+      original: total.toFixed(2),
+      discounted: discountedTotal.toFixed(2)
     };
   };
 
@@ -653,7 +653,7 @@ export default function FrequentlyBoughtTogether() {
       }}
     >
       <TitleBar title="Frequently Bought Together" />
-      
+
       <Layout>
         <Layout.Section variant="oneHalf">
           <BlockStack gap="400">
@@ -666,8 +666,8 @@ export default function FrequentlyBoughtTogether() {
                       Status
                     </Text>
                     <Text as="p" variant="bodyMd" tone="subdued">
-                      {fbtConfig?.isActive 
-                        ? "FBT feature is currently enabled" 
+                      {fbtConfig?.isActive
+                        ? "FBT feature is currently enabled"
                         : "FBT feature is currently disabled"}
                     </Text>
                   </BlockStack>
@@ -675,7 +675,7 @@ export default function FrequentlyBoughtTogether() {
                     {fbtConfig?.isActive ? "Disable" : "Enable"}
                   </Button>
                 </InlineStack>
-                
+
                 {!fbtConfig?.isActive && (
                   <Banner tone="warning">
                     Enable this feature to show frequently bought together products on your store.
@@ -690,7 +690,7 @@ export default function FrequentlyBoughtTogether() {
                 <Text as="h2" variant="headingMd">
                   Upsell Settings
                 </Text>
-                
+
                 <FormLayout>
                   <Checkbox
                     label="Show upsell offer if item already in cart"
@@ -729,7 +729,7 @@ export default function FrequentlyBoughtTogether() {
                 <Text as="h2" variant="headingMd">
                   Appearance
                 </Text>
-                
+
                 <FormLayout>
                   <TextField
                     label="Section Title"
@@ -835,13 +835,13 @@ export default function FrequentlyBoughtTogether() {
               </BlockStack>
             </Card>
 
-          {/* Configuration Card */}
-          <Card>
+            {/* Configuration Card */}
+            <Card>
               <BlockStack gap="400">
                 <Text as="h2" variant="headingMd">
                   Product Selection
                 </Text>
-                
+
                 <FormLayout>
                   <Select
                     label="Recommendation Type"
@@ -853,8 +853,8 @@ export default function FrequentlyBoughtTogether() {
                     value={formState.recommendationType}
                     onChange={(value) => {
                       const useAI = value === "ai" || value === "hybrid";
-                      setFormState({ 
-                        ...formState, 
+                      setFormState({
+                        ...formState,
                         recommendationType: value,
                         useAI: useAI
                       });
@@ -893,7 +893,7 @@ export default function FrequentlyBoughtTogether() {
                       <BlockStack gap="400">
                         <InlineStack align="space-between" blockAlign="center">
                           <Text as="h2" variant="headingMd">
-                            Manual Rules 
+                            Manual Rules
                           </Text>
                           <Button onClick={() => setShowManualModal(true)}>
                             Add Rule
@@ -902,128 +902,128 @@ export default function FrequentlyBoughtTogether() {
 
                         {/* Display existing rules */}
                         {fbtConfig?.rules && fbtConfig.rules.length > 0 ? (
-                  <ResourceList
-                    resourceName={{ singular: 'rule', plural: 'rules' }}
-                    items={fbtConfig.rules}
-                    renderItem={(rule) => {
-                      const { id, triggerType, triggerTitle, triggerValue, products } = rule;
-                      const triggerProduct = triggerType === 'specific_product' && triggerValue && triggerValue !== 'all'
-                        ? shopProducts.find((p: any) => p.handle === triggerValue)
-                        : null;
-                      
-                      const getTriggerLabel = () => {
-                        if (triggerType === "collection") {
-                          return triggerTitle;
-                        } else if (triggerType === "all_products") {
-                          return "All Products";
-                        } else {
-                          return triggerTitle;
-                        }
-                      };
+                          <ResourceList
+                            resourceName={{ singular: 'rule', plural: 'rules' }}
+                            items={fbtConfig.rules}
+                            renderItem={(rule) => {
+                              const { id, triggerType, triggerTitle, triggerValue, products } = rule;
+                              const triggerProduct = triggerType === 'specific_product' && triggerValue && triggerValue !== 'all'
+                                ? shopProducts.find((p: any) => p.handle === triggerValue)
+                                : null;
 
-                      return (
-                        <ResourceItem
-                          id={id}
-                          accessibilityLabel={`View details for ${getTriggerLabel()}`}
-                          onClick={() => {}}
-                        >
-                          <BlockStack gap="300">
-                            <InlineStack align="space-between" blockAlign="center">
-                              <InlineStack gap="300" blockAlign="center">
-                                {triggerProduct && (
-                                  <Thumbnail
-                                    source={triggerProduct.images[0]?.src || ''}
-                                    alt={triggerProduct.title}
-                                    size="medium"
-                                  />
-                                )}
-                                {triggerType === "collection" && (
-                                  <div style={{
-                                    width: '50px',
-                                    height: '50px',
-                                    backgroundColor: '#f3f4f6',
-                                    borderRadius: '6px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '20px'
-                                  }}>
-                                    📁
-                                  </div>
-                                )}
-                                {triggerType === "all_products" && (
-                                  <div style={{
-                                    width: '50px',
-                                    height: '50px',
-                                    backgroundColor: '#f3f4f6',
-                                    borderRadius: '6px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '20px'
-                                  }}>
-                                    🌐
-                                  </div>
-                                )}
-                                <BlockStack gap="100">
-                                  <Text as="h3" variant="headingMd">
-                                    {getTriggerLabel()}
-                                  </Text>
-                                  <Text as="p" variant="bodySm" tone="subdued">
-                                    Trigger: {triggerType === 'specific_product' ? 'product' : triggerType === 'collection' ? 'collection' : 'all products'} | {products.length} upsell {products.length === 1 ? 'product' : 'products'}
-                                  </Text>
-                                </BlockStack>
-                              </InlineStack>
-                              <Button
-                                icon={DeleteIcon}
-                                variant="plain"
-                                tone="critical"
-                                onClick={() => handleDeleteRule(id)}
-                              />
-                            </InlineStack>
-                            {products.length > 0 && (
-                              <Box paddingBlockStart="200">
-                                <BlockStack gap="200">
-                                  <Text as="p" variant="bodySm" fontWeight="semibold">
-                                    Upsell Products:
-                                  </Text>
-                                  <InlineStack gap="200" wrap>
-                                    {products.map((product: any) => (
-                                      <InlineStack key={product.id} gap="200" blockAlign="center">
-                                        <Thumbnail
-                                          source={product.imageUrl || ''}
-                                          alt={product.title}
-                                          size="small"
-                                        />
-                                        <BlockStack gap="050">
-                                          <Text as="p" variant="bodySm" tone="subdued">
-                                            {product.title}
+                              const getTriggerLabel = () => {
+                                if (triggerType === "collection") {
+                                  return triggerTitle;
+                                } else if (triggerType === "all_products") {
+                                  return "All Products";
+                                } else {
+                                  return triggerTitle;
+                                }
+                              };
+
+                              return (
+                                <ResourceItem
+                                  id={id}
+                                  accessibilityLabel={`View details for ${getTriggerLabel()}`}
+                                  onClick={() => { }}
+                                >
+                                  <BlockStack gap="300">
+                                    <InlineStack align="space-between" blockAlign="center">
+                                      <InlineStack gap="300" blockAlign="center">
+                                        {triggerProduct && (
+                                          <Thumbnail
+                                            source={triggerProduct.images[0]?.src || ''}
+                                            alt={triggerProduct.title}
+                                            size="medium"
+                                          />
+                                        )}
+                                        {triggerType === "collection" && (
+                                          <div style={{
+                                            width: '50px',
+                                            height: '50px',
+                                            backgroundColor: '#f3f4f6',
+                                            borderRadius: '6px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: '20px'
+                                          }}>
+                                            📁
+                                          </div>
+                                        )}
+                                        {triggerType === "all_products" && (
+                                          <div style={{
+                                            width: '50px',
+                                            height: '50px',
+                                            backgroundColor: '#f3f4f6',
+                                            borderRadius: '6px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: '20px'
+                                          }}>
+                                            🌐
+                                          </div>
+                                        )}
+                                        <BlockStack gap="100">
+                                          <Text as="h3" variant="headingMd">
+                                            {getTriggerLabel()}
                                           </Text>
-                                          {product.price && (
-                                            <Text as="p" variant="bodySm" tone="subdued" fontWeight="semibold">
-                                              ${typeof product.price === 'number' ? product.price.toFixed(2) : product.price}
-                                            </Text>
-                                          )}
+                                          <Text as="p" variant="bodySm" tone="subdued">
+                                            Trigger: {triggerType === 'specific_product' ? 'product' : triggerType === 'collection' ? 'collection' : 'all products'} | {products.length} recommended {products.length === 1 ? 'product' : 'products'}
+                                          </Text>
                                         </BlockStack>
                                       </InlineStack>
-                                    ))}
-                                  </InlineStack>
-                                </BlockStack>
-                              </Box>
-                            )}
-                          </BlockStack>
-                        </ResourceItem>
-                      );
-                    }}
-                  />
-                ) : (
-                  <EmptyState
-                    heading="No manual rules configured"
-                    image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                  >
-                    <p>Add rules to show specific products in the FBT widget.</p>
-                  </EmptyState>
-                )}
+                                      <Button
+                                        icon={DeleteIcon}
+                                        variant="plain"
+                                        tone="critical"
+                                        onClick={() => handleDeleteRule(id)}
+                                      />
+                                    </InlineStack>
+                                    {products.length > 0 && (
+                                      <Box paddingBlockStart="200">
+                                        <BlockStack gap="200">
+                                          <Text as="p" variant="bodySm" fontWeight="semibold">
+                                            Recommended Products:
+                                          </Text>
+                                          <InlineStack gap="200" wrap>
+                                            {products.map((product: any) => (
+                                              <InlineStack key={product.id} gap="200" blockAlign="center">
+                                                <Thumbnail
+                                                  source={product.imageUrl || ''}
+                                                  alt={product.title}
+                                                  size="small"
+                                                />
+                                                <BlockStack gap="050">
+                                                  <Text as="p" variant="bodySm" tone="subdued">
+                                                    {product.title}
+                                                  </Text>
+                                                  {product.price && (
+                                                    <Text as="p" variant="bodySm" tone="subdued" fontWeight="semibold">
+                                                      ${typeof product.price === 'number' ? product.price.toFixed(2) : product.price}
+                                                    </Text>
+                                                  )}
+                                                </BlockStack>
+                                              </InlineStack>
+                                            ))}
+                                          </InlineStack>
+                                        </BlockStack>
+                                      </Box>
+                                    )}
+                                  </BlockStack>
+                                </ResourceItem>
+                              );
+                            }}
+                          />
+                        ) : (
+                          <EmptyState
+                            heading="No manual rules configured"
+                            image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                          >
+                            <p>Add rules to show specific products in the FBT widget.</p>
+                          </EmptyState>
+                        )}
                       </BlockStack>
                     </Card>
                   </>
@@ -1043,12 +1043,12 @@ export default function FrequentlyBoughtTogether() {
                   Live Preview
                 </Text>
                 <Badge tone={previewProducts.length === 0 ? 'info' : 'success'}>
-                  {formState.templateType === 'classic' ? 'Classic' : 
-                   formState.templateType === 'compact' ? 'Compact' : 
-                   'Minimal'}
+                  {formState.templateType === 'classic' ? 'Classic' :
+                    formState.templateType === 'compact' ? 'Compact' :
+                      'Minimal'}
                 </Badge>
               </div>
-              
+
               <div style={{
                 border: '2px solid #e5e7eb',
                 borderRadius: '12px',
@@ -1084,19 +1084,19 @@ export default function FrequentlyBoughtTogether() {
                       maxUpsellsInCart: parseInt(formState.maxUpsellsInCart)
                     }}
                     recommendations={previewProducts.map((product: any) => {
-                      const productPrice = typeof product.price === 'number' 
-                        ? product.price 
+                      const productPrice = typeof product.price === 'number'
+                        ? product.price
                         : parseFloat(product.price) || 0;
-                      const compareAtPrice = product.compareAtPrice 
-                        ? (typeof product.compareAtPrice === 'number' 
-                            ? product.compareAtPrice 
-                            : parseFloat(product.compareAtPrice))
-                        : (product.variants?.[0]?.compare_at_price 
-                            ? (typeof product.variants[0].compare_at_price === 'number'
-                                ? product.variants[0].compare_at_price
-                                : parseFloat(product.variants[0].compare_at_price))
-                            : null);
-                      
+                      const compareAtPrice = product.compareAtPrice
+                        ? (typeof product.compareAtPrice === 'number'
+                          ? product.compareAtPrice
+                          : parseFloat(product.compareAtPrice))
+                        : (product.variants?.[0]?.compare_at_price
+                          ? (typeof product.variants[0].compare_at_price === 'number'
+                            ? product.variants[0].compare_at_price
+                            : parseFloat(product.variants[0].compare_at_price))
+                          : null);
+
                       return {
                         id: product.id,
                         variantId: product.shopifyVariantId || product.variantId || product.variants?.[0]?.id || product.id,
@@ -1169,7 +1169,7 @@ export default function FrequentlyBoughtTogether() {
         <Modal.Section>
           <BlockStack gap="400">
             {/* Header Row */}
-            <div style={{ 
+            <div style={{
               display: 'grid',
               gridTemplateColumns: '40px 1fr 1fr 40px',
               gap: '16px',
@@ -1221,9 +1221,9 @@ export default function FrequentlyBoughtTogether() {
 
             {/* Upsell Rows */}
             {upsellRows.map((row, index) => (
-              <div 
+              <div
                 key={row.id}
-                style={{ 
+                style={{
                   display: 'grid',
                   gridTemplateColumns: '40px 1fr 1fr 40px',
                   gap: '16px',
@@ -1236,7 +1236,7 @@ export default function FrequentlyBoughtTogether() {
                 }}
               >
                 {/* Drag Handle */}
-                <div style={{ 
+                <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1260,7 +1260,7 @@ export default function FrequentlyBoughtTogether() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                       <Badge tone="info" size="small">TRIGGER</Badge>
                     </div>
-                    
+
                     {/* Trigger Type Selection */}
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <button
@@ -1388,7 +1388,7 @@ export default function FrequentlyBoughtTogether() {
 
                 {/* Upsell Product Column */}
                 <div style={{
-                  
+
                   padding: '18px',
                   backgroundColor: '#f0fdf4',
                   border: '2px solid #10b981',
@@ -1399,7 +1399,7 @@ export default function FrequentlyBoughtTogether() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                       <Badge tone="success" size="small">UPSELL</Badge>
                     </div>
-                    
+
                     <Button
                       size="large"
                       fullWidth
@@ -1473,7 +1473,7 @@ export default function FrequentlyBoughtTogether() {
                 </div>
 
                 {/* Delete Button */}
-                <div style={{ 
+                <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1590,48 +1590,48 @@ export default function FrequentlyBoughtTogether() {
                           return (
                             <div
                               key={product.handle}
-                              onClick={() => updateUpsellRow(row.id, { 
-                                selectedTriggerProduct: product.handle, 
-                                selectedTriggerCollection: null 
+                              onClick={() => updateUpsellRow(row.id, {
+                                selectedTriggerProduct: product.handle,
+                                selectedTriggerCollection: null
                               })}
-                                  style={{
-                                    border: isSelected ? '2px solid #3b82f6' : '1px solid #e5e7eb',
-                                    borderRadius: '6px',
-                                    padding: '8px',
-                                    cursor: 'pointer',
-                                    backgroundColor: isSelected ? '#f0f9ff' : '#ffffff',
-                                    display: 'flex',
-                                    gap: '8px',
-                                    alignItems: 'center'
-                                  }}
-                                >
-                                  <img
-                                    src={product.images?.[0]?.src || "https://via.placeholder.com/40x40"}
-                                    alt={product.title}
-                                    style={{
-                                      width: '40px',
-                                      height: '40px',
-                                      objectFit: 'cover',
-                                      borderRadius: '4px'
-                                    }}
-                                  />
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: '600', fontSize: '13px', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                      {product.title}
-                                    </div>
-                                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                                      ${product.variants?.[0]?.price || '0.00'}
-                                    </div>
-                                  </div>
+                              style={{
+                                border: isSelected ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+                                borderRadius: '6px',
+                                padding: '8px',
+                                cursor: 'pointer',
+                                backgroundColor: isSelected ? '#f0f9ff' : '#ffffff',
+                                display: 'flex',
+                                gap: '8px',
+                                alignItems: 'center'
+                              }}
+                            >
+                              <img
+                                src={product.images?.[0]?.src || "https://via.placeholder.com/40x40"}
+                                alt={product.title}
+                                style={{
+                                  width: '40px',
+                                  height: '40px',
+                                  objectFit: 'cover',
+                                  borderRadius: '4px'
+                                }}
+                              />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: '600', fontSize: '13px', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {product.title}
                                 </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div style={{ textAlign: 'center', padding: '24px', color: '#9ca3af' }}>
-                            No products found
-                          </div>
-                        )
+                                <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                                  ${product.variants?.[0]?.price || '0.00'}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '24px', color: '#9ca3af' }}>
+                        No products found
+                      </div>
+                    )
                   ) : (
                     getFilteredTriggerCollections(row).length > 0 ? (
                       <div style={{ display: 'grid', gap: '8px' }}>
@@ -1640,9 +1640,9 @@ export default function FrequentlyBoughtTogether() {
                           return (
                             <div
                               key={collection.handle}
-                              onClick={() => updateUpsellRow(row.id, { 
-                                selectedTriggerCollection: collection.handle, 
-                                selectedTriggerProduct: null 
+                              onClick={() => updateUpsellRow(row.id, {
+                                selectedTriggerCollection: collection.handle,
+                                selectedTriggerProduct: null
                               })}
                               style={{
                                 border: isSelected ? '2px solid #3b82f6' : '1px solid #e5e7eb',
@@ -1731,11 +1731,11 @@ export default function FrequentlyBoughtTogether() {
                             onClick={() => {
                               const currentProducts = row.selectedUpsellProducts;
                               if (isSelected) {
-                                updateUpsellRow(row.id, { 
+                                updateUpsellRow(row.id, {
                                   selectedUpsellProducts: currentProducts.filter((h: string) => h !== product.handle)
                                 });
                               } else {
-                                updateUpsellRow(row.id, { 
+                                updateUpsellRow(row.id, {
                                   selectedUpsellProducts: [...currentProducts, product.handle]
                                 });
                               }
@@ -1772,7 +1772,7 @@ export default function FrequentlyBoughtTogether() {
                             <Checkbox
                               label=""
                               checked={isSelected}
-                              onChange={() => {}}
+                              onChange={() => { }}
                             />
                           </div>
                         );
