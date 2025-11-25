@@ -12,15 +12,12 @@ const VERSION = typeof __PROMOTIONAL_BANNER_VERSION__ !== 'undefined'
   ? __PROMOTIONAL_BANNER_VERSION__ 
   : '1.0.0';
 
-console.log(`🎨 Upsellity Promotional Banner Block v${VERSION} loaded`);
-
 // Initialize promotional banner blocks
 function initPromotionalBannerBlocks() {
   // Find all promotional banner containers
   const containers = document.querySelectorAll('.upsellity-promotional-banner-container');
   
   if (containers.length === 0) {
-    console.log('No promotional banner containers found');
     return;
   }
 
@@ -81,7 +78,6 @@ function initPromotionalBannerBlocks() {
 
         // Check if banner is enabled and has slides
         if (!data.enabled || !data.slides || data.slides.length === 0) {
-          console.log('Promotional banner is disabled or has no slides');
           container.style.display = 'none';
           return;
         }

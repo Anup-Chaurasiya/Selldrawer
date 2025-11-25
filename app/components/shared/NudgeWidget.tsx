@@ -335,17 +335,6 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                       paddingTop: '0.5rem'
                     }}
                   >
-                    <span 
-                      className="upsellity-nudge-product-price"
-                      style={{
-                        fontSize: '1.125rem',
-                        fontWeight: 600,
-                        color: '#111827'
-                      }}
-                    >
-                      {formatPrice(product.price)}
-                    </span>
-
                     {config.showProductComparePrice && product.compareAtPrice && product.compareAtPrice > product.price && (
                       <span 
                         className="upsellity-nudge-product-compare-price"
@@ -358,6 +347,16 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                         {formatPrice(product.compareAtPrice)}
                       </span>
                     )}
+                    <span 
+                      className="upsellity-nudge-product-price"
+                      style={{
+                        fontSize: '1.125rem',
+                        fontWeight: 600,
+                        color: '#111827'
+                      }}
+                    >
+                      {formatPrice(product.price)}
+                    </span>
                   </div>
                 )}
               </div>

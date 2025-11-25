@@ -17,6 +17,11 @@ import {
   Modal,
   Badge,
   Divider,
+  ResourceList,
+  ResourceItem,
+  Thumbnail,
+  EmptyState,
+  Box,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -884,146 +889,144 @@ export default function FrequentlyBoughtTogether() {
                   <>
                     <Divider />
 
-                    <BlockStack gap="200">
-                      <Text as="h3" variant="headingMd">
-                        Manual Configuration
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Manually configure which products trigger upsell recommendations
-                      </Text>
-                      <Button onClick={() => setShowManualModal(true)}>
-                        Configure Manual Rules
-                      </Button>
-                    </BlockStack>
-                  </>
-                )}
+                    <Card>
+                      <BlockStack gap="400">
+                        <InlineStack align="space-between" blockAlign="center">
+                          <Text as="h2" variant="headingMd">
+                            Manual Rules 
+                          </Text>
+                          <Button onClick={() => setShowManualModal(true)}>
+                            Add Rule
+                          </Button>
+                        </InlineStack>
 
-                {/* Display existing rules */}
-                {fbtConfig?.rules && fbtConfig.rules.length > 0 && (
-                  <BlockStack gap="400">
-                    <Text as="h3" variant="headingMd">
-                      Configured Rules ({fbtConfig.rules.length})
-                    </Text>
-                    {fbtConfig.rules.map((rule: any) => {
+                        {/* Display existing rules */}
+                        {fbtConfig?.rules && fbtConfig.rules.length > 0 ? (
+                  <ResourceList
+                    resourceName={{ singular: 'rule', plural: 'rules' }}
+                    items={fbtConfig.rules}
+                    renderItem={(rule) => {
+                      const { id, triggerType, triggerTitle, triggerValue, products } = rule;
+                      const triggerProduct = triggerType === 'specific_product' && triggerValue && triggerValue !== 'all'
+                        ? shopProducts.find((p: any) => p.handle === triggerValue)
+                        : null;
+                      
                       const getTriggerLabel = () => {
-                        if (rule.triggerType === "collection") {
-                          return rule.triggerTitle;
-                        } else if (rule.triggerType === "all_products") {
+                        if (triggerType === "collection") {
+                          return triggerTitle;
+                        } else if (triggerType === "all_products") {
                           return "All Products";
                         } else {
-                          return rule.triggerTitle;
+                          return triggerTitle;
                         }
                       };
 
                       return (
-                        <Card key={rule.id}>
-                          <BlockStack gap="400">
-                            {/* Header with Delete Button */}
+                        <ResourceItem
+                          id={id}
+                          accessibilityLabel={`View details for ${getTriggerLabel()}`}
+                          onClick={() => {}}
+                        >
+                          <BlockStack gap="300">
                             <InlineStack align="space-between" blockAlign="center">
-                              <Text as="p" variant="bodyMd" fontWeight="semibold" tone="subdued">
-                                Rule #{fbtConfig.rules.indexOf(rule) + 1}
-                              </Text>
+                              <InlineStack gap="300" blockAlign="center">
+                                {triggerProduct && (
+                                  <Thumbnail
+                                    source={triggerProduct.images[0]?.src || ''}
+                                    alt={triggerProduct.title}
+                                    size="medium"
+                                  />
+                                )}
+                                {triggerType === "collection" && (
+                                  <div style={{
+                                    width: '50px',
+                                    height: '50px',
+                                    backgroundColor: '#f3f4f6',
+                                    borderRadius: '6px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '20px'
+                                  }}>
+                                    📁
+                                  </div>
+                                )}
+                                {triggerType === "all_products" && (
+                                  <div style={{
+                                    width: '50px',
+                                    height: '50px',
+                                    backgroundColor: '#f3f4f6',
+                                    borderRadius: '6px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '20px'
+                                  }}>
+                                    🌐
+                                  </div>
+                                )}
+                                <BlockStack gap="100">
+                                  <Text as="h3" variant="headingMd">
+                                    {getTriggerLabel()}
+                                  </Text>
+                                  <Text as="p" variant="bodySm" tone="subdued">
+                                    Trigger: {triggerType === 'specific_product' ? 'product' : triggerType === 'collection' ? 'collection' : 'all products'} | {products.length} upsell {products.length === 1 ? 'product' : 'products'}
+                                  </Text>
+                                </BlockStack>
+                              </InlineStack>
                               <Button
                                 icon={DeleteIcon}
+                                variant="plain"
                                 tone="critical"
-                                onClick={() => handleDeleteRule(rule.id)}
-                                size="slim"
-                              >
-                                Delete
-                              </Button>
+                                onClick={() => handleDeleteRule(id)}
+                              />
                             </InlineStack>
-
-                            {/* Two Column Layout: Trigger | Upsells */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr', gap: '16px', alignItems: 'flex-start' }}>
-                              {/* Left Column: Trigger Product */}
-                              <div style={{ borderRight: '1px solid #e5e7eb', paddingRight: '16px' }}>
-                                <div style={{ marginBottom: '8px' }}>
-                                  <Text as="p" variant="bodySm" fontWeight="semibold" tone="subdued">
-                                    Trigger Product
+                            {products.length > 0 && (
+                              <Box paddingBlockStart="200">
+                                <BlockStack gap="200">
+                                  <Text as="p" variant="bodySm" fontWeight="semibold">
+                                    Upsell Products:
                                   </Text>
-                                </div>
-                                {rule.triggerType === "specific_product" && (() => {
-                                  const triggerProduct = shopProducts.find((p: any) => p.handle === rule.triggerValue);
-                                  return (
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                      <img
-                                        src={triggerProduct?.images?.[0]?.src || "https://via.placeholder.com/50x50"}
-                                        alt={getTriggerLabel()}
-                                        style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e5e7eb' }}
-                                      />
-                                      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        <Text as="p" variant="bodySm" fontWeight="semibold">
-                                          {getTriggerLabel()}
-                                        </Text>
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                                {rule.triggerType === "collection" && (
-                                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    <div style={{ width: '50px', height: '50px', backgroundColor: '#f3f4f6', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
-                                      📁
-                                    </div>
-                                    <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                      <Text as="p" variant="bodySm" fontWeight="semibold">
-                                        {getTriggerLabel()}
-                                      </Text>
-                                    </div>
-                                  </div>
-                                )}
-                                {rule.triggerType === "all_products" && (
-                                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    <div style={{ width: '50px', height: '50px', backgroundColor: '#f3f4f6', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
-                                      🌐
-                                    </div>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                      <Text as="p" variant="bodySm" fontWeight="semibold">
-                                        All Products
-                                      </Text>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              {/* Right Column: Upsell Products */}
-                              <div>
-                                <div style={{ marginBottom: '8px' }}>
-                                  <Text as="p" variant="bodySm" fontWeight="semibold" tone="subdued">
-                                    Recommended Products ({rule.products.length})
-                                  </Text>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                  {rule.products.map((product: any, index: number) => (
-                                    <div key={product.id} style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '6px', backgroundColor: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
-                                      <img
-                                        src={product.imageUrl || "https://via.placeholder.com/40x40"}
-                                        alt={product.title}
-                                        style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #e5e7eb' }}
-                                      />
-                                      <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                          <Text as="p" variant="bodySm" fontWeight="semibold">
+                                  <InlineStack gap="200" wrap>
+                                    {products.map((product: any) => (
+                                      <InlineStack key={product.id} gap="200" blockAlign="center">
+                                        <Thumbnail
+                                          source={product.imageUrl || ''}
+                                          alt={product.title}
+                                          size="small"
+                                        />
+                                        <BlockStack gap="050">
+                                          <Text as="p" variant="bodySm" tone="subdued">
                                             {product.title}
                                           </Text>
-                                        </div>
-                                        {product.price && (
-                                          <div style={{ fontSize: '11px', marginTop: '2px' }}>
-                                            <Text as="p" variant="bodySm" tone="subdued">
+                                          {product.price && (
+                                            <Text as="p" variant="bodySm" tone="subdued" fontWeight="semibold">
                                               ${typeof product.price === 'number' ? product.price.toFixed(2) : product.price}
                                             </Text>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
+                                          )}
+                                        </BlockStack>
+                                      </InlineStack>
+                                    ))}
+                                  </InlineStack>
+                                </BlockStack>
+                              </Box>
+                            )}
                           </BlockStack>
-                        </Card>
+                        </ResourceItem>
                       );
-                    })}
-                  </BlockStack>
+                    }}
+                  />
+                ) : (
+                  <EmptyState
+                    heading="No manual rules configured"
+                    image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                  >
+                    <p>Add rules to show specific products in the FBT widget.</p>
+                  </EmptyState>
+                )}
+                      </BlockStack>
+                    </Card>
+                  </>
                 )}
               </BlockStack>
             </Card>

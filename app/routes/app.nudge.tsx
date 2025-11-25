@@ -831,7 +831,7 @@ export default function NudgePopup() {
                               <Box paddingBlockStart="200">
                                 <BlockStack gap="200">
                                   <Text as="p" variant="bodySm" fontWeight="semibold">
-                                    Upsell Products:
+                                    Recommended Products:
                                   </Text>
                                   <InlineStack gap="200" wrap>
                                     {products.map((product: any) => (

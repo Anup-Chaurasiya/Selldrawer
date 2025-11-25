@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.1
- * Built: 2025-11-24T11:48:09.561Z
+ * Built: 2025-11-25T07:24:06.687Z
  */
 "use strict";
 (() => {
@@ -10234,8 +10234,8 @@
               padding: "0 15px",
               backgroundColor: "transparent",
               border: "none",
-              fontSize: "14px",
-              fontWeight: "500",
+              // fontSize: '14px',
+              // fontWeight: '500',
               color: "#374151",
               cursor: isPreview ? "default" : "pointer",
               display: "flex",
@@ -10934,6 +10934,38 @@
             this.close();
           }
         });
+        overlay.addEventListener("wheel", (e) => {
+          if (this.isOpen) {
+            const scrollContainer = document.documentElement.scrollTop ? document.documentElement : document.body;
+            scrollContainer.scrollTop += e.deltaY;
+          }
+        }, { passive: true });
+        let touchStartY = 0;
+        overlay.addEventListener("touchstart", (e) => {
+          if (this.isOpen && e.touches.length === 1) {
+            touchStartY = e.touches[0].clientY;
+          }
+        }, { passive: true });
+        overlay.addEventListener("touchmove", (e) => {
+          if (this.isOpen && e.touches.length === 1) {
+            const touchY = e.touches[0].clientY;
+            const deltaY = touchStartY - touchY;
+            const scrollContainer = document.documentElement.scrollTop ? document.documentElement : document.body;
+            scrollContainer.scrollTop += deltaY;
+            touchStartY = touchY;
+          }
+        }, { passive: true });
+      }
+      drawer.addEventListener("click", (e) => {
+        if (this.isOpen && (e.target === drawer || e.target === overlay)) {
+          this.close();
+        }
+      });
+      const drawerContent = drawer.querySelector(".upsellity-drawer-content");
+      if (drawerContent) {
+        drawerContent.addEventListener("click", (e) => {
+          e.stopPropagation();
+        });
       }
       this.loadStyles();
     }
@@ -10983,7 +11015,6 @@
       if (this.cartJustUpdated) {
         this.cartJustUpdated = false;
         this.render();
-        document.body.style.overflow = "hidden";
         drawer.classList.add("open");
         this.isOpen = true;
       } else {
@@ -10994,7 +11025,6 @@
           })
         ]);
         this.render();
-        document.body.style.overflow = "hidden";
         drawer.classList.add("open");
         this.isOpen = true;
         this.loadSecondaryData();
@@ -11022,7 +11052,6 @@
       const drawer = document.getElementById("upsellity-cart-drawer");
       drawer.classList.remove("open");
       this.isOpen = false;
-      document.body.style.overflow = "";
       if (this.reactRoot) {
         try {
           this.reactRoot.unmount();

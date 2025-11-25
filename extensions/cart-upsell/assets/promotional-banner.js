@@ -1,6 +1,6 @@
 /**
  * Upsellity Promotional Banner Block v1.0.1
- * Built: 2025-11-24T11:48:09.510Z
+ * Built: 2025-11-25T07:24:06.694Z
  */
 "use strict";
 (() => {
@@ -8586,12 +8586,9 @@
 
   // extensions/cart-upsell/assets/modules/promotional-banner-entry.js
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-  var VERSION = true ? "1.0.1" : "1.0.0";
-  console.log(`\u{1F3A8} Upsellity Promotional Banner Block v${VERSION} loaded`);
   function initPromotionalBannerBlocks() {
     const containers = document.querySelectorAll(".upsellity-promotional-banner-container");
     if (containers.length === 0) {
-      console.log("No promotional banner containers found");
       return;
     }
     containers.forEach((container) => {
@@ -8640,7 +8637,6 @@
       }).then((data) => {
         container.innerHTML = "";
         if (!data.enabled || !data.slides || data.slides.length === 0) {
-          console.log("Promotional banner is disabled or has no slides");
           container.style.display = "none";
           return;
         }
