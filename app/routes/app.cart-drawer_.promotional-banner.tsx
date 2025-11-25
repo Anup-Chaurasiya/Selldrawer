@@ -460,7 +460,7 @@ function SlideEditor({
             value={formData.mediaUrl}
             onChange={(value) => setFormData({ ...formData, mediaUrl: value })}
             placeholder="https://... (jpg, png, mp4, YouTube, Vimeo)"
-            helpText="Paste an image URL or a video URL (MP4/YouTube/Vimeo). We'll detect it."
+            helpText="Paste an image URL or a video URL (MP4/YouTube/Vimeo). Pixel size for single/multi banner is (360x200px)/(300x170px)."
             autoComplete="off"
             requiredIndicator
           />

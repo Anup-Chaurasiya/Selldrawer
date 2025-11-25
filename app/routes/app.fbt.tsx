@@ -23,6 +23,8 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback } from "react";
 import { DeleteIcon, PlusIcon } from "@shopify/polaris-icons";
+import { FBTWidget } from "../components/shared/FBTWidget";
+import type { FBTProduct } from "../components/shared/FBTProductCard";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -205,6 +207,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       maxUpsellsInCart: parseInt(formData.get("maxUpsellsInCart") as string || "3"),
       showProductReviews: formData.get("showProductReviews") === "true",
       layout: formData.get("layout") as string,
+      templateType: formData.get("templateType") as string,
       buttonText: formData.get("buttonText") as string,
       buttonColor: formData.get("buttonColor") as string,
       buttonTextColor: formData.get("buttonTextColor") as string,
@@ -322,7 +325,13 @@ export default function FrequentlyBoughtTogether() {
   const { fbtConfig, shopProducts, shopCollections } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
-  const isLoading = navigation.state === "submitting";
+  
+  // Check which action is being submitted
+  const formData = navigation.formData;
+  const submittingIntent = formData?.get("intent") as string | null;
+  const isSubmitting = navigation.state === "submitting";
+  const isToggleLoading = isSubmitting && submittingIntent === "toggle";
+  const isSaveSettingsLoading = isSubmitting && submittingIntent === "save-settings";
 
   const [formState, setFormState] = useState(() => {
     const recommendationType = fbtConfig?.recommendationType || "manual";
@@ -338,6 +347,7 @@ export default function FrequentlyBoughtTogether() {
     maxUpsellsInCart: fbtConfig?.maxUpsellsInCart?.toString() || "3",
     showProductReviews: fbtConfig?.showProductReviews ?? false,
     layout: fbtConfig?.layout || "horizontal",
+    templateType: (fbtConfig as any)?.templateType || "classic",
     buttonText: fbtConfig?.buttonText || "Add selected items",
     buttonColor: fbtConfig?.buttonColor || "#000000",
     buttonTextColor: fbtConfig?.buttonTextColor || "#FFFFFF",
@@ -519,16 +529,34 @@ export default function FrequentlyBoughtTogether() {
     );
   };
 
+  const getSampleProducts = () => {
+    // Generate sample products based on template type
+    const productCount = formState.templateType === 'minimal' ? 3 : formState.templateType === 'compact' ? 2 : 3;
+    
+    return Array.from({ length: productCount }, (_, i) => ({
+      id: `sample-${i}`,
+      variantId: `sample-variant-${i}`,
+      title: `Sample Product ${i + 1}`,
+      handle: `sample-product-${i}`,
+      price: 29.99 + (i * 10),
+      compareAtPrice: 39.99 + (i * 10),
+      imageUrl: `https://via.placeholder.com/300x300/4F46E5/FFFFFF?text=Product+${i + 1}`
+    }));
+  };
+
   const getPreviewProducts = () => {
     // If AI only mode, show sample products from shop
     if (formState.recommendationType === "ai") {
-      return shopProducts.slice(0, 3).map((product: any) => ({
-        id: product.id,
-        title: product.title,
-        price: product.variants?.[0]?.price || "0.00",
-        imageUrl: product.images?.[0]?.src || null,
-        handle: product.handle
-      }));
+      if (shopProducts.length > 0) {
+        return shopProducts.slice(0, 3).map((product: any) => ({
+          id: product.id,
+          title: product.title,
+          price: product.variants?.[0]?.price || "0.00",
+          imageUrl: product.images?.[0]?.src || null,
+          handle: product.handle
+        }));
+      }
+      return getSampleProducts();
     }
     
     // If hybrid mode, prioritize manual but show AI as fallback
@@ -548,14 +576,17 @@ export default function FrequentlyBoughtTogether() {
         return fbtConfig.rules[0].products.slice(0, 3);
       }
       
-      // Fallback to AI preview if no manual rules
-      return shopProducts.slice(0, 3).map((product: any) => ({
-        id: product.id,
-        title: product.title,
-        price: product.variants?.[0]?.price || "0.00",
-        imageUrl: product.images?.[0]?.src || null,
-        handle: product.handle
-      }));
+      // Fallback to sample products if no shop products
+      if (shopProducts.length > 0) {
+        return shopProducts.slice(0, 3).map((product: any) => ({
+          id: product.id,
+          title: product.title,
+          price: product.variants?.[0]?.price || "0.00",
+          imageUrl: product.images?.[0]?.src || null,
+          handle: product.handle
+        }));
+      }
+      return getSampleProducts();
     }
     
     // Manual mode: show configured products
@@ -574,8 +605,8 @@ export default function FrequentlyBoughtTogether() {
       return fbtConfig.rules[0].products.slice(0, 3);
     }
     
-    // Return empty array if no products are configured
-    return [];
+    // Show sample products if nothing is configured
+    return getSampleProducts();
   };
 
   const calculatePreviewTotal = (products: any[]) => {
@@ -613,13 +644,13 @@ export default function FrequentlyBoughtTogether() {
       primaryAction={{
         content: "Save Settings",
         onAction: handleSaveSettings,
-        loading: isLoading,
+        loading: isSaveSettingsLoading,
       }}
     >
       <TitleBar title="Frequently Bought Together" />
       
       <Layout>
-        <Layout.Section>
+        <Layout.Section variant="oneHalf">
           <BlockStack gap="400">
             {/* Status Card */}
             <Card>
@@ -635,7 +666,7 @@ export default function FrequentlyBoughtTogether() {
                         : "FBT feature is currently disabled"}
                     </Text>
                   </BlockStack>
-                  <Button onClick={handleToggle} loading={isLoading}>
+                  <Button onClick={handleToggle} loading={isToggleLoading}>
                     {fbtConfig?.isActive ? "Disable" : "Enable"}
                   </Button>
                 </InlineStack>
@@ -703,14 +734,26 @@ export default function FrequentlyBoughtTogether() {
                   />
 
                   <Select
+                    label="Template Type"
+                    options={[
+                      { label: "Classic - Traditional Layout", value: "classic" },
+                      { label: "Compact - Card Style", value: "compact" },
+                      { label: "Minimal - Single Row", value: "minimal" },
+                    ]}
+                    value={formState.templateType}
+                    onChange={(value) => setFormState({ ...formState, templateType: value })}
+                    helpText="Choose the visual style of your FBT widget"
+                  />
+
+                  <Select
                     label="Layout"
                     options={[
-                      { label: "Horizontal", value: "horizontal" },
-                      { label: "Vertical", value: "vertical" },
-                      { label: "Grid", value: "grid" },
+                      { label: "Horizontal - Side by side", value: "horizontal" },
+                      { label: "Carousel - Swipeable slider", value: "carousel" },
                     ]}
                     value={formState.layout}
                     onChange={(value) => setFormState({ ...formState, layout: value })}
+                    helpText="Carousel layout allows smooth mouse/touch dragging for better user experience"
                   />
 
                   <TextField
@@ -727,7 +770,7 @@ export default function FrequentlyBoughtTogether() {
                         value={formState.buttonColor}
                         onChange={(value) => setFormState({ ...formState, buttonColor: value })}
                         autoComplete="off"
-                        helpText="Hex color code (e.g., #000000)"
+                        {...({ type: "color" } as any)}
                       />
                     </div>
                     <div style={{ flex: 1 }}>
@@ -736,7 +779,7 @@ export default function FrequentlyBoughtTogether() {
                         value={formState.buttonTextColor}
                         onChange={(value) => setFormState({ ...formState, buttonTextColor: value })}
                         autoComplete="off"
-                        helpText="Hex color code (e.g., #FFFFFF)"
+                        {...({ type: "color" } as any)}
                       />
                     </div>
                   </InlineStack>
@@ -989,139 +1032,96 @@ export default function FrequentlyBoughtTogether() {
         </Layout.Section>
 
         {/* Preview Section */}
-        <Layout.Section variant="oneThird">
+        <Layout.Section variant="oneHalf">
           <Card>
             <BlockStack gap="400">
-              <Text as="h3" variant="headingMd">
-                Preview
-              </Text>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text as="h3" variant="headingMd">
+                  Live Preview
+                </Text>
+                <Badge tone={previewProducts.length === 0 ? 'info' : 'success'}>
+                  {formState.templateType === 'classic' ? 'Classic' : 
+                   formState.templateType === 'compact' ? 'Compact' : 
+                   'Minimal'}
+                </Badge>
+              </div>
               
               <div style={{
                 border: '2px solid #e5e7eb',
-                borderRadius: '8px',
-                padding: '16px',
-                backgroundColor: '#ffffff'
+                borderRadius: '12px',
+                padding: '20px',
+                backgroundColor: '#fafbfc',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                maxHeight: '800px',
+                overflowY: 'auto'
               }}>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: '600', 
-                  marginBottom: '16px',
-                  color: '#111827'
+                <div style={{
+                  transform: 'scale(0.85)',
+                  transformOrigin: 'top center',
+                  width: '117.647%',
+                  marginLeft: '-8.824%',
+                  marginBottom: '-15%'
                 }}>
-                  {formState.title}
+                  <FBTWidget
+                    config={{
+                      title: formState.title,
+                      layout: formState.layout as 'horizontal' | 'carousel',
+                      templateType: formState.templateType as 'classic' | 'compact' | 'minimal',
+                      buttonText: formState.buttonText,
+                      buttonColor: formState.buttonColor,
+                      buttonTextColor: formState.buttonTextColor,
+                      showDiscount: formState.showDiscount,
+                      showTotalPrice: formState.showTotalPrice,
+                      showIndividualPrices: formState.showIndividualPrices,
+                      showCheckboxes: formState.showCheckboxes,
+                      showProductReviews: formState.showProductReviews,
+                      discountType: formState.discountType as 'percentage' | 'fixed',
+                      discountValue: formState.discountValue ? parseFloat(formState.discountValue) : undefined,
+                      limitUpsellsInCart: formState.limitUpsellsInCart,
+                      maxUpsellsInCart: parseInt(formState.maxUpsellsInCart)
+                    }}
+                    recommendations={previewProducts.map((product: any) => {
+                      const productPrice = typeof product.price === 'number' 
+                        ? product.price 
+                        : parseFloat(product.price) || 0;
+                      const compareAtPrice = product.compareAtPrice 
+                        ? (typeof product.compareAtPrice === 'number' 
+                            ? product.compareAtPrice 
+                            : parseFloat(product.compareAtPrice))
+                        : (product.variants?.[0]?.compare_at_price 
+                            ? (typeof product.variants[0].compare_at_price === 'number'
+                                ? product.variants[0].compare_at_price
+                                : parseFloat(product.variants[0].compare_at_price))
+                            : null);
+                      
+                      return {
+                        id: product.id,
+                        variantId: product.shopifyVariantId || product.variantId || product.variants?.[0]?.id || product.id,
+                        title: product.title,
+                        handle: product.handle,
+                        price: productPrice,
+                        compareAtPrice: compareAtPrice,
+                        imageUrl: product.imageUrl || product.images?.[0]?.src
+                      } as FBTProduct;
+                    })}
+                    isPreview={true}
+                  />
                 </div>
-                
-                {previewProducts.length === 0 ? (
-                  <div style={{
-                    textAlign: 'center',
-                    padding: '32px 16px',
-                    color: '#9ca3af',
-                    fontSize: '14px'
-                  }}>
-                    <p>No products configured yet</p>
-                    <p style={{ fontSize: '12px', marginTop: '8px' }}>
-                      Configure products in "Manual Configuration" to see preview
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div style={{
-                      display: formState.layout === 'horizontal' ? 'flex' : 'grid',
-                      gap: '12px',
-                      gridTemplateColumns: formState.layout === 'grid' ? 'repeat(2, 1fr)' : undefined,
-                      flexDirection: formState.layout === 'vertical' ? 'column' : 'row',
-                      marginBottom: '16px'
-                    }}>
-                      {previewProducts.map((product: any, index: number) => (
-                        <div
-                          key={product.id || index}
-                          style={{
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '6px',
-                            padding: '12px',
-                            flex: formState.layout === 'horizontal' ? '1' : undefined,
-                            minWidth: formState.layout === 'horizontal' ? '100px' : undefined
-                          }}
-                        >
-                          {formState.showCheckboxes && (
-                            <div style={{ marginBottom: '8px' }}>
-                              <input type="checkbox" defaultChecked={index === 0} />
-                            </div>
-                          )}
-                          <div
-                            style={{
-                              width: '100%',
-                              height: '80px',
-                              backgroundColor: '#f3f4f6',
-                              borderRadius: '4px',
-                              marginBottom: '8px',
-                              backgroundImage: product.imageUrl ? `url('${product.imageUrl}')` : undefined,
-                              backgroundSize: 'cover',
-                              backgroundPosition: 'center'
-                            }}
-                          />
-                          <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {product.title}
-                          </div>
-                          {formState.showIndividualPrices && (
-                            <div style={{ fontSize: '12px', fontWeight: '600', color: '#111827' }}>
-                              ${typeof product.price === 'number' ? product.price.toFixed(2) : product.price}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+              </div>
 
-                    {formState.showTotalPrice && (
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '12px',
-                        padding: '8px',
-                        backgroundColor: '#f9fafb',
-                        borderRadius: '4px'
-                      }}>
-                        <span style={{ fontSize: '14px', fontWeight: '600' }}>Total price:</span>
-                        <div>
-                          {formState.showDiscount && original !== discounted && (
-                            <span style={{
-                              textDecoration: 'line-through',
-                              color: '#9ca3af',
-                              marginRight: '8px',
-                              fontSize: '13px'
-                            }}>
-                              ${original}
-                            </span>
-                          )}
-                          <span style={{ fontSize: '16px', fontWeight: '700', color: '#111827' }}>
-                            ${discounted}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    <button
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: 'none',
-                        borderRadius: '6px',
-                        backgroundColor: formState.buttonColor,
-                        color: formState.buttonTextColor,
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {formState.buttonText}
-                    </button>
-                  </>
-                )}
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#f0f9ff',
+                borderRadius: '8px',
+                border: '1px solid #bfdbfe'
+              }}>
+                <Text as="p" variant="bodySm">
+                  <strong>💡 Preview Tip:</strong> {previewProducts.length === 0 ? 'Using sample products. Configure products above to see your actual products.' : 'Showing your configured products. Change template type to see different layouts.'}
+                </Text>
               </div>
 
               <Text as="p" variant="bodyMd" tone="subdued">
-                This is how the FBT widget will appear on product pages.
+                This preview shows how the FBT widget will appear on your product pages.
               </Text>
             </BlockStack>
           </Card>

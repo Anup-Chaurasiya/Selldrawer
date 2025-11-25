@@ -24,6 +24,7 @@ import {
   DiscountIcon,
   CashDollarIcon,
   DeliveryIcon,
+  CalculatorIcon,
 } from '@shopify/polaris-icons';
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -93,6 +94,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       },
       savingsDisplays: { where: { isActive: true } },
       freeShippingMessages: { where: { isActive: true } },
+      cartTotals: { where: { isActive: true } },
     },
   });
 
@@ -119,6 +121,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         },
         savingsDisplays: true,
         freeShippingMessages: true,
+        cartTotals: true,
       },
     });
   }
@@ -153,6 +156,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (cartDrawer.freeShippingMessageEnabled && cartDrawer.freeShippingMessages.length === 0) {
     updateData.freeShippingMessageEnabled = false;
   }
+  
+  if (cartDrawer.cartTotalsEnabled && cartDrawer.cartTotals.length === 0) {
+    updateData.cartTotalsEnabled = false;
+  }
 
   if (Object.keys(updateData).length > 0) {
     cartDrawer = await prisma.cartDrawer.update({
@@ -177,6 +184,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         },
         savingsDisplays: { where: { isActive: true } },
         freeShippingMessages: { where: { isActive: true } },
+        cartTotals: { where: { isActive: true } },
       },
     });
   }
@@ -231,6 +239,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           },
           savingsDisplays: { where: { isActive: true } },
           freeShippingMessages: { where: { isActive: true } },
+          cartTotals: { where: { isActive: true } },
         },
       });
 
@@ -271,6 +280,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return redirect("/app/cart-drawer?error=free-shipping-message-not-configured");
       }
       
+      if (featureId === 'cart-totals' && cartDrawer.cartTotals.length === 0) {
+        return redirect("/app/cart-drawer?error=cart-totals-not-configured");
+      }
+      
       if (featureId === 'coupon-code') {
         const couponCodeField = await prisma.couponCodeField.findUnique({
           where: { shop },
@@ -289,6 +302,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       'coupon-code': { couponCodeFieldEnabled: enabled },
       'savings-display': { savingsDisplayEnabled: enabled },
       'free-shipping-message': { freeShippingMessageEnabled: enabled },
+      'cart-totals': { cartTotalsEnabled: enabled },
     };
 
     const updateData = featureFieldMap[featureId];
@@ -345,6 +359,7 @@ function MiniCartDrawerPreview({
   const productRecommendation = cartDrawer?.productRecommendations?.[0];
   const savingsDisplay = cartDrawer?.savingsDisplays?.[0];
   const freeShippingMessage = cartDrawer?.freeShippingMessages?.[0];
+  const cartTotalsConfig = cartDrawer?.cartTotals?.[0];
   
 
   // Dynamic sample cart data based on configuration
@@ -624,6 +639,24 @@ function MiniCartDrawerPreview({
             }]}
             totalPrice={Math.round(sampleCart.total * 100)} // Convert to cents
             appliedDiscount={null}
+            config={cartTotalsConfig ? {
+              showOriginalPrice: cartTotalsConfig.showOriginalPrice,
+              showItemDiscounts: cartTotalsConfig.showItemDiscounts,
+              showSubtotal: cartTotalsConfig.showSubtotal,
+              showCouponDiscount: cartTotalsConfig.showCouponDiscount,
+              showTaxNotice: cartTotalsConfig.showTaxNotice,
+              subtotalLabel: cartTotalsConfig.subtotalLabel,
+              totalLabel: cartTotalsConfig.totalLabel,
+              taxNoticeText: cartTotalsConfig.taxNoticeText,
+              originalPriceLabel: cartTotalsConfig.originalPriceLabel,
+              itemDiscountsLabel: cartTotalsConfig.itemDiscountsLabel,
+              borderColor: cartTotalsConfig.borderColor,
+              backgroundColor: cartTotalsConfig.backgroundColor,
+              textColor: cartTotalsConfig.textColor,
+              totalTextColor: cartTotalsConfig.totalTextColor,
+              discountColor: cartTotalsConfig.discountColor,
+            } : undefined}
+            isPreview={true}
           />
 
           {/* Checkout Button */}
@@ -803,6 +836,16 @@ export default function CartDrawerIndex() {
       count: cartDrawer.freeShippingMessages.length,
       path: '/app/cart-drawer/free-shipping-message',
       isConfigured: cartDrawer.freeShippingMessages.length > 0,
+    },
+    {
+      id: 'cart-totals',
+      title: 'Cart Totals',
+      description: 'Customize cart totals display and styling',
+      icon: CalculatorIcon,
+      enabled: cartDrawer.cartTotalsEnabled,
+      count: cartDrawer.cartTotals.length,
+      path: '/app/cart-drawer/cart-totals',
+      isConfigured: cartDrawer.cartTotals.length > 0,
     },
   ];
 

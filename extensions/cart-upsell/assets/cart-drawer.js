@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.1
- * Built: 2025-11-19T15:52:13.531Z
+ * Built: 2025-11-21T09:15:40.697Z
  */
 "use strict";
 (() => {
@@ -10199,8 +10199,27 @@
   var CartTotals = ({
     items,
     totalPrice,
-    appliedDiscount = null
+    appliedDiscount = null,
+    config = {},
+    isPreview = false
   }) => {
+    const {
+      showOriginalPrice = true,
+      showItemDiscounts = true,
+      showSubtotal = true,
+      showCouponDiscount = true,
+      showTaxNotice = true,
+      subtotalLabel = "Subtotal",
+      totalLabel = "Total",
+      taxNoticeText = "Taxes and shipping calculated at checkout",
+      originalPriceLabel = "Original Price",
+      itemDiscountsLabel = "Item Discounts",
+      borderColor = "#e5e7eb",
+      backgroundColor = "#ffffff",
+      textColor = "#374151",
+      totalTextColor = "#111827",
+      discountColor = "#f59e0b"
+    } = config;
     const formatMoney2 = (cents) => {
       const rupees = cents / 100;
       return `\u20B9${Math.round(rupees)}`;
@@ -10223,28 +10242,29 @@
     const estimatedTotal = Math.max(0, subtotal - couponDiscount);
     const totalSavings = itemLevelSavings + couponDiscount;
     return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
-      borderTop: "2px solid #e5e7eb",
-      paddingTop: "16px"
+      borderTop: `2px solid ${borderColor}`,
+      paddingTop: "16px",
+      backgroundColor
     }, children: [
-      (itemLevelSavings > 0 || couponDiscount > 0) && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
+      showOriginalPrice && (itemLevelSavings > 0 || couponDiscount > 0) && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
         fontSize: "15px",
         marginBottom: "10px",
         display: "flex",
         justifyContent: "space-between",
-        color: "#6b7280"
+        color: textColor
       }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: "Original Price" }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: originalPriceLabel }),
         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { textDecoration: "line-through" }, children: formatMoney2(originalTotal) })
       ] }),
-      itemLevelSavings > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
+      showItemDiscounts && itemLevelSavings > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
         fontSize: "14px",
         marginBottom: "10px",
         display: "flex",
         justifyContent: "space-between",
-        color: "#f59e0b"
+        color: discountColor
       }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: "Item Discounts" }),
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: itemDiscountsLabel }),
           /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: {
             background: "#fef3c7",
             color: "#92400e",
@@ -10259,17 +10279,17 @@
           formatMoney2(itemLevelSavings)
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
+      showSubtotal && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
         fontSize: "16px",
         marginBottom: "12px",
         display: "flex",
         justifyContent: "space-between",
         fontWeight: itemLevelSavings > 0 ? "600" : "normal"
       }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: "#374151" }, children: "Subtotal" }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: "#111827" }, children: formatMoney2(subtotal) })
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: textColor }, children: subtotalLabel }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: totalTextColor }, children: formatMoney2(subtotal) })
       ] }),
-      appliedDiscount && couponDiscount > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
+      showCouponDiscount && appliedDiscount && couponDiscount > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
         fontSize: "15px",
         marginBottom: "12px",
         display: "flex",
@@ -10302,17 +10322,17 @@
         paddingTop: "12px",
         display: "flex",
         justifyContent: "space-between",
-        color: "#111827"
+        color: totalTextColor
       }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: "Total" }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: totalSavings > 0 ? "#059669" : "#111827" }, children: formatMoney2(estimatedTotal) })
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: totalLabel }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: totalSavings > 0 ? "#059669" : totalTextColor }, children: formatMoney2(estimatedTotal) })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: {
+      showTaxNotice && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: {
         fontSize: "12px",
         color: "#6b7280",
         marginTop: "8px",
         textAlign: "right"
-      }, children: "Taxes and shipping calculated at checkout" })
+      }, children: taxNoticeText })
     ] });
   };
 
@@ -10335,6 +10355,7 @@
     onSwitchDiscount,
     onSlideCtaClick
   }) => {
+    var _a, _b, _c, _d, _e, _f;
     const getFeatureOrder = () => {
       const featureOrder = (config == null ? void 0 : config.featureOrder) || [];
       let orderArray = [];
@@ -10354,8 +10375,8 @@
       return { beforeItems: beforeItems2, afterItems: afterItems2 };
     };
     const calculateSavings = () => {
-      var _a;
-      if (!((_a = config == null ? void 0 : config.features) == null ? void 0 : _a.savingsDisplay))
+      var _a2;
+      if (!((_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.savingsDisplay))
         return 0;
       const itemLevelSavings = cart.items.reduce((sum, item) => {
         return sum + Math.max(0, item.original_price - item.final_price) * item.quantity;
@@ -10381,10 +10402,10 @@
       return url;
     };
     const renderFeature = (featureId) => {
-      var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
+      var _a2, _b2, _c2, _d2, _e2, _f2, _g, _h, _i, _j;
       switch (featureId) {
         case "free-shipping-bar": {
-          const bar = (_a = config == null ? void 0 : config.features) == null ? void 0 : _a.freeShippingProgressBar;
+          const bar = (_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.freeShippingProgressBar;
           if (!bar)
             return null;
           return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
@@ -10397,7 +10418,7 @@
               afterThresholdMessage: bar.afterThresholdMessage || "\u{1F389} You qualify for FREE shipping!",
               backgroundColor: bar.backgroundColor || "#f0f9ff",
               progressBarColor: bar.progressBarColor || "#3b82f6",
-              showPercentage: (_b = bar.showPercentage) != null ? _b : true,
+              showPercentage: (_b2 = bar.showPercentage) != null ? _b2 : true,
               currency: bar.currency || "INR",
               cart,
               isPreview: false
@@ -10405,7 +10426,7 @@
           ) }, featureId);
         }
         case "promotional-banner": {
-          const banner = (_c = config == null ? void 0 : config.features) == null ? void 0 : _c.promotionalBanner;
+          const banner = (_c2 = config == null ? void 0 : config.features) == null ? void 0 : _c2.promotionalBanner;
           if (!banner)
             return null;
           const slides = banner.images || [];
@@ -10422,7 +10443,7 @@
           ) }, featureId);
         }
         case "product-recommendations": {
-          const recommendations = (_d = config == null ? void 0 : config.features) == null ? void 0 : _d.productRecommendations;
+          const recommendations = (_d2 = config == null ? void 0 : config.features) == null ? void 0 : _d2.productRecommendations;
           if (!recommendations)
             return null;
           const products = recommendations.products || [];
@@ -10435,8 +10456,8 @@
               products,
               layout: recommendations.layout || "carousel",
               maxProducts: recommendations.maxProducts || 4,
-              showDiscount: (_e = recommendations.showDiscount) != null ? _e : true,
-              showDiscountBadge: (_f = recommendations.showDiscountBadge) != null ? _f : true,
+              showDiscount: (_e2 = recommendations.showDiscount) != null ? _e2 : true,
+              showDiscountBadge: (_f2 = recommendations.showDiscountBadge) != null ? _f2 : true,
               showAddButton: (_g = recommendations.showAddButton) != null ? _g : true,
               onAddToCart: onAddProductToCart,
               isPreview: false
@@ -10547,6 +10568,23 @@
           items: cart.items,
           totalPrice: cart.total_price,
           appliedDiscount,
+          config: ((_a = config == null ? void 0 : config.features) == null ? void 0 : _a.cartTotals) ? {
+            showOriginalPrice: (_b = config.features.cartTotals.showOriginalPrice) != null ? _b : true,
+            showItemDiscounts: (_c = config.features.cartTotals.showItemDiscounts) != null ? _c : true,
+            showSubtotal: (_d = config.features.cartTotals.showSubtotal) != null ? _d : true,
+            showCouponDiscount: (_e = config.features.cartTotals.showCouponDiscount) != null ? _e : true,
+            showTaxNotice: (_f = config.features.cartTotals.showTaxNotice) != null ? _f : true,
+            subtotalLabel: config.features.cartTotals.subtotalLabel || "Subtotal",
+            totalLabel: config.features.cartTotals.totalLabel || "Total",
+            taxNoticeText: config.features.cartTotals.taxNoticeText || "Taxes and shipping calculated at checkout",
+            originalPriceLabel: config.features.cartTotals.originalPriceLabel || "Original Price",
+            itemDiscountsLabel: config.features.cartTotals.itemDiscountsLabel || "Item Discounts",
+            borderColor: config.features.cartTotals.borderColor || "#e5e7eb",
+            backgroundColor: config.features.cartTotals.backgroundColor || "#ffffff",
+            textColor: config.features.cartTotals.textColor || "#374151",
+            totalTextColor: config.features.cartTotals.totalTextColor || "#111827",
+            discountColor: config.features.cartTotals.discountColor || "#f59e0b"
+          } : void 0,
           isPreview: false
         }
       ) }),
@@ -10943,7 +10981,6 @@
     if (typeof window !== "undefined") {
       window.upsellityDrawer = new UpsellityCartDrawer();
       window.upsellityDrawer.version = CART_DRAWER_VERSION;
-      console.log(`Upsellity Cart Drawer v${CART_DRAWER_VERSION} initialized`);
     }
   }
   if (typeof document !== "undefined") {

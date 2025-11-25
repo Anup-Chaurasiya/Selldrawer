@@ -56,6 +56,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           where: { isActive: true },
           take: 1,
         },
+        cartTotals: {
+          where: { isActive: true },
+          take: 1,
+        },
       },
     });
 
@@ -104,6 +108,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         : null,
       freeShippingMessage: cartDrawer.freeShippingMessageEnabled
         ? cartDrawer.freeShippingMessages[0]
+        : null,
+      cartTotals: (cartDrawer.cartTotalsEnabled !== false) && cartDrawer.cartTotals && cartDrawer.cartTotals[0]
+        ? cartDrawer.cartTotals[0]
         : null,
     };
 

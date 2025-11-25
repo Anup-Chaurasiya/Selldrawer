@@ -31,6 +31,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback } from "react";
 import { DeleteIcon, EditIcon } from "@shopify/polaris-icons";
+import { NudgeWidget } from "../components/shared/NudgeWidget";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -340,7 +341,13 @@ export default function NudgePopup() {
   const { nudgeConfig, shopProducts, shopCollections } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
-  const isLoading = navigation.state === "submitting";
+  
+  // Check which action is being submitted
+  const formData = navigation.formData;
+  const submittingIntent = formData?.get("intent") as string | null;
+  const isSubmitting = navigation.state === "submitting";
+  const isToggleLoading = isSubmitting && submittingIntent === "toggle";
+  const isSaveSettingsLoading = isSubmitting && submittingIntent === "save-settings";
 
   const [formState, setFormState] = useState(() => {
     return {
@@ -470,264 +477,304 @@ export default function NudgePopup() {
     collection.title.toLowerCase().includes(modalConfig.searchQuery.toLowerCase())
   );
 
+  // Get products for preview
+  const getPreviewProducts = () => {
+    // Check if there are any rules with products
+    if (nudgeConfig?.rules && nudgeConfig.rules.length > 0) {
+      for (const rule of nudgeConfig.rules) {
+        if (rule.products && rule.products.length > 0) {
+          return rule.products
+            .slice(0, parseInt(formState.maxProducts))
+            .map(product => ({
+              id: product.shopifyProductId || product.id,
+              variantId: product.shopifyVariantId || '',
+              title: product.title,
+              handle: product.handle,
+              price: product.price ? parseFloat(product.price.toString()) : 0,
+              compareAtPrice: product.compareAtPrice ? parseFloat(product.compareAtPrice.toString()) : undefined,
+              imageUrl: product.imageUrl,
+              description: product.description || ''
+            }));
+        }
+      }
+    }
+
+    // Fallback to sample products from shop
+    if (shopProducts.length > 0) {
+      return shopProducts.slice(0, Math.min(parseInt(formState.maxProducts), 3)).map((product: any) => ({
+        id: product.shopifyProductId || product.id,
+        variantId: product.shopifyVariantId || product.variants?.[0]?.id || '',
+        title: product.title,
+        handle: product.handle,
+        price: product.price ? parseFloat(product.price) : 
+               (product.variants?.[0]?.price ? parseFloat(product.variants[0].price) : 0),
+        compareAtPrice: product.compareAtPrice ? parseFloat(product.compareAtPrice) :
+                       (product.variants?.[0]?.compare_at_price ? parseFloat(product.variants[0].compare_at_price) : undefined),
+        imageUrl: product.imageUrl || product.images?.[0]?.src || '',
+        description: product.description || ''
+      }));
+    }
+
+    // Ultimate fallback to empty array
+    return [];
+  };
+
+  const previewProducts = getPreviewProducts();
+
   return (
-    <Page title="Nudge Upsell">
+    <Page
+      title="Nudge Upsell"
+      primaryAction={{
+        content: "Save Settings",
+        onAction: handleSaveSettings,
+        loading: isSaveSettingsLoading,
+      }}
+    >
       <TitleBar title="Nudge Upsell" />
       
       <Layout>
-        {!nudgeConfig?.isActive && (
-          <Layout.Section>
-            <Banner
-              title="Nudge Upsell is currently disabled"
-              tone="warning"
-            >
-              <p>Enable the Nudge Upsell to start showing product alternatives when customers click "Add to Cart".</p>
-            </Banner>
-          </Layout.Section>
-        )}
-
-        <Layout.Section>
-          <InlineStack align="space-between" blockAlign="center">
-            <Button
-              variant={nudgeConfig?.isActive ? "primary" : "secondary"}
-              tone={nudgeConfig?.isActive ? "critical" : "success"}
-              onClick={handleToggle}
-              loading={isLoading}
-            >
-              {nudgeConfig?.isActive ? "Disable" : "Enable"}
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleSaveSettings}
-              loading={isLoading}
-            >
-              Save Settings
-            </Button>
-          </InlineStack>
-        </Layout.Section>
-
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">
-                General Settings
-              </Text>
-              <FormLayout>
-                <TextField
-                  label="Popup Title"
-                  value={formState.title}
-                  onChange={(value) => setFormState({ ...formState, title: value })}
-                  autoComplete="off"
-                />
-                <TextField
-                  label="Popup Subtitle"
-                  value={formState.subtitle}
-                  onChange={(value) => setFormState({ ...formState, subtitle: value })}
-                  autoComplete="off"
-                  helpText="Optional description text shown below the title"
-                />
-                <TextField
-                  label="Maximum Products to Show"
-                  type="number"
-                  value={formState.maxProducts}
-                  onChange={(value) => setFormState({ ...formState, maxProducts: value })}
-                  min="1"
-                  max="10"
-                  autoComplete="off"
-                />
-                <TextField
-                  label="Popup Delay (milliseconds)"
-                  type="number"
-                  value={formState.popupDelay}
-                  onChange={(value) => setFormState({ ...formState, popupDelay: value })}
-                  min="0"
-                  autoComplete="off"
-                  helpText="Delay before showing popup after Add to Cart is clicked (0 for instant)"
-                />
-              </FormLayout>
-            </BlockStack>
-          </Card>
-        </Layout.Section>
-
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">
-                Display Settings
-              </Text>
-              <FormLayout>
-                <Select
-                  label="Layout"
-                  options={[
-                    { label: "Grid", value: "grid" },
-                    { label: "List", value: "list" },
-                    { label: "Carousel", value: "carousel" },
-                  ]}
-                  value={formState.layout}
-                  onChange={(value) => setFormState({ ...formState, layout: value })}
-                />
-                <Checkbox
-                  label="Show Product Images"
-                  checked={formState.showProductImage}
-                  onChange={(value) => setFormState({ ...formState, showProductImage: value })}
-                />
-                <Checkbox
-                  label="Show Product Prices"
-                  checked={formState.showProductPrice}
-                  onChange={(value) => setFormState({ ...formState, showProductPrice: value })}
-                />
-                <Checkbox
-                  label="Show Compare At Price"
-                  checked={formState.showProductComparePrice}
-                  onChange={(value) => setFormState({ ...formState, showProductComparePrice: value })}
-                />
-                <Checkbox
-                  label="Show Product Description"
-                  checked={formState.showProductDescription}
-                  onChange={(value) => setFormState({ ...formState, showProductDescription: value })}
-                />
-                <Checkbox
-                  label="Enable Animations"
-                  checked={formState.enableAnimation}
-                  onChange={(value) => setFormState({ ...formState, enableAnimation: value })}
-                />
-                {formState.enableAnimation && (
-                  <Select
-                    label="Animation Type"
-                    options={[
-                      { label: "Fade", value: "fade" },
-                      { label: "Slide Up", value: "slide-up" },
-                      { label: "Scale", value: "scale" },
-                    ]}
-                    value={formState.animationType}
-                    onChange={(value) => setFormState({ ...formState, animationType: value })}
-                  />
+        <Layout.Section variant="oneHalf">
+          <BlockStack gap="400">
+            {/* Status Card */}
+            <Card>
+              <BlockStack gap="400">
+                <InlineStack align="space-between" blockAlign="center">
+                  <BlockStack gap="100">
+                    <Text as="h2" variant="headingMd">
+                      Status
+                    </Text>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      {nudgeConfig?.isActive 
+                        ? "Nudge Upsell feature is currently enabled" 
+                        : "Nudge Upsell feature is currently disabled"}
+                    </Text>
+                  </BlockStack>
+                  <Button onClick={handleToggle} loading={isToggleLoading}>
+                    {nudgeConfig?.isActive ? "Disable" : "Enable"}
+                  </Button>
+                </InlineStack>
+                
+                {!nudgeConfig?.isActive && (
+                  <Banner tone="warning">
+                    Enable this feature to show product alternatives when customers click "Add to Cart".
+                  </Banner>
                 )}
-              </FormLayout>
-            </BlockStack>
-          </Card>
-        </Layout.Section>
+              </BlockStack>
+            </Card>
 
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">
-                Style Settings
-              </Text>
-              <FormLayout>
-                <TextField
-                  label="Title Color"
-                  value={formState.titleColor}
-                  onChange={(value) => setFormState({ ...formState, titleColor: value })}
-                  autoComplete="off"
-                  {...({ type: "color" } as any)}
-                />
-                <TextField
-                  label="Subtitle Color"
-                  value={formState.subtitleColor}
-                  onChange={(value) => setFormState({ ...formState, subtitleColor: value })}
-                  autoComplete="off"
-                  {...({ type: "color" } as any)}
-                />
-                <TextField
-                  label="Popup Background Color"
-                  value={formState.popupBackgroundColor}
-                  onChange={(value) => setFormState({ ...formState, popupBackgroundColor: value })}
-                  autoComplete="off"
-                  {...({ type: "color" } as any)}
-                />
-                <TextField
-                  label="Overlay Color"
-                  value={formState.overlayColor}
-                  onChange={(value) => setFormState({ ...formState, overlayColor: value })}
-                  autoComplete="off"
-                  {...({ type: "color" } as any)}
-                />
-                <TextField
-                  label="Overlay Opacity (%)"
-                  type="number"
-                  value={formState.overlayOpacity}
-                  onChange={(value) => setFormState({ ...formState, overlayOpacity: value })}
-                  min="0"
-                  max="100"
-                  autoComplete="off"
-                />
-                <TextField
-                  label="Popup Border Radius (px)"
-                  type="number"
-                  value={formState.popupBorderRadius}
-                  onChange={(value) => setFormState({ ...formState, popupBorderRadius: value })}
-                  min="0"
-                  max="50"
-                  autoComplete="off"
-                />
-              </FormLayout>
-            </BlockStack>
-          </Card>
-        </Layout.Section>
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
+                  General Settings
+                </Text>
+                <FormLayout>
+                  <TextField
+                    label="Popup Title"
+                    value={formState.title}
+                    onChange={(value) => setFormState({ ...formState, title: value })}
+                    autoComplete="off"
+                  />
+                  <TextField
+                    label="Popup Subtitle"
+                    value={formState.subtitle}
+                    onChange={(value) => setFormState({ ...formState, subtitle: value })}
+                    autoComplete="off"
+                    helpText="Optional description text shown below the title"
+                  />
+                  <TextField
+                    label="Maximum Products to Show"
+                    type="number"
+                    value={formState.maxProducts}
+                    onChange={(value) => setFormState({ ...formState, maxProducts: value })}
+                    min="1"
+                    max="10"
+                    autoComplete="off"
+                  />
+                  <TextField
+                    label="Popup Delay (milliseconds)"
+                    type="number"
+                    value={formState.popupDelay}
+                    onChange={(value) => setFormState({ ...formState, popupDelay: value })}
+                    min="0"
+                    autoComplete="off"
+                    helpText="Delay before showing popup after Add to Cart is clicked (0 for instant)"
+                  />
+                </FormLayout>
+              </BlockStack>
+            </Card>
 
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">
-                Button Settings
-              </Text>
-              <FormLayout>
-                <TextField
-                  label="Select Button Text"
-                  value={formState.selectButtonText}
-                  onChange={(value) => setFormState({ ...formState, selectButtonText: value })}
-                  autoComplete="off"
-                />
-                <TextField
-                  label="Select Button Background Color"
-                  value={formState.selectButtonColor}
-                  onChange={(value) => setFormState({ ...formState, selectButtonColor: value })}
-                  autoComplete="off"
-                  {...({ type: "color" } as any)}
-                />
-                <TextField
-                  label="Select Button Text Color"
-                  value={formState.selectButtonTextColor}
-                  onChange={(value) => setFormState({ ...formState, selectButtonTextColor: value })}
-                  autoComplete="off"
-                  {...({ type: "color" } as any)}
-                />
-                <Divider />
-                <TextField
-                  label="Continue Button Text"
-                  value={formState.continueButtonText}
-                  onChange={(value) => setFormState({ ...formState, continueButtonText: value })}
-                  autoComplete="off"
-                />
-                <TextField
-                  label="Continue Button Background Color"
-                  value={formState.continueButtonColor}
-                  onChange={(value) => setFormState({ ...formState, continueButtonColor: value })}
-                  autoComplete="off"
-                  {...({ type: "color" } as any)}
-                />
-                <TextField
-                  label="Continue Button Text Color"
-                  value={formState.continueButtonTextColor}
-                  onChange={(value) => setFormState({ ...formState, continueButtonTextColor: value })}
-                  autoComplete="off"
-                  {...({ type: "color" } as any)}
-                />
-                <Divider />
-                <TextField
-                  label="Close Button Color"
-                  value={formState.closeButtonColor}
-                  onChange={(value) => setFormState({ ...formState, closeButtonColor: value })}
-                  autoComplete="off"
-                  {...({ type: "color" } as any)}
-                />
-              </FormLayout>
-            </BlockStack>
-          </Card>
-        </Layout.Section>
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
+                  Display Settings
+                </Text>
+                <FormLayout>
+                  <Select
+                    label="Layout"
+                    options={[
+                      { label: "Grid", value: "grid" },
+                      { label: "List", value: "list" },
+                      { label: "Carousel", value: "carousel" },
+                    ]}
+                    value={formState.layout}
+                    onChange={(value) => setFormState({ ...formState, layout: value })}
+                  />
+                  <Checkbox
+                    label="Show Product Images"
+                    checked={formState.showProductImage}
+                    onChange={(value) => setFormState({ ...formState, showProductImage: value })}
+                  />
+                  <Checkbox
+                    label="Show Product Prices"
+                    checked={formState.showProductPrice}
+                    onChange={(value) => setFormState({ ...formState, showProductPrice: value })}
+                  />
+                  <Checkbox
+                    label="Show Compare At Price"
+                    checked={formState.showProductComparePrice}
+                    onChange={(value) => setFormState({ ...formState, showProductComparePrice: value })}
+                  />
+                  <Checkbox
+                    label="Show Product Description"
+                    checked={formState.showProductDescription}
+                    onChange={(value) => setFormState({ ...formState, showProductDescription: value })}
+                  />
+                  <Checkbox
+                    label="Enable Animations"
+                    checked={formState.enableAnimation}
+                    onChange={(value) => setFormState({ ...formState, enableAnimation: value })}
+                  />
+                  {formState.enableAnimation && (
+                    <Select
+                      label="Animation Type"
+                      options={[
+                        { label: "Fade", value: "fade" },
+                        { label: "Slide Up", value: "slide-up" },
+                        { label: "Scale", value: "scale" },
+                      ]}
+                      value={formState.animationType}
+                      onChange={(value) => setFormState({ ...formState, animationType: value })}
+                    />
+                  )}
+                </FormLayout>
+              </BlockStack>
+            </Card>
 
-        <Layout.Section>
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
+                  Style Settings
+                </Text>
+                <FormLayout>
+                  <TextField
+                    label="Title Color"
+                    value={formState.titleColor}
+                    onChange={(value) => setFormState({ ...formState, titleColor: value })}
+                    autoComplete="off"
+                    {...({ type: "color" } as any)}
+                  />
+                  <TextField
+                    label="Subtitle Color"
+                    value={formState.subtitleColor}
+                    onChange={(value) => setFormState({ ...formState, subtitleColor: value })}
+                    autoComplete="off"
+                    {...({ type: "color" } as any)}
+                  />
+                  <TextField
+                    label="Popup Background Color"
+                    value={formState.popupBackgroundColor}
+                    onChange={(value) => setFormState({ ...formState, popupBackgroundColor: value })}
+                    autoComplete="off"
+                    {...({ type: "color" } as any)}
+                  />
+                  <TextField
+                    label="Overlay Color"
+                    value={formState.overlayColor}
+                    onChange={(value) => setFormState({ ...formState, overlayColor: value })}
+                    autoComplete="off"
+                    {...({ type: "color" } as any)}
+                  />
+                  <TextField
+                    label="Overlay Opacity (%)"
+                    type="number"
+                    value={formState.overlayOpacity}
+                    onChange={(value) => setFormState({ ...formState, overlayOpacity: value })}
+                    min="0"
+                    max="100"
+                    autoComplete="off"
+                  />
+                  <TextField
+                    label="Popup Border Radius (px)"
+                    type="number"
+                    value={formState.popupBorderRadius}
+                    onChange={(value) => setFormState({ ...formState, popupBorderRadius: value })}
+                    min="0"
+                    max="50"
+                    autoComplete="off"
+                  />
+                </FormLayout>
+              </BlockStack>
+            </Card>
+
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
+                  Button Settings
+                </Text>
+                <FormLayout>
+                  <TextField
+                    label="Select Button Text"
+                    value={formState.selectButtonText}
+                    onChange={(value) => setFormState({ ...formState, selectButtonText: value })}
+                    autoComplete="off"
+                  />
+                  <TextField
+                    label="Select Button Background Color"
+                    value={formState.selectButtonColor}
+                    onChange={(value) => setFormState({ ...formState, selectButtonColor: value })}
+                    autoComplete="off"
+                    {...({ type: "color" } as any)}
+                  />
+                  <TextField
+                    label="Select Button Text Color"
+                    value={formState.selectButtonTextColor}
+                    onChange={(value) => setFormState({ ...formState, selectButtonTextColor: value })}
+                    autoComplete="off"
+                    {...({ type: "color" } as any)}
+                  />
+                  <Divider />
+                  <TextField
+                    label="Continue Button Text"
+                    value={formState.continueButtonText}
+                    onChange={(value) => setFormState({ ...formState, continueButtonText: value })}
+                    autoComplete="off"
+                  />
+                  <TextField
+                    label="Continue Button Background Color"
+                    value={formState.continueButtonColor}
+                    onChange={(value) => setFormState({ ...formState, continueButtonColor: value })}
+                    autoComplete="off"
+                    {...({ type: "color" } as any)}
+                  />
+                  <TextField
+                    label="Continue Button Text Color"
+                    value={formState.continueButtonTextColor}
+                    onChange={(value) => setFormState({ ...formState, continueButtonTextColor: value })}
+                    autoComplete="off"
+                    {...({ type: "color" } as any)}
+                  />
+                  <Divider />
+                  <TextField
+                    label="Close Button Color"
+                    value={formState.closeButtonColor}
+                    onChange={(value) => setFormState({ ...formState, closeButtonColor: value })}
+                    autoComplete="off"
+                    {...({ type: "color" } as any)}
+                  />
+                </FormLayout>
+              </BlockStack>
+            </Card>
+
             <Card>
               <BlockStack gap="400">
                 <InlineStack align="space-between" blockAlign="center">
@@ -818,7 +865,100 @@ export default function NudgePopup() {
                 )}
               </BlockStack>
             </Card>
-          </Layout.Section>
+          </BlockStack>
+        </Layout.Section>
+
+        {/* Preview Section */}
+        <Layout.Section variant="oneHalf">
+          <div style={{ position: 'sticky', top: '24px'}}>
+            <Card>
+              <BlockStack gap="400">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text as="h3" variant="headingMd">
+                    Live Preview
+                  </Text>
+                  <Badge tone={previewProducts.length === 0 ? 'info' : 'success'}>
+                    {formState.layout === 'grid' ? 'Grid' : 
+                     formState.layout === 'list' ? 'List' : 
+                     'Carousel'}
+                  </Badge>
+                </div>
+                
+                <div style={{
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '12px',
+                  // padding: '32px 24px',
+                  backgroundColor: '#fafbfc',
+                  // boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                  maxHeight: 'calc(100vh - 240px)',
+                  overflowY: 'auto',
+                  position: 'relative',
+                  minHeight: '600px'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    width: '100%',
+                    // padding: '20px 0'
+                  }}>
+                    <div style={{
+                      width: '100%',
+                      maxWidth: '800px'
+                    }}>
+                      <NudgeWidget
+                        config={{
+                          title: formState.title,
+                          subtitle: formState.subtitle,
+                          layout: formState.layout as 'grid' | 'list' | 'carousel',
+                          maxProducts: parseInt(formState.maxProducts),
+                          showProductImage: formState.showProductImage,
+                          showProductDescription: formState.showProductDescription,
+                          showProductPrice: formState.showProductPrice,
+                          showProductComparePrice: formState.showProductComparePrice,
+                          continueButtonText: formState.continueButtonText,
+                          continueButtonColor: formState.continueButtonColor,
+                          continueButtonTextColor: formState.continueButtonTextColor,
+                          selectButtonText: formState.selectButtonText,
+                          selectButtonColor: formState.selectButtonColor,
+                          selectButtonTextColor: formState.selectButtonTextColor,
+                          overlayColor: formState.overlayColor,
+                          overlayOpacity: parseInt(formState.overlayOpacity),
+                          popupBackgroundColor: formState.popupBackgroundColor,
+                          popupBorderRadius: parseInt(formState.popupBorderRadius),
+                          closeButtonColor: formState.closeButtonColor,
+                          titleColor: formState.titleColor,
+                          subtitleColor: formState.subtitleColor,
+                          enableAnimation: formState.enableAnimation,
+                          animationType: formState.animationType as 'fade' | 'slide-up' | 'scale',
+                          popupDelay: parseInt(formState.popupDelay),
+                          showOnAddToCart: formState.showOnAddToCart
+                        }}
+                        recommendations={previewProducts}
+                        isVisible={true}
+                        isPreview={true}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '12px',
+                  backgroundColor: '#f0f9ff',
+                  borderRadius: '8px',
+                  border: '1px solid #bfdbfe'
+                }}>
+                  <Text as="p" variant="bodySm">
+                    <strong>💡 Preview Tip:</strong> {previewProducts.length === 0 ? 'Using sample products. Configure rules above to see your actual products.' : 'Showing your configured products. Change layout to see different styles.'}
+                  </Text>
+                </div>
+
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  This preview shows how the nudge popup will appear when customers click "Add to Cart".
+                </Text>
+              </BlockStack>
+            </Card>
+          </div>
+        </Layout.Section>
       </Layout>
 
       {/* Add Rule Modal */}

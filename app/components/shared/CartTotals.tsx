@@ -17,17 +17,57 @@ interface Discount {
   value: number;
 }
 
+interface CartTotalsConfig {
+  showOriginalPrice?: boolean;
+  showItemDiscounts?: boolean;
+  showSubtotal?: boolean;
+  showCouponDiscount?: boolean;
+  showTaxNotice?: boolean;
+  subtotalLabel?: string;
+  totalLabel?: string;
+  taxNoticeText?: string;
+  originalPriceLabel?: string;
+  itemDiscountsLabel?: string;
+  borderColor?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  totalTextColor?: string;
+  discountColor?: string;
+}
+
 interface CartTotalsProps {
   items: CartItem[];
   totalPrice: number; // in cents
   appliedDiscount?: Discount | null;
+  config?: CartTotalsConfig;
+  isPreview?: boolean;
 }
 
 export const CartTotals: React.FC<CartTotalsProps> = ({
   items,
   totalPrice,
-  appliedDiscount = null
+  appliedDiscount = null,
+  config = {},
+  isPreview = false
 }) => {
+  // Default configuration
+  const {
+    showOriginalPrice = true,
+    showItemDiscounts = true,
+    showSubtotal = true,
+    showCouponDiscount = true,
+    showTaxNotice = true,
+    subtotalLabel = "Subtotal",
+    totalLabel = "Total",
+    taxNoticeText = "Taxes and shipping calculated at checkout",
+    originalPriceLabel = "Original Price",
+    itemDiscountsLabel = "Item Discounts",
+    borderColor = "#e5e7eb",
+    backgroundColor = "#ffffff",
+    textColor = "#374151",
+    totalTextColor = "#111827",
+    discountColor = "#f59e0b",
+  } = config;
   // Format money (cents to currency)
   const formatMoney = (cents: number) => {
     const rupees = cents / 100;
@@ -58,19 +98,20 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
 
   return (
     <div style={{
-      borderTop: '2px solid #e5e7eb',
+      borderTop: `2px solid ${borderColor}`,
       paddingTop: '16px',
+      backgroundColor: backgroundColor,
     }}>
       {/* Original Price (if there are savings) */}
-      {(itemLevelSavings > 0 || couponDiscount > 0) && (
+      {showOriginalPrice && (itemLevelSavings > 0 || couponDiscount > 0) && (
         <div style={{
           fontSize: '15px',
           marginBottom: '10px',
           display: 'flex',
           justifyContent: 'space-between',
-          color: '#6b7280'
+          color: textColor
         }}>
-          <span>Original Price</span>
+          <span>{originalPriceLabel}</span>
           <span style={{ textDecoration: 'line-through' }}>
             {formatMoney(originalTotal)}
           </span>
@@ -78,16 +119,16 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
       )}
 
       {/* Item Discounts */}
-      {itemLevelSavings > 0 && (
+      {showItemDiscounts && itemLevelSavings > 0 && (
         <div style={{
           fontSize: '14px',
           marginBottom: '10px',
           display: 'flex',
           justifyContent: 'space-between',
-          color: '#f59e0b'
+          color: discountColor
         }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>Item Discounts</span>
+            <span>{itemDiscountsLabel}</span>
             <span style={{
               background: '#fef3c7',
               color: '#92400e',
@@ -104,19 +145,21 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
       )}
 
       {/* Subtotal */}
-      <div style={{
-        fontSize: '16px',
-        marginBottom: '12px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        fontWeight: itemLevelSavings > 0 ? '600' : 'normal'
-      }}>
-        <span style={{ color: '#374151' }}>Subtotal</span>
-        <span style={{ color: '#111827' }}>{formatMoney(subtotal)}</span>
-      </div>
+      {showSubtotal && (
+        <div style={{
+          fontSize: '16px',
+          marginBottom: '12px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          fontWeight: itemLevelSavings > 0 ? '600' : 'normal'
+        }}>
+          <span style={{ color: textColor }}>{subtotalLabel}</span>
+          <span style={{ color: totalTextColor }}>{formatMoney(subtotal)}</span>
+        </div>
+      )}
 
       {/* Coupon Discount */}
-      {appliedDiscount && couponDiscount > 0 && (
+      {showCouponDiscount && appliedDiscount && couponDiscount > 0 && (
         <div style={{
           fontSize: '15px',
           marginBottom: '12px',
@@ -148,23 +191,25 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
         paddingTop: '12px',
         display: 'flex',
         justifyContent: 'space-between',
-        color: '#111827'
+        color: totalTextColor
       }}>
-        <span>Total</span>
-        <span style={{ color: totalSavings > 0 ? '#059669' : '#111827' }}>
+        <span>{totalLabel}</span>
+        <span style={{ color: totalSavings > 0 ? '#059669' : totalTextColor }}>
           {formatMoney(estimatedTotal)}
         </span>
       </div>
 
       {/* Tax and Shipping Notice */}
-      <div style={{
-        fontSize: '12px',
-        color: '#6b7280',
-        marginTop: '8px',
-        textAlign: 'right'
-      }}>
-        Taxes and shipping calculated at checkout
-      </div>
+      {showTaxNotice && (
+        <div style={{
+          fontSize: '12px',
+          color: '#6b7280',
+          marginTop: '8px',
+          textAlign: 'right'
+        }}>
+          {taxNoticeText}
+        </div>
+      )}
     </div>
   );
 };
