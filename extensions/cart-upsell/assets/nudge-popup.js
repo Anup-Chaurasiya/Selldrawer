@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.1
- * Built: 2025-11-21T09:13:38.511Z
+ * Built: 2025-11-25T08:51:42.039Z
  */
 "use strict";
 (() => {
@@ -8144,18 +8144,6 @@
                                     paddingTop: "0.5rem"
                                   },
                                   children: [
-                                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                                      "span",
-                                      {
-                                        className: "upsellity-nudge-product-price",
-                                        style: {
-                                          fontSize: "1.125rem",
-                                          fontWeight: 600,
-                                          color: "#111827"
-                                        },
-                                        children: formatPrice(product.price)
-                                      }
-                                    ),
                                     config.showProductComparePrice && product.compareAtPrice && product.compareAtPrice > product.price && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                                       "span",
                                       {
@@ -8166,6 +8154,18 @@
                                           textDecoration: "line-through"
                                         },
                                         children: formatPrice(product.compareAtPrice)
+                                      }
+                                    ),
+                                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                                      "span",
+                                      {
+                                        className: "upsellity-nudge-product-price",
+                                        style: {
+                                          fontSize: "1.125rem",
+                                          fontWeight: 600,
+                                          color: "#111827"
+                                        },
+                                        children: formatPrice(product.price)
                                       }
                                     )
                                   ]

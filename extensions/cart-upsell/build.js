@@ -120,6 +120,39 @@ async function build() {
     const nudgePopupBanner = `/**\n * Upsellity Nudge Popup v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
     writeFileSync(nudgePopupFile, nudgePopupBanner + nudgePopupContent);
     
+    
+    // Build Promotional Banner Block
+    await esbuild.build({
+      entryPoints: [join(__dirname, 'assets/modules/promotional-banner-entry.js')],
+      bundle: true,
+      outfile: join(__dirname, 'assets/promotional-banner.js'),
+      format: 'iife',
+      target: 'es2017',
+      minify: false,
+      sourcemap: false,
+      platform: 'browser',
+      logLevel: 'info',
+      jsx: 'automatic',
+      jsxImportSource: 'react',
+      loader: {
+        '.tsx': 'tsx',
+        '.ts': 'ts',
+        '.jsx': 'jsx',
+        '.js': 'jsx',
+      },
+      define: {
+        'process.env.NODE_ENV': '"production"',
+        '__PROMOTIONAL_BANNER_VERSION__': `"${version}"`
+      },
+      external: [],
+    });
+    
+    // Add version banner to promotional-banner
+    const promotionalBannerFile = join(__dirname, 'assets/promotional-banner.js');
+    const promotionalBannerContent = readFileSync(promotionalBannerFile, 'utf-8');
+    const promotionalBannerBanner = `/**\n * Upsellity Promotional Banner Block v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
+    writeFileSync(promotionalBannerFile, promotionalBannerBanner + promotionalBannerContent);
+    
   } catch (error) {
     console.error('❌ Build failed:', error);
     process.exit(1);

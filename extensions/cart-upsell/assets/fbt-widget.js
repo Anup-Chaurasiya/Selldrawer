@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.1
- * Built: 2025-11-21T09:13:38.473Z
+ * Built: 2025-11-25T08:51:42.035Z
  */
 "use strict";
 (() => {
@@ -8394,6 +8394,7 @@
                 const variantId = product.variantId || product.id;
                 const isSelected = selectedProducts.has(variantId);
                 const isDisabled = isAtLimit && !isSelected;
+                const discountPercent = product.compareAtPrice && product.price < product.compareAtPrice ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
                 return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_react2.default.Fragment, { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
                     "div",
@@ -8409,24 +8410,100 @@
                         opacity: isDisabled ? 0.5 : 1,
                         cursor: "pointer",
                         position: "relative",
-                        boxShadow: isSelected ? "0 6px 14px rgba(16, 185, 129, 0.15)" : "0 4px 10px rgba(15, 23, 42, 0.08)"
+                        boxShadow: isSelected ? "0 6px 14px rgba(16, 185, 129, 0.15)" : "0 4px 10px rgba(15, 23, 42, 0.08)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "0.375rem"
                       },
                       onClick: () => !isDisabled && handleToggle(variantId, !isSelected),
                       children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: { position: "relative", width: "100%" }, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                          "img",
-                          {
-                            src: product.imageUrl || "https://via.placeholder.com/80",
-                            alt: product.title,
-                            style: {
-                              width: "100%",
-                              height: "110px",
-                              objectFit: "cover",
-                              borderRadius: "8px",
-                              background: "#f3f4f6"
+                        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { position: "relative", width: "100%" }, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                            "img",
+                            {
+                              src: product.imageUrl || "https://via.placeholder.com/80",
+                              alt: product.title,
+                              style: {
+                                width: "100%",
+                                height: "110px",
+                                objectFit: "cover",
+                                borderRadius: "8px",
+                                background: "#f3f4f6"
+                              }
                             }
+                          ),
+                          discountPercent > 0 && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+                            "div",
+                            {
+                              style: {
+                                position: "absolute",
+                                top: "8px",
+                                left: "8px",
+                                background: "#10b981",
+                                color: "white",
+                                padding: "4px 8px",
+                                borderRadius: "4px",
+                                fontSize: "0.75rem",
+                                fontWeight: "600",
+                                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
+                              },
+                              children: [
+                                discountPercent,
+                                "% off"
+                              ]
+                            }
+                          )
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                          "h4",
+                          {
+                            style: {
+                              fontSize: "0.875rem",
+                              fontWeight: "500",
+                              color: "#111827",
+                              lineHeight: 1.4,
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden",
+                              margin: 0,
+                              textAlign: "center"
+                            },
+                            children: product.title
                           }
-                        ) }),
+                        ),
+                        config.showIndividualPrices && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+                          display: "flex",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "0.375rem",
+                          flexWrap: "wrap"
+                        }, children: [
+                          product.compareAtPrice && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                            "span",
+                            {
+                              style: {
+                                textDecoration: "line-through",
+                                color: "#9ca3af",
+                                fontSize: "0.6875rem",
+                                fontWeight: "400"
+                              },
+                              children: formatMoney(product.compareAtPrice)
+                            }
+                          ),
+                          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                            "span",
+                            {
+                              style: {
+                                fontSize: "0.875rem",
+                                fontWeight: "700",
+                                color: "#111827"
+                              },
+                              children: formatMoney(product.price)
+                            }
+                          )
+                        ] }),
                         isSelected && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                           "div",
                           {
@@ -8455,9 +8532,14 @@
                     "div",
                     {
                       style: {
-                        fontSize: "1.25rem",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "1.5rem",
                         color: "#6b7280",
-                        fontWeight: "600"
+                        fontWeight: "600",
+                        minWidth: "32px",
+                        flexShrink: 0
                       },
                       children: "+"
                     }

@@ -185,6 +185,50 @@ model PromotionalBannerCarouselSettings {
   banner        PromotionalBanner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
 }
 
+model PromotionalBannerBlock {
+  id               String                                   @id @default(cuid())
+  shop             String                                   @unique
+  isActive         Boolean                                  @default(true)
+  title            String                                   @default("Promotional Banner Block")
+  createdAt        DateTime                                 @default(now())
+  updatedAt        DateTime                                 @updatedAt
+  images           PromotionalBannerBlockImage[]
+  carouselSettings PromotionalBannerBlockCarouselSettings?
+
+  @@index([shop, isActive])
+}
+
+model PromotionalBannerBlockImage {
+  id          String                  @id @default(cuid())
+  blockId     String
+  imageUrl    String
+  altText     String?
+  order       Int                     @default(0)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  ctaText     String?
+  ctaUrl      String?
+  description String?
+  title       String?
+  videoType   String?
+  videoUrl    String?
+  block       PromotionalBannerBlock  @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+  @@index([blockId])
+}
+
+model PromotionalBannerBlockCarouselSettings {
+  id            String                  @id @default(cuid())
+  blockId       String                  @unique
+  autoRotate    Boolean                 @default(true)
+  rotationSpeed Int                     @default(5000)
+  showDots      Boolean                 @default(true)
+  showArrows    Boolean                 @default(true)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  block         PromotionalBannerBlock  @relation(fields: [blockId], references: [id], onDelete: Cascade)
+}
+
 model ProductRecommendation {
   id                 String                      @id @default(cuid())
   cartDrawerId       String

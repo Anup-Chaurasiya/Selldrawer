@@ -255,13 +255,57 @@ export class UpsellityCartDrawer {
     
     document.body.appendChild(drawer);
     
-    // Add overlay click handler to close drawer
+    // Add overlay click handler to close drawer when clicking outside
     const overlay = drawer.querySelector('.upsellity-drawer-overlay');
     if (overlay) {
       overlay.addEventListener('click', () => {
         if (this.isOpen) {
           this.close();
         }
+      });
+      
+      // Allow scroll events to pass through to the page behind
+      // We need to manually handle scroll events since overlay blocks them
+      overlay.addEventListener('wheel', (e) => {
+        if (this.isOpen) {
+          // Forward scroll to the document
+          const scrollContainer = document.documentElement.scrollTop ? document.documentElement : document.body;
+          scrollContainer.scrollTop += e.deltaY;
+        }
+      }, { passive: true });
+      
+      // Handle touch scrolling for mobile devices
+      let touchStartY = 0;
+      overlay.addEventListener('touchstart', (e) => {
+        if (this.isOpen && e.touches.length === 1) {
+          touchStartY = e.touches[0].clientY;
+        }
+      }, { passive: true });
+      
+      overlay.addEventListener('touchmove', (e) => {
+        if (this.isOpen && e.touches.length === 1) {
+          const touchY = e.touches[0].clientY;
+          const deltaY = touchStartY - touchY;
+          const scrollContainer = document.documentElement.scrollTop ? document.documentElement : document.body;
+          scrollContainer.scrollTop += deltaY;
+          touchStartY = touchY;
+        }
+      }, { passive: true });
+    }
+    
+    // Add click handler to drawer itself to close when clicking outside content
+    drawer.addEventListener('click', (e) => {
+      // Only close if clicking on the drawer container or overlay, not the content
+      if (this.isOpen && (e.target === drawer || e.target === overlay)) {
+        this.close();
+      }
+    });
+    
+    // Prevent clicks inside drawer content from closing the drawer
+    const drawerContent = drawer.querySelector('.upsellity-drawer-content');
+    if (drawerContent) {
+      drawerContent.addEventListener('click', (e) => {
+        e.stopPropagation();
       });
     }
     
@@ -324,8 +368,7 @@ export class UpsellityCartDrawer {
       this.cartJustUpdated = false;
       this.render();
       
-      // Open drawer immediately
-      document.body.style.overflow = 'hidden';
+      // Open drawer immediately (don't lock body scroll - allow page scrolling)
       drawer.classList.add('open');
       this.isOpen = true;
     } else {
@@ -340,7 +383,7 @@ export class UpsellityCartDrawer {
       
       // Render and open drawer immediately after config + cart are loaded
       this.render();
-      document.body.style.overflow = 'hidden';
+      // Don't lock body scroll - allow page scrolling
       drawer.classList.add('open');
       this.isOpen = true;
       
@@ -380,9 +423,6 @@ export class UpsellityCartDrawer {
     const drawer = document.getElementById('upsellity-cart-drawer');
     drawer.classList.remove('open');
     this.isOpen = false;
-    
-    // Restore body scroll
-    document.body.style.overflow = '';
     
     // Clean up React root when closing
     if (this.reactRoot) {
