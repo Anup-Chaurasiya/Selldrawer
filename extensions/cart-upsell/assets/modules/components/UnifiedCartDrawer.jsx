@@ -12,6 +12,7 @@ import { SavingsDisplay } from '../../../../../app/components/shared/SavingsDisp
 import { FreeShippingMessage } from '../../../../../app/components/shared/FreeShippingMessage.tsx';
 import { CouponCodeField } from '../../../../../app/components/shared/CouponCodeField.tsx';
 import { CartTotals } from '../../../../../app/components/shared/CartTotals.tsx';
+import { MilestonesWidget } from '../../../../../app/components/shared/MilestonesWidget.tsx';
 
 export const UnifiedCartDrawer = ({
   config,
@@ -220,6 +221,61 @@ export const UnifiedCartDrawer = ({
               onApplyCoupon={onApplyCoupon}
               onRemoveDiscount={onRemoveDiscount}
               onSwitchDiscount={onSwitchDiscount}
+              isPreview={false}
+            />
+          </div>
+        );
+      }
+
+      case 'milestones': {
+        const milestones = config?.features?.milestones;
+        if (!milestones || !milestones.length) return null;
+        
+        // Calculate milestone status based on cart total
+        const cartTotalInRupees = cart.total_price / 100; // Convert cents to rupees
+        
+        const milestonesWithStatus = milestones.map(m => {
+          const targetAmount = parseFloat(m.targetAmount);
+          const progress = Math.min((cartTotalInRupees / targetAmount) * 100, 100);
+          const remaining = Math.max(targetAmount - cartTotalInRupees, 0);
+          const status = cartTotalInRupees >= targetAmount ? 'unlocked' : cartTotalInRupees > 0 ? 'in_progress' : 'locked';
+          
+          const rewardText = m.title;
+          const remainingFormatted = `₹${remaining.toFixed(2)}`;
+          
+          const message =
+            status === 'unlocked'
+              ? m.unlockedMessage?.replace('{reward}', rewardText) || `🎉 You've unlocked ${rewardText}!`
+              : status === 'in_progress'
+              ? m.inProgressMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Only ${remainingFormatted} away from ${rewardText}!`
+              : m.lockedMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Add ${remainingFormatted} to unlock ${rewardText}`;
+
+          return {
+            id: m.id,
+            title: m.title,
+            description: m.description,
+            targetAmount,
+            rewardType: m.rewardType,
+            rewardValue: m.rewardValue,
+            icon: m.icon,
+            status,
+            progress,
+            remaining,
+            message,
+            showProgressBar: m.showProgressBar,
+            backgroundColor: m.backgroundColor,
+            textColor: m.textColor,
+            progressBarColor: m.progressBarColor,
+            unlockedColor: m.unlockedColor,
+            lockedColor: m.lockedColor,
+          };
+        });
+        
+        return (
+          <div key={featureId} style={{ marginBottom: '12px' }}>
+            <MilestonesWidget
+              milestones={milestonesWithStatus}
+              cartTotal={cartTotalInRupees}
               isPreview={false}
             />
           </div>

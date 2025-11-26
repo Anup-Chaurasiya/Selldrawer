@@ -59,9 +59,48 @@ export class UpsellityCartDrawer {
         }
       });
       this.config = await response.json();
+      
+      // Load milestones if enabled
+      if (this.config?.features?.milestonesEnabled) {
+        await this.loadMilestones();
+      }
     } catch (error) {
       console.error('Upsellity: Failed to load config', error);
       this.config = { enabled: false, features: {} };
+    }
+  }
+
+  async loadMilestones() {
+    try {
+      const appUrl = document.querySelector('[data-upsellity-app-url]')?.dataset.upsellityAppUrl;
+      if (!appUrl) return;
+
+      const cartTotal = this.cart ? this.cart.total_price / 100 : 0; // Convert cents to rupees
+      const cartItemsJson = this.cart ? JSON.stringify(this.cart.items) : '[]';
+      
+      const timestamp = new Date().getTime();
+      const response = await fetch(
+        `${appUrl}/api/milestones?shop=${this.shop}&cartTotal=${cartTotal}&cartItems=${encodeURIComponent(cartItemsJson)}&_t=${timestamp}`,
+        {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        }
+      );
+      
+      const data = await response.json();
+      
+      if (data.milestones) {
+        // Store milestones in config for rendering
+        if (!this.config.features) {
+          this.config.features = {};
+        }
+        this.config.features.milestones = data.milestones;
+      }
+    } catch (error) {
+      console.error('Upsellity: Failed to load milestones', error);
     }
   }
 
@@ -82,11 +121,18 @@ export class UpsellityCartDrawer {
       }
       
       // Load all secondary data in parallel (can complete after drawer is open)
-      const [productCompareAtPrices, availableDiscounts] = await Promise.all([
+      const promises = [
         ProductLoader.loadProductCompareAtPrices(this.cart),
         DiscountManager.loadAvailableDiscounts(this.shop, this.config),
         ProductLoader.loadShopifyRecommendations(this.cart, this.config)
-      ]);
+      ];
+      
+      // Add milestones loading if enabled
+      if (this.config?.features?.milestonesEnabled) {
+        promises.push(this.loadMilestones());
+      }
+      
+      const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
       
       this.productCompareAtPrices = productCompareAtPrices;
       this.availableDiscounts = availableDiscounts;
@@ -395,11 +441,18 @@ export class UpsellityCartDrawer {
   async loadSecondaryData() {
     try {
       // Load all secondary data in parallel
-      const [productCompareAtPrices, availableDiscounts] = await Promise.all([
+      const promises = [
         ProductLoader.loadProductCompareAtPrices(this.cart),
         DiscountManager.loadAvailableDiscounts(this.shop, this.config),
         ProductLoader.loadShopifyRecommendations(this.cart, this.config)
-      ]);
+      ];
+      
+      // Add milestones loading if enabled
+      if (this.config?.features?.milestonesEnabled) {
+        promises.push(this.loadMilestones());
+      }
+      
+      const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
       
       this.productCompareAtPrices = productCompareAtPrices;
       this.availableDiscounts = availableDiscounts;

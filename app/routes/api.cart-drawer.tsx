@@ -60,6 +60,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           where: { isActive: true },
           take: 1,
         },
+        milestones: {
+          where: { isActive: true },
+          include: {
+            targets: true,
+          },
+          orderBy: { priority: 'asc' },
+          take: 3, // Maximum 3 milestones
+        },
       },
     });
 
@@ -112,6 +120,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       cartTotals: (cartDrawer.cartTotalsEnabled !== false) && cartDrawer.cartTotals && cartDrawer.cartTotals[0]
         ? cartDrawer.cartTotals[0]
         : null,
+      milestonesEnabled: cartDrawer.milestonesEnabled,
     };
 
     const response = json({

@@ -25,6 +25,7 @@ import {
   CashDollarIcon,
   DeliveryIcon,
   CalculatorIcon,
+  GiftCardIcon,
 } from '@shopify/polaris-icons';
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -44,6 +45,7 @@ import { FreeShippingMessage } from "../components/shared/FreeShippingMessage";
 import { CouponCodeField } from "../components/shared/CouponCodeField";
 import { CartTotals } from "../components/shared/CartTotals";
 import { CartItems } from "../components/shared/CartItems";
+import { MilestonesWidget } from "../components/shared/MilestonesWidget";
 
 // Wrapper component for the preview with state management
 function PromotionalBannerPreview({ 
@@ -95,6 +97,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       savingsDisplays: { where: { isActive: true } },
       freeShippingMessages: { where: { isActive: true } },
       cartTotals: { where: { isActive: true } },
+      milestones: { 
+        where: { isActive: true },
+        include: {
+          targets: true,
+        },
+        orderBy: { priority: 'asc' }
+      },
     },
   });
 
@@ -122,6 +131,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         savingsDisplays: true,
         freeShippingMessages: true,
         cartTotals: true,
+        milestones: {
+          include: {
+            targets: true,
+          },
+          orderBy: { priority: 'asc' }
+        },
       },
     });
   }
@@ -160,6 +175,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (cartDrawer.cartTotalsEnabled && cartDrawer.cartTotals.length === 0) {
     updateData.cartTotalsEnabled = false;
   }
+  
+  if (cartDrawer.milestonesEnabled && cartDrawer.milestones.length === 0) {
+    updateData.milestonesEnabled = false;
+  }
 
   if (Object.keys(updateData).length > 0) {
     cartDrawer = await prisma.cartDrawer.update({
@@ -185,6 +204,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         savingsDisplays: { where: { isActive: true } },
         freeShippingMessages: { where: { isActive: true } },
         cartTotals: { where: { isActive: true } },
+        milestones: { 
+          where: { isActive: true },
+          include: {
+            targets: true,
+          },
+          orderBy: { priority: 'asc' }
+        },
       },
     });
   }
@@ -240,6 +266,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           savingsDisplays: { where: { isActive: true } },
           freeShippingMessages: { where: { isActive: true } },
           cartTotals: { where: { isActive: true } },
+          milestones: { 
+            where: { isActive: true },
+            include: {
+              targets: true,
+            }
+          },
         },
       });
 
@@ -292,6 +324,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           return redirect("/app/cart-drawer?error=coupon-code-not-configured");
         }
       }
+      
+      if (featureId === 'milestones' && cartDrawer.milestones.length === 0) {
+        return redirect("/app/cart-drawer?error=milestones-not-configured");
+      }
     }
 
     // Map feature IDs to their corresponding database fields
@@ -303,6 +339,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       'savings-display': { savingsDisplayEnabled: enabled },
       'free-shipping-message': { freeShippingMessageEnabled: enabled },
       'cart-totals': { cartTotalsEnabled: enabled },
+      'milestones': { milestonesEnabled: enabled },
     };
 
     const updateData = featureFieldMap[featureId];
@@ -536,6 +573,52 @@ function MiniCartDrawerPreview({
             isPreview={true}
           />
         ));
+
+      case 'milestones':
+        return (
+          cartDrawer?.milestonesEnabled && cartDrawer.milestones && cartDrawer.milestones.length > 0 && (
+            <MilestonesWidget
+              milestones={cartDrawer.milestones.map((m: any) => {
+                const targetAmount = parseFloat(m.targetAmount.toString());
+                const progress = Math.min((sampleCart.total / targetAmount) * 100, 100);
+                const remaining = Math.max(targetAmount - sampleCart.total, 0);
+                const status = sampleCart.total >= targetAmount ? 'unlocked' : sampleCart.total > 0 ? 'in_progress' : 'locked';
+                
+                const rewardText = m.title;
+                const remainingFormatted = `₹${remaining.toFixed(2)}`;
+                
+                const message =
+                  status === 'unlocked'
+                    ? m.unlockedMessage?.replace('{reward}', rewardText) || `🎉 You've unlocked ${rewardText}!`
+                    : status === 'in_progress'
+                    ? m.inProgressMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Only ${remainingFormatted} away from ${rewardText}!`
+                    : m.lockedMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Add ${remainingFormatted} to unlock ${rewardText}`;
+
+                return {
+                  id: m.id,
+                  title: m.title,
+                  description: m.description,
+                  targetAmount,
+                  rewardType: m.rewardType,
+                  rewardValue: m.rewardValue ? parseFloat(m.rewardValue.toString()) : null,
+                  icon: m.icon,
+                  status,
+                  progress,
+                  remaining,
+                  message,
+                  showProgressBar: m.showProgressBar,
+                  backgroundColor: m.backgroundColor,
+                  textColor: m.textColor,
+                  progressBarColor: m.progressBarColor,
+                  unlockedColor: m.unlockedColor,
+                  lockedColor: m.lockedColor,
+                };
+              })}
+              cartTotal={sampleCart.total}
+              isPreview={true}
+            />
+          )
+        );
 
       default:
         return null;
@@ -778,6 +861,16 @@ export default function CartDrawerIndex() {
       count: cartDrawer.freeShippingBars.length,
       path: '/app/cart-drawer/free-shipping-bar',
       isConfigured: cartDrawer.freeShippingBars.length > 0,
+    },
+    {
+      id: 'milestones',
+      title: 'Cart Milestones',
+      description: 'Show rewards customers can unlock at cart value thresholds',
+      icon: GiftCardIcon,
+      enabled: cartDrawer.milestonesEnabled,
+      count: cartDrawer.milestones.length,
+      path: '/app/cart-drawer/milestones',
+      isConfigured: cartDrawer.milestones.length > 0,
     },
     {
       id: 'promotional-banner',

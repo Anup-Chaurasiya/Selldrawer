@@ -70,6 +70,7 @@ model CartDrawer {
   savingsDisplayEnabled          Boolean                   @default(true)
   freeShippingMessageEnabled     Boolean                   @default(true)
   cartTotalsEnabled              Boolean                   @default(true)
+  milestonesEnabled              Boolean                   @default(false)
   createdAt                      DateTime                  @default(now())
   updatedAt                      DateTime                  @updatedAt
   featureOrder                   String[]                  @default([])
@@ -80,6 +81,7 @@ model CartDrawer {
   promotionalBanners             PromotionalBanner[]
   savingsDisplays                SavingsDisplay[]
   cartTotals                     CartTotals[]
+  milestones                     CartMilestone[]
 
   @@index([shop])
 }
@@ -545,4 +547,49 @@ model NudgeProduct {
 
   @@index([ruleId])
   @@index([position])
+}
+
+model CartMilestone {
+  id                  String                 @id @default(cuid())
+  cartDrawerId        String
+  shop                String
+  isActive            Boolean                @default(true)
+  title               String
+  description         String?
+  targetAmount        Decimal
+  currency            String                 @default("INR")
+  rewardType          String
+  rewardValue         Decimal?
+  targetType          String                 @default("store_wide")
+  priority            Int                    @default(0)
+  icon                String?
+  unlockedMessage     String?
+  inProgressMessage   String?
+  lockedMessage       String?
+  backgroundColor     String                 @default("#f0f9ff")
+  textColor           String                 @default("#1e40af")
+  progressBarColor    String                 @default("#3b82f6")
+  unlockedColor       String                 @default("#10b981")
+  lockedColor         String                 @default("#9ca3af")
+  showProgressBar     Boolean                @default(true)
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  cartDrawer          CartDrawer             @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
+  targets             CartMilestoneTarget[]
+
+  @@index([cartDrawerId])
+  @@index([shop, isActive])
+  @@index([priority])
+}
+
+model CartMilestoneTarget {
+  id          String        @id @default(cuid())
+  milestoneId String
+  targetType  String
+  shopifyId   String
+  title       String?
+  milestone   CartMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@index([milestoneId])
+  @@index([targetType, shopifyId])
 }
