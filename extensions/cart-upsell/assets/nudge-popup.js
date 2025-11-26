@@ -1,6 +1,6 @@
 /**
- * Upsellity Nudge Popup v1.0.1
- * Built: 2025-11-25T08:51:42.039Z
+ * Upsellity Nudge Popup v1.0.2
+ * Built: 2025-11-26T17:01:48.739Z
  */
 "use strict";
 (() => {
