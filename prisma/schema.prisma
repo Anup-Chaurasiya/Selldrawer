@@ -574,8 +574,9 @@ model CartMilestone {
   showProgressBar     Boolean                @default(true)
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt
-  cartDrawer          CartDrawer             @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
+  cartDrawer          CartDrawer                @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
   targets             CartMilestoneTarget[]
+  giftProducts        CartMilestoneGiftProduct[]
 
   @@index([cartDrawerId])
   @@index([shop, isActive])
@@ -592,4 +593,23 @@ model CartMilestoneTarget {
 
   @@index([milestoneId])
   @@index([targetType, shopifyId])
+}
+
+model CartMilestoneGiftProduct {
+  id               String        @id @default(cuid())
+  milestoneId      String
+  shopifyProductId String
+  shopifyVariantId String?
+  title            String
+  price            Decimal
+  compareAtPrice   Decimal?
+  imageUrl         String?
+  handle           String
+  position         Int           @default(0)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  milestone        CartMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@index([milestoneId])
+  @@index([position])
 }

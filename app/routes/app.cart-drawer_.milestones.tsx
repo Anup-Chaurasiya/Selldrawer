@@ -39,6 +39,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       milestones: {
         include: {
           targets: true,
+          giftProducts: {
+            orderBy: { position: 'asc' },
+          },
         },
         orderBy: { priority: 'asc' },
       },
@@ -52,6 +55,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         milestones: {
           include: {
             targets: true,
+            giftProducts: {
+              orderBy: { position: 'asc' },
+            },
           },
           orderBy: { priority: 'asc' },
         },
@@ -196,7 +202,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const targetAmount = parseFloat(formData.get("targetAmount") as string);
     const rewardType = formData.get("rewardType") as string;
     const rewardValue = formData.get("rewardValue") ? parseFloat(formData.get("rewardValue") as string) : null;
-    const targetType = formData.get("targetType") as string;
+    const targetType = "store_wide"; // Always store_wide now
     const icon = formData.get("icon") as string;
     const unlockedMessage = formData.get("unlockedMessage") as string;
     const inProgressMessage = formData.get("inProgressMessage") as string;
@@ -241,18 +247,24 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
     });
 
-    // Add targets if applicable
-    if (targetType !== "store_wide") {
-      const targetsJson = formData.get("targets") as string;
-      if (targetsJson) {
-        const targets = JSON.parse(targetsJson);
-        for (const target of targets) {
-          await prisma.cartMilestoneTarget.create({
+    // Add gift products if applicable
+    if (rewardType === "gift_wrapping") {
+      const giftProductsJson = formData.get("giftProducts") as string;
+      if (giftProductsJson) {
+        const giftProducts = JSON.parse(giftProductsJson);
+        for (let i = 0; i < giftProducts.length; i++) {
+          const product = giftProducts[i];
+          await prisma.cartMilestoneGiftProduct.create({
             data: {
               milestoneId: milestone.id,
-              targetType: target.type,
-              shopifyId: target.shopifyId,
-              title: target.title,
+              shopifyProductId: product.shopifyProductId,
+              shopifyVariantId: product.shopifyVariantId || null,
+              title: product.title,
+              price: product.price,
+              compareAtPrice: product.compareAtPrice || null,
+              imageUrl: product.imageUrl || null,
+              handle: product.handle,
+              position: i,
             }
           });
         }
@@ -269,7 +281,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const targetAmount = parseFloat(formData.get("targetAmount") as string);
     const rewardType = formData.get("rewardType") as string;
     const rewardValue = formData.get("rewardValue") ? parseFloat(formData.get("rewardValue") as string) : null;
-    const targetType = formData.get("targetType") as string;
+    const targetType = "store_wide"; // Always store_wide now
     const icon = formData.get("icon") as string;
     const unlockedMessage = formData.get("unlockedMessage") as string;
     const inProgressMessage = formData.get("inProgressMessage") as string;
@@ -303,22 +315,28 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
     });
 
-    // Update targets
-    await prisma.cartMilestoneTarget.deleteMany({
+    // Update gift products
+    await prisma.cartMilestoneGiftProduct.deleteMany({
       where: { milestoneId }
     });
 
-    if (targetType !== "store_wide") {
-      const targetsJson = formData.get("targets") as string;
-      if (targetsJson) {
-        const targets = JSON.parse(targetsJson);
-        for (const target of targets) {
-          await prisma.cartMilestoneTarget.create({
+    if (rewardType === "gift_wrapping") {
+      const giftProductsJson = formData.get("giftProducts") as string;
+      if (giftProductsJson) {
+        const giftProducts = JSON.parse(giftProductsJson);
+        for (let i = 0; i < giftProducts.length; i++) {
+          const product = giftProducts[i];
+          await prisma.cartMilestoneGiftProduct.create({
             data: {
               milestoneId,
-              targetType: target.type,
-              shopifyId: target.shopifyId,
-              title: target.title,
+              shopifyProductId: product.shopifyProductId,
+              shopifyVariantId: product.shopifyVariantId || null,
+              title: product.title,
+              price: product.price,
+              compareAtPrice: product.compareAtPrice || null,
+              imageUrl: product.imageUrl || null,
+              handle: product.handle,
+              position: i,
             }
           });
         }
@@ -383,7 +401,6 @@ export default function CartMilestones() {
     targetAmount: "",
     rewardType: "free_shipping",
     rewardValue: "",
-    targetType: "store_wide",
     icon: "🎁",
     unlockedMessage: "🎉 You've unlocked {reward}!",
     inProgressMessage: "Only {remaining} away from {reward}!",
@@ -400,6 +417,9 @@ export default function CartMilestones() {
   const [showTargetModal, setShowTargetModal] = useState(false);
   const [targetTab, setTargetTab] = useState<"product" | "collection">("product");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedGiftProducts, setSelectedGiftProducts] = useState<any[]>([]);
+  const [showGiftProductModal, setShowGiftProductModal] = useState(false);
+  const [editingGiftProductIndex, setEditingGiftProductIndex] = useState<number | null>(null);
 
   const handleOpenModal = useCallback((milestone?: any) => {
     if (milestone) {
@@ -410,7 +430,6 @@ export default function CartMilestones() {
         targetAmount: milestone.targetAmount.toString(),
         rewardType: milestone.rewardType,
         rewardValue: milestone.rewardValue?.toString() || "",
-        targetType: milestone.targetType,
         icon: milestone.icon || "🎁",
         unlockedMessage: milestone.unlockedMessage || "🎉 You've unlocked {reward}!",
         inProgressMessage: milestone.inProgressMessage || "Only {remaining} away from {reward}!",
@@ -424,6 +443,7 @@ export default function CartMilestones() {
       };
       setFormState(initialState);
       setSelectedTargets(milestone.targets || []);
+      setSelectedGiftProducts(milestone.giftProducts || []);
       setLivePreviewMilestone(initialState);
     } else {
       setEditingMilestone(null);
@@ -433,7 +453,6 @@ export default function CartMilestones() {
         targetAmount: "",
         rewardType: "free_shipping",
         rewardValue: "",
-        targetType: "store_wide",
         icon: "🎁",
         unlockedMessage: "🎉 You've unlocked {reward}!",
         inProgressMessage: "Only {remaining} away from {reward}!",
@@ -447,6 +466,7 @@ export default function CartMilestones() {
       };
       setFormState(initialState);
       setSelectedTargets([]);
+      setSelectedGiftProducts([]);
       setLivePreviewMilestone(initialState);
     }
     setShowMilestoneModal(true);
@@ -473,8 +493,8 @@ export default function CartMilestones() {
       formData.append(key, value.toString());
     });
 
-    if (formState.targetType !== "store_wide") {
-      formData.append("targets", JSON.stringify(selectedTargets));
+    if (formState.rewardType === "gift_wrapping") {
+      formData.append("giftProducts", JSON.stringify(selectedGiftProducts));
     }
 
     submit(formData, { method: "post" });
@@ -503,9 +523,7 @@ export default function CartMilestones() {
       free_shipping: "Free Shipping",
       discount_percentage: "Percentage Discount",
       discount_fixed: "Fixed Discount",
-      gift_wrapping: "Gift Wrapping",
-      premium_gift: "Premium Gift",
-      custom: "Custom Reward",
+      gift_wrapping: "Gift",
     };
     return labels[type] || type;
   };
@@ -676,11 +694,6 @@ export default function CartMilestones() {
     <Page
       backAction={{ url: "/app/cart-drawer" }}
       title="Cart Milestones"
-      primaryAction={{
-        content: "Add Milestone",
-        onAction: () => handleOpenModal(),
-        disabled: hasReachedMaxMilestones,
-      }}
     >
       <TitleBar title="Cart Milestones" />
 
@@ -710,16 +723,25 @@ export default function CartMilestones() {
             {/* Milestones List */}
             <Card>
               <BlockStack gap="400">
-                <Text as="h2" variant="headingMd">
-                  Configured Milestones
-                </Text>
+                <InlineStack align="space-between" blockAlign="center">
+                  <Text as="h2" variant="headingMd">
+                    Configured Milestones
+                  </Text>
+                  <Button
+                    variant="primary"
+                    onClick={() => handleOpenModal()}
+                    disabled={hasReachedMaxMilestones}
+                  >
+                    Add Milestone
+                  </Button>
+                </InlineStack>
 
                 {cartDrawer.milestones && cartDrawer.milestones.length > 0 ? (
                   <ResourceList
                     resourceName={{ singular: 'milestone', plural: 'milestones' }}
                     items={cartDrawer.milestones}
                     renderItem={(milestone) => {
-                      const { id, title, targetAmount, rewardType, rewardValue, isActive, icon, targetType, targets } = milestone;
+                      const { id, title, targetAmount, rewardType, rewardValue, isActive, icon } = milestone;
 
                       return (
                         <ResourceItem
@@ -741,18 +763,13 @@ export default function CartMilestones() {
                                     <Text as="h3" variant="headingMd">
                                       {title}
                                     </Text>
-                                    <Badge tone={isActive ? "success" : "default"}>
+                                    <Badge tone={isActive ? "success" : undefined}>
                                       {isActive ? "Active" : "Inactive"}
                                     </Badge>
                                   </InlineStack>
                                   <Text as="p" variant="bodySm" tone="subdued">
                                     Target: ₹{targetAmount.toString()} | Reward: {getRewardTypeLabel(rewardType)}
                                     {rewardValue && ` (${rewardValue}${rewardType.includes('percentage') ? '%' : ''})`}
-                                  </Text>
-                                  <Text as="p" variant="bodySm" tone="subdued">
-                                    Targeting: {targetType === 'store_wide' ? 'Store-wide' : 
-                                              targetType === 'products' ? `${targets?.length || 0} products` :
-                                              `${targets?.length || 0} collections`}
                                   </Text>
                                 </BlockStack>
                               </InlineStack>
@@ -811,12 +828,12 @@ export default function CartMilestones() {
               </div>
 
               <div style={{
-                border: '2px solid #e5e7eb',
-                borderRadius: '12px',
-                padding: '20px',
-                backgroundColor: '#fafbfc',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-                minHeight: '400px',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '16px',
+                backgroundColor: '#ffffff',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                minHeight: '200px',
               }}>
                 <MilestonesWidget
                   milestones={previewMilestones}
@@ -911,9 +928,7 @@ export default function CartMilestones() {
                   { label: "Free Shipping", value: "free_shipping" },
                   { label: "Percentage Discount", value: "discount_percentage" },
                   { label: "Fixed Discount", value: "discount_fixed" },
-                  { label: "Gift Wrapping", value: "gift_wrapping" },
-                  { label: "Premium Gift", value: "premium_gift" },
-                  { label: "Custom Reward", value: "custom" },
+                  { label: "Gift", value: "gift_wrapping" },
                 ]}
                 value={formState.rewardType}
                 onChange={(value) => updateFormState({ rewardType: value })}
@@ -931,76 +946,97 @@ export default function CartMilestones() {
                 />
               )}
 
-              <Divider />
-
-              <Select
-                label="Target Type"
-                options={[
-                  { label: "Store-wide (All Products)", value: "store_wide" },
-                  { label: "Specific Products", value: "products" },
-                  { label: "Specific Collections", value: "collections" },
-                ]}
-                value={formState.targetType}
-                onChange={(value) => updateFormState({ targetType: value })}
-                helpText="Choose which products this milestone applies to"
-              />
-
-              {formState.targetType !== "store_wide" && (
-                <BlockStack gap="300">
-                  <Button onClick={() => setShowTargetModal(true)} size="medium">
-                    {selectedTargets.length > 0 ? 'Change Selection' : (formState.targetType === "products" ? "Select Products" : "Select Collections")}
-                  </Button>
-                  
-                  {selectedTargets.length > 0 && (
-                    <div style={{ 
-                      padding: '12px', 
-                      backgroundColor: '#f9fafb', 
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb'
-                    }}>
-                      <Text as="p" variant="bodyMd" fontWeight="semibold" tone="subdued">
-                        Selected {formState.targetType === "products" ? "Products" : "Collections"} ({selectedTargets.length})
-                      </Text>
-                      <div style={{ 
-                        marginTop: '8px', 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        gap: '6px' 
-                      }}>
-                        {selectedTargets.map((target: any) => (
-                          <div key={target.shopifyId} style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '6px 8px',
-                            backgroundColor: '#ffffff',
-                            borderRadius: '6px',
-                            border: '1px solid #e5e7eb'
-                          }}>
-                            <Text as="span" variant="bodySm">
-                              {target.title}
-                            </Text>
-                            <button
-                              onClick={() => {
-                                setSelectedTargets(selectedTargets.filter((t: any) => t.shopifyId !== target.shopifyId));
-                              }}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                color: '#dc2626',
-                                cursor: 'pointer',
-                                fontSize: '16px',
-                                padding: '0 4px',
-                                lineHeight: '1'
-                              }}
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+              {formState.rewardType === "gift_wrapping" && (
+                <BlockStack gap="400">
+                  <Text as="h3" variant="headingMd">
+                    Gift Products (Select up to 3)
+                  </Text>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '16px'
+                  }}>
+                    {[0, 1, 2].map((index) => {
+                      const giftProduct = selectedGiftProducts[index];
+                      return (
+                        <div key={index} style={{
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          padding: '12px',
+                          backgroundColor: giftProduct ? '#ffffff' : '#f9fafb',
+                          minHeight: '200px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          {giftProduct ? (
+                            <>
+                              <img
+                                src={giftProduct.imageUrl || "https://via.placeholder.com/100x100"}
+                                alt={giftProduct.title}
+                                style={{
+                                  width: '100px',
+                                  height: '100px',
+                                  objectFit: 'cover',
+                                  borderRadius: '8px',
+                                  marginBottom: '8px'
+                                }}
+                              />
+                              <Text as="p" variant="bodySm" fontWeight="medium" alignment="center">
+                                {giftProduct.title.length > 20 
+                                  ? giftProduct.title.substring(0, 20) + '...' 
+                                  : giftProduct.title}
+                              </Text>
+                              <div style={{ marginTop: '8px' }}>
+                                <Button
+                                  size="slim"
+                                  variant="secondary"
+                                  onClick={() => {
+                                    setEditingGiftProductIndex(index);
+                                    setShowGiftProductModal(true);
+                                  }}
+                                >
+                                  Change product
+                                </Button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div style={{
+                                width: '100px',
+                                height: '100px',
+                                backgroundColor: '#e5e7eb',
+                                borderRadius: '8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginBottom: '8px',
+                                fontSize: '32px'
+                              }}>
+                                🖼️
+                              </div>
+                              <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                                Not selected
+                              </Text>
+                              <div style={{ marginTop: '8px' }}>
+                                <Button
+                                  size="slim"
+                                  variant="secondary"
+                                  onClick={() => {
+                                    setEditingGiftProductIndex(index);
+                                    setShowGiftProductModal(true);
+                                  }}
+                                >
+                                  Change product
+                                </Button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </BlockStack>
               )}
 
@@ -1099,172 +1135,113 @@ export default function CartMilestones() {
         </Modal.Section>
       </Modal>
 
-      {/* Target Selection Modal */}
+      {/* Gift Product Selection Modal */}
       <Modal
-        open={showTargetModal}
-        onClose={() => setShowTargetModal(false)}
-        title={`Select ${formState.targetType === "products" ? "Products" : "Collections"}`}
+        open={showGiftProductModal}
+        onClose={() => {
+          setShowGiftProductModal(false);
+          setEditingGiftProductIndex(null);
+        }}
+        title="Select Gift Product"
         primaryAction={{
           content: "Done",
-          onAction: () => setShowTargetModal(false),
+          onAction: () => {
+            setShowGiftProductModal(false);
+            setEditingGiftProductIndex(null);
+          },
         }}
         size="large"
       >
         <Modal.Section>
           <BlockStack gap="400">
-            {formState.targetType === "products" && (
-              <>
-                <TextField
-                  label=""
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  placeholder="Search products..."
-                  autoComplete="off"
-                />
+            <TextField
+              label=""
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search products..."
+              autoComplete="off"
+            />
 
-                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                  {getFilteredProducts().length > 0 ? (
-                    <div style={{ display: 'grid', gap: '8px' }}>
-                      {getFilteredProducts().map((product: any) => {
-                        const isSelected = selectedTargets.some(t => t.shopifyId === product.shopifyProductId);
-                        return (
-                          <div
-                            key={product.handle}
-                            onClick={() => {
-                              if (isSelected) {
-                                setSelectedTargets(selectedTargets.filter(t => t.shopifyId !== product.shopifyProductId));
-                              } else {
-                                setSelectedTargets([...selectedTargets, {
-                                  type: 'product',
-                                  shopifyId: product.shopifyProductId,
-                                  title: product.title
-                                }]);
-                              }
-                            }}
-                            style={{
-                              border: isSelected ? '2px solid #3b82f6' : '1px solid #e5e7eb',
-                              borderRadius: '6px',
-                              padding: '8px',
-                              cursor: 'pointer',
-                              backgroundColor: isSelected ? '#f0f9ff' : '#ffffff',
-                              display: 'flex',
-                              gap: '8px',
-                              alignItems: 'center'
-                            }}
-                          >
-                            <img
-                              src={product.images?.[0]?.src || "https://via.placeholder.com/40x40"}
-                              alt={product.title}
-                              style={{
-                                width: '40px',
-                                height: '40px',
-                                objectFit: 'cover',
-                                borderRadius: '4px'
-                              }}
-                            />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontWeight: '600', fontSize: '13px', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {product.title}
-                              </div>
-                              <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                                ₹{product.variants?.[0]?.price || '0.00'}
-                              </div>
-                            </div>
-                            <Checkbox
-                              label=""
-                              checked={isSelected}
-                              onChange={() => {}}
-                            />
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              {getFilteredProducts().length > 0 ? (
+                <div style={{ display: 'grid', gap: '8px' }}>
+                  {getFilteredProducts().map((product: any) => {
+                    return (
+                      <div
+                        key={product.handle}
+                        onClick={() => {
+                          if (editingGiftProductIndex !== null) {
+                            const newGiftProducts = [...selectedGiftProducts];
+                            const productData = {
+                              shopifyProductId: product.shopifyProductId,
+                              shopifyVariantId: product.variants?.[0]?.id || null,
+                              title: product.title,
+                              price: parseFloat(product.variants?.[0]?.price || '0'),
+                              compareAtPrice: null,
+                              imageUrl: product.images?.[0]?.src || null,
+                              handle: product.handle,
+                            };
+                            
+                            if (editingGiftProductIndex < newGiftProducts.length) {
+                              newGiftProducts[editingGiftProductIndex] = productData;
+                            } else {
+                              newGiftProducts.push(productData);
+                            }
+                            
+                            // Limit to 3 products
+                            setSelectedGiftProducts(newGiftProducts.slice(0, 3));
+                            setShowGiftProductModal(false);
+                            setEditingGiftProductIndex(null);
+                          }
+                        }}
+                        style={{
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '6px',
+                          padding: '8px',
+                          cursor: 'pointer',
+                          backgroundColor: '#ffffff',
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'center',
+                          transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = '#3b82f6';
+                          e.currentTarget.style.backgroundColor = '#f0f9ff';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = '#e5e7eb';
+                          e.currentTarget.style.backgroundColor = '#ffffff';
+                        }}
+                      >
+                        <img
+                          src={product.images?.[0]?.src || "https://via.placeholder.com/40x40"}
+                          alt={product.title}
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            objectFit: 'cover',
+                            borderRadius: '4px'
+                          }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: '600', fontSize: '13px', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {product.title}
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '24px', color: '#9ca3af' }}>
-                      No products found
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            {formState.targetType === "collections" && (
-              <>
-                <TextField
-                  label=""
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  placeholder="Search collections..."
-                  autoComplete="off"
-                />
-
-                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                  {getFilteredCollections().length > 0 ? (
-                    <div style={{ display: 'grid', gap: '8px' }}>
-                      {getFilteredCollections().map((collection: any) => {
-                        const isSelected = selectedTargets.some(t => t.shopifyId === collection.shopifyCollectionId);
-                        return (
-                          <div
-                            key={collection.handle}
-                            onClick={() => {
-                              if (isSelected) {
-                                setSelectedTargets(selectedTargets.filter(t => t.shopifyId !== collection.shopifyCollectionId));
-                              } else {
-                                setSelectedTargets([...selectedTargets, {
-                                  type: 'collection',
-                                  shopifyId: collection.shopifyCollectionId,
-                                  title: collection.title
-                                }]);
-                              }
-                            }}
-                            style={{
-                              border: isSelected ? '2px solid #3b82f6' : '1px solid #e5e7eb',
-                              borderRadius: '6px',
-                              padding: '8px',
-                              cursor: 'pointer',
-                              backgroundColor: isSelected ? '#f0f9ff' : '#ffffff',
-                              display: 'flex',
-                              gap: '8px',
-                              alignItems: 'center'
-                            }}
-                          >
-                            <div style={{
-                              width: '40px',
-                              height: '40px',
-                              backgroundColor: '#e5e7eb',
-                              borderRadius: '4px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '18px'
-                            }}>
-                              📁
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontWeight: '600', fontSize: '13px', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {collection.title}
-                              </div>
-                              <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                                {collection.productsCount} products
-                              </div>
-                            </div>
-                            <Checkbox
-                              label=""
-                              checked={isSelected}
-                              onChange={() => {}}
-                            />
+                          <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                            ₹{product.variants?.[0]?.price || '0.00'}
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '24px', color: '#9ca3af' }}>
-                      No collections found
-                    </div>
-                  )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </>
-            )}
+              ) : (
+                <div style={{ textAlign: 'center', padding: '24px', color: '#9ca3af' }}>
+                  No products found
+                </div>
+              )}
+            </div>
           </BlockStack>
         </Modal.Section>
       </Modal>
