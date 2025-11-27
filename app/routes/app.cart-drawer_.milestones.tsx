@@ -750,7 +750,7 @@ export default function CartMilestones() {
                           onClick={() => {}}
                         >
                           <BlockStack gap="300">
-                            <InlineStack align="space-between" blockAlign="center">
+                            <BlockStack gap="200">
                               <InlineStack gap="300" blockAlign="center">
                                 <div style={{
                                   fontSize: '32px',
@@ -759,7 +759,7 @@ export default function CartMilestones() {
                                   {icon || '🎁'}
                                 </div>
                                 <BlockStack gap="100">
-                                  <InlineStack gap="200" blockAlign="center">
+                                  <InlineStack gap="150" blockAlign="center">
                                     <Text as="h3" variant="headingMd">
                                       {title}
                                     </Text>
@@ -773,7 +773,7 @@ export default function CartMilestones() {
                                   </Text>
                                 </BlockStack>
                               </InlineStack>
-                              <InlineStack gap="200">
+                              <InlineStack gap="200" blockAlign="center">
                                 <Button
                                   onClick={() => handleToggleMilestone(id, isActive)}
                                   variant="secondary"
@@ -793,7 +793,7 @@ export default function CartMilestones() {
                                   onClick={() => handleDeleteMilestone(id)}
                                 />
                               </InlineStack>
-                            </InlineStack>
+                            </BlockStack>
                           </BlockStack>
                         </ResourceItem>
                       );
