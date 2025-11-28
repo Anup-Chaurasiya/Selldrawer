@@ -60,9 +60,6 @@ export class UpsellityCartDrawer {
       });
       this.config = await response.json();
       
-      console.log('🔧 loadConfig - Full config received:', this.config);
-      console.log('🎨 loadConfig - milestonesProgressBarColor:', this.config?.features?.milestonesProgressBarColor);
-      
       // Load milestones if enabled
       if (this.config?.features?.milestonesEnabled) {
         await this.loadMilestones();
@@ -95,9 +92,6 @@ export class UpsellityCartDrawer {
       
       const data = await response.json();
       
-      console.log('🔧 loadMilestones - API Response:', data);
-      console.log('🎨 loadMilestones - progressBarColor from API:', data.progressBarColor);
-      
       if (data.milestones) {
         // Store milestones in config for rendering
         if (!this.config.features) {
@@ -109,7 +103,6 @@ export class UpsellityCartDrawer {
       // Store progress bar color if provided (always update, even if milestones is empty)
       if (data.progressBarColor) {
         this.config.features.milestonesProgressBarColor = data.progressBarColor;
-        console.log('✅ Updated milestonesProgressBarColor to:', this.config.features.milestonesProgressBarColor);
       }
       
       // Store all unlocked message if provided (always update, even if milestones is empty)
@@ -318,59 +311,43 @@ export class UpsellityCartDrawer {
     
     document.body.appendChild(drawer);
     
-    // Add overlay click handler to close drawer when clicking outside
+    // Get references to drawer elements
     const overlay = drawer.querySelector('.upsellity-drawer-overlay');
-    if (overlay) {
-      overlay.addEventListener('click', () => {
-        if (this.isOpen) {
-          this.close();
-        }
-      });
-      
-      // Allow scroll events to pass through to the page behind
-      // We need to manually handle scroll events since overlay blocks them
-      overlay.addEventListener('wheel', (e) => {
-        if (this.isOpen) {
-          // Forward scroll to the document
-          const scrollContainer = document.documentElement.scrollTop ? document.documentElement : document.body;
-          scrollContainer.scrollTop += e.deltaY;
-        }
-      }, { passive: true });
-      
-      // Handle touch scrolling for mobile devices
-      let touchStartY = 0;
-      overlay.addEventListener('touchstart', (e) => {
-        if (this.isOpen && e.touches.length === 1) {
-          touchStartY = e.touches[0].clientY;
-        }
-      }, { passive: true });
-      
-      overlay.addEventListener('touchmove', (e) => {
-        if (this.isOpen && e.touches.length === 1) {
-          const touchY = e.touches[0].clientY;
-          const deltaY = touchStartY - touchY;
-          const scrollContainer = document.documentElement.scrollTop ? document.documentElement : document.body;
-          scrollContainer.scrollTop += deltaY;
-          touchStartY = touchY;
-        }
-      }, { passive: true });
-    }
+    const drawerContent = drawer.querySelector('.upsellity-drawer-content');
     
-    // Add click handler to drawer itself to close when clicking outside content
+    // Click handler for the main drawer container
+    // This catches clicks anywhere in the drawer area
     drawer.addEventListener('click', (e) => {
-      // Only close if clicking on the drawer container or overlay, not the content
-      if (this.isOpen && (e.target === drawer || e.target === overlay)) {
+      // Close if clicking directly on the drawer container (outside content area)
+      if (this.isOpen && e.target === drawer) {
         this.close();
       }
     });
     
-    // Prevent clicks inside drawer content from closing the drawer
-    const drawerContent = drawer.querySelector('.upsellity-drawer-content');
+    // Click handler for overlay - closes drawer when clicking on the dark background
+    if (overlay) {
+      overlay.addEventListener('click', (e) => {
+        if (this.isOpen) {
+          e.stopPropagation();
+          this.close();
+        }
+      });
+    }
+    
+    // Prevent clicks inside drawer content from bubbling up and closing the drawer
     if (drawerContent) {
       drawerContent.addEventListener('click', (e) => {
+        // Stop propagation so clicks inside content don't reach the drawer/overlay handlers
         e.stopPropagation();
       });
     }
+    
+    // Close drawer on Escape key press
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.isOpen) {
+        this.close();
+      }
+    });
     
     this.loadStyles();
   }

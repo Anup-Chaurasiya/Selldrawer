@@ -234,10 +234,6 @@ export const UnifiedCartDrawer = ({
         // Milestones are already calculated by the API, just use them directly
         const cartTotalInRupees = cart.total_price / 100; // Convert cents to rupees
         
-        console.log('🔧 UnifiedCartDrawer - Rendering milestones');
-        console.log('🎨 UnifiedCartDrawer - progressBarColor prop:', config?.features?.milestonesProgressBarColor);
-        console.log('📦 UnifiedCartDrawer - full config.features:', config?.features);
-        
         return (
           <div key={featureId} style={{ marginBottom: '12px' }}>
             <MilestonesWidget

@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.1
- * Built: 2025-11-28T06:56:13.626Z
+ * Built: 2025-11-28T07:31:49.108Z
  */
 "use strict";
 (() => {
@@ -10467,7 +10467,7 @@
     progressBarColor,
     allUnlockedMessage
   }) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b;
     if (!milestones || milestones.length === 0) {
       return null;
     }
@@ -10514,16 +10514,6 @@
     const allUnlocked = sortedMilestones.every((m) => m.status === "unlocked");
     const displayMessage = allUnlocked ? sortedMilestones.length === 1 ? sortedMilestones[0].message : allUnlockedMessage || "\u{1F389} Congratulations! All rewards unlocked!" : (nextMilestone == null ? void 0 : nextMilestone.message) || "";
     const finalProgressBarColor = progressBarColor || "#3b82f6";
-    console.log("\u{1F527} MilestonesWidget RENDER");
-    console.log("\u{1F3A8} MilestonesWidget - progressBarColor prop received:", progressBarColor);
-    console.log("\u{1F3A8} MilestonesWidget - finalProgressBarColor:", finalProgressBarColor);
-    console.log("\u{1F3A8} MilestonesWidget - isPreview:", isPreview);
-    console.log("\u{1F3A8} MilestonesWidget - milestones data:", milestones);
-    console.log("\u{1F3A8} MilestonesWidget - first milestone colors:", {
-      iconColor: (_c = milestones[0]) == null ? void 0 : _c.iconColor,
-      titleColor: (_d = milestones[0]) == null ? void 0 : _d.titleColor,
-      amountColor: (_e = milestones[0]) == null ? void 0 : _e.amountColor
-    });
     const hexToRgb = (hex) => {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
       return result ? {
@@ -10543,7 +10533,6 @@
       return `linear-gradient(90deg, ${color} 0%, ${color} 100%)`;
     };
     const progressBarGradient = getGradient(finalProgressBarColor);
-    console.log("\u{1F308} MilestonesWidget - progressBarGradient:", progressBarGradient);
     return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
       padding: "12px 14px",
       backgroundColor: "#ffffff",
@@ -10584,7 +10573,8 @@
               borderRadius: "10px",
               transition: "width 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
               minWidth: currentProgressPercent > 0 ? "4px" : "0",
-              zIndex: 1
+              zIndex: 1,
+              display: "block"
             },
             "data-progress-bar-color": finalProgressBarColor,
             "data-gradient": progressBarGradient
@@ -10773,7 +10763,7 @@
       return url;
     };
     const renderFeature = (featureId) => {
-      var _a2, _b2, _c2, _d2, _e2, _f2, _g, _h, _i, _j, _k, _l, _m, _n;
+      var _a2, _b2, _c2, _d2, _e2, _f2, _g, _h, _i, _j, _k, _l, _m;
       switch (featureId) {
         case "free-shipping-bar": {
           const bar = (_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.freeShippingProgressBar;
@@ -10898,17 +10888,14 @@
           if (!milestones || !milestones.length)
             return null;
           const cartTotalInRupees = cart.total_price / 100;
-          console.log("\u{1F527} UnifiedCartDrawer - Rendering milestones");
-          console.log("\u{1F3A8} UnifiedCartDrawer - progressBarColor prop:", (_l = config == null ? void 0 : config.features) == null ? void 0 : _l.milestonesProgressBarColor);
-          console.log("\u{1F4E6} UnifiedCartDrawer - full config.features:", config == null ? void 0 : config.features);
           return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             MilestonesWidget,
             {
               milestones,
               cartTotal: cartTotalInRupees,
               isPreview: false,
-              progressBarColor: (_m = config == null ? void 0 : config.features) == null ? void 0 : _m.milestonesProgressBarColor,
-              allUnlockedMessage: (_n = config == null ? void 0 : config.features) == null ? void 0 : _n.milestonesAllUnlockedMessage
+              progressBarColor: (_l = config == null ? void 0 : config.features) == null ? void 0 : _l.milestonesProgressBarColor,
+              allUnlockedMessage: (_m = config == null ? void 0 : config.features) == null ? void 0 : _m.milestonesAllUnlockedMessage
             }
           ) }, featureId);
         }
@@ -11037,7 +11024,7 @@
       await this.loadCart();
     }
     async loadConfig() {
-      var _a, _b, _c, _d, _e;
+      var _a, _b, _c;
       try {
         const appUrl = (_a = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a.dataset.upsellityAppUrl;
         if (!appUrl) {
@@ -11054,9 +11041,7 @@
           }
         });
         this.config = await response.json();
-        console.log("\u{1F527} loadConfig - Full config received:", this.config);
-        console.log("\u{1F3A8} loadConfig - milestonesProgressBarColor:", (_c = (_b = this.config) == null ? void 0 : _b.features) == null ? void 0 : _c.milestonesProgressBarColor);
-        if ((_e = (_d = this.config) == null ? void 0 : _d.features) == null ? void 0 : _e.milestonesEnabled) {
+        if ((_c = (_b = this.config) == null ? void 0 : _b.features) == null ? void 0 : _c.milestonesEnabled) {
           await this.loadMilestones();
         }
       } catch (error) {
@@ -11084,8 +11069,6 @@
           }
         );
         const data = await response.json();
-        console.log("\u{1F527} loadMilestones - API Response:", data);
-        console.log("\u{1F3A8} loadMilestones - progressBarColor from API:", data.progressBarColor);
         if (data.milestones) {
           if (!this.config.features) {
             this.config.features = {};
@@ -11094,7 +11077,6 @@
         }
         if (data.progressBarColor) {
           this.config.features.milestonesProgressBarColor = data.progressBarColor;
-          console.log("\u2705 Updated milestonesProgressBarColor to:", this.config.features.milestonesProgressBarColor);
         }
         if (data.allUnlockedMessage) {
           this.config.features.milestonesAllUnlockedMessage = data.allUnlockedMessage;
@@ -11245,45 +11227,30 @@
     `;
       document.body.appendChild(drawer);
       const overlay = drawer.querySelector(".upsellity-drawer-overlay");
-      if (overlay) {
-        overlay.addEventListener("click", () => {
-          if (this.isOpen) {
-            this.close();
-          }
-        });
-        overlay.addEventListener("wheel", (e) => {
-          if (this.isOpen) {
-            const scrollContainer = document.documentElement.scrollTop ? document.documentElement : document.body;
-            scrollContainer.scrollTop += e.deltaY;
-          }
-        }, { passive: true });
-        let touchStartY = 0;
-        overlay.addEventListener("touchstart", (e) => {
-          if (this.isOpen && e.touches.length === 1) {
-            touchStartY = e.touches[0].clientY;
-          }
-        }, { passive: true });
-        overlay.addEventListener("touchmove", (e) => {
-          if (this.isOpen && e.touches.length === 1) {
-            const touchY = e.touches[0].clientY;
-            const deltaY = touchStartY - touchY;
-            const scrollContainer = document.documentElement.scrollTop ? document.documentElement : document.body;
-            scrollContainer.scrollTop += deltaY;
-            touchStartY = touchY;
-          }
-        }, { passive: true });
-      }
+      const drawerContent = drawer.querySelector(".upsellity-drawer-content");
       drawer.addEventListener("click", (e) => {
-        if (this.isOpen && (e.target === drawer || e.target === overlay)) {
+        if (this.isOpen && e.target === drawer) {
           this.close();
         }
       });
-      const drawerContent = drawer.querySelector(".upsellity-drawer-content");
+      if (overlay) {
+        overlay.addEventListener("click", (e) => {
+          if (this.isOpen) {
+            e.stopPropagation();
+            this.close();
+          }
+        });
+      }
       if (drawerContent) {
         drawerContent.addEventListener("click", (e) => {
           e.stopPropagation();
         });
       }
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && this.isOpen) {
+          this.close();
+        }
+      });
       this.loadStyles();
     }
     loadStyles() {

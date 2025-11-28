@@ -117,17 +117,6 @@ export function MilestonesWidget({
   // Use the provided progress bar color or fallback to default
   const finalProgressBarColor = progressBarColor || '#3b82f6';
   
-  console.log('🔧 MilestonesWidget RENDER');
-  console.log('🎨 MilestonesWidget - progressBarColor prop received:', progressBarColor);
-  console.log('🎨 MilestonesWidget - finalProgressBarColor:', finalProgressBarColor);
-  console.log('🎨 MilestonesWidget - isPreview:', isPreview);
-  console.log('🎨 MilestonesWidget - milestones data:', milestones);
-  console.log('🎨 MilestonesWidget - first milestone colors:', {
-    iconColor: milestones[0]?.iconColor,
-    titleColor: milestones[0]?.titleColor,
-    amountColor: milestones[0]?.amountColor
-  });
-  
   // Create a gradient from the color (darker shade for gradient effect)
   const hexToRgb = (hex: string) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -151,7 +140,6 @@ export function MilestonesWidget({
   };
 
   const progressBarGradient = getGradient(finalProgressBarColor);
-  console.log('🌈 MilestonesWidget - progressBarGradient:', progressBarGradient);
 
   return (
     <div style={{
@@ -203,6 +191,7 @@ export function MilestonesWidget({
               transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
               minWidth: currentProgressPercent > 0 ? '4px' : '0',
               zIndex: 1,
+              display: 'block', 
             }}
             data-progress-bar-color={finalProgressBarColor}
             data-gradient={progressBarGradient}

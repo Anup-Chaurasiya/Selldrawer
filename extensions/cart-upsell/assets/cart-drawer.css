@@ -11,10 +11,12 @@
   bottom: 0;
   z-index: 9999;
   pointer-events: none;
+  visibility: hidden;
 }
 
 .upsellity-drawer.open {
-  pointer-events: none; /* Changed: Allow clicks to pass through */
+  pointer-events: auto;
+  visibility: visible;
 }
 
 .upsellity-drawer-overlay {
