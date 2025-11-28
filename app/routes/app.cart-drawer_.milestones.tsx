@@ -198,7 +198,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
     const targetAmount = parseFloat(formData.get("targetAmount") as string);
     const rewardType = formData.get("rewardType") as string;
     const rewardValue = formData.get("rewardValue") ? parseFloat(formData.get("rewardValue") as string) : null;
@@ -206,13 +205,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const icon = formData.get("icon") as string;
     const unlockedMessage = formData.get("unlockedMessage") as string;
     const inProgressMessage = formData.get("inProgressMessage") as string;
-    const lockedMessage = formData.get("lockedMessage") as string;
     const showProgressBar = formData.get("showProgressBar") === "true";
-    const backgroundColor = formData.get("backgroundColor") as string;
-    const textColor = formData.get("textColor") as string;
-    const progressBarColor = formData.get("progressBarColor") as string;
-    const unlockedColor = formData.get("unlockedColor") as string;
-    const lockedColor = formData.get("lockedColor") as string;
+    const iconColor = formData.get("iconColor") as string;
+    const titleColor = formData.get("titleColor") as string;
+    const amountColor = formData.get("amountColor") as string;
 
     // Get the highest priority and add 1
     const highestPriority = await prisma.cartMilestone.findFirst({
@@ -228,7 +224,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         cartDrawerId: cartDrawer.id,
         shop,
         title,
-        description,
         targetAmount,
         rewardType,
         rewardValue,
@@ -237,14 +232,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         icon,
         unlockedMessage,
         inProgressMessage,
-        lockedMessage,
         showProgressBar,
-        backgroundColor,
-        textColor,
-        progressBarColor,
-        unlockedColor,
-        lockedColor,
-      }
+        iconColor,
+        titleColor,
+        amountColor,
+      } as any
     });
 
     // Add gift products if applicable
@@ -277,7 +269,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "update-milestone") {
     const milestoneId = formData.get("milestoneId") as string;
     const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
     const targetAmount = parseFloat(formData.get("targetAmount") as string);
     const rewardType = formData.get("rewardType") as string;
     const rewardValue = formData.get("rewardValue") ? parseFloat(formData.get("rewardValue") as string) : null;
@@ -285,19 +276,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const icon = formData.get("icon") as string;
     const unlockedMessage = formData.get("unlockedMessage") as string;
     const inProgressMessage = formData.get("inProgressMessage") as string;
-    const lockedMessage = formData.get("lockedMessage") as string;
     const showProgressBar = formData.get("showProgressBar") === "true";
-    const backgroundColor = formData.get("backgroundColor") as string;
-    const textColor = formData.get("textColor") as string;
-    const progressBarColor = formData.get("progressBarColor") as string;
-    const unlockedColor = formData.get("unlockedColor") as string;
-    const lockedColor = formData.get("lockedColor") as string;
+    const iconColor = formData.get("iconColor") as string;
+    const titleColor = formData.get("titleColor") as string;
+    const amountColor = formData.get("amountColor") as string;
 
     await prisma.cartMilestone.update({
       where: { id: milestoneId },
       data: {
         title,
-        description,
         targetAmount,
         rewardType,
         rewardValue,
@@ -305,14 +292,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         icon,
         unlockedMessage,
         inProgressMessage,
-        lockedMessage,
         showProgressBar,
-        backgroundColor,
-        textColor,
-        progressBarColor,
-        unlockedColor,
-        lockedColor,
-      }
+        iconColor,
+        titleColor,
+        amountColor,
+      } as any
     });
 
     // Update gift products
@@ -378,6 +362,40 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ success: true });
   }
 
+  if (intent === "update-progress-bar-color") {
+    const progressBarColor = formData.get("progressBarColor") as string;
+    await prisma.cartDrawer.update({
+      where: { id: cartDrawer.id },
+      data: { milestonesProgressBarColor: progressBarColor } as any
+    });
+    return json({ success: true });
+  }
+
+  if (intent === "update-all-unlocked-message") {
+    const allUnlockedMessage = formData.get("allUnlockedMessage") as string;
+    await prisma.cartDrawer.update({
+      where: { id: cartDrawer.id },
+      data: { milestonesAllUnlockedMessage: allUnlockedMessage } as any
+    });
+    return json({ success: true });
+  }
+
+  if (intent === "save-global-settings") {
+    const progressBarColor = formData.get("progressBarColor") as string;
+    const allUnlockedMessage = formData.get("allUnlockedMessage") as string;
+    
+    await prisma.cartDrawer.update({
+      where: { id: cartDrawer.id },
+      data: { 
+        milestonesProgressBarColor: progressBarColor,
+        milestonesAllUnlockedMessage: allUnlockedMessage,
+        milestonesEnabled: true, // Auto-enable when saving
+      } as any
+    });
+    
+    return redirect("/app/cart-drawer");
+  }
+
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
@@ -397,20 +415,16 @@ export default function CartMilestones() {
 
   const [formState, setFormState] = useState({
     title: "",
-    description: "",
     targetAmount: "",
     rewardType: "free_shipping",
     rewardValue: "",
     icon: "🎁",
     unlockedMessage: "🎉 You've unlocked {reward}!",
     inProgressMessage: "Only {remaining} away from {reward}!",
-    lockedMessage: "Add {remaining} to unlock {reward}",
     showProgressBar: true,
-    backgroundColor: "#f0f9ff",
-    textColor: "#1e40af",
-    progressBarColor: "#3b82f6",
-    unlockedColor: "#10b981",
-    lockedColor: "#9ca3af",
+    iconColor: "#3b82f6",
+    titleColor: "#1e40af",
+    amountColor: "#3b82f6",
   });
 
   const [selectedTargets, setSelectedTargets] = useState<any[]>([]);
@@ -421,25 +435,27 @@ export default function CartMilestones() {
   const [showGiftProductModal, setShowGiftProductModal] = useState(false);
   const [editingGiftProductIndex, setEditingGiftProductIndex] = useState<number | null>(null);
 
+  // Global settings state
+  const [globalSettings, setGlobalSettings] = useState({
+    progressBarColor: (cartDrawer as any).milestonesProgressBarColor || "#3b82f6",
+    allUnlockedMessage: (cartDrawer as any).milestonesAllUnlockedMessage || "🎉 Congratulations! All rewards unlocked!",
+  });
+
   const handleOpenModal = useCallback((milestone?: any) => {
     if (milestone) {
       setEditingMilestone(milestone);
       const initialState = {
         title: milestone.title,
-        description: milestone.description || "",
         targetAmount: milestone.targetAmount.toString(),
         rewardType: milestone.rewardType,
         rewardValue: milestone.rewardValue?.toString() || "",
         icon: milestone.icon || "🎁",
         unlockedMessage: milestone.unlockedMessage || "🎉 You've unlocked {reward}!",
         inProgressMessage: milestone.inProgressMessage || "Only {remaining} away from {reward}!",
-        lockedMessage: milestone.lockedMessage || "Add {remaining} to unlock {reward}",
         showProgressBar: milestone.showProgressBar,
-        backgroundColor: milestone.backgroundColor,
-        textColor: milestone.textColor,
-        progressBarColor: milestone.progressBarColor,
-        unlockedColor: milestone.unlockedColor,
-        lockedColor: milestone.lockedColor,
+        iconColor: milestone.iconColor || "#3b82f6",
+        titleColor: milestone.titleColor || "#1e40af",
+        amountColor: milestone.amountColor || "#3b82f6",
       };
       setFormState(initialState);
       setSelectedTargets(milestone.targets || []);
@@ -449,20 +465,16 @@ export default function CartMilestones() {
       setEditingMilestone(null);
       const initialState = {
         title: "",
-        description: "",
         targetAmount: "",
         rewardType: "free_shipping",
         rewardValue: "",
         icon: "🎁",
         unlockedMessage: "🎉 You've unlocked {reward}!",
         inProgressMessage: "Only {remaining} away from {reward}!",
-        lockedMessage: "Add {remaining} to unlock {reward}",
         showProgressBar: true,
-        backgroundColor: "#f0f9ff",
-        textColor: "#1e40af",
-        progressBarColor: "#3b82f6",
-        unlockedColor: "#10b981",
-        lockedColor: "#9ca3af",
+        iconColor: "#3b82f6",
+        titleColor: "#1e40af",
+        amountColor: "#3b82f6",
       };
       setFormState(initialState);
       setSelectedTargets([]);
@@ -550,7 +562,7 @@ export default function CartMilestones() {
       if (targetAmount > 0) {
         const progress = Math.min((sampleCartTotal / targetAmount) * 100, 100);
         const remaining = Math.max(targetAmount - sampleCartTotal, 0);
-        const status = sampleCartTotal >= targetAmount ? 'unlocked' : sampleCartTotal > 0 ? 'in_progress' : 'locked';
+        const status: 'unlocked' | 'in_progress' | 'locked' = sampleCartTotal >= targetAmount ? 'unlocked' : sampleCartTotal > 0 ? 'in_progress' : 'locked';
         
         const rewardText = livePreviewMilestone.title;
         const remainingFormatted = `₹${remaining.toFixed(2)}`;
@@ -560,12 +572,11 @@ export default function CartMilestones() {
             ? livePreviewMilestone.unlockedMessage?.replace('{reward}', rewardText) || `🎉 You've unlocked ${rewardText}!`
             : status === 'in_progress'
             ? livePreviewMilestone.inProgressMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Only ${remainingFormatted} away from ${rewardText}!`
-            : livePreviewMilestone.lockedMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Add ${remainingFormatted} to unlock ${rewardText}`;
+            : `Add ${remainingFormatted} to unlock ${rewardText}`;
 
         return [{
           id: 'live-preview',
           title: livePreviewMilestone.title,
-          description: livePreviewMilestone.description,
           targetAmount,
           rewardType: livePreviewMilestone.rewardType,
           rewardValue: livePreviewMilestone.rewardValue ? parseFloat(livePreviewMilestone.rewardValue) : null,
@@ -575,24 +586,23 @@ export default function CartMilestones() {
           remaining,
           message,
           showProgressBar: livePreviewMilestone.showProgressBar,
-          backgroundColor: livePreviewMilestone.backgroundColor,
-          textColor: livePreviewMilestone.textColor,
-          progressBarColor: livePreviewMilestone.progressBarColor,
-          unlockedColor: livePreviewMilestone.unlockedColor,
-          lockedColor: livePreviewMilestone.lockedColor,
+          iconColor: livePreviewMilestone.iconColor || "#3b82f6",
+          titleColor: livePreviewMilestone.titleColor || "#1e40af",
+          amountColor: livePreviewMilestone.amountColor || "#3b82f6",
         }];
       }
     }
     
     if (cartDrawer.milestones && cartDrawer.milestones.length > 0) {
-      // Use actual milestones for preview
+      // Use actual milestones for preview - only show active ones
       const sampleCartTotal = 6000; // Sample cart value for preview
+      const activeMilestones = cartDrawer.milestones.filter((m: any) => m.isActive);
       
-      return cartDrawer.milestones.map((m: any) => {
+      return activeMilestones.map((m: any) => {
         const targetAmount = parseFloat(m.targetAmount.toString());
         const progress = Math.min((sampleCartTotal / targetAmount) * 100, 100);
         const remaining = Math.max(targetAmount - sampleCartTotal, 0);
-        const status = sampleCartTotal >= targetAmount ? 'unlocked' : sampleCartTotal > 0 ? 'in_progress' : 'locked';
+        const status: 'unlocked' | 'in_progress' | 'locked' = sampleCartTotal >= targetAmount ? 'unlocked' : sampleCartTotal > 0 ? 'in_progress' : 'locked';
         
         const rewardText = m.title;
         const remainingFormatted = `₹${remaining.toFixed(2)}`;
@@ -602,12 +612,11 @@ export default function CartMilestones() {
             ? m.unlockedMessage?.replace('{reward}', rewardText) || `🎉 You've unlocked ${rewardText}!`
             : status === 'in_progress'
             ? m.inProgressMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Only ${remainingFormatted} away from ${rewardText}!`
-            : m.lockedMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Add ${remainingFormatted} to unlock ${rewardText}`;
+            : `Add ${remainingFormatted} to unlock ${rewardText}`;
 
         return {
           id: m.id,
           title: m.title,
-          description: m.description,
           targetAmount,
           rewardType: m.rewardType,
           rewardValue: m.rewardValue ? parseFloat(m.rewardValue.toString()) : null,
@@ -617,21 +626,18 @@ export default function CartMilestones() {
           remaining,
           message,
           showProgressBar: m.showProgressBar,
-          backgroundColor: m.backgroundColor,
-          textColor: m.textColor,
-          progressBarColor: m.progressBarColor,
-          unlockedColor: m.unlockedColor,
-          lockedColor: m.lockedColor,
+          iconColor: m.iconColor,
+          titleColor: m.titleColor,
+          amountColor: m.amountColor,
         };
       });
     }
     
-    // Default sample milestones
+    // Default sample milestones (when no milestones configured)
     return [
       {
         id: 'sample-1',
         title: 'FREE Shipping',
-        description: 'Get free shipping on your order',
         targetAmount: 5000,
         rewardType: 'free_shipping',
         rewardValue: null,
@@ -641,16 +647,13 @@ export default function CartMilestones() {
         remaining: 0,
         message: '🎉 You\'ve unlocked FREE Shipping!',
         showProgressBar: true,
-        backgroundColor: '#f0f9ff',
-        textColor: '#1e40af',
-        progressBarColor: '#3b82f6',
-        unlockedColor: '#10b981',
-        lockedColor: '#9ca3af',
+        iconColor: '#3b82f6',
+        titleColor: '#1e40af',
+        amountColor: '#3b82f6',
       },
       {
         id: 'sample-2',
         title: 'Extra 5% Discount',
-        description: 'Save an additional 5% on your order',
         targetAmount: 8000,
         rewardType: 'discount_percentage',
         rewardValue: 5,
@@ -660,16 +663,13 @@ export default function CartMilestones() {
         remaining: 2000,
         message: 'Only ₹2,000.00 away from Extra 5% Discount!',
         showProgressBar: true,
-        backgroundColor: '#f0f9ff',
-        textColor: '#1e40af',
-        progressBarColor: '#3b82f6',
-        unlockedColor: '#10b981',
-        lockedColor: '#9ca3af',
+        iconColor: '#3b82f6',
+        titleColor: '#1e40af',
+        amountColor: '#3b82f6',
       },
       {
         id: 'sample-3',
         title: 'Premium Gift',
-        description: 'Receive a premium gift with your order',
         targetAmount: 12000,
         rewardType: 'premium_gift',
         rewardValue: null,
@@ -679,21 +679,32 @@ export default function CartMilestones() {
         remaining: 6000,
         message: 'Add ₹6,000.00 to unlock Premium Gift',
         showProgressBar: true,
-        backgroundColor: '#f0f9ff',
-        textColor: '#1e40af',
-        progressBarColor: '#3b82f6',
-        unlockedColor: '#10b981',
-        lockedColor: '#9ca3af',
+        iconColor: '#3b82f6',
+        titleColor: '#1e40af',
+        amountColor: '#3b82f6',
       },
     ];
   };
 
   const previewMilestones = getPreviewMilestones();
 
+  const handleSaveGlobalSettings = useCallback(() => {
+    const formData = new FormData();
+    formData.append("intent", "save-global-settings");
+    formData.append("progressBarColor", globalSettings.progressBarColor);
+    formData.append("allUnlockedMessage", globalSettings.allUnlockedMessage);
+    submit(formData, { method: "post" });
+  }, [globalSettings, submit]);
+
   return (
     <Page
       backAction={{ url: "/app/cart-drawer" }}
       title="Cart Milestones"
+      primaryAction={{
+        content: "Save",
+        onAction: handleSaveGlobalSettings,
+        loading: isSubmitting,
+      }}
     >
       <TitleBar title="Cart Milestones" />
 
@@ -719,6 +730,33 @@ export default function CartMilestones() {
                 )}
               </p>
             </Banner>
+
+            {/* Global Milestones Configuration */}
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
+                  Global Milestones Settings
+                </Text>
+                <FormLayout>
+                  <TextField
+                    label="Progress Bar Color"
+                    value={globalSettings.progressBarColor}
+                    onChange={(value) => setGlobalSettings({ ...globalSettings, progressBarColor: value })}
+                    autoComplete="off"
+                    {...({ type: "color" } as any)}
+                    helpText="This color will be used for the progress bar across all milestones"
+                  />
+                  <TextField
+                    label="All Unlocked Message"
+                    value={globalSettings.allUnlockedMessage}
+                    onChange={(value) => setGlobalSettings({ ...globalSettings, allUnlockedMessage: value })}
+                    autoComplete="off"
+                    helpText="Message shown when all milestones are unlocked"
+                    placeholder="🎉 Congratulations! All rewards unlocked!"
+                  />
+                </FormLayout>
+              </BlockStack>
+            </Card>
 
             {/* Milestones List */}
             <Card>
@@ -820,10 +858,16 @@ export default function CartMilestones() {
                 <Text as="h3" variant="headingMd">
                   Preview
                 </Text>
-                <Badge tone={cartDrawer.milestones && cartDrawer.milestones.length > 0 ? 'success' : 'info'}>
-                  {cartDrawer.milestones && cartDrawer.milestones.length > 0 
-                    ? `${cartDrawer.milestones.length} milestone${cartDrawer.milestones.length > 1 ? 's' : ''}`
-                    : 'Sample'}
+                <Badge tone={(() => {
+                  const activeMilestones = cartDrawer.milestones?.filter((m: any) => m.isActive) || [];
+                  return activeMilestones.length > 0 ? 'success' : 'info';
+                })()}>
+                  {(() => {
+                    const activeMilestones = cartDrawer.milestones?.filter((m: any) => m.isActive) || [];
+                    return activeMilestones.length > 0
+                      ? `${activeMilestones.length} milestone${activeMilestones.length > 1 ? 's' : ''}`
+                      : 'Sample';
+                  })()}
                 </Badge>
               </div>
 
@@ -840,6 +884,8 @@ export default function CartMilestones() {
                   cartTotal={6000}
                   isPreview={true}
                   layout="vertical"
+                  progressBarColor={globalSettings.progressBarColor}
+                  allUnlockedMessage={globalSettings.allUnlockedMessage}
                 />
               </div>
 
@@ -892,15 +938,6 @@ export default function CartMilestones() {
                 placeholder="e.g., FREE Shipping"
                 autoComplete="off"
                 helpText="Short, catchy title for the milestone"
-              />
-
-              <TextField
-                label="Description (Optional)"
-                value={formState.description}
-                onChange={(value) => updateFormState({ description: value })}
-                placeholder="e.g., Get free shipping on your order"
-                autoComplete="off"
-                multiline={2}
               />
 
               <TextField
@@ -1060,75 +1097,42 @@ export default function CartMilestones() {
                 helpText="Message shown when milestone is in progress. Use {remaining} and {reward} as placeholders."
               />
 
-              <TextField
-                label="Locked Message"
-                value={formState.lockedMessage}
-                onChange={(value) => updateFormState({ lockedMessage: value })}
-                placeholder="Add {remaining} to unlock {reward}"
-                autoComplete="off"
-                helpText="Message shown when milestone is locked. Use {remaining} and {reward} as placeholders."
-              />
-
               <Divider />
 
               <Text as="h3" variant="headingMd">
-                Styling
+                Milestone Colors
               </Text>
 
-              <Checkbox
-                label="Show Progress Bar"
-                checked={formState.showProgressBar}
-                onChange={(value) => updateFormState({ showProgressBar: value })}
-              />
-
               <InlineStack gap="400">
                 <div style={{ flex: 1 }}>
                   <TextField
-                    label="Background Color"
-                    value={formState.backgroundColor}
-                    onChange={(value) => updateFormState({ backgroundColor: value })}
+                    label="Icon Circle Color"
+                    value={formState.iconColor}
+                    onChange={(value) => updateFormState({ iconColor: value })}
                     autoComplete="off"
                     {...({ type: "color" } as any)}
+                    helpText="Color of the milestone icon circle"
                   />
                 </div>
                 <div style={{ flex: 1 }}>
                   <TextField
-                    label="Text Color"
-                    value={formState.textColor}
-                    onChange={(value) => updateFormState({ textColor: value })}
+                    label="Title Color"
+                    value={formState.titleColor}
+                    onChange={(value) => updateFormState({ titleColor: value })}
                     autoComplete="off"
                     {...({ type: "color" } as any)}
-                  />
-                </div>
-              </InlineStack>
-
-              <InlineStack gap="400">
-                <div style={{ flex: 1 }}>
-                  <TextField
-                    label="Progress Bar Color"
-                    value={formState.progressBarColor}
-                    onChange={(value) => updateFormState({ progressBarColor: value })}
-                    autoComplete="off"
-                    {...({ type: "color" } as any)}
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <TextField
-                    label="Unlocked Color"
-                    value={formState.unlockedColor}
-                    onChange={(value) => updateFormState({ unlockedColor: value })}
-                    autoComplete="off"
-                    {...({ type: "color" } as any)}
+                    helpText="Color of the milestone title text"
                   />
                 </div>
               </InlineStack>
 
               <TextField
-                label="Locked Color"
-                value={formState.lockedColor}
-                onChange={(value) => updateFormState({ lockedColor: value })}
+                label="Amount Color"
+                value={formState.amountColor}
+                onChange={(value) => updateFormState({ amountColor: value })}
                 autoComplete="off"
                 {...({ type: "color" } as any)}
+                helpText="Color of the target amount text"
               />
             </FormLayout>
           </BlockStack>

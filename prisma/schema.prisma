@@ -71,6 +71,8 @@ model CartDrawer {
   freeShippingMessageEnabled     Boolean                   @default(true)
   cartTotalsEnabled              Boolean                   @default(true)
   milestonesEnabled              Boolean                   @default(false)
+  milestonesProgressBarColor     String                    @default("#3b82f6")
+  milestonesAllUnlockedMessage   String                    @default("🎉 Congratulations! All rewards unlocked!")
   createdAt                      DateTime                  @default(now())
   updatedAt                      DateTime                  @updatedAt
   featureOrder                   String[]                  @default([])
@@ -566,11 +568,9 @@ model CartMilestone {
   unlockedMessage     String?
   inProgressMessage   String?
   lockedMessage       String?
-  backgroundColor     String                 @default("#f0f9ff")
-  textColor           String                 @default("#1e40af")
-  progressBarColor    String                 @default("#3b82f6")
-  unlockedColor       String                 @default("#10b981")
-  lockedColor         String                 @default("#9ca3af")
+  iconColor           String                 @default("#3b82f6")
+  titleColor          String                 @default("#1e40af")
+  amountColor         String                 @default("#3b82f6")
   showProgressBar     Boolean                @default(true)
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt

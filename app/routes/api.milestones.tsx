@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
+import { cors } from "remix-utils/cors";
 import prisma from "../db.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -9,7 +10,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const cartItemsJson = url.searchParams.get("cartItems");
 
   if (!shop) {
-    return json({ error: "Shop parameter is required" }, { status: 400 });
+    const response = json({ error: "Shop parameter is required" }, { status: 400 });
+    return cors(request, response);
   }
 
   try {
@@ -28,6 +30,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
       where: { shop },
       select: {
         milestonesEnabled: true,
+        milestonesProgressBarColor: true,
+        milestonesAllUnlockedMessage: true,
         milestones: {
           where: { isActive: true },
           include: {
@@ -39,7 +43,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
 
     if (!cartDrawer || !cartDrawer.milestonesEnabled) {
-      return json({ milestones: [] });
+      const response = json({ milestones: [] });
+      return cors(request, response);
     }
 
     // Filter milestones based on targeting
@@ -120,21 +125,23 @@ export async function loader({ request }: LoaderFunctionArgs) {
         remaining,
         message,
         showProgressBar: milestone.showProgressBar,
-        backgroundColor: milestone.backgroundColor,
-        textColor: milestone.textColor,
-        progressBarColor: milestone.progressBarColor,
-        unlockedColor: milestone.unlockedColor,
-        lockedColor: milestone.lockedColor,
+        iconColor: milestone.iconColor,
+        titleColor: milestone.titleColor,
+        amountColor: milestone.amountColor,
       };
     });
 
-    return json({
+    const response = json({
       milestones: milestonesWithStatus,
       cartTotal,
+      progressBarColor: cartDrawer.milestonesProgressBarColor || "#3b82f6",
+      allUnlockedMessage: cartDrawer.milestonesAllUnlockedMessage || "🎉 Congratulations! All rewards unlocked!",
     });
+    return cors(request, response);
   } catch (error) {
     console.error("Error fetching milestones:", error);
-    return json({ error: "Failed to fetch milestones" }, { status: 500 });
+    const response = json({ error: "Failed to fetch milestones" }, { status: 500 });
+    return cors(request, response);
   }
 }
 

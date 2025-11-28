@@ -13,11 +13,9 @@ interface Milestone {
   remaining: number;
   message: string;
   showProgressBar: boolean;
-  backgroundColor: string;
-  textColor: string;
-  progressBarColor: string;
-  unlockedColor: string;
-  lockedColor: string;
+  iconColor: string;
+  titleColor: string;
+  amountColor: string;
 }
 
 interface MilestonesWidgetProps {
@@ -25,6 +23,8 @@ interface MilestonesWidgetProps {
   cartTotal?: number;
   isPreview?: boolean;
   layout?: 'vertical' | 'compact';
+  progressBarColor?: string;
+  allUnlockedMessage?: string;
 }
 
 export function MilestonesWidget({
@@ -32,6 +32,8 @@ export function MilestonesWidget({
   cartTotal = 0,
   isPreview = false,
   layout = 'vertical',
+  progressBarColor,
+  allUnlockedMessage,
 }: MilestonesWidgetProps) {
   if (!milestones || milestones.length === 0) {
     return null;
@@ -44,37 +46,112 @@ export function MilestonesWidget({
   const maxTarget = sortedMilestones[sortedMilestones.length - 1]?.targetAmount || 100;
   const minTarget = sortedMilestones[0]?.targetAmount || 0;
   
-  // Calculate positions with better spacing logic
-  // Use logarithmic scale if the difference is too large, otherwise use linear
+  // Calculate positions with consistent spacing
   const getPosition = (targetAmount: number) => {
-    const range = maxTarget - minTarget;
+    const index = sortedMilestones.findIndex(m => m.targetAmount === targetAmount);
     
-    // If all milestones are very close or there's only one, use equal spacing
-    if (range < maxTarget * 0.1 || sortedMilestones.length === 1) {
-      const index = sortedMilestones.findIndex(m => m.targetAmount === targetAmount);
-      return 10 + (index * (80 / Math.max(sortedMilestones.length - 1, 1)));
+    // For single milestone, always place at 50%
+    if (sortedMilestones.length === 1) {
+      return 50;
     }
     
-    // Use linear scale but ensure minimum spacing between markers
-    const linearPosition = ((targetAmount - minTarget) / range) * 80 + 10;
+    // For 2 milestones, place at 25% and 75%
+    if (sortedMilestones.length === 2) {
+      return index === 0 ? 25 : 75;
+    }
     
-    // Ensure minimum 15% spacing between consecutive milestones
-    const index = sortedMilestones.findIndex(m => m.targetAmount === targetAmount);
-    const minSpacing = 15;
-    const minPosition = 10 + (index * minSpacing);
+    // For 3 milestones, place at 20%, 50%, and 80%
+    if (sortedMilestones.length === 3) {
+      return [20, 50, 80][index];
+    }
     
-    return Math.max(linearPosition, minPosition);
+    // Fallback for more than 3 (shouldn't happen but just in case)
+    const spacing = 80 / (sortedMilestones.length - 1);
+    return 10 + (index * spacing);
   };
   
   // Calculate current progress percentage
-  const currentProgressPercent = Math.min(((cartTotal - minTarget) / (maxTarget - minTarget)) * 80 + 10, 90);
+  // Find which milestone segment we're in
+  const getCurrentProgressPercent = () => {
+    if (sortedMilestones.length === 0) return 0;
+    
+    // If cart total is less than first milestone
+    if (cartTotal < sortedMilestones[0].targetAmount) {
+      const firstPosition = getPosition(sortedMilestones[0].targetAmount);
+      const progress = (cartTotal / sortedMilestones[0].targetAmount) * firstPosition;
+      return Math.min(progress, firstPosition);
+    }
+    
+    // Find the segment we're in
+    for (let i = 0; i < sortedMilestones.length - 1; i++) {
+      const currentMilestone = sortedMilestones[i];
+      const nextMilestone = sortedMilestones[i + 1];
+      
+      if (cartTotal >= currentMilestone.targetAmount && cartTotal < nextMilestone.targetAmount) {
+        const currentPos = getPosition(currentMilestone.targetAmount);
+        const nextPos = getPosition(nextMilestone.targetAmount);
+        const segmentProgress = (cartTotal - currentMilestone.targetAmount) / 
+                               (nextMilestone.targetAmount - currentMilestone.targetAmount);
+        return currentPos + (segmentProgress * (nextPos - currentPos));
+      }
+    }
+    
+    // If we've passed all milestones, stop at the last one
+    const lastMilestone = sortedMilestones[sortedMilestones.length - 1];
+    return getPosition(lastMilestone.targetAmount);
+  };
+  
+  const currentProgressPercent = getCurrentProgressPercent();
   
   // Find the next milestone to show in the message
   const nextMilestone = sortedMilestones.find(m => m.status !== 'unlocked');
   const allUnlocked = sortedMilestones.every(m => m.status === 'unlocked');
+  
+  // If only one milestone and it's unlocked, show its message instead of "all unlocked"
   const displayMessage = allUnlocked 
-    ? '🎉 Congratulations! All rewards unlocked!' 
+    ? (sortedMilestones.length === 1 
+        ? sortedMilestones[0].message 
+        : (allUnlockedMessage || '🎉 Congratulations! All rewards unlocked!'))
     : nextMilestone?.message || '';
+
+  // Use the provided progress bar color or fallback to default
+  const finalProgressBarColor = progressBarColor || '#3b82f6';
+  
+  console.log('🔧 MilestonesWidget RENDER');
+  console.log('🎨 MilestonesWidget - progressBarColor prop received:', progressBarColor);
+  console.log('🎨 MilestonesWidget - finalProgressBarColor:', finalProgressBarColor);
+  console.log('🎨 MilestonesWidget - isPreview:', isPreview);
+  console.log('🎨 MilestonesWidget - milestones data:', milestones);
+  console.log('🎨 MilestonesWidget - first milestone colors:', {
+    iconColor: milestones[0]?.iconColor,
+    titleColor: milestones[0]?.titleColor,
+    amountColor: milestones[0]?.amountColor
+  });
+  
+  // Create a gradient from the color (darker shade for gradient effect)
+  const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  };
+
+  const getGradient = (color: string) => {
+    const rgb = hexToRgb(color);
+    if (rgb) {
+      // Create a slightly darker version for gradient
+      const darkerR = Math.max(0, rgb.r - 20);
+      const darkerG = Math.max(0, rgb.g - 20);
+      const darkerB = Math.max(0, rgb.b - 20);
+      return `linear-gradient(90deg, ${color} 0%, rgb(${darkerR}, ${darkerG}, ${darkerB}) 100%)`;
+    }
+    return `linear-gradient(90deg, ${color} 0%, ${color} 100%)`;
+  };
+
+  const progressBarGradient = getGradient(finalProgressBarColor);
+  console.log('🌈 MilestonesWidget - progressBarGradient:', progressBarGradient);
 
   return (
     <div style={{
@@ -100,8 +177,9 @@ export function MilestonesWidget({
       {/* Unified Progress Bar with Milestones */}
       <div style={{
         position: 'relative',
-        paddingTop: '8px',
+        paddingTop: sortedMilestones.length === 1 ? '40px' : sortedMilestones.length === 2 ? '36px' : '32px',
         paddingBottom: '32px',
+        width: '100%',
       }}>
         {/* Progress Bar Background */}
         <div style={{
@@ -110,6 +188,7 @@ export function MilestonesWidget({
           backgroundColor: '#e5e7eb',
           borderRadius: '10px',
           overflow: 'visible',
+          width: '100%',
         }}>
           {/* Progress Bar Fill */}
           <div
@@ -119,10 +198,14 @@ export function MilestonesWidget({
               top: 0,
               height: '100%',
               width: `${Math.max(0, Math.min(currentProgressPercent, 100))}%`,
-              background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)',
+              background: progressBarGradient,
               borderRadius: '10px',
               transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+              minWidth: currentProgressPercent > 0 ? '4px' : '0',
+              zIndex: 1,
             }}
+            data-progress-bar-color={finalProgressBarColor}
+            data-gradient={progressBarGradient}
           />
 
           {/* Milestone Markers */}
@@ -130,11 +213,6 @@ export function MilestonesWidget({
             const position = getPosition(milestone.targetAmount);
             const isUnlocked = milestone.status === 'unlocked';
             const isInProgress = milestone.status === 'in_progress';
-            
-            // Check if labels might overlap with next milestone
-            const nextMilestone = sortedMilestones[index + 1];
-            const nextPosition = nextMilestone ? getPosition(nextMilestone.targetAmount) : 100;
-            const hasSpaceForLabel = (nextPosition - position) > 12;
 
             return (
               <div
@@ -147,14 +225,41 @@ export function MilestonesWidget({
                   zIndex: 10,
                 }}
               >
+                {/* Milestone Title - Above (Close to Icon, Always Horizontal) */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    marginBottom: '6px',
+                    textAlign: 'center',
+                    width: 'max-content',
+                    maxWidth: sortedMilestones.length === 1 ? '200px' : sortedMilestones.length === 2 ? '140px' : '100px',
+                  }}
+                >
+                  <div style={{
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    color: milestone.titleColor || '#1e40af',
+                    whiteSpace: 'normal',
+                    lineHeight: '1.3',
+                    display: 'block',
+                    wordBreak: 'break-word',
+                    hyphens: 'auto',
+                  }}>
+                    {milestone.title}
+                  </div>
+                </div>
+
                 {/* Milestone Icon/Circle */}
                 <div
                   style={{
                     width: '36px',
                     height: '36px',
                     borderRadius: '50%',
-                    backgroundColor: isUnlocked ? '#10b981' : isInProgress ? '#3b82f6' : '#ffffff',
-                    border: `3px solid ${isUnlocked ? '#059669' : isInProgress ? '#2563eb' : '#d1d5db'}`,
+                    backgroundColor: milestone.iconColor || '#3b82f6',
+                    border: `3px solid ${milestone.iconColor || '#3b82f6'}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -162,6 +267,7 @@ export function MilestonesWidget({
                     transition: 'all 0.3s ease',
                     boxShadow: isUnlocked || isInProgress ? '0 2px 8px rgba(0, 0, 0, 0.15)' : 'none',
                     position: 'relative',
+                    opacity: isUnlocked ? 1 : isInProgress ? 0.9 : 0.5,
                   }}
                   title={`${milestone.title} - ₹${milestone.targetAmount}`}
                 >
@@ -199,27 +305,15 @@ export function MilestonesWidget({
                     transform: 'translateX(-50%)',
                     marginTop: '8px',
                     textAlign: 'center',
-                    whiteSpace: hasSpaceForLabel ? 'nowrap' : 'normal',
-                    maxWidth: hasSpaceForLabel ? 'none' : '50px',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   <div style={{
                     fontSize: '10px',
                     fontWeight: '600',
-                    color: isUnlocked ? '#10b981' : isInProgress ? '#3b82f6' : '#9ca3af',
+                    color: milestone.amountColor || '#3b82f6',
                   }}>
                     ₹{milestone.targetAmount.toFixed(0)}
-                  </div>
-                  <div style={{
-                    fontSize: '9px',
-                    color: isUnlocked ? '#10b981' : isInProgress ? '#1e40af' : '#9ca3af',
-                    marginTop: '2px',
-                    maxWidth: '60px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    wordBreak: hasSpaceForLabel ? 'normal' : 'break-word',
-                  }}>
-                    {milestone.title}
                   </div>
                 </div>
               </div>

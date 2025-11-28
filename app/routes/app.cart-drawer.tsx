@@ -607,15 +607,15 @@ function MiniCartDrawerPreview({
                   remaining,
                   message,
                   showProgressBar: m.showProgressBar,
-                  backgroundColor: m.backgroundColor,
-                  textColor: m.textColor,
-                  progressBarColor: m.progressBarColor,
-                  unlockedColor: m.unlockedColor,
-                  lockedColor: m.lockedColor,
+                  iconColor: m.iconColor,
+                  titleColor: m.titleColor,
+                  amountColor: m.amountColor,
                 };
               })}
               cartTotal={sampleCart.total}
               isPreview={true}
+              progressBarColor={(cartDrawer as any).milestonesProgressBarColor || "#3b82f6"}
+              allUnlockedMessage={(cartDrawer as any).milestonesAllUnlockedMessage}
             />
           )
         );
@@ -865,7 +865,7 @@ export default function CartDrawerIndex() {
     {
       id: 'milestones',
       title: 'Cart Milestones',
-      description: 'Show rewards customers can unlock at cart value thresholds',
+      description: 'Rewards at cart value thresholds',
       icon: GiftCardIcon,
       enabled: cartDrawer.milestonesEnabled,
       count: cartDrawer.milestones.length,

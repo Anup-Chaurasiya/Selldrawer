@@ -60,6 +60,9 @@ export class UpsellityCartDrawer {
       });
       this.config = await response.json();
       
+      console.log('🔧 loadConfig - Full config received:', this.config);
+      console.log('🎨 loadConfig - milestonesProgressBarColor:', this.config?.features?.milestonesProgressBarColor);
+      
       // Load milestones if enabled
       if (this.config?.features?.milestonesEnabled) {
         await this.loadMilestones();
@@ -92,12 +95,26 @@ export class UpsellityCartDrawer {
       
       const data = await response.json();
       
+      console.log('🔧 loadMilestones - API Response:', data);
+      console.log('🎨 loadMilestones - progressBarColor from API:', data.progressBarColor);
+      
       if (data.milestones) {
         // Store milestones in config for rendering
         if (!this.config.features) {
           this.config.features = {};
         }
         this.config.features.milestones = data.milestones;
+      }
+      
+      // Store progress bar color if provided (always update, even if milestones is empty)
+      if (data.progressBarColor) {
+        this.config.features.milestonesProgressBarColor = data.progressBarColor;
+        console.log('✅ Updated milestonesProgressBarColor to:', this.config.features.milestonesProgressBarColor);
+      }
+      
+      // Store all unlocked message if provided (always update, even if milestones is empty)
+      if (data.allUnlockedMessage) {
+        this.config.features.milestonesAllUnlockedMessage = data.allUnlockedMessage;
       }
     } catch (error) {
       console.error('Upsellity: Failed to load milestones', error);

@@ -231,52 +231,21 @@ export const UnifiedCartDrawer = ({
         const milestones = config?.features?.milestones;
         if (!milestones || !milestones.length) return null;
         
-        // Calculate milestone status based on cart total
+        // Milestones are already calculated by the API, just use them directly
         const cartTotalInRupees = cart.total_price / 100; // Convert cents to rupees
         
-        const milestonesWithStatus = milestones.map(m => {
-          const targetAmount = parseFloat(m.targetAmount);
-          const progress = Math.min((cartTotalInRupees / targetAmount) * 100, 100);
-          const remaining = Math.max(targetAmount - cartTotalInRupees, 0);
-          const status = cartTotalInRupees >= targetAmount ? 'unlocked' : cartTotalInRupees > 0 ? 'in_progress' : 'locked';
-          
-          const rewardText = m.title;
-          const remainingFormatted = `₹${remaining.toFixed(2)}`;
-          
-          const message =
-            status === 'unlocked'
-              ? m.unlockedMessage?.replace('{reward}', rewardText) || `🎉 You've unlocked ${rewardText}!`
-              : status === 'in_progress'
-              ? m.inProgressMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Only ${remainingFormatted} away from ${rewardText}!`
-              : m.lockedMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Add ${remainingFormatted} to unlock ${rewardText}`;
-
-          return {
-            id: m.id,
-            title: m.title,
-            description: m.description,
-            targetAmount,
-            rewardType: m.rewardType,
-            rewardValue: m.rewardValue,
-            icon: m.icon,
-            status,
-            progress,
-            remaining,
-            message,
-            showProgressBar: m.showProgressBar,
-            backgroundColor: m.backgroundColor,
-            textColor: m.textColor,
-            progressBarColor: m.progressBarColor,
-            unlockedColor: m.unlockedColor,
-            lockedColor: m.lockedColor,
-          };
-        });
+        console.log('🔧 UnifiedCartDrawer - Rendering milestones');
+        console.log('🎨 UnifiedCartDrawer - progressBarColor prop:', config?.features?.milestonesProgressBarColor);
+        console.log('📦 UnifiedCartDrawer - full config.features:', config?.features);
         
         return (
           <div key={featureId} style={{ marginBottom: '12px' }}>
             <MilestonesWidget
-              milestones={milestonesWithStatus}
+              milestones={milestones}
               cartTotal={cartTotalInRupees}
               isPreview={false}
+              progressBarColor={config?.features?.milestonesProgressBarColor}
+              allUnlockedMessage={config?.features?.milestonesAllUnlockedMessage}
             />
           </div>
         );

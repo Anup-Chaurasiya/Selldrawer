@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.1
- * Built: 2025-11-25T08:51:42.037Z
+ * Built: 2025-11-28T06:56:13.626Z
  */
 "use strict";
 (() => {
@@ -10457,8 +10457,258 @@
     ] });
   };
 
-  // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
+  // app/components/shared/MilestonesWidget.tsx
   var import_jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
+  function MilestonesWidget({
+    milestones,
+    cartTotal = 0,
+    isPreview = false,
+    layout = "vertical",
+    progressBarColor,
+    allUnlockedMessage
+  }) {
+    var _a, _b, _c, _d, _e;
+    if (!milestones || milestones.length === 0) {
+      return null;
+    }
+    const sortedMilestones = [...milestones].sort((a, b) => a.targetAmount - b.targetAmount);
+    const maxTarget = ((_a = sortedMilestones[sortedMilestones.length - 1]) == null ? void 0 : _a.targetAmount) || 100;
+    const minTarget = ((_b = sortedMilestones[0]) == null ? void 0 : _b.targetAmount) || 0;
+    const getPosition = (targetAmount) => {
+      const index = sortedMilestones.findIndex((m) => m.targetAmount === targetAmount);
+      if (sortedMilestones.length === 1) {
+        return 50;
+      }
+      if (sortedMilestones.length === 2) {
+        return index === 0 ? 25 : 75;
+      }
+      if (sortedMilestones.length === 3) {
+        return [20, 50, 80][index];
+      }
+      const spacing = 80 / (sortedMilestones.length - 1);
+      return 10 + index * spacing;
+    };
+    const getCurrentProgressPercent = () => {
+      if (sortedMilestones.length === 0)
+        return 0;
+      if (cartTotal < sortedMilestones[0].targetAmount) {
+        const firstPosition = getPosition(sortedMilestones[0].targetAmount);
+        const progress = cartTotal / sortedMilestones[0].targetAmount * firstPosition;
+        return Math.min(progress, firstPosition);
+      }
+      for (let i = 0; i < sortedMilestones.length - 1; i++) {
+        const currentMilestone = sortedMilestones[i];
+        const nextMilestone2 = sortedMilestones[i + 1];
+        if (cartTotal >= currentMilestone.targetAmount && cartTotal < nextMilestone2.targetAmount) {
+          const currentPos = getPosition(currentMilestone.targetAmount);
+          const nextPos = getPosition(nextMilestone2.targetAmount);
+          const segmentProgress = (cartTotal - currentMilestone.targetAmount) / (nextMilestone2.targetAmount - currentMilestone.targetAmount);
+          return currentPos + segmentProgress * (nextPos - currentPos);
+        }
+      }
+      const lastMilestone = sortedMilestones[sortedMilestones.length - 1];
+      return getPosition(lastMilestone.targetAmount);
+    };
+    const currentProgressPercent = getCurrentProgressPercent();
+    const nextMilestone = sortedMilestones.find((m) => m.status !== "unlocked");
+    const allUnlocked = sortedMilestones.every((m) => m.status === "unlocked");
+    const displayMessage = allUnlocked ? sortedMilestones.length === 1 ? sortedMilestones[0].message : allUnlockedMessage || "\u{1F389} Congratulations! All rewards unlocked!" : (nextMilestone == null ? void 0 : nextMilestone.message) || "";
+    const finalProgressBarColor = progressBarColor || "#3b82f6";
+    console.log("\u{1F527} MilestonesWidget RENDER");
+    console.log("\u{1F3A8} MilestonesWidget - progressBarColor prop received:", progressBarColor);
+    console.log("\u{1F3A8} MilestonesWidget - finalProgressBarColor:", finalProgressBarColor);
+    console.log("\u{1F3A8} MilestonesWidget - isPreview:", isPreview);
+    console.log("\u{1F3A8} MilestonesWidget - milestones data:", milestones);
+    console.log("\u{1F3A8} MilestonesWidget - first milestone colors:", {
+      iconColor: (_c = milestones[0]) == null ? void 0 : _c.iconColor,
+      titleColor: (_d = milestones[0]) == null ? void 0 : _d.titleColor,
+      amountColor: (_e = milestones[0]) == null ? void 0 : _e.amountColor
+    });
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : null;
+    };
+    const getGradient = (color) => {
+      const rgb = hexToRgb(color);
+      if (rgb) {
+        const darkerR = Math.max(0, rgb.r - 20);
+        const darkerG = Math.max(0, rgb.g - 20);
+        const darkerB = Math.max(0, rgb.b - 20);
+        return `linear-gradient(90deg, ${color} 0%, rgb(${darkerR}, ${darkerG}, ${darkerB}) 100%)`;
+      }
+      return `linear-gradient(90deg, ${color} 0%, ${color} 100%)`;
+    };
+    const progressBarGradient = getGradient(finalProgressBarColor);
+    console.log("\u{1F308} MilestonesWidget - progressBarGradient:", progressBarGradient);
+    return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
+      padding: "12px 14px",
+      backgroundColor: "#ffffff",
+      borderRadius: "10px",
+      border: "1px solid #e5e7eb"
+    }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: {
+        marginBottom: "16px",
+        textAlign: "center"
+      }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: {
+        fontSize: "13px",
+        fontWeight: "600",
+        color: allUnlocked ? "#059669" : "#1f2937"
+      }, children: displayMessage }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: {
+        position: "relative",
+        paddingTop: sortedMilestones.length === 1 ? "40px" : sortedMilestones.length === 2 ? "36px" : "32px",
+        paddingBottom: "32px",
+        width: "100%"
+      }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
+        position: "relative",
+        height: "6px",
+        backgroundColor: "#e5e7eb",
+        borderRadius: "10px",
+        overflow: "visible",
+        width: "100%"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+          "div",
+          {
+            style: {
+              position: "absolute",
+              left: 0,
+              top: 0,
+              height: "100%",
+              width: `${Math.max(0, Math.min(currentProgressPercent, 100))}%`,
+              background: progressBarGradient,
+              borderRadius: "10px",
+              transition: "width 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+              minWidth: currentProgressPercent > 0 ? "4px" : "0",
+              zIndex: 1
+            },
+            "data-progress-bar-color": finalProgressBarColor,
+            "data-gradient": progressBarGradient
+          }
+        ),
+        sortedMilestones.map((milestone, index) => {
+          const position = getPosition(milestone.targetAmount);
+          const isUnlocked = milestone.status === "unlocked";
+          const isInProgress = milestone.status === "in_progress";
+          return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+            "div",
+            {
+              style: {
+                position: "absolute",
+                left: `${position}%`,
+                top: "50%",
+                transform: "translate(-50%, -50%)",
+                zIndex: 10
+              },
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                  "div",
+                  {
+                    style: {
+                      position: "absolute",
+                      bottom: "100%",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      marginBottom: "6px",
+                      textAlign: "center",
+                      width: "max-content",
+                      maxWidth: sortedMilestones.length === 1 ? "200px" : sortedMilestones.length === 2 ? "140px" : "100px"
+                    },
+                    children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: {
+                      fontSize: "11px",
+                      fontWeight: "600",
+                      color: milestone.titleColor || "#1e40af",
+                      whiteSpace: "normal",
+                      lineHeight: "1.3",
+                      display: "block",
+                      wordBreak: "break-word",
+                      hyphens: "auto"
+                    }, children: milestone.title })
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+                  "div",
+                  {
+                    style: {
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "50%",
+                      backgroundColor: milestone.iconColor || "#3b82f6",
+                      border: `3px solid ${milestone.iconColor || "#3b82f6"}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "16px",
+                      transition: "all 0.3s ease",
+                      boxShadow: isUnlocked || isInProgress ? "0 2px 8px rgba(0, 0, 0, 0.15)" : "none",
+                      position: "relative",
+                      opacity: isUnlocked ? 1 : isInProgress ? 0.9 : 0.5
+                    },
+                    title: `${milestone.title} - \u20B9${milestone.targetAmount}`,
+                    children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: milestone.icon || "\u{1F381}" }),
+                      isUnlocked && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                        "div",
+                        {
+                          style: {
+                            position: "absolute",
+                            right: "-4px",
+                            bottom: "-4px",
+                            width: "16px",
+                            height: "16px",
+                            borderRadius: "50%",
+                            backgroundColor: "#10b981",
+                            border: "2px solid #ffffff",
+                            color: "#ffffff",
+                            fontSize: "10px",
+                            fontWeight: "bold",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center"
+                          },
+                          children: "\u2713"
+                        }
+                      )
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                  "div",
+                  {
+                    style: {
+                      position: "absolute",
+                      top: "100%",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      marginTop: "8px",
+                      textAlign: "center",
+                      whiteSpace: "nowrap"
+                    },
+                    children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
+                      fontSize: "10px",
+                      fontWeight: "600",
+                      color: milestone.amountColor || "#3b82f6"
+                    }, children: [
+                      "\u20B9",
+                      milestone.targetAmount.toFixed(0)
+                    ] })
+                  }
+                )
+              ]
+            },
+            milestone.id
+          );
+        })
+      ] }) })
+    ] });
+  }
+
+  // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
+  var import_jsx_runtime10 = __toESM(require_jsx_runtime(), 1);
   var UnifiedCartDrawer = ({
     config,
     cart,
@@ -10523,13 +10773,13 @@
       return url;
     };
     const renderFeature = (featureId) => {
-      var _a2, _b2, _c2, _d2, _e2, _f2, _g, _h, _i, _j;
+      var _a2, _b2, _c2, _d2, _e2, _f2, _g, _h, _i, _j, _k, _l, _m, _n;
       switch (featureId) {
         case "free-shipping-bar": {
           const bar = (_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.freeShippingProgressBar;
           if (!bar)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             FreeShippingBar,
             {
               thresholdMode: bar.thresholdMode || "amount",
@@ -10553,7 +10803,7 @@
           const slides = banner.images || [];
           if (slides.length === 0)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             PromotionalBannerCard,
             {
               slides,
@@ -10570,7 +10820,7 @@
           const products = recommendations.products || [];
           if (products.length === 0)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             ProductRecommendations,
             {
               title: recommendations.title || "You may also like",
@@ -10592,7 +10842,7 @@
           const totalSavings = calculateSavings();
           if (totalSavings <= 0)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             SavingsDisplay,
             {
               message: savingsCfg.message || "You saved {amount}!",
@@ -10607,7 +10857,7 @@
           const msg = (_i = config == null ? void 0 : config.features) == null ? void 0 : _i.freeShippingMessage;
           if (!msg)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             FreeShippingMessage,
             {
               thresholdAmount: parseFloat(msg.thresholdAmount) || 0,
@@ -10625,7 +10875,7 @@
           const couponField = (_j = config == null ? void 0 : config.features) == null ? void 0 : _j.couponCodeField;
           if (!couponField)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             CouponCodeField,
             {
               id: "upsellity-coupon-field",
@@ -10643,13 +10893,32 @@
             }
           ) }, featureId);
         }
+        case "milestones": {
+          const milestones = (_k = config == null ? void 0 : config.features) == null ? void 0 : _k.milestones;
+          if (!milestones || !milestones.length)
+            return null;
+          const cartTotalInRupees = cart.total_price / 100;
+          console.log("\u{1F527} UnifiedCartDrawer - Rendering milestones");
+          console.log("\u{1F3A8} UnifiedCartDrawer - progressBarColor prop:", (_l = config == null ? void 0 : config.features) == null ? void 0 : _l.milestonesProgressBarColor);
+          console.log("\u{1F4E6} UnifiedCartDrawer - full config.features:", config == null ? void 0 : config.features);
+          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+            MilestonesWidget,
+            {
+              milestones,
+              cartTotal: cartTotalInRupees,
+              isPreview: false,
+              progressBarColor: (_m = config == null ? void 0 : config.features) == null ? void 0 : _m.milestonesProgressBarColor,
+              allUnlockedMessage: (_n = config == null ? void 0 : config.features) == null ? void 0 : _n.milestonesAllUnlockedMessage
+            }
+          ) }, featureId);
+        }
         default:
           return null;
       }
     };
     const { beforeItems, afterItems } = getFeatureOrder();
-    return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(import_jsx_runtime10.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
         "button",
         {
           className: "upsellity-close-btn",
@@ -10658,7 +10927,7 @@
           children: "\xD7"
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
         "h2",
         {
           id: "upsellity-cart-header",
@@ -10671,7 +10940,7 @@
         }
       ),
       beforeItems.map(renderFeature),
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
         CartItems,
         {
           items: cart.items,
@@ -10683,7 +10952,7 @@
         }
       ) }),
       afterItems.map(renderFeature),
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
         CartTotals,
         {
           items: cart.items,
@@ -10709,7 +10978,7 @@
           isPreview: false
         }
       ) }),
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
         "button",
         {
           className: "upsellity-checkout-btn",
@@ -10717,7 +10986,7 @@
           children: "Checkout"
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: {
         textAlign: "center",
         fontSize: "12px",
         color: "#6b7280",
@@ -10727,15 +10996,15 @@
         justifyContent: "center",
         gap: "12px"
       }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "4px" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("rect", { x: "3", y: "11", width: "18", height: "11", rx: "2", ry: "2" }),
-            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("path", { d: "M7 11V7a5 5 0 0 1 10 0v4" })
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "4px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("rect", { x: "3", y: "11", width: "18", height: "11", rx: "2", ry: "2" }),
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("path", { d: "M7 11V7a5 5 0 0 1 10 0v4" })
           ] }),
           "Secure Checkout"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: "\u2022" }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: "Free Returns" })
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { children: "\u2022" }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { children: "Free Returns" })
       ] })
     ] });
   };
@@ -10768,7 +11037,7 @@
       await this.loadCart();
     }
     async loadConfig() {
-      var _a;
+      var _a, _b, _c, _d, _e;
       try {
         const appUrl = (_a = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a.dataset.upsellityAppUrl;
         if (!appUrl) {
@@ -10785,13 +11054,57 @@
           }
         });
         this.config = await response.json();
+        console.log("\u{1F527} loadConfig - Full config received:", this.config);
+        console.log("\u{1F3A8} loadConfig - milestonesProgressBarColor:", (_c = (_b = this.config) == null ? void 0 : _b.features) == null ? void 0 : _c.milestonesProgressBarColor);
+        if ((_e = (_d = this.config) == null ? void 0 : _d.features) == null ? void 0 : _e.milestonesEnabled) {
+          await this.loadMilestones();
+        }
       } catch (error) {
         console.error("Upsellity: Failed to load config", error);
         this.config = { enabled: false, features: {} };
       }
     }
+    async loadMilestones() {
+      var _a;
+      try {
+        const appUrl = (_a = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a.dataset.upsellityAppUrl;
+        if (!appUrl)
+          return;
+        const cartTotal = this.cart ? this.cart.total_price / 100 : 0;
+        const cartItemsJson = this.cart ? JSON.stringify(this.cart.items) : "[]";
+        const timestamp = (/* @__PURE__ */ new Date()).getTime();
+        const response = await fetch(
+          `${appUrl}/api/milestones?shop=${this.shop}&cartTotal=${cartTotal}&cartItems=${encodeURIComponent(cartItemsJson)}&_t=${timestamp}`,
+          {
+            cache: "no-store",
+            headers: {
+              "Cache-Control": "no-cache",
+              "Pragma": "no-cache"
+            }
+          }
+        );
+        const data = await response.json();
+        console.log("\u{1F527} loadMilestones - API Response:", data);
+        console.log("\u{1F3A8} loadMilestones - progressBarColor from API:", data.progressBarColor);
+        if (data.milestones) {
+          if (!this.config.features) {
+            this.config.features = {};
+          }
+          this.config.features.milestones = data.milestones;
+        }
+        if (data.progressBarColor) {
+          this.config.features.milestonesProgressBarColor = data.progressBarColor;
+          console.log("\u2705 Updated milestonesProgressBarColor to:", this.config.features.milestonesProgressBarColor);
+        }
+        if (data.allUnlockedMessage) {
+          this.config.features.milestonesAllUnlockedMessage = data.allUnlockedMessage;
+        }
+      } catch (error) {
+        console.error("Upsellity: Failed to load milestones", error);
+      }
+    }
     async loadCart(cartData = null, skipRender = false) {
-      var _a, _b, _c;
+      var _a, _b, _c, _d, _e;
       try {
         if (cartData) {
           this.cart = cartData;
@@ -10802,14 +11115,18 @@
         if (!skipRender) {
           this.render();
         }
-        const [productCompareAtPrices, availableDiscounts] = await Promise.all([
+        const promises = [
           loadProductCompareAtPrices(this.cart),
           loadAvailableDiscounts(this.shop, this.config),
           loadShopifyRecommendations(this.cart, this.config)
-        ]);
+        ];
+        if ((_b = (_a = this.config) == null ? void 0 : _a.features) == null ? void 0 : _b.milestonesEnabled) {
+          promises.push(this.loadMilestones());
+        }
+        const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
         this.productCompareAtPrices = productCompareAtPrices;
         this.availableDiscounts = availableDiscounts;
-        if (((_c = (_b = (_a = this.config) == null ? void 0 : _a.features) == null ? void 0 : _b.couponCodeField) == null ? void 0 : _c.enableAutoApply) && !this.appliedDiscount && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
+        if (((_e = (_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.couponCodeField) == null ? void 0 : _e.enableAutoApply) && !this.appliedDiscount && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
           this.appliedDiscount = autoApplyBestDiscount(this.availableDiscounts, this.cart, this.config);
         }
         if (!skipRender) {
@@ -11031,16 +11348,20 @@
       }
     }
     async loadSecondaryData() {
-      var _a, _b, _c;
+      var _a, _b, _c, _d, _e;
       try {
-        const [productCompareAtPrices, availableDiscounts] = await Promise.all([
+        const promises = [
           loadProductCompareAtPrices(this.cart),
           loadAvailableDiscounts(this.shop, this.config),
           loadShopifyRecommendations(this.cart, this.config)
-        ]);
+        ];
+        if ((_b = (_a = this.config) == null ? void 0 : _a.features) == null ? void 0 : _b.milestonesEnabled) {
+          promises.push(this.loadMilestones());
+        }
+        const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
         this.productCompareAtPrices = productCompareAtPrices;
         this.availableDiscounts = availableDiscounts;
-        if (((_c = (_b = (_a = this.config) == null ? void 0 : _a.features) == null ? void 0 : _b.couponCodeField) == null ? void 0 : _c.enableAutoApply) && !this.appliedDiscount && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
+        if (((_e = (_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.couponCodeField) == null ? void 0 : _e.enableAutoApply) && !this.appliedDiscount && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
           this.appliedDiscount = autoApplyBestDiscount(this.availableDiscounts, this.cart, this.config);
         }
         this.render();
