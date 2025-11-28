@@ -103,6 +103,13 @@ export function MilestonesWidget({
   
   const currentProgressPercent = getCurrentProgressPercent();
   
+  // Get the last milestone position to cap the progress bar
+  const lastMilestone = sortedMilestones[sortedMilestones.length - 1];
+  const lastMilestonePosition = getPosition(lastMilestone.targetAmount);
+  
+  // Cap progress to never exceed the last milestone position
+  const cappedProgressPercent = Math.min(currentProgressPercent, lastMilestonePosition);
+  
   // Find the next milestone to show in the message
   const nextMilestone = sortedMilestones.find(m => m.status !== 'unlocked');
   const allUnlocked = sortedMilestones.every(m => m.status === 'unlocked');
@@ -171,12 +178,15 @@ export function MilestonesWidget({
       }}>
         {/* Progress Bar Background */}
         <div style={{
-          position: 'relative',
+          position: 'absolute',
+          left: 0,
+          top: '50%',
+          transform: 'translateY(-50%)',
           height: '6px',
           backgroundColor: '#e5e7eb',
           borderRadius: '10px',
-          overflow: 'visible',
-          width: '100%',
+          width: `${lastMilestonePosition}%`,
+          zIndex: 0,
         }}>
           {/* Progress Bar Fill */}
           <div
@@ -185,35 +195,36 @@ export function MilestonesWidget({
               left: 0,
               top: 0,
               height: '100%',
-              width: `${Math.max(0, Math.min(currentProgressPercent, 100))}%`,
+              width: lastMilestonePosition > 0 ? `${Math.max(0, Math.min((cappedProgressPercent / lastMilestonePosition) * 100, 100))}%` : '0%',
               background: progressBarGradient,
               borderRadius: '10px',
               transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-              minWidth: currentProgressPercent > 0 ? '4px' : '0',
+              minWidth: cappedProgressPercent > 0 ? '4px' : '0',
               zIndex: 1,
-              display: 'block', 
+              display: 'block',
             }}
             data-progress-bar-color={finalProgressBarColor}
             data-gradient={progressBarGradient}
           />
+        </div>
 
-          {/* Milestone Markers */}
-          {sortedMilestones.map((milestone, index) => {
-            const position = getPosition(milestone.targetAmount);
-            const isUnlocked = milestone.status === 'unlocked';
-            const isInProgress = milestone.status === 'in_progress';
+        {/* Milestone Markers */}
+        {sortedMilestones.map((milestone, index) => {
+          const position = getPosition(milestone.targetAmount);
+          const isUnlocked = milestone.status === 'unlocked';
+          const isInProgress = milestone.status === 'in_progress';
 
-            return (
-              <div
-                key={milestone.id}
-                style={{
-                  position: 'absolute',
-                  left: `${position}%`,
-                  top: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  zIndex: 10,
-                }}
-              >
+          return (
+            <div
+              key={milestone.id}
+              style={{
+                position: 'absolute',
+                left: `${position}%`,
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                zIndex: 10,
+              }}
+            >
                 {/* Milestone Title - Above (Close to Icon, Always Horizontal) */}
                 <div
                   style={{
@@ -308,7 +319,6 @@ export function MilestonesWidget({
               </div>
             );
           })}
-        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.2
- * Built: 2025-11-28T07:43:07.797Z
+ * Built: 2025-11-28T08:30:06.805Z
  */
 "use strict";
 (() => {
@@ -10506,10 +10506,13 @@
           return currentPos + segmentProgress * (nextPos - currentPos);
         }
       }
-      const lastMilestone = sortedMilestones[sortedMilestones.length - 1];
-      return getPosition(lastMilestone.targetAmount);
+      const lastMilestone2 = sortedMilestones[sortedMilestones.length - 1];
+      return getPosition(lastMilestone2.targetAmount);
     };
     const currentProgressPercent = getCurrentProgressPercent();
+    const lastMilestone = sortedMilestones[sortedMilestones.length - 1];
+    const lastMilestonePosition = getPosition(lastMilestone.targetAmount);
+    const cappedProgressPercent = Math.min(currentProgressPercent, lastMilestonePosition);
     const nextMilestone = sortedMilestones.find((m) => m.status !== "unlocked");
     const allUnlocked = sortedMilestones.every((m) => m.status === "unlocked");
     const displayMessage = allUnlocked ? sortedMilestones.length === 1 ? sortedMilestones[0].message : allUnlockedMessage || "\u{1F389} Congratulations! All rewards unlocked!" : (nextMilestone == null ? void 0 : nextMilestone.message) || "";
@@ -10547,20 +10550,23 @@
         fontWeight: "600",
         color: allUnlocked ? "#059669" : "#1f2937"
       }, children: displayMessage }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
         position: "relative",
         paddingTop: sortedMilestones.length === 1 ? "40px" : sortedMilestones.length === 2 ? "36px" : "32px",
         paddingBottom: "32px",
         width: "100%"
-      }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
-        position: "relative",
-        height: "6px",
-        backgroundColor: "#e5e7eb",
-        borderRadius: "10px",
-        overflow: "visible",
-        width: "100%"
       }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: {
+          position: "absolute",
+          left: 0,
+          top: "50%",
+          transform: "translateY(-50%)",
+          height: "6px",
+          backgroundColor: "#e5e7eb",
+          borderRadius: "10px",
+          width: `${lastMilestonePosition}%`,
+          zIndex: 0
+        }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
           "div",
           {
             style: {
@@ -10568,18 +10574,18 @@
               left: 0,
               top: 0,
               height: "100%",
-              width: `${Math.max(0, Math.min(currentProgressPercent, 100))}%`,
+              width: lastMilestonePosition > 0 ? `${Math.max(0, Math.min(cappedProgressPercent / lastMilestonePosition * 100, 100))}%` : "0%",
               background: progressBarGradient,
               borderRadius: "10px",
               transition: "width 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
-              minWidth: currentProgressPercent > 0 ? "4px" : "0",
+              minWidth: cappedProgressPercent > 0 ? "4px" : "0",
               zIndex: 1,
               display: "block"
             },
             "data-progress-bar-color": finalProgressBarColor,
             "data-gradient": progressBarGradient
           }
-        ),
+        ) }),
         sortedMilestones.map((milestone, index) => {
           const position = getPosition(milestone.targetAmount);
           const isUnlocked = milestone.status === "unlocked";
@@ -10693,7 +10699,7 @@
             milestone.id
           );
         })
-      ] }) })
+      ] })
     ] });
   }
 
