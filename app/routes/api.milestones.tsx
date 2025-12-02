@@ -36,6 +36,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
           where: { isActive: true },
           include: {
             targets: true,
+            giftProducts: {
+              orderBy: { position: 'asc' },
+            },
           },
           orderBy: { priority: 'asc' },
         },
@@ -119,6 +122,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         targetAmount: targetAmount,
         rewardType: milestone.rewardType,
         rewardValue: milestone.rewardValue ? parseFloat(milestone.rewardValue.toString()) : null,
+        discountCode: milestone.discountCode,
         icon: milestone.icon,
         status,
         progress,
@@ -128,6 +132,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         iconColor: milestone.iconColor,
         titleColor: milestone.titleColor,
         amountColor: milestone.amountColor,
+        giftProducts: (milestone as any).giftProducts || [],
       };
     });
 

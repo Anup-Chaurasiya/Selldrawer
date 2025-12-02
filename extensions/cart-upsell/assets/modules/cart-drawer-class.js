@@ -10,6 +10,7 @@ import * as CartOps from './cart-operations.js';
 import * as DiscountManager from './discount-manager.js';
 import * as ProductLoader from './product-loader.js';
 import * as AutoApplyStorage from './auto-apply-storage.js';
+import * as MilestoneRewardManager from './milestone-reward-manager.js';
 import { UnifiedCartDrawer } from './components/UnifiedCartDrawer.jsx';
 
 export class UpsellityCartDrawer {
@@ -24,6 +25,9 @@ export class UpsellityCartDrawer {
     this.productCompareAtPrices = {};
     this.reactRoot = null; // Single React root for the entire drawer
     this.cartJustUpdated = false; // Track if cart was just updated via add to cart
+    this.unlockedMilestone = null; // Currently unlocked milestone
+    this.milestones = []; // All milestones from API
+    this.isSyncingGifts = false; // Prevent concurrent gift syncing
     
     this.init();
   }
@@ -93,11 +97,17 @@ export class UpsellityCartDrawer {
       const data = await response.json();
       
       if (data.milestones) {
+        // Store milestones for reward evaluation
+        this.milestones = data.milestones;
+        
         // Store milestones in config for rendering
         if (!this.config.features) {
           this.config.features = {};
         }
         this.config.features.milestones = data.milestones;
+        
+        // Handle milestone rewards (evaluate and sync gifts)
+        await this.handleMilestoneRewards();
       }
       
       // Store progress bar color if provided (always update, even if milestones is empty)
@@ -111,6 +121,34 @@ export class UpsellityCartDrawer {
       }
     } catch (error) {
       console.error('Upsellity: Failed to load milestones', error);
+    }
+  }
+
+  async handleMilestoneRewards() {
+    if (this.isSyncingGifts) {
+      console.log('Upsellity Milestones: Already syncing gifts, skipping...');
+      return;
+    }
+    
+    try {
+      this.isSyncingGifts = true;
+      
+      // Evaluate and handle milestone rewards
+      const previousMilestone = this.unlockedMilestone;
+      this.unlockedMilestone = await MilestoneRewardManager.handleMilestoneRewards(
+        this.milestones,
+        this.cart,
+        this.loadCart.bind(this)
+      );
+      
+      // Show notification if milestone was just unlocked
+      if (this.unlockedMilestone && (!previousMilestone || previousMilestone.id !== this.unlockedMilestone.id)) {
+        MilestoneRewardManager.showMilestoneUnlockedNotification(this.unlockedMilestone);
+      }
+    } catch (error) {
+      console.error('Upsellity Milestones: Error handling rewards', error);
+    } finally {
+      this.isSyncingGifts = false;
     }
   }
 
@@ -387,8 +425,9 @@ export class UpsellityCartDrawer {
         availableDiscounts: this.availableDiscounts,
         productCompareAtPrices: this.productCompareAtPrices,
         showingAllOffers: this.showingAllOffers,
+        unlockedMilestone: this.unlockedMilestone,
         onClose: () => this.close(),
-        onCheckout: () => window.location.href = DiscountManager.getCheckoutUrl(this.appliedDiscount),
+        onCheckout: () => this.handleCheckout(),
         onAddProductToCart: (variantId) => this.addProductToCart(variantId),
         onUpdateQuantity: (itemKey, newQuantity) => this.updateQuantity(itemKey, newQuantity),
         onRemoveItem: (itemKey) => this.removeItem(itemKey),
@@ -486,6 +525,59 @@ export class UpsellityCartDrawer {
   handleSlideCtaClick(url) {
     if (url) {
       window.location.href = url;
+    }
+  }
+
+  // Handle checkout with milestone rewards
+  async handleCheckout() {
+    try {
+      // Priority 1: Use milestone discount if available
+      if (this.unlockedMilestone && this.unlockedMilestone.discountCode) {
+        // Validate milestone before checkout
+        const validation = await MilestoneRewardManager.validateMilestoneForCheckout(
+          this.unlockedMilestone,
+          this.cart
+        );
+        
+        if (!validation.valid) {
+          showNotification(validation.message, 'info');
+          
+          // If gifts are missing, try to sync them
+          if (this.unlockedMilestone.rewardType === 'gift_wrapping') {
+            await this.handleMilestoneRewards();
+            
+            // Wait a bit and try again
+            setTimeout(() => {
+              this.handleCheckout();
+            }, 500);
+          }
+          
+          return;
+        }
+        
+        // Proceed to checkout with milestone discount
+        const checkoutUrl = MilestoneRewardManager.getCheckoutUrlWithDiscount(this.unlockedMilestone);
+        window.location.href = checkoutUrl;
+        return;
+      }
+      
+      // Priority 2: Use manually applied discount (coupon code)
+      if (this.appliedDiscount && this.appliedDiscount.code) {
+        const checkoutUrl = DiscountManager.getCheckoutUrl(this.appliedDiscount);
+        window.location.href = checkoutUrl;
+        return;
+      }
+      
+      // Priority 3: No discount, proceed to normal checkout
+      window.location.href = '/checkout';
+    } catch (error) {
+      console.error('Upsellity: Error during checkout', error);
+      showNotification('An error occurred. Proceeding to checkout...', 'error');
+      
+      // Fallback to normal checkout
+      setTimeout(() => {
+        window.location.href = '/checkout';
+      }, 1000);
     }
   }
 

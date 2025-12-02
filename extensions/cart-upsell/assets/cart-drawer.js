@@ -1,6 +1,6 @@
 /**
- * Upsellity Cart Drawer v1.0.2
- * Built: 2025-12-01T09:31:47.689Z
+ * Upsellity Cart Drawer v1.0.3
+ * Built: 2025-12-02T08:47:44.625Z
  */
 "use strict";
 (() => {
@@ -47,9 +47,9 @@
     mod
   ));
 
-  // node_modules/react/cjs/react.production.min.js
+  // ../../node_modules/react/cjs/react.production.min.js
   var require_react_production_min = __commonJS({
-    "node_modules/react/cjs/react.production.min.js"(exports) {
+    "../../node_modules/react/cjs/react.production.min.js"(exports) {
       "use strict";
       var l = Symbol.for("react.element");
       var n = Symbol.for("react.portal");
@@ -346,9 +346,9 @@
     }
   });
 
-  // node_modules/react/index.js
+  // ../../node_modules/react/index.js
   var require_react = __commonJS({
-    "node_modules/react/index.js"(exports, module) {
+    "../../node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production_min();
@@ -358,9 +358,9 @@
     }
   });
 
-  // node_modules/scheduler/cjs/scheduler.production.min.js
+  // ../../node_modules/scheduler/cjs/scheduler.production.min.js
   var require_scheduler_production_min = __commonJS({
-    "node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
+    "../../node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
       "use strict";
       function f(a, b) {
         var c = a.length;
@@ -629,9 +629,9 @@
     }
   });
 
-  // node_modules/scheduler/index.js
+  // ../../node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "node_modules/scheduler/index.js"(exports, module) {
+    "../../node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production_min();
@@ -641,9 +641,9 @@
     }
   });
 
-  // node_modules/react-dom/cjs/react-dom.production.min.js
+  // ../../node_modules/react-dom/cjs/react-dom.production.min.js
   var require_react_dom_production_min = __commonJS({
-    "node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
+    "../../node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
       "use strict";
       var aa = require_react();
       var ca = require_scheduler();
@@ -7781,9 +7781,9 @@
     }
   });
 
-  // node_modules/react-dom/index.js
+  // ../../node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "node_modules/react-dom/index.js"(exports, module) {
+    "../../node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -7807,9 +7807,9 @@
     }
   });
 
-  // node_modules/react-dom/client.js
+  // ../../node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "node_modules/react-dom/client.js"(exports) {
+    "../../node_modules/react-dom/client.js"(exports) {
       "use strict";
       var m = require_react_dom();
       if (true) {
@@ -7838,9 +7838,9 @@
     }
   });
 
-  // node_modules/react/cjs/react-jsx-runtime.production.min.js
+  // ../../node_modules/react/cjs/react-jsx-runtime.production.min.js
   var require_react_jsx_runtime_production_min = __commonJS({
-    "node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
+    "../../node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
       "use strict";
       var f = require_react();
       var k = Symbol.for("react.element");
@@ -7866,9 +7866,9 @@
     }
   });
 
-  // node_modules/react/jsx-runtime.js
+  // ../../node_modules/react/jsx-runtime.js
   var require_jsx_runtime = __commonJS({
-    "node_modules/react/jsx-runtime.js"(exports, module) {
+    "../../node_modules/react/jsx-runtime.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_jsx_runtime_production_min();
@@ -7878,11 +7878,11 @@
     }
   });
 
-  // extensions/cart-upsell/assets/modules/cart-drawer-class.js
+  // assets/modules/cart-drawer-class.js
   var import_react6 = __toESM(require_react(), 1);
   var import_client = __toESM(require_client(), 1);
 
-  // extensions/cart-upsell/assets/modules/utils.js
+  // assets/modules/utils.js
   function formatMoney(cents) {
     const amount = cents / 100;
     return `\u20B9${Math.round(amount)}`;
@@ -7915,7 +7915,7 @@
     }, 3e3);
   }
 
-  // extensions/cart-upsell/assets/modules/cart-operations.js
+  // assets/modules/cart-operations.js
   async function addProductToCart(variantId, quantity = 1, loadCartCallback) {
     try {
       if (!variantId) {
@@ -8117,7 +8117,7 @@
     }
   }
 
-  // extensions/cart-upsell/assets/modules/discount-manager.js
+  // assets/modules/discount-manager.js
   async function loadAvailableDiscounts(shop, config) {
     var _a, _b;
     const couponField = (_a = config == null ? void 0 : config.features) == null ? void 0 : _a.couponCodeField;
@@ -8318,7 +8318,7 @@
     return "/checkout";
   }
 
-  // extensions/cart-upsell/assets/modules/product-loader.js
+  // assets/modules/product-loader.js
   async function loadProductCompareAtPrices(cart) {
     const productCompareAtPrices = {};
     if (!cart || !cart.items) {
@@ -8445,7 +8445,7 @@
     }
   }
 
-  // extensions/cart-upsell/assets/modules/auto-apply-storage.js
+  // assets/modules/auto-apply-storage.js
   var STORAGE_KEY = "upsellity_discount_removed";
   var EXPIRATION_MINUTES = 15;
   function markDiscountRemoved() {
@@ -8485,10 +8485,249 @@
     }
   }
 
-  // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
+  // assets/modules/milestone-reward-manager.js
+  var GIFT_PROPERTY_KEY = "_upsellity_gift";
+  var GIFT_PROPERTY_VALUE = "true";
+  var GIFT_MILESTONE_ID_KEY = "_upsellity_milestone_id";
+  function evaluateMilestones(milestones, cart) {
+    if (!milestones || milestones.length === 0 || !cart) {
+      return null;
+    }
+    const cartTotalExcludingGifts = calculateCartTotalExcludingGifts(cart);
+    const cartTotalInRupees = cartTotalExcludingGifts / 100;
+    const unlockedMilestones = milestones.filter((milestone) => {
+      return cartTotalInRupees >= milestone.targetAmount;
+    });
+    if (unlockedMilestones.length === 0) {
+      return null;
+    }
+    const sortedUnlocked = [...unlockedMilestones].sort((a, b) => b.targetAmount - a.targetAmount);
+    return sortedUnlocked[0];
+  }
+  function calculateCartTotalExcludingGifts(cart) {
+    if (!cart || !cart.items) {
+      return 0;
+    }
+    let total = 0;
+    for (const item of cart.items) {
+      const isGift = item.properties && (item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+      if (!isGift) {
+        total += item.final_line_price || item.line_price || item.price * item.quantity;
+      }
+    }
+    return total;
+  }
+  function findGiftInCart(cart, variantId, milestoneId) {
+    if (!cart || !cart.items || !variantId) {
+      return null;
+    }
+    const normalizedVariantId = normalizeVariantId(variantId);
+    return cart.items.find((item) => {
+      const itemVariantId = normalizeVariantId(item.variant_id || item.id);
+      const isGift = item.properties && (item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+      if (isGift && itemVariantId === normalizedVariantId) {
+        if (milestoneId && item.properties[GIFT_MILESTONE_ID_KEY]) {
+          return item.properties[GIFT_MILESTONE_ID_KEY] === milestoneId;
+        }
+        return true;
+      }
+      return false;
+    });
+  }
+  function getAllGiftsInCart(cart) {
+    if (!cart || !cart.items) {
+      return [];
+    }
+    return cart.items.filter((item) => {
+      return item.properties && (item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+    });
+  }
+  async function addGiftToCart(giftProduct, milestoneId) {
+    if (!giftProduct || !giftProduct.shopifyVariantId) {
+      console.error("Upsellity Milestones: Invalid gift product", giftProduct);
+      return false;
+    }
+    try {
+      const variantId = normalizeVariantId(giftProduct.shopifyVariantId);
+      const formData = new FormData();
+      formData.append("id", variantId);
+      formData.append("quantity", "1");
+      formData.append(`properties[${GIFT_PROPERTY_KEY}]`, GIFT_PROPERTY_VALUE);
+      formData.append(`properties[${GIFT_MILESTONE_ID_KEY}]`, milestoneId);
+      formData.append("properties[_gift_title]", giftProduct.title || "Free Gift");
+      const response = await fetch("/cart/add.js", {
+        method: "POST",
+        body: formData
+      });
+      if (response.ok) {
+        console.log("Upsellity Milestones: Gift added to cart", giftProduct.title);
+        return true;
+      } else {
+        const error = await response.json();
+        console.error("Upsellity Milestones: Failed to add gift", error);
+        return false;
+      }
+    } catch (error) {
+      console.error("Upsellity Milestones: Error adding gift to cart", error);
+      return false;
+    }
+  }
+  async function removeGiftFromCart(itemKey) {
+    if (!itemKey) {
+      return false;
+    }
+    try {
+      const response = await fetch("/cart/change.js", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: itemKey,
+          quantity: 0
+        })
+      });
+      if (response.ok) {
+        console.log("Upsellity Milestones: Gift removed from cart");
+        return true;
+      } else {
+        console.error("Upsellity Milestones: Failed to remove gift");
+        return false;
+      }
+    } catch (error) {
+      console.error("Upsellity Milestones: Error removing gift from cart", error);
+      return false;
+    }
+  }
+  async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback) {
+    let cartModified = false;
+    const currentGifts = getAllGiftsInCart(cart);
+    if (!unlockedMilestone) {
+      for (const giftItem of currentGifts) {
+        await removeGiftFromCart(giftItem.key);
+        cartModified = true;
+      }
+      if (cartModified && loadCartCallback) {
+        await loadCartCallback();
+      }
+      return cartModified;
+    }
+    if (unlockedMilestone.rewardType !== "gift_wrapping") {
+      for (const giftItem of currentGifts) {
+        await removeGiftFromCart(giftItem.key);
+        cartModified = true;
+      }
+      if (cartModified && loadCartCallback) {
+        await loadCartCallback();
+      }
+      return cartModified;
+    }
+    const giftProducts = unlockedMilestone.giftProducts || [];
+    if (giftProducts.length === 0) {
+      console.warn("Upsellity Milestones: Gift reward has no products configured");
+      return false;
+    }
+    for (const giftItem of currentGifts) {
+      const belongsToThisMilestone = giftItem.properties && giftItem.properties[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
+      if (!belongsToThisMilestone) {
+        await removeGiftFromCart(giftItem.key);
+        cartModified = true;
+      }
+    }
+    for (const giftProduct of giftProducts) {
+      const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
+      if (!existingGift) {
+        const added = await addGiftToCart(giftProduct, unlockedMilestone.id);
+        if (added) {
+          cartModified = true;
+        }
+      }
+    }
+    if (cartModified && loadCartCallback) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      await loadCartCallback();
+    }
+    return cartModified;
+  }
+  function getCheckoutUrlWithDiscount(unlockedMilestone) {
+    if (!unlockedMilestone || !unlockedMilestone.discountCode) {
+      return "/checkout";
+    }
+    return `/checkout?discount=${encodeURIComponent(unlockedMilestone.discountCode)}`;
+  }
+  async function validateMilestoneForCheckout(unlockedMilestone, cart) {
+    if (!unlockedMilestone) {
+      return { valid: true, message: "" };
+    }
+    if (!unlockedMilestone.discountCode) {
+      console.error("Upsellity Milestones: No discount code configured for milestone", unlockedMilestone.title);
+      return {
+        valid: false,
+        message: "Milestone reward is not properly configured. Please contact support."
+      };
+    }
+    if (unlockedMilestone.rewardType === "gift_wrapping") {
+      const giftProducts = unlockedMilestone.giftProducts || [];
+      if (giftProducts.length > 0) {
+        let allGiftsPresent = true;
+        for (const giftProduct of giftProducts) {
+          const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
+          if (!existingGift) {
+            allGiftsPresent = false;
+            break;
+          }
+        }
+        if (!allGiftsPresent) {
+          return {
+            valid: false,
+            message: "Adding your free gift... Please wait."
+          };
+        }
+      }
+    }
+    return { valid: true, message: "" };
+  }
+  function normalizeVariantId(variantId) {
+    if (!variantId)
+      return "";
+    const idString = String(variantId);
+    if (idString.includes("gid://shopify/ProductVariant/")) {
+      return idString.replace("gid://shopify/ProductVariant/", "");
+    }
+    return idString;
+  }
+  function showMilestoneUnlockedNotification(milestone) {
+    if (!milestone)
+      return;
+    const rewardText = getRewardDescription(milestone);
+    showNotification(`\u{1F389} Milestone Unlocked: ${milestone.title}! ${rewardText}`, "success");
+  }
+  function getRewardDescription(milestone) {
+    if (!milestone)
+      return "";
+    switch (milestone.rewardType) {
+      case "free_shipping":
+        return "Free shipping will be applied at checkout!";
+      case "discount_percentage":
+        return `${milestone.rewardValue}% discount will be applied at checkout!`;
+      case "discount_fixed":
+        return `\u20B9${milestone.rewardValue} discount will be applied at checkout!`;
+      case "gift_wrapping":
+        return "Your free gift has been added to cart!";
+      default:
+        return "Reward will be applied at checkout!";
+    }
+  }
+  async function handleMilestoneRewards(milestones, cart, loadCartCallback) {
+    const unlockedMilestone = evaluateMilestones(milestones, cart);
+    const cartModified = await syncGiftProducts(unlockedMilestone, cart, loadCartCallback);
+    return unlockedMilestone;
+  }
+
+  // assets/modules/components/UnifiedCartDrawer.jsx
   var import_react5 = __toESM(require_react(), 1);
 
-  // app/components/shared/FreeShippingBar.tsx
+  // ../../app/components/shared/FreeShippingBar.tsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
   var FreeShippingBar = ({
     thresholdMode,
@@ -8592,7 +8831,7 @@
     ] });
   };
 
-  // app/components/shared/PromotionalBannerCard.tsx
+  // ../../app/components/shared/PromotionalBannerCard.tsx
   var import_react = __toESM(require_react(), 1);
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
   var getYouTubeEmbedUrl = (url) => {
@@ -9265,7 +9504,7 @@
     ] });
   };
 
-  // app/components/shared/CartItems.tsx
+  // ../../app/components/shared/CartItems.tsx
   var import_react2 = __toESM(require_react(), 1);
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
   var CartItemRow = ({
@@ -9621,7 +9860,7 @@
     )) });
   };
 
-  // app/components/shared/ProductRecommendations.tsx
+  // ../../app/components/shared/ProductRecommendations.tsx
   var import_react3 = __toESM(require_react(), 1);
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
   var ProductRecommendations = ({
@@ -9985,7 +10224,7 @@
     ] });
   };
 
-  // app/components/shared/SavingsDisplay.tsx
+  // ../../app/components/shared/SavingsDisplay.tsx
   var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
   var SavingsDisplay = ({
     message,
@@ -10014,7 +10253,7 @@
     }, children: formattedMessage });
   };
 
-  // app/components/shared/FreeShippingMessage.tsx
+  // ../../app/components/shared/FreeShippingMessage.tsx
   var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
   var FreeShippingMessage = ({
     thresholdAmount,
@@ -10069,7 +10308,7 @@
     ] });
   };
 
-  // app/components/shared/CouponCodeField.tsx
+  // ../../app/components/shared/CouponCodeField.tsx
   var import_react4 = __toESM(require_react(), 1);
   var import_jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
   var CheckIcon = ({ size = 16, color = "currentColor" }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "3", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("polyline", { points: "20 6 9 17 4 12" }) });
@@ -10315,7 +10554,7 @@
     ] });
   };
 
-  // app/components/shared/CartTotals.tsx
+  // ../../app/components/shared/CartTotals.tsx
   var import_jsx_runtime8 = __toESM(require_jsx_runtime(), 1);
   var CartTotals = ({
     items,
@@ -10457,7 +10696,7 @@
     ] });
   };
 
-  // app/components/shared/MilestonesWidget.tsx
+  // ../../app/components/shared/MilestonesWidget.tsx
   var import_jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
   function MilestonesWidget({
     milestones,
@@ -10703,7 +10942,7 @@
     ] });
   }
 
-  // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
+  // assets/modules/components/UnifiedCartDrawer.jsx
   var import_jsx_runtime10 = __toESM(require_jsx_runtime(), 1);
   var UnifiedCartDrawer = ({
     config,
@@ -10712,6 +10951,7 @@
     availableDiscounts,
     productCompareAtPrices,
     showingAllOffers,
+    unlockedMilestone,
     onClose,
     onCheckout,
     onAddProductToCart,
@@ -10945,6 +11185,33 @@
         }
       ) }),
       afterItems.map(renderFeature),
+      unlockedMilestone && unlockedMilestone.discountCode && /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: {
+        marginBottom: "12px",
+        padding: "12px",
+        backgroundColor: "#dcfce7",
+        border: "1px solid #86efac",
+        borderRadius: "8px",
+        display: "flex",
+        alignItems: "center",
+        gap: "8px"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { style: { fontSize: "20px" }, children: unlockedMilestone.icon || "\u{1F381}" }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: { flex: 1 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: { fontSize: "13px", fontWeight: "600", color: "#15803d", marginBottom: "2px" }, children: [
+            unlockedMilestone.title,
+            " Unlocked!"
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { fontSize: "12px", color: "#166534" }, children: unlockedMilestone.rewardType === "gift_wrapping" ? "Free gift added to your cart" : `Discount code ${unlockedMilestone.discountCode} will be applied at checkout` })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: {
+          backgroundColor: "#15803d",
+          color: "white",
+          padding: "4px 8px",
+          borderRadius: "4px",
+          fontSize: "11px",
+          fontWeight: "600"
+        }, children: "\u2713 ACTIVE" })
+      ] }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
         CartTotals,
         {
@@ -11002,7 +11269,7 @@
     ] });
   };
 
-  // extensions/cart-upsell/assets/modules/cart-drawer-class.js
+  // assets/modules/cart-drawer-class.js
   var UpsellityCartDrawer = class {
     constructor() {
       var _a;
@@ -11016,6 +11283,9 @@
       this.productCompareAtPrices = {};
       this.reactRoot = null;
       this.cartJustUpdated = false;
+      this.unlockedMilestone = null;
+      this.milestones = [];
+      this.isSyncingGifts = false;
       this.init();
     }
     async init() {
@@ -11076,10 +11346,12 @@
         );
         const data = await response.json();
         if (data.milestones) {
+          this.milestones = data.milestones;
           if (!this.config.features) {
             this.config.features = {};
           }
           this.config.features.milestones = data.milestones;
+          await this.handleMilestoneRewards();
         }
         if (data.progressBarColor) {
           this.config.features.milestonesProgressBarColor = data.progressBarColor;
@@ -11089,6 +11361,28 @@
         }
       } catch (error) {
         console.error("Upsellity: Failed to load milestones", error);
+      }
+    }
+    async handleMilestoneRewards() {
+      if (this.isSyncingGifts) {
+        console.log("Upsellity Milestones: Already syncing gifts, skipping...");
+        return;
+      }
+      try {
+        this.isSyncingGifts = true;
+        const previousMilestone = this.unlockedMilestone;
+        this.unlockedMilestone = await handleMilestoneRewards(
+          this.milestones,
+          this.cart,
+          this.loadCart.bind(this)
+        );
+        if (this.unlockedMilestone && (!previousMilestone || previousMilestone.id !== this.unlockedMilestone.id)) {
+          showMilestoneUnlockedNotification(this.unlockedMilestone);
+        }
+      } catch (error) {
+        console.error("Upsellity Milestones: Error handling rewards", error);
+      } finally {
+        this.isSyncingGifts = false;
       }
     }
     async loadCart(cartData = null, skipRender = false) {
@@ -11288,8 +11582,9 @@
           availableDiscounts: this.availableDiscounts,
           productCompareAtPrices: this.productCompareAtPrices,
           showingAllOffers: this.showingAllOffers,
+          unlockedMilestone: this.unlockedMilestone,
           onClose: () => this.close(),
-          onCheckout: () => window.location.href = getCheckoutUrl(this.appliedDiscount),
+          onCheckout: () => this.handleCheckout(),
           onAddProductToCart: (variantId) => this.addProductToCart(variantId),
           onUpdateQuantity: (itemKey, newQuantity) => this.updateQuantity(itemKey, newQuantity),
           onRemoveItem: (itemKey) => this.removeItem(itemKey),
@@ -11360,6 +11655,42 @@
         window.location.href = url;
       }
     }
+    // Handle checkout with milestone rewards
+    async handleCheckout() {
+      try {
+        if (this.unlockedMilestone && this.unlockedMilestone.discountCode) {
+          const validation = await validateMilestoneForCheckout(
+            this.unlockedMilestone,
+            this.cart
+          );
+          if (!validation.valid) {
+            showNotification(validation.message, "info");
+            if (this.unlockedMilestone.rewardType === "gift_wrapping") {
+              await this.handleMilestoneRewards();
+              setTimeout(() => {
+                this.handleCheckout();
+              }, 500);
+            }
+            return;
+          }
+          const checkoutUrl = getCheckoutUrlWithDiscount(this.unlockedMilestone);
+          window.location.href = checkoutUrl;
+          return;
+        }
+        if (this.appliedDiscount && this.appliedDiscount.code) {
+          const checkoutUrl = getCheckoutUrl(this.appliedDiscount);
+          window.location.href = checkoutUrl;
+          return;
+        }
+        window.location.href = "/checkout";
+      } catch (error) {
+        console.error("Upsellity: Error during checkout", error);
+        showNotification("An error occurred. Proceeding to checkout...", "error");
+        setTimeout(() => {
+          window.location.href = "/checkout";
+        }, 1e3);
+      }
+    }
     // Cart operations
     async addProductToCart(variantId, quantity = 1) {
       await addProductToCart(variantId, quantity, this.loadCart.bind(this));
@@ -11419,8 +11750,8 @@
     }
   };
 
-  // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var CART_DRAWER_VERSION = true ? "1.0.2" : "dev";
+  // assets/modules/cart-drawer-entry.js
+  var CART_DRAWER_VERSION = true ? "1.0.3" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {
       window.upsellityDrawer = new UpsellityCartDrawer();

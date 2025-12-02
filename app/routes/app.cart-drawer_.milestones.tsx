@@ -27,6 +27,7 @@ import { DeleteIcon, PlusIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { MilestonesWidget } from "../components/shared/MilestonesWidget";
+import { createMilestoneDiscount, updateMilestoneDiscount, deleteShopifyDiscount } from "../utils/shopify-discount.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -170,7 +171,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
 
   const formData = await request.formData();
@@ -210,6 +211,43 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const titleColor = formData.get("titleColor") as string;
     const amountColor = formData.get("amountColor") as string;
 
+    // Parse gift products first (needed for discount creation)
+    let giftProducts: any[] = [];
+    if (rewardType === "gift_wrapping") {
+      const giftProductsJson = formData.get("giftProducts") as string;
+      if (giftProductsJson) {
+        giftProducts = JSON.parse(giftProductsJson);
+      }
+      
+      // Validate that at least one gift product is selected
+      if (giftProducts.length === 0) {
+        return json({ error: "Please select at least one gift product" }, { status: 400 });
+      }
+      
+      // Validate that all gift products have variant IDs
+      const hasInvalidProducts = giftProducts.some(p => !p.shopifyVariantId);
+      if (hasInvalidProducts) {
+        return json({ error: "All gift products must have valid variants" }, { status: 400 });
+      }
+    }
+
+    // Validate reward value for discount types
+    if ((rewardType === "discount_percentage" || rewardType === "discount_fixed") && !rewardValue) {
+      return json({ error: "Please enter a discount value" }, { status: 400 });
+    }
+
+    // Create Shopify discount automatically
+    const discountResult = await createMilestoneDiscount(admin, {
+      title,
+      rewardType,
+      rewardValue,
+      giftProducts,
+    });
+
+    if (!discountResult) {
+      return json({ error: "Failed to create Shopify discount. Please check your configuration and try again." }, { status: 500 });
+    }
+
     // Get the highest priority and add 1
     const highestPriority = await prisma.cartMilestone.findFirst({
       where: { cartDrawerId: cartDrawer.id },
@@ -227,6 +265,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         targetAmount,
         rewardType,
         rewardValue,
+        discountCode: discountResult.code,
+        shopifyDiscountId: discountResult.discountId,
         targetType,
         priority,
         icon,
@@ -240,26 +280,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
 
     // Add gift products if applicable
-    if (rewardType === "gift_wrapping") {
-      const giftProductsJson = formData.get("giftProducts") as string;
-      if (giftProductsJson) {
-        const giftProducts = JSON.parse(giftProductsJson);
-        for (let i = 0; i < giftProducts.length; i++) {
-          const product = giftProducts[i];
-          await prisma.cartMilestoneGiftProduct.create({
-            data: {
-              milestoneId: milestone.id,
-              shopifyProductId: product.shopifyProductId,
-              shopifyVariantId: product.shopifyVariantId || null,
-              title: product.title,
-              price: product.price,
-              compareAtPrice: product.compareAtPrice || null,
-              imageUrl: product.imageUrl || null,
-              handle: product.handle,
-              position: i,
-            }
-          });
-        }
+    if (rewardType === "gift_wrapping" && giftProducts.length > 0) {
+      for (let i = 0; i < giftProducts.length; i++) {
+        const product = giftProducts[i];
+        await prisma.cartMilestoneGiftProduct.create({
+          data: {
+            milestoneId: milestone.id,
+            shopifyProductId: product.shopifyProductId,
+            shopifyVariantId: product.shopifyVariantId || null,
+            title: product.title,
+            price: product.price,
+            compareAtPrice: product.compareAtPrice || null,
+            imageUrl: product.imageUrl || null,
+            handle: product.handle,
+            position: i,
+          }
+        });
       }
     }
 
@@ -281,6 +317,53 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const titleColor = formData.get("titleColor") as string;
     const amountColor = formData.get("amountColor") as string;
 
+    // Get existing milestone to retrieve old discount ID
+    const existingMilestone = await prisma.cartMilestone.findUnique({
+      where: { id: milestoneId },
+      select: { shopifyDiscountId: true } as any
+    }) as { shopifyDiscountId: string | null } | null;
+
+    // Parse gift products first (needed for discount creation)
+    let giftProducts: any[] = [];
+    if (rewardType === "gift_wrapping") {
+      const giftProductsJson = formData.get("giftProducts") as string;
+      if (giftProductsJson) {
+        giftProducts = JSON.parse(giftProductsJson);
+      }
+      
+      // Validate that at least one gift product is selected
+      if (giftProducts.length === 0) {
+        return json({ error: "Please select at least one gift product" }, { status: 400 });
+      }
+      
+      // Validate that all gift products have variant IDs
+      const hasInvalidProducts = giftProducts.some(p => !p.shopifyVariantId);
+      if (hasInvalidProducts) {
+        return json({ error: "All gift products must have valid variants" }, { status: 400 });
+      }
+    }
+
+    // Validate reward value for discount types
+    if ((rewardType === "discount_percentage" || rewardType === "discount_fixed") && !rewardValue) {
+      return json({ error: "Please enter a discount value" }, { status: 400 });
+    }
+
+    // Update Shopify discount (delete old, create new)
+    const discountResult = await updateMilestoneDiscount(
+      admin,
+      existingMilestone?.shopifyDiscountId || null,
+      {
+        title,
+        rewardType,
+        rewardValue,
+        giftProducts,
+      }
+    );
+
+    if (!discountResult) {
+      return json({ error: "Failed to update Shopify discount. Please check your configuration and try again." }, { status: 500 });
+    }
+
     await prisma.cartMilestone.update({
       where: { id: milestoneId },
       data: {
@@ -288,6 +371,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         targetAmount,
         rewardType,
         rewardValue,
+        discountCode: discountResult.code,
+        shopifyDiscountId: discountResult.discountId,
         targetType,
         icon,
         unlockedMessage,
@@ -304,26 +389,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       where: { milestoneId }
     });
 
-    if (rewardType === "gift_wrapping") {
-      const giftProductsJson = formData.get("giftProducts") as string;
-      if (giftProductsJson) {
-        const giftProducts = JSON.parse(giftProductsJson);
-        for (let i = 0; i < giftProducts.length; i++) {
-          const product = giftProducts[i];
-          await prisma.cartMilestoneGiftProduct.create({
-            data: {
-              milestoneId,
-              shopifyProductId: product.shopifyProductId,
-              shopifyVariantId: product.shopifyVariantId || null,
-              title: product.title,
-              price: product.price,
-              compareAtPrice: product.compareAtPrice || null,
-              imageUrl: product.imageUrl || null,
-              handle: product.handle,
-              position: i,
-            }
-          });
-        }
+    if (rewardType === "gift_wrapping" && giftProducts.length > 0) {
+      for (let i = 0; i < giftProducts.length; i++) {
+        const product = giftProducts[i];
+        await prisma.cartMilestoneGiftProduct.create({
+          data: {
+            milestoneId,
+            shopifyProductId: product.shopifyProductId,
+            shopifyVariantId: product.shopifyVariantId || null,
+            title: product.title,
+            price: product.price,
+            compareAtPrice: product.compareAtPrice || null,
+            imageUrl: product.imageUrl || null,
+            handle: product.handle,
+            position: i,
+          }
+        });
       }
     }
 
@@ -332,9 +413,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "delete-milestone") {
     const milestoneId = formData.get("milestoneId") as string;
+    
+    // Get milestone to retrieve discount ID
+    const milestone = await prisma.cartMilestone.findUnique({
+      where: { id: milestoneId },
+      select: { shopifyDiscountId: true } as any
+    }) as { shopifyDiscountId: string | null } | null;
+
+    // Delete from Shopify if discount exists
+    if (milestone?.shopifyDiscountId) {
+      await deleteShopifyDiscount(admin, milestone.shopifyDiscountId);
+    }
+
+    // Delete from database
     await prisma.cartMilestone.delete({
       where: { id: milestoneId }
     });
+    
     return json({ success: true });
   }
 
@@ -919,7 +1014,9 @@ export default function CartMilestones() {
           content: editingMilestone ? "Update" : "Add",
           onAction: handleSaveMilestone,
           loading: isSubmitting,
-          disabled: !formState.title || !formState.targetAmount,
+          disabled: !formState.title || !formState.targetAmount || 
+            (formState.rewardType === "gift_wrapping" && selectedGiftProducts.length === 0) ||
+            ((formState.rewardType === "discount_percentage" || formState.rewardType === "discount_fixed") && !formState.rewardValue),
         }}
         secondaryActions={[
           {
@@ -983,11 +1080,42 @@ export default function CartMilestones() {
                 />
               )}
 
+              <Banner tone="info">
+                <BlockStack gap="200">
+                  <Text as="p" variant="bodyMd">
+                    <strong>Auto-Generated Discount Code</strong>
+                  </Text>
+                  <Text as="p" variant="bodySm">
+                    A unique discount code will be automatically created in your Shopify admin when you save this milestone.
+                    The code format will be based on the reward type:
+                  </Text>
+                  <div style={{ paddingLeft: '16px' }}>
+                    <Text as="p" variant="bodySm">• Free Shipping: <strong>FREESHIP...</strong></Text>
+                    <Text as="p" variant="bodySm">• Percentage Discount: <strong>SAVE...</strong></Text>
+                    <Text as="p" variant="bodySm">• Fixed Discount: <strong>OFF...</strong></Text>
+                    <Text as="p" variant="bodySm">• Gift: <strong>GIFT...</strong></Text>
+                  </div>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    The discount will be applied automatically at checkout when customers reach this milestone.
+                  </Text>
+                </BlockStack>
+              </Banner>
+
               {formState.rewardType === "gift_wrapping" && (
                 <BlockStack gap="400">
-                  <Text as="h3" variant="headingMd">
-                    Gift Products (Select up to 3)
-                  </Text>
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="h3" variant="headingMd">
+                      Gift Products (Required - Select up to 3)
+                    </Text>
+                    {selectedGiftProducts.length > 0 && (
+                      <Badge tone="success">{`${selectedGiftProducts.length} selected`}</Badge>
+                    )}
+                  </InlineStack>
+                  {selectedGiftProducts.length === 0 && (
+                    <Banner tone="warning">
+                      <p>Please select at least one gift product to continue.</p>
+                    </Banner>
+                  )}
                   <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(3, 1fr)',
@@ -1010,7 +1138,7 @@ export default function CartMilestones() {
                           {giftProduct ? (
                             <>
                               <img
-                                src={giftProduct.imageUrl || "https://via.placeholder.com/100x100"}
+                                src={giftProduct.imageUrl || "https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-image_large.png"}
                                 alt={giftProduct.title}
                                 style={{
                                   width: '100px',
@@ -1219,7 +1347,7 @@ export default function CartMilestones() {
                         }}
                       >
                         <img
-                          src={product.images?.[0]?.src || "https://via.placeholder.com/40x40"}
+                          src={product.images?.[0]?.src || "https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-image_large.png"}
                           alt={product.title}
                           style={{
                             width: '40px',
