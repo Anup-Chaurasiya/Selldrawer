@@ -7,7 +7,7 @@ import { showNotification } from './utils.js';
 /**
  * Add product to cart by variant ID
  */
-export async function addProductToCart(variantId, quantity = 1, loadCartCallback) {
+export async function addProductToCart(variantId, quantity = 1, loadCartCallback, properties = {}) {
   try {
     if (!variantId) {
       throw new Error('No variant ID provided');
@@ -19,6 +19,11 @@ export async function addProductToCart(variantId, quantity = 1, loadCartCallback
       const formData = new FormData();
       formData.append('id', variantId);
       formData.append('quantity', quantity.toString());
+      
+      // Add properties if provided
+      Object.keys(properties).forEach(key => {
+        formData.append(`properties[${key}]`, properties[key]);
+      });
 
       const response = await fetch('/cart/add.js', {
         method: 'POST',
@@ -35,7 +40,7 @@ export async function addProductToCart(variantId, quantity = 1, loadCartCallback
       }
     } else {
       // It's a product handle - fetch product and use first variant
-      await addProductToCartByHandle(variantId, null, quantity, loadCartCallback);
+      await addProductToCartByHandle(variantId, null, quantity, loadCartCallback, properties);
     }
   } catch (error) {
     console.error('Error adding product to cart:', error);
@@ -46,7 +51,7 @@ export async function addProductToCart(variantId, quantity = 1, loadCartCallback
 /**
  * Add product to cart by product handle
  */
-export async function addProductToCartByHandle(productHandle, variantId, quantity = 1, loadCartCallback) {
+export async function addProductToCartByHandle(productHandle, variantId, quantity = 1, loadCartCallback, properties = {}) {
   try {
     // Check if productHandle is a numeric ID (legacy data) or a handle
     let productResponse;
@@ -55,6 +60,11 @@ export async function addProductToCartByHandle(productHandle, variantId, quantit
       const formData = new FormData();
       formData.append('id', productHandle);
       formData.append('quantity', quantity.toString());
+      
+      // Add properties if provided
+      Object.keys(properties).forEach(key => {
+        formData.append(`properties[${key}]`, properties[key]);
+      });
 
       const response = await fetch('/cart/add.js', {
         method: 'POST',
@@ -113,6 +123,11 @@ export async function addProductToCartByHandle(productHandle, variantId, quantit
     const formData = new FormData();
     formData.append('id', variant.id);
     formData.append('quantity', quantity.toString());
+    
+    // Add properties if provided
+    Object.keys(properties).forEach(key => {
+      formData.append(`properties[${key}]`, properties[key]);
+    });
 
     const response = await fetch('/cart/add.js', {
       method: 'POST',

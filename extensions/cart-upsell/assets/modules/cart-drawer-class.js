@@ -11,6 +11,7 @@ import * as DiscountManager from './discount-manager.js';
 import * as ProductLoader from './product-loader.js';
 import * as AutoApplyStorage from './auto-apply-storage.js';
 import { UnifiedCartDrawer } from './components/UnifiedCartDrawer.jsx';
+import { Analytics } from './analytics.js';
 
 export class UpsellityCartDrawer {
   constructor() {
@@ -49,6 +50,9 @@ export class UpsellityCartDrawer {
         this.config = { enabled: false, features: {} };
         return;
       }
+
+      // Initialize Analytics with the app URL
+      Analytics.init(appUrl);
 
       const timestamp = new Date().getTime();
       const response = await fetch(`${appUrl}/api/cart-drawer?shop=${this.shop}&_t=${timestamp}`, {
@@ -349,13 +353,35 @@ export class UpsellityCartDrawer {
         showingAllOffers: this.showingAllOffers,
         onClose: () => this.close(),
         onCheckout: () => window.location.href = DiscountManager.getCheckoutUrl(this.appliedDiscount),
-        onAddProductToCart: (variantId) => this.addProductToCart(variantId),
+        onAddProductToCart: (variantId) => this.addProductToCart(variantId, 1, { '_upsell_source': 'cart_drawer_recommendation' }),
         onUpdateQuantity: (itemKey, newQuantity) => this.updateQuantity(itemKey, newQuantity),
         onRemoveItem: (itemKey) => this.removeItem(itemKey),
         onApplyCoupon: (code) => this.applyCouponWithCode(code),
         onRemoveDiscount: () => this.removeDiscount(),
         onSwitchDiscount: (code) => this.switchDiscount(code),
-        onSlideCtaClick: (url) => this.handleSlideCtaClick(url)
+        onSlideCtaClick: (url) => this.handleSlideCtaClick(url),
+        onImpression: () => {
+          Analytics.track({
+            eventType: 'impression',
+            component: 'cart_drawer',
+            value: 0
+          });
+        },
+        onFeatureImpression: (feature) => {
+          Analytics.track({
+            eventType: 'impression',
+            component: feature,
+            value: 0
+          });
+        },
+        onFeatureClick: (feature, data) => {
+          Analytics.track({
+            eventType: 'click',
+            component: feature,
+            value: 0,
+            ...data
+          });
+        }
       })
     );
   }
@@ -443,12 +469,22 @@ export class UpsellityCartDrawer {
   }
 
   // Cart operations
-  async addProductToCart(variantId, quantity = 1) {
-    await CartOps.addProductToCart(variantId, quantity, this.loadCart.bind(this));
+  async addProductToCart(variantId, quantity = 1, properties = {}) {
+    await CartOps.addProductToCart(variantId, quantity, this.loadCart.bind(this), properties);
+    
+    // Track add to cart if coming from upsell
+    if (properties._upsell_source) {
+      Analytics.track({
+        eventType: 'add_to_cart',
+        component: properties._upsell_source,
+        variantId: variantId.toString(),
+        value: 0 // Ideally we'd have price here, but we might not
+      });
+    }
   }
 
-  async addProductToCartByHandle(productHandle, variantId, quantity = 1) {
-    await CartOps.addProductToCartByHandle(productHandle, variantId, quantity, this.loadCart.bind(this));
+  async addProductToCartByHandle(productHandle, variantId, quantity = 1, properties = {}) {
+    await CartOps.addProductToCartByHandle(productHandle, variantId, quantity, this.loadCart.bind(this), properties);
   }
 
   async updateQuantity(itemKey, newQuantity) {

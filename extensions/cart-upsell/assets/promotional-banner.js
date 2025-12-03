@@ -1,6 +1,6 @@
 /**
  * Upsellity Promotional Banner Block v1.0.2
- * Built: 2025-11-26T17:01:48.742Z
+ * Built: 2025-12-03T11:18:53.750Z
  */
 "use strict";
 (() => {
@@ -47,9 +47,9 @@
     mod
   ));
 
-  // node_modules/react/cjs/react.production.min.js
+  // ../../node_modules/react/cjs/react.production.min.js
   var require_react_production_min = __commonJS({
-    "node_modules/react/cjs/react.production.min.js"(exports) {
+    "../../node_modules/react/cjs/react.production.min.js"(exports) {
       "use strict";
       var l = Symbol.for("react.element");
       var n = Symbol.for("react.portal");
@@ -346,9 +346,9 @@
     }
   });
 
-  // node_modules/react/index.js
+  // ../../node_modules/react/index.js
   var require_react = __commonJS({
-    "node_modules/react/index.js"(exports, module) {
+    "../../node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production_min();
@@ -358,9 +358,9 @@
     }
   });
 
-  // node_modules/scheduler/cjs/scheduler.production.min.js
+  // ../../node_modules/scheduler/cjs/scheduler.production.min.js
   var require_scheduler_production_min = __commonJS({
-    "node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
+    "../../node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
       "use strict";
       function f(a, b) {
         var c = a.length;
@@ -629,9 +629,9 @@
     }
   });
 
-  // node_modules/scheduler/index.js
+  // ../../node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "node_modules/scheduler/index.js"(exports, module) {
+    "../../node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production_min();
@@ -641,9 +641,9 @@
     }
   });
 
-  // node_modules/react-dom/cjs/react-dom.production.min.js
+  // ../../node_modules/react-dom/cjs/react-dom.production.min.js
   var require_react_dom_production_min = __commonJS({
-    "node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
+    "../../node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
       "use strict";
       var aa = require_react();
       var ca = require_scheduler();
@@ -7781,9 +7781,9 @@
     }
   });
 
-  // node_modules/react-dom/index.js
+  // ../../node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "node_modules/react-dom/index.js"(exports, module) {
+    "../../node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -7807,9 +7807,9 @@
     }
   });
 
-  // node_modules/react-dom/client.js
+  // ../../node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "node_modules/react-dom/client.js"(exports) {
+    "../../node_modules/react-dom/client.js"(exports) {
       "use strict";
       var m = require_react_dom();
       if (true) {
@@ -7838,9 +7838,9 @@
     }
   });
 
-  // node_modules/react/cjs/react-jsx-runtime.production.min.js
+  // ../../node_modules/react/cjs/react-jsx-runtime.production.min.js
   var require_react_jsx_runtime_production_min = __commonJS({
-    "node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
+    "../../node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
       "use strict";
       var f = require_react();
       var k = Symbol.for("react.element");
@@ -7866,9 +7866,9 @@
     }
   });
 
-  // node_modules/react/jsx-runtime.js
+  // ../../node_modules/react/jsx-runtime.js
   var require_jsx_runtime = __commonJS({
-    "node_modules/react/jsx-runtime.js"(exports, module) {
+    "../../node_modules/react/jsx-runtime.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_jsx_runtime_production_min();
@@ -7878,14 +7878,14 @@
     }
   });
 
-  // extensions/cart-upsell/assets/modules/promotional-banner-entry.js
+  // assets/modules/promotional-banner-entry.js
   var import_react3 = __toESM(require_react(), 1);
   var import_client = __toESM(require_client(), 1);
 
-  // extensions/cart-upsell/assets/modules/components/PromotionalBannerWrapper.jsx
+  // assets/modules/components/PromotionalBannerWrapper.jsx
   var import_react2 = __toESM(require_react(), 1);
 
-  // app/components/shared/PromotionalBannerCard.tsx
+  // ../../app/components/shared/PromotionalBannerCard.tsx
   var import_react = __toESM(require_react(), 1);
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
   var getYouTubeEmbedUrl = (url) => {
@@ -7904,6 +7904,7 @@
     slides,
     carouselSettings = {},
     onCtaClick,
+    onImpression,
     isPreview = false,
     context = "cart-drawer",
     maxHeight = "180px"
@@ -7914,7 +7915,14 @@
     const scrollContainerRef = (0, import_react.useRef)(null);
     const isScrolling = (0, import_react.useRef)(false);
     const currentIndexRef = (0, import_react.useRef)(0);
+    const impressionTracked = (0, import_react.useRef)(false);
     const isBlockContext = context === "block";
+    (0, import_react.useEffect)(() => {
+      if (!impressionTracked.current && onImpression && !isPreview && slides.length > 0) {
+        onImpression();
+        impressionTracked.current = true;
+      }
+    }, [onImpression, isPreview, slides.length]);
     const updateScrollState = () => {
       const container = scrollContainerRef.current;
       if (!container || slides.length <= 1)
@@ -8558,15 +8566,20 @@
     ] });
   };
 
-  // extensions/cart-upsell/assets/modules/components/PromotionalBannerWrapper.jsx
+  // assets/modules/components/PromotionalBannerWrapper.jsx
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
   var PromotionalBannerWrapper = ({
     slides,
     carouselSettings,
     isPreview = false,
-    maxHeight = "180px"
+    maxHeight = "180px",
+    onImpression,
+    onCtaClick
   }) => {
     const handleCtaClick = (url) => {
+      if (onCtaClick) {
+        onCtaClick(url);
+      }
       if (url && !isPreview) {
         window.location.href = url;
       }
@@ -8577,6 +8590,7 @@
         slides,
         carouselSettings,
         onCtaClick: handleCtaClick,
+        onImpression,
         isPreview,
         context: "block",
         maxHeight
@@ -8584,7 +8598,73 @@
     ) });
   };
 
-  // extensions/cart-upsell/assets/modules/promotional-banner-entry.js
+  // assets/modules/analytics.js
+  var _a;
+  var Analytics = {
+    shop: ((_a = window.Shopify) == null ? void 0 : _a.shop) || window.location.hostname,
+    appUrl: null,
+    init(appUrl) {
+      this.appUrl = appUrl;
+      console.log("[Upsellity Analytics] Initialized with app URL:", appUrl);
+    },
+    getSessionId() {
+      try {
+        let sessionId = sessionStorage.getItem("upsellity_session_id");
+        if (!sessionId) {
+          sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+          sessionStorage.setItem("upsellity_session_id", sessionId);
+        }
+        return sessionId;
+      } catch (e) {
+        return "sess_" + Date.now();
+      }
+    },
+    track(event) {
+      if (!this.shop) {
+        console.warn("[Upsellity Analytics] Shop not detected, skipping tracking");
+        return;
+      }
+      if (!this.appUrl) {
+        console.warn("[Upsellity Analytics] App URL not configured, skipping tracking");
+        return;
+      }
+      const payload = {
+        shop: this.shop,
+        events: [__spreadProps(__spreadValues({}, event), {
+          sessionId: this.getSessionId(),
+          url: window.location.href
+        })]
+      };
+      const apiUrl = `${this.appUrl}/api/analytics`;
+      console.log("[Upsellity Analytics]", event.eventType, event.component, payload);
+      if (navigator.sendBeacon) {
+        const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+        const sent = navigator.sendBeacon(apiUrl, blob);
+        if (!sent) {
+          console.warn("[Upsellity Analytics] sendBeacon failed, falling back to fetch");
+          this.fallbackFetch(apiUrl, payload);
+        }
+      } else {
+        this.fallbackFetch(apiUrl, payload);
+      }
+    },
+    fallbackFetch(apiUrl, payload) {
+      fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+        keepalive: true
+      }).then((response) => {
+        if (!response.ok) {
+          console.error("[Upsellity Analytics] API error:", response.status, apiUrl);
+        }
+      }).catch((err) => console.error("[Upsellity Analytics] Fetch error:", err));
+    }
+  };
+
+  // assets/modules/promotional-banner-entry.js
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
   function initPromotionalBannerBlocks() {
     const containers = document.querySelectorAll(".upsellity-promotional-banner-container");
@@ -8628,6 +8708,7 @@
         }
       </style>
     `;
+      Analytics.init(appUrl);
       const apiUrl = `${appUrl}/api/promotional-banner?shop=${encodeURIComponent(shop)}`;
       fetch(apiUrl).then((response) => {
         if (!response.ok) {
@@ -8648,7 +8729,22 @@
               slides: data.slides,
               carouselSettings: data.carouselSettings,
               isPreview: false,
-              maxHeight
+              maxHeight,
+              onImpression: () => {
+                Analytics.track({
+                  eventType: "impression",
+                  component: "promotional_banner",
+                  value: 0
+                });
+              },
+              onCtaClick: (url) => {
+                Analytics.track({
+                  eventType: "click",
+                  component: "promotional_banner",
+                  url,
+                  value: 0
+                });
+              }
             }
           )
         );
@@ -8682,9 +8778,9 @@
       let shouldInit = false;
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
-          var _a, _b;
+          var _a2, _b;
           if (node.nodeType === 1) {
-            if (((_a = node.classList) == null ? void 0 : _a.contains("upsellity-promotional-banner-container")) || ((_b = node.querySelector) == null ? void 0 : _b.call(node, ".upsellity-promotional-banner-container"))) {
+            if (((_a2 = node.classList) == null ? void 0 : _a2.contains("upsellity-promotional-banner-container")) || ((_b = node.querySelector) == null ? void 0 : _b.call(node, ".upsellity-promotional-banner-container"))) {
               shouldInit = true;
             }
           }

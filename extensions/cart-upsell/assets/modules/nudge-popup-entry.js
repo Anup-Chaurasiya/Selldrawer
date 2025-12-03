@@ -6,6 +6,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { NudgeWidget } from '../../../../app/components/shared/NudgeWidget.tsx';
+import { Analytics } from './analytics.js';
 
 class NudgePopup {
   constructor() {
@@ -77,6 +78,9 @@ class NudgePopup {
       if (!productHandle) {
         return;
       }
+
+      // Initialize Analytics with the app URL
+      Analytics.init(this.appUrl);
 
       const apiUrl = `${this.appUrl}/api/nudge?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(productHandle)}`;
       const response = await fetch(apiUrl);
@@ -194,7 +198,14 @@ class NudgePopup {
         onClose: () => this.closePopup(),
         onContinue: () => this.continueWithOriginal(),
         onSelectProduct: (product) => this.selectProduct(product),
-        onSelectAll: (products) => this.selectAllProducts(products)
+        onSelectAll: (products) => this.selectAllProducts(products),
+        onImpression: () => {
+          Analytics.track({
+            eventType: 'impression',
+            component: 'nudge',
+            value: 0
+          });
+        }
       })
     );
   }
@@ -202,6 +213,14 @@ class NudgePopup {
   async selectProduct(product) {
     this.selectedProduct = product;
     
+    Analytics.track({
+      eventType: 'click',
+      component: 'nudge',
+      productId: product.id,
+      variantId: product.variantId || product.id,
+      value: 0
+    });
+
     // Close popup
     this.closePopup();
     
@@ -210,7 +229,10 @@ class NudgePopup {
       const formData = {
         items: [{
           id: product.variantId || product.id,
-          quantity: 1
+          quantity: 1,
+          properties: {
+            '_upsell_source': 'nudge'
+          }
         }]
       };
 
@@ -223,6 +245,14 @@ class NudgePopup {
       });
 
       if (response.ok) {
+        Analytics.track({
+          eventType: 'add_to_cart',
+          component: 'nudge',
+          productId: product.id,
+          variantId: product.variantId || product.id,
+          value: product.price
+        });
+
         // Trigger cart update events
         document.dispatchEvent(new CustomEvent('cart:updated'));
         
@@ -323,7 +353,10 @@ class NudgePopup {
           if (typeof variantId === 'number') {
             itemsToAdd.push({
               id: variantId,
-              quantity: 1
+              quantity: 1,
+              properties: {
+                '_upsell_source': 'nudge'
+              }
             });
           } else if (typeof variantId === 'string') {
             // Remove GID prefix if present
@@ -338,7 +371,10 @@ class NudgePopup {
             }
             itemsToAdd.push({
               id: numericId,
-              quantity: 1
+              quantity: 1,
+              properties: {
+                '_upsell_source': 'nudge'
+              }
             });
           } else {
             console.warn('Unexpected variant ID type for product:', product.title);
@@ -378,6 +414,17 @@ class NudgePopup {
         }
         return;
       }
+
+      // Track events for all added items
+      products.forEach(product => {
+        Analytics.track({
+          eventType: 'add_to_cart',
+          component: 'nudge',
+          productId: product.id,
+          variantId: product.variantId || product.id,
+          value: product.price
+        });
+      });
       
       // Wait a moment to ensure cart is fully updated
       await new Promise(resolve => setTimeout(resolve, 150));

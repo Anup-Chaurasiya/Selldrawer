@@ -6,6 +6,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { PromotionalBannerWrapper } from './components/PromotionalBannerWrapper.jsx';
+import { Analytics } from './analytics.js';
 
 // Version info
 const VERSION = typeof __PROMOTIONAL_BANNER_VERSION__ !== 'undefined' 
@@ -62,6 +63,9 @@ function initPromotionalBannerBlocks() {
       </style>
     `;
 
+    // Initialize Analytics with the app URL
+    Analytics.init(appUrl);
+
     // Fetch promotional banner data
     const apiUrl = `${appUrl}/api/promotional-banner?shop=${encodeURIComponent(shop)}`;
     
@@ -90,6 +94,21 @@ function initPromotionalBannerBlocks() {
             carouselSettings={data.carouselSettings}
             isPreview={false}
             maxHeight={maxHeight}
+            onImpression={() => {
+              Analytics.track({
+                eventType: 'impression',
+                component: 'promotional_banner',
+                value: 0
+              });
+            }}
+            onCtaClick={(url) => {
+              Analytics.track({
+                eventType: 'click',
+                component: 'promotional_banner',
+                url: url,
+                value: 0
+              });
+            }}
           />
         );
       })

@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.2
- * Built: 2025-11-26T17:01:48.743Z
+ * Built: 2025-12-03T11:18:53.694Z
  */
 "use strict";
 (() => {
@@ -47,9 +47,9 @@
     mod
   ));
 
-  // node_modules/react/cjs/react.production.min.js
+  // ../../node_modules/react/cjs/react.production.min.js
   var require_react_production_min = __commonJS({
-    "node_modules/react/cjs/react.production.min.js"(exports) {
+    "../../node_modules/react/cjs/react.production.min.js"(exports) {
       "use strict";
       var l = Symbol.for("react.element");
       var n = Symbol.for("react.portal");
@@ -346,9 +346,9 @@
     }
   });
 
-  // node_modules/react/index.js
+  // ../../node_modules/react/index.js
   var require_react = __commonJS({
-    "node_modules/react/index.js"(exports, module) {
+    "../../node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production_min();
@@ -358,9 +358,9 @@
     }
   });
 
-  // node_modules/scheduler/cjs/scheduler.production.min.js
+  // ../../node_modules/scheduler/cjs/scheduler.production.min.js
   var require_scheduler_production_min = __commonJS({
-    "node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
+    "../../node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
       "use strict";
       function f(a, b) {
         var c = a.length;
@@ -629,9 +629,9 @@
     }
   });
 
-  // node_modules/scheduler/index.js
+  // ../../node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "node_modules/scheduler/index.js"(exports, module) {
+    "../../node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production_min();
@@ -641,9 +641,9 @@
     }
   });
 
-  // node_modules/react-dom/cjs/react-dom.production.min.js
+  // ../../node_modules/react-dom/cjs/react-dom.production.min.js
   var require_react_dom_production_min = __commonJS({
-    "node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
+    "../../node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
       "use strict";
       var aa = require_react();
       var ca = require_scheduler();
@@ -7781,9 +7781,9 @@
     }
   });
 
-  // node_modules/react-dom/index.js
+  // ../../node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "node_modules/react-dom/index.js"(exports, module) {
+    "../../node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -7807,9 +7807,9 @@
     }
   });
 
-  // node_modules/react-dom/client.js
+  // ../../node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "node_modules/react-dom/client.js"(exports) {
+    "../../node_modules/react-dom/client.js"(exports) {
       "use strict";
       var m = require_react_dom();
       if (true) {
@@ -7838,9 +7838,9 @@
     }
   });
 
-  // node_modules/react/cjs/react-jsx-runtime.production.min.js
+  // ../../node_modules/react/cjs/react-jsx-runtime.production.min.js
   var require_react_jsx_runtime_production_min = __commonJS({
-    "node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
+    "../../node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
       "use strict";
       var f = require_react();
       var k = Symbol.for("react.element");
@@ -7866,9 +7866,9 @@
     }
   });
 
-  // node_modules/react/jsx-runtime.js
+  // ../../node_modules/react/jsx-runtime.js
   var require_jsx_runtime = __commonJS({
-    "node_modules/react/jsx-runtime.js"(exports, module) {
+    "../../node_modules/react/jsx-runtime.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_jsx_runtime_production_min();
@@ -7878,11 +7878,11 @@
     }
   });
 
-  // extensions/cart-upsell/assets/modules/cart-drawer-class.js
+  // assets/modules/cart-drawer-class.js
   var import_react6 = __toESM(require_react(), 1);
   var import_client = __toESM(require_client(), 1);
 
-  // extensions/cart-upsell/assets/modules/utils.js
+  // assets/modules/utils.js
   function formatMoney(cents) {
     const amount = cents / 100;
     return `\u20B9${Math.round(amount)}`;
@@ -7915,8 +7915,8 @@
     }, 3e3);
   }
 
-  // extensions/cart-upsell/assets/modules/cart-operations.js
-  async function addProductToCart(variantId, quantity = 1, loadCartCallback) {
+  // assets/modules/cart-operations.js
+  async function addProductToCart(variantId, quantity = 1, loadCartCallback, properties = {}) {
     try {
       if (!variantId) {
         throw new Error("No variant ID provided");
@@ -7925,6 +7925,9 @@
         const formData = new FormData();
         formData.append("id", variantId);
         formData.append("quantity", quantity.toString());
+        Object.keys(properties).forEach((key) => {
+          formData.append(`properties[${key}]`, properties[key]);
+        });
         const response = await fetch("/cart/add.js", {
           method: "POST",
           body: formData
@@ -7938,20 +7941,23 @@
           showNotification(error.description || "Failed to add product to cart", "error");
         }
       } else {
-        await addProductToCartByHandle(variantId, null, quantity, loadCartCallback);
+        await addProductToCartByHandle(variantId, null, quantity, loadCartCallback, properties);
       }
     } catch (error) {
       console.error("Error adding product to cart:", error);
       showNotification("Failed to add product to cart", "error");
     }
   }
-  async function addProductToCartByHandle(productHandle, variantId, quantity = 1, loadCartCallback) {
+  async function addProductToCartByHandle(productHandle, variantId, quantity = 1, loadCartCallback, properties = {}) {
     try {
       let productResponse;
       if (/^\d+$/.test(productHandle)) {
         const formData2 = new FormData();
         formData2.append("id", productHandle);
         formData2.append("quantity", quantity.toString());
+        Object.keys(properties).forEach((key) => {
+          formData2.append(`properties[${key}]`, properties[key]);
+        });
         const response2 = await fetch("/cart/add.js", {
           method: "POST",
           body: formData2
@@ -7996,6 +8002,9 @@
       const formData = new FormData();
       formData.append("id", variant.id);
       formData.append("quantity", quantity.toString());
+      Object.keys(properties).forEach((key) => {
+        formData.append(`properties[${key}]`, properties[key]);
+      });
       const response = await fetch("/cart/add.js", {
         method: "POST",
         body: formData
@@ -8117,10 +8126,10 @@
     }
   }
 
-  // extensions/cart-upsell/assets/modules/discount-manager.js
+  // assets/modules/discount-manager.js
   async function loadAvailableDiscounts(shop, config) {
-    var _a, _b;
-    const couponField = (_a = config == null ? void 0 : config.features) == null ? void 0 : _a.couponCodeField;
+    var _a2, _b;
+    const couponField = (_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.couponCodeField;
     if (!couponField || !couponField.enableAutoApply && !couponField.showAllOffers) {
       return [];
     }
@@ -8144,11 +8153,11 @@
     }
   }
   function autoApplyBestDiscount(availableDiscounts, cart, config) {
-    var _a;
+    var _a2;
     if (!availableDiscounts || availableDiscounts.length === 0) {
       return null;
     }
-    const couponField = (_a = config == null ? void 0 : config.features) == null ? void 0 : _a.couponCodeField;
+    const couponField = (_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.couponCodeField;
     const strategy = (couponField == null ? void 0 : couponField.autoApplyStrategy) || "best_value";
     let bestDiscount = null;
     if (strategy === "best_value") {
@@ -8191,14 +8200,14 @@
     }
   }
   async function validateAndApplyCoupon(shop, config, couponCode, cart) {
-    var _a;
+    var _a2;
     if (!couponCode || !couponCode.trim()) {
       showNotification("Please enter a coupon code", "error");
       return null;
     }
     const code = couponCode.trim().toUpperCase();
     try {
-      const appUrl = ((_a = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a.dataset.upsellityAppUrl) || "";
+      const appUrl = ((_a2 = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a2.dataset.upsellityAppUrl) || "";
       const response = await fetch(`${appUrl}/api/validate-discount?shop=${shop}&code=${encodeURIComponent(code)}`);
       const data = await response.json();
       if (data.valid) {
@@ -8223,7 +8232,7 @@
     }
   }
   async function applyCoupon(shop, config, appliedDiscount, renderCallback) {
-    var _a;
+    var _a2;
     const couponInput = document.getElementById("upsellity-coupon-input");
     const messageDiv = document.getElementById("upsellity-coupon-message");
     const applyBtn = document.querySelector(".upsellity-coupon-apply-btn");
@@ -8242,7 +8251,7 @@
     if (applyBtn)
       applyBtn.disabled = true;
     try {
-      const appUrl = ((_a = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a.dataset.upsellityAppUrl) || "";
+      const appUrl = ((_a2 = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a2.dataset.upsellityAppUrl) || "";
       const response = await fetch(`${appUrl}/api/validate-discount?shop=${shop}&code=${encodeURIComponent(couponCode)}`);
       const data = await response.json();
       if (data.valid) {
@@ -8318,7 +8327,7 @@
     return "/checkout";
   }
 
-  // extensions/cart-upsell/assets/modules/product-loader.js
+  // assets/modules/product-loader.js
   async function loadProductCompareAtPrices(cart) {
     const productCompareAtPrices = {};
     if (!cart || !cart.items) {
@@ -8369,8 +8378,8 @@
     return productCompareAtPrices;
   }
   async function loadShopifyRecommendations(cart, config) {
-    var _a;
-    const recommendations = (_a = config == null ? void 0 : config.features) == null ? void 0 : _a.productRecommendations;
+    var _a2;
+    const recommendations = (_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.productRecommendations;
     if (!recommendations) {
       return;
     }
@@ -8395,9 +8404,9 @@
       if (response.ok) {
         const data = await response.json();
         const shopifyRecommendations = (data.products || []).map((product) => {
-          var _a2, _b, _c;
+          var _a3, _b, _c;
           let variantId = null;
-          if ((_b = (_a2 = product.variants) == null ? void 0 : _a2[0]) == null ? void 0 : _b.id) {
+          if ((_b = (_a3 = product.variants) == null ? void 0 : _a3[0]) == null ? void 0 : _b.id) {
             const idStr = product.variants[0].id.toString();
             if (idStr.includes("gid://")) {
               variantId = idStr.replace("gid://shopify/ProductVariant/", "");
@@ -8445,7 +8454,7 @@
     }
   }
 
-  // extensions/cart-upsell/assets/modules/auto-apply-storage.js
+  // assets/modules/auto-apply-storage.js
   var STORAGE_KEY = "upsellity_discount_removed";
   var EXPIRATION_MINUTES = 15;
   function markDiscountRemoved() {
@@ -8485,10 +8494,10 @@
     }
   }
 
-  // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
+  // assets/modules/components/UnifiedCartDrawer.jsx
   var import_react5 = __toESM(require_react(), 1);
 
-  // app/components/shared/FreeShippingBar.tsx
+  // ../../app/components/shared/FreeShippingBar.tsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
   var FreeShippingBar = ({
     thresholdMode,
@@ -8592,7 +8601,7 @@
     ] });
   };
 
-  // app/components/shared/PromotionalBannerCard.tsx
+  // ../../app/components/shared/PromotionalBannerCard.tsx
   var import_react = __toESM(require_react(), 1);
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
   var getYouTubeEmbedUrl = (url) => {
@@ -8611,6 +8620,7 @@
     slides,
     carouselSettings = {},
     onCtaClick,
+    onImpression,
     isPreview = false,
     context = "cart-drawer",
     maxHeight = "180px"
@@ -8621,7 +8631,14 @@
     const scrollContainerRef = (0, import_react.useRef)(null);
     const isScrolling = (0, import_react.useRef)(false);
     const currentIndexRef = (0, import_react.useRef)(0);
+    const impressionTracked = (0, import_react.useRef)(false);
     const isBlockContext = context === "block";
+    (0, import_react.useEffect)(() => {
+      if (!impressionTracked.current && onImpression && !isPreview && slides.length > 0) {
+        onImpression();
+        impressionTracked.current = true;
+      }
+    }, [onImpression, isPreview, slides.length]);
     const updateScrollState = () => {
       const container = scrollContainerRef.current;
       if (!container || slides.length <= 1)
@@ -9265,7 +9282,7 @@
     ] });
   };
 
-  // app/components/shared/CartItems.tsx
+  // ../../app/components/shared/CartItems.tsx
   var import_react2 = __toESM(require_react(), 1);
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
   var CartItemRow = ({
@@ -9279,7 +9296,7 @@
     formatMoney: formatMoney2,
     calculateItemPrices
   }) => {
-    var _a;
+    var _a2;
     const [inputValue, setInputValue] = (0, import_react2.useState)(item.quantity.toString());
     const [isEditing, setIsEditing] = (0, import_react2.useState)(false);
     const [error, setError] = (0, import_react2.useState)(null);
@@ -9330,7 +9347,7 @@
       }
     }, [item.quantity, isEditing]);
     const prices = calculateItemPrices(item, cartTotalPrice);
-    const imageUrl = ((_a = item.featured_image) == null ? void 0 : _a.url) || item.image || "";
+    const imageUrl = ((_a2 = item.featured_image) == null ? void 0 : _a2.url) || item.image || "";
     return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
       "div",
       {
@@ -9621,7 +9638,7 @@
     )) });
   };
 
-  // app/components/shared/ProductRecommendations.tsx
+  // ../../app/components/shared/ProductRecommendations.tsx
   var import_react3 = __toESM(require_react(), 1);
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
   var ProductRecommendations = ({
@@ -9633,13 +9650,22 @@
     showDiscountBadge = true,
     showAddButton = true,
     onAddToCart,
+    onImpression,
+    onProductClick,
     isPreview = false
   }) => {
     const [canScrollLeft, setCanScrollLeft] = (0, import_react3.useState)(false);
     const [canScrollRight, setCanScrollRight] = (0, import_react3.useState)(false);
     const scrollContainerRef = (0, import_react3.useRef)(null);
+    const impressionTracked = (0, import_react3.useRef)(false);
     const isGrid = layout === "grid";
     const displayProducts = products.slice(0, maxProducts);
+    (0, import_react3.useEffect)(() => {
+      if (!impressionTracked.current && onImpression && !isPreview && displayProducts.length > 0) {
+        onImpression();
+        impressionTracked.current = true;
+      }
+    }, [onImpression, isPreview, displayProducts.length]);
     const updateScrollState = () => {
       const container = scrollContainerRef.current;
       if (!container || isGrid)
@@ -9671,6 +9697,14 @@
       const variantId = product.shopifyVariantId || product.shopifyProductId;
       if (variantId && onAddToCart) {
         onAddToCart(variantId);
+      }
+    };
+    const handleCardClick = (product) => {
+      if (onProductClick) {
+        const variantId = product.shopifyVariantId || product.shopifyProductId;
+        onProductClick(product.id, variantId);
+      }
+      if (!isPreview && product.id) {
       }
     };
     if (displayProducts.length === 0) {
@@ -9799,6 +9833,7 @@
               return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
                 "div",
                 {
+                  onClick: () => handleCardClick(product),
                   style: isGrid ? {
                     border: "1px solid #e5e7eb",
                     borderRadius: "6px",
@@ -9985,7 +10020,7 @@
     ] });
   };
 
-  // app/components/shared/SavingsDisplay.tsx
+  // ../../app/components/shared/SavingsDisplay.tsx
   var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
   var SavingsDisplay = ({
     message,
@@ -10014,7 +10049,7 @@
     }, children: formattedMessage });
   };
 
-  // app/components/shared/FreeShippingMessage.tsx
+  // ../../app/components/shared/FreeShippingMessage.tsx
   var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
   var FreeShippingMessage = ({
     thresholdAmount,
@@ -10069,7 +10104,7 @@
     ] });
   };
 
-  // app/components/shared/CouponCodeField.tsx
+  // ../../app/components/shared/CouponCodeField.tsx
   var import_react4 = __toESM(require_react(), 1);
   var import_jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
   var CheckIcon = ({ size = 16, color = "currentColor" }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "3", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("polyline", { points: "20 6 9 17 4 12" }) });
@@ -10315,7 +10350,7 @@
     ] });
   };
 
-  // app/components/shared/CartTotals.tsx
+  // ../../app/components/shared/CartTotals.tsx
   var import_jsx_runtime8 = __toESM(require_jsx_runtime(), 1);
   var CartTotals = ({
     items,
@@ -10457,7 +10492,7 @@
     ] });
   };
 
-  // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
+  // assets/modules/components/UnifiedCartDrawer.jsx
   var import_jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
   var UnifiedCartDrawer = ({
     config,
@@ -10474,9 +10509,17 @@
     onApplyCoupon,
     onRemoveDiscount,
     onSwitchDiscount,
-    onSlideCtaClick
+    onSlideCtaClick,
+    onImpression,
+    onFeatureImpression,
+    onFeatureClick
   }) => {
-    var _a, _b, _c, _d, _e, _f;
+    var _a2, _b, _c, _d, _e, _f;
+    import_react5.default.useEffect(() => {
+      if (onImpression) {
+        onImpression();
+      }
+    }, []);
     const getFeatureOrder = () => {
       const featureOrder = (config == null ? void 0 : config.featureOrder) || [];
       let orderArray = [];
@@ -10496,8 +10539,8 @@
       return { beforeItems: beforeItems2, afterItems: afterItems2 };
     };
     const calculateSavings = () => {
-      var _a2;
-      if (!((_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.savingsDisplay))
+      var _a3;
+      if (!((_a3 = config == null ? void 0 : config.features) == null ? void 0 : _a3.savingsDisplay))
         return 0;
       const itemLevelSavings = cart.items.reduce((sum, item) => {
         return sum + Math.max(0, item.original_price - item.final_price) * item.quantity;
@@ -10523,10 +10566,10 @@
       return url;
     };
     const renderFeature = (featureId) => {
-      var _a2, _b2, _c2, _d2, _e2, _f2, _g, _h, _i, _j;
+      var _a3, _b2, _c2, _d2, _e2, _f2, _g, _h, _i, _j;
       switch (featureId) {
         case "free-shipping-bar": {
-          const bar = (_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.freeShippingProgressBar;
+          const bar = (_a3 = config == null ? void 0 : config.features) == null ? void 0 : _a3.freeShippingProgressBar;
           if (!bar)
             return null;
           return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
@@ -10558,7 +10601,13 @@
             {
               slides,
               carouselSettings: banner.carouselSettings || {},
-              onCtaClick: onSlideCtaClick,
+              onCtaClick: (url) => {
+                if (onFeatureClick)
+                  onFeatureClick("promotional_banner", { url });
+                if (onSlideCtaClick)
+                  onSlideCtaClick(url);
+              },
+              onImpression: () => onFeatureImpression && onFeatureImpression("promotional_banner"),
               isPreview: false
             }
           ) }, featureId);
@@ -10581,6 +10630,8 @@
               showDiscountBadge: (_f2 = recommendations.showDiscountBadge) != null ? _f2 : true,
               showAddButton: (_g = recommendations.showAddButton) != null ? _g : true,
               onAddToCart: onAddProductToCart,
+              onImpression: () => onFeatureImpression && onFeatureImpression("product_recommendations"),
+              onProductClick: (productId, variantId) => onFeatureClick && onFeatureClick("product_recommendations", { productId, variantId }),
               isPreview: false
             }
           ) }, featureId);
@@ -10689,7 +10740,7 @@
           items: cart.items,
           totalPrice: cart.total_price,
           appliedDiscount,
-          config: ((_a = config == null ? void 0 : config.features) == null ? void 0 : _a.cartTotals) ? {
+          config: ((_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.cartTotals) ? {
             showOriginalPrice: (_b = config.features.cartTotals.showOriginalPrice) != null ? _b : true,
             showItemDiscounts: (_c = config.features.cartTotals.showItemDiscounts) != null ? _c : true,
             showSubtotal: (_d = config.features.cartTotals.showSubtotal) != null ? _d : true,
@@ -10740,11 +10791,77 @@
     ] });
   };
 
-  // extensions/cart-upsell/assets/modules/cart-drawer-class.js
+  // assets/modules/analytics.js
+  var _a;
+  var Analytics = {
+    shop: ((_a = window.Shopify) == null ? void 0 : _a.shop) || window.location.hostname,
+    appUrl: null,
+    init(appUrl) {
+      this.appUrl = appUrl;
+      console.log("[Upsellity Analytics] Initialized with app URL:", appUrl);
+    },
+    getSessionId() {
+      try {
+        let sessionId = sessionStorage.getItem("upsellity_session_id");
+        if (!sessionId) {
+          sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+          sessionStorage.setItem("upsellity_session_id", sessionId);
+        }
+        return sessionId;
+      } catch (e) {
+        return "sess_" + Date.now();
+      }
+    },
+    track(event) {
+      if (!this.shop) {
+        console.warn("[Upsellity Analytics] Shop not detected, skipping tracking");
+        return;
+      }
+      if (!this.appUrl) {
+        console.warn("[Upsellity Analytics] App URL not configured, skipping tracking");
+        return;
+      }
+      const payload = {
+        shop: this.shop,
+        events: [__spreadProps(__spreadValues({}, event), {
+          sessionId: this.getSessionId(),
+          url: window.location.href
+        })]
+      };
+      const apiUrl = `${this.appUrl}/api/analytics`;
+      console.log("[Upsellity Analytics]", event.eventType, event.component, payload);
+      if (navigator.sendBeacon) {
+        const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+        const sent = navigator.sendBeacon(apiUrl, blob);
+        if (!sent) {
+          console.warn("[Upsellity Analytics] sendBeacon failed, falling back to fetch");
+          this.fallbackFetch(apiUrl, payload);
+        }
+      } else {
+        this.fallbackFetch(apiUrl, payload);
+      }
+    },
+    fallbackFetch(apiUrl, payload) {
+      fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+        keepalive: true
+      }).then((response) => {
+        if (!response.ok) {
+          console.error("[Upsellity Analytics] API error:", response.status, apiUrl);
+        }
+      }).catch((err) => console.error("[Upsellity Analytics] Fetch error:", err));
+    }
+  };
+
+  // assets/modules/cart-drawer-class.js
   var UpsellityCartDrawer = class {
     constructor() {
-      var _a;
-      this.shop = ((_a = window.Shopify) == null ? void 0 : _a.shop) || null;
+      var _a2;
+      this.shop = ((_a2 = window.Shopify) == null ? void 0 : _a2.shop) || null;
       this.config = null;
       this.isOpen = false;
       this.cart = null;
@@ -10768,14 +10885,15 @@
       await this.loadCart();
     }
     async loadConfig() {
-      var _a;
+      var _a2;
       try {
-        const appUrl = (_a = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a.dataset.upsellityAppUrl;
+        const appUrl = (_a2 = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a2.dataset.upsellityAppUrl;
         if (!appUrl) {
           console.warn("Upsellity: App URL not configured");
           this.config = { enabled: false, features: {} };
           return;
         }
+        Analytics.init(appUrl);
         const timestamp = (/* @__PURE__ */ new Date()).getTime();
         const response = await fetch(`${appUrl}/api/cart-drawer?shop=${this.shop}&_t=${timestamp}`, {
           cache: "no-store",
@@ -10791,7 +10909,7 @@
       }
     }
     async loadCart(cartData = null, skipRender = false) {
-      var _a, _b, _c;
+      var _a2, _b, _c;
       try {
         if (cartData) {
           this.cart = cartData;
@@ -10809,7 +10927,7 @@
         ]);
         this.productCompareAtPrices = productCompareAtPrices;
         this.availableDiscounts = availableDiscounts;
-        if (((_c = (_b = (_a = this.config) == null ? void 0 : _a.features) == null ? void 0 : _b.couponCodeField) == null ? void 0 : _c.enableAutoApply) && !this.appliedDiscount && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
+        if (((_c = (_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.couponCodeField) == null ? void 0 : _c.enableAutoApply) && !this.appliedDiscount && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
           this.appliedDiscount = autoApplyBestDiscount(this.availableDiscounts, this.cart, this.config);
         }
         if (!skipRender) {
@@ -10867,8 +10985,8 @@
       }, true);
       const originalFetch = window.fetch;
       window.fetch = async (...args) => {
-        var _a;
-        const url = typeof args[0] === "string" ? args[0] : (_a = args[0]) == null ? void 0 : _a.url;
+        var _a2;
+        const url = typeof args[0] === "string" ? args[0] : (_a2 = args[0]) == null ? void 0 : _a2.url;
         const isCartAdd = url && (url.includes("/cart/add.js") || url.includes("/cart/add"));
         const response = await originalFetch(...args);
         if (isCartAdd && !isHandlingAddToCart) {
@@ -11000,13 +11118,34 @@
           showingAllOffers: this.showingAllOffers,
           onClose: () => this.close(),
           onCheckout: () => window.location.href = getCheckoutUrl(this.appliedDiscount),
-          onAddProductToCart: (variantId) => this.addProductToCart(variantId),
+          onAddProductToCart: (variantId) => this.addProductToCart(variantId, 1, { "_upsell_source": "cart_drawer_recommendation" }),
           onUpdateQuantity: (itemKey, newQuantity) => this.updateQuantity(itemKey, newQuantity),
           onRemoveItem: (itemKey) => this.removeItem(itemKey),
           onApplyCoupon: (code) => this.applyCouponWithCode(code),
           onRemoveDiscount: () => this.removeDiscount(),
           onSwitchDiscount: (code) => this.switchDiscount(code),
-          onSlideCtaClick: (url) => this.handleSlideCtaClick(url)
+          onSlideCtaClick: (url) => this.handleSlideCtaClick(url),
+          onImpression: () => {
+            Analytics.track({
+              eventType: "impression",
+              component: "cart_drawer",
+              value: 0
+            });
+          },
+          onFeatureImpression: (feature) => {
+            Analytics.track({
+              eventType: "impression",
+              component: feature,
+              value: 0
+            });
+          },
+          onFeatureClick: (feature, data) => {
+            Analytics.track(__spreadValues({
+              eventType: "click",
+              component: feature,
+              value: 0
+            }, data));
+          }
         })
       );
     }
@@ -11031,7 +11170,7 @@
       }
     }
     async loadSecondaryData() {
-      var _a, _b, _c;
+      var _a2, _b, _c;
       try {
         const [productCompareAtPrices, availableDiscounts] = await Promise.all([
           loadProductCompareAtPrices(this.cart),
@@ -11040,7 +11179,7 @@
         ]);
         this.productCompareAtPrices = productCompareAtPrices;
         this.availableDiscounts = availableDiscounts;
-        if (((_c = (_b = (_a = this.config) == null ? void 0 : _a.features) == null ? void 0 : _b.couponCodeField) == null ? void 0 : _c.enableAutoApply) && !this.appliedDiscount && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
+        if (((_c = (_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.couponCodeField) == null ? void 0 : _c.enableAutoApply) && !this.appliedDiscount && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
           this.appliedDiscount = autoApplyBestDiscount(this.availableDiscounts, this.cart, this.config);
         }
         this.render();
@@ -11067,11 +11206,20 @@
       }
     }
     // Cart operations
-    async addProductToCart(variantId, quantity = 1) {
-      await addProductToCart(variantId, quantity, this.loadCart.bind(this));
+    async addProductToCart(variantId, quantity = 1, properties = {}) {
+      await addProductToCart(variantId, quantity, this.loadCart.bind(this), properties);
+      if (properties._upsell_source) {
+        Analytics.track({
+          eventType: "add_to_cart",
+          component: properties._upsell_source,
+          variantId: variantId.toString(),
+          value: 0
+          // Ideally we'd have price here, but we might not
+        });
+      }
     }
-    async addProductToCartByHandle(productHandle, variantId, quantity = 1) {
-      await addProductToCartByHandle(productHandle, variantId, quantity, this.loadCart.bind(this));
+    async addProductToCartByHandle(productHandle, variantId, quantity = 1, properties = {}) {
+      await addProductToCartByHandle(productHandle, variantId, quantity, this.loadCart.bind(this), properties);
     }
     async updateQuantity(itemKey, newQuantity) {
       await updateQuantity(itemKey, newQuantity, this.loadCart.bind(this), this.render.bind(this));
@@ -11125,7 +11273,7 @@
     }
   };
 
-  // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
+  // assets/modules/cart-drawer-entry.js
   var CART_DRAWER_VERSION = true ? "1.0.2" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

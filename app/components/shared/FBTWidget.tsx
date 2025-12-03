@@ -33,6 +33,8 @@ interface FBTWidgetProps {
   selectedProductIds?: Set<string>;
   onSelectionChange?: (selectedIds: Set<string>) => void;
   onAddToCart?: (selectedIds: Set<string>) => void;
+  onImpression?: () => void;
+  onProductClick?: (productId: string, variantId?: string) => void;
   isPreview?: boolean;
 }
 
@@ -42,6 +44,8 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
   selectedProductIds: initialSelectedIds,
   onSelectionChange,
   onAddToCart,
+  onImpression,
+  onProductClick,
   isPreview = false
 }) => {
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
@@ -57,6 +61,14 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const impressionTracked = useRef(false);
+
+  useEffect(() => {
+    if (!impressionTracked.current && onImpression && !isPreview && recommendations.length > 0) {
+      onImpression();
+      impressionTracked.current = true;
+    }
+  }, [onImpression, isPreview, recommendations.length]);
 
   const maxUpsells = config.limitUpsellsInCart && config.maxUpsellsInCart 
     ? config.maxUpsellsInCart 

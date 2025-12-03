@@ -6,6 +6,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { FBTWidget } from '../../../../app/components/shared/FBTWidget.tsx';
+import { Analytics } from './analytics.js';
 
 class FrequentlyBoughtTogether {
   constructor(container) {
@@ -50,6 +51,9 @@ class FrequentlyBoughtTogether {
         this.recommendations = [];
         return;
       }
+
+      // Initialize Analytics with the app URL
+      Analytics.init(appUrl);
 
       const apiUrl = `${appUrl}/api/fbt?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(this.productHandle)}`;
       const response = await fetch(apiUrl);
@@ -195,6 +199,22 @@ class FrequentlyBoughtTogether {
             this.selectedProducts = selectedIds;
           },
           onAddToCart: (selectedIds) => this.addToCart(selectedIds),
+          onImpression: () => {
+            Analytics.track({
+              eventType: 'impression',
+              component: 'fbt',
+              value: 0
+            });
+          },
+          onProductClick: (productId, variantId) => {
+            Analytics.track({
+              eventType: 'click',
+              component: 'fbt',
+              productId: productId,
+              variantId: variantId,
+              value: 0
+            });
+          },
           isPreview: false
         })
       );
@@ -217,7 +237,19 @@ class FrequentlyBoughtTogether {
               const productData = await response.json();
               items.push({
                 id: productData.variants?.[0]?.id,
-                quantity: 1
+                quantity: 1,
+                properties: {
+                  '_upsell_source': 'fbt'
+                }
+              });
+
+              // Track Add to Cart
+              Analytics.track({
+                eventType: 'add_to_cart',
+                component: 'fbt',
+                productId: product.id,
+                variantId: productData.variants?.[0]?.id?.toString(),
+                value: typeof product.price === 'number' ? product.price : parseFloat(product.price)
               });
             }
           } catch (error) {

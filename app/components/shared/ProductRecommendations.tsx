@@ -24,6 +24,8 @@ interface ProductRecommendationsProps {
   showDiscountBadge?: boolean;
   showAddButton?: boolean;
   onAddToCart?: (variantId: string) => void;
+  onImpression?: () => void;
+  onProductClick?: (productId: string, variantId?: string) => void;
   isPreview?: boolean;
 }
 
@@ -36,14 +38,24 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
   showDiscountBadge = true,
   showAddButton = true,
   onAddToCart,
+  onImpression,
+  onProductClick,
   isPreview = false
 }) => {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const impressionTracked = useRef(false);
 
   const isGrid = layout === 'grid';
   const displayProducts = products.slice(0, maxProducts);
+
+  useEffect(() => {
+    if (!impressionTracked.current && onImpression && !isPreview && displayProducts.length > 0) {
+      onImpression();
+      impressionTracked.current = true;
+    }
+  }, [onImpression, isPreview, displayProducts.length]);
 
   // Handle scroll state for carousel layout
   const updateScrollState = () => {
@@ -81,6 +93,19 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
     const variantId = product.shopifyVariantId || product.shopifyProductId;
     if (variantId && onAddToCart) {
       onAddToCart(variantId);
+    }
+  };
+
+  const handleCardClick = (product: Product) => {
+    if (onProductClick) {
+      const variantId = product.shopifyVariantId || product.shopifyProductId;
+      onProductClick(product.id, variantId);
+    }
+    if (!isPreview && product.id) {
+      // Assuming standard product URL structure or relying on parent to handle navigation
+      // Since this component is generic, we might want to just navigate if it has a handle?
+      // The Product interface doesn't have 'handle' property in this file, but it does in usage.
+      // Let's check the Product interface.
     }
   };
 
@@ -221,6 +246,7 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
             return (
               <div 
                 key={product.id} 
+                onClick={() => handleCardClick(product)}
                 style={isGrid ? {
                   border: '1px solid #e5e7eb',
                   borderRadius: '6px',

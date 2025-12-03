@@ -1,15 +1,32 @@
 /**
  * Upsellity Nudge Popup v1.0.2
- * Built: 2025-11-26T17:01:48.739Z
+ * Built: 2025-12-03T11:18:53.734Z
  */
 "use strict";
 (() => {
   var __create = Object.create;
   var __defProp = Object.defineProperty;
+  var __defProps = Object.defineProperties;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
   var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __getOwnPropSymbols = Object.getOwnPropertySymbols;
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __propIsEnum = Object.prototype.propertyIsEnumerable;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __spreadValues = (a, b) => {
+    for (var prop in b || (b = {}))
+      if (__hasOwnProp.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    if (__getOwnPropSymbols)
+      for (var prop of __getOwnPropSymbols(b)) {
+        if (__propIsEnum.call(b, prop))
+          __defNormalProp(a, prop, b[prop]);
+      }
+    return a;
+  };
+  var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   var __commonJS = (cb, mod) => function __require() {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
   };
@@ -30,9 +47,9 @@
     mod
   ));
 
-  // node_modules/react/cjs/react.production.min.js
+  // ../../node_modules/react/cjs/react.production.min.js
   var require_react_production_min = __commonJS({
-    "node_modules/react/cjs/react.production.min.js"(exports) {
+    "../../node_modules/react/cjs/react.production.min.js"(exports) {
       "use strict";
       var l = Symbol.for("react.element");
       var n = Symbol.for("react.portal");
@@ -329,9 +346,9 @@
     }
   });
 
-  // node_modules/react/index.js
+  // ../../node_modules/react/index.js
   var require_react = __commonJS({
-    "node_modules/react/index.js"(exports, module) {
+    "../../node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production_min();
@@ -341,9 +358,9 @@
     }
   });
 
-  // node_modules/scheduler/cjs/scheduler.production.min.js
+  // ../../node_modules/scheduler/cjs/scheduler.production.min.js
   var require_scheduler_production_min = __commonJS({
-    "node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
+    "../../node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
       "use strict";
       function f(a, b) {
         var c = a.length;
@@ -612,9 +629,9 @@
     }
   });
 
-  // node_modules/scheduler/index.js
+  // ../../node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "node_modules/scheduler/index.js"(exports, module) {
+    "../../node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production_min();
@@ -624,9 +641,9 @@
     }
   });
 
-  // node_modules/react-dom/cjs/react-dom.production.min.js
+  // ../../node_modules/react-dom/cjs/react-dom.production.min.js
   var require_react_dom_production_min = __commonJS({
-    "node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
+    "../../node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
       "use strict";
       var aa = require_react();
       var ca = require_scheduler();
@@ -7764,9 +7781,9 @@
     }
   });
 
-  // node_modules/react-dom/index.js
+  // ../../node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "node_modules/react-dom/index.js"(exports, module) {
+    "../../node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -7790,9 +7807,9 @@
     }
   });
 
-  // node_modules/react-dom/client.js
+  // ../../node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "node_modules/react-dom/client.js"(exports) {
+    "../../node_modules/react-dom/client.js"(exports) {
       "use strict";
       var m = require_react_dom();
       if (true) {
@@ -7821,9 +7838,9 @@
     }
   });
 
-  // node_modules/react/cjs/react-jsx-runtime.production.min.js
+  // ../../node_modules/react/cjs/react-jsx-runtime.production.min.js
   var require_react_jsx_runtime_production_min = __commonJS({
-    "node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
+    "../../node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
       "use strict";
       var f = require_react();
       var k = Symbol.for("react.element");
@@ -7849,9 +7866,9 @@
     }
   });
 
-  // node_modules/react/jsx-runtime.js
+  // ../../node_modules/react/jsx-runtime.js
   var require_jsx_runtime = __commonJS({
-    "node_modules/react/jsx-runtime.js"(exports, module) {
+    "../../node_modules/react/jsx-runtime.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_jsx_runtime_production_min();
@@ -7861,11 +7878,11 @@
     }
   });
 
-  // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
+  // assets/modules/nudge-popup-entry.js
   var import_react2 = __toESM(require_react(), 1);
   var import_client = __toESM(require_client(), 1);
 
-  // app/components/shared/NudgeWidget.tsx
+  // ../../app/components/shared/NudgeWidget.tsx
   var import_react = __toESM(require_react(), 1);
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
   var NudgeWidget = ({
@@ -7875,10 +7892,18 @@
     onContinue,
     onSelectProduct,
     onSelectAll,
+    onImpression,
     isPreview = false,
     isVisible = true
   }) => {
     const [animationClass, setAnimationClass] = (0, import_react.useState)("");
+    const impressionTracked = import_react.default.useRef(false);
+    (0, import_react.useEffect)(() => {
+      if (isVisible && !isPreview && !impressionTracked.current && onImpression) {
+        onImpression();
+        impressionTracked.current = true;
+      }
+    }, [isVisible, isPreview, onImpression]);
     (0, import_react.useEffect)(() => {
       if (isVisible && config.enableAnimation) {
         setTimeout(() => {
@@ -8283,7 +8308,73 @@
     );
   };
 
-  // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
+  // assets/modules/analytics.js
+  var _a;
+  var Analytics = {
+    shop: ((_a = window.Shopify) == null ? void 0 : _a.shop) || window.location.hostname,
+    appUrl: null,
+    init(appUrl) {
+      this.appUrl = appUrl;
+      console.log("[Upsellity Analytics] Initialized with app URL:", appUrl);
+    },
+    getSessionId() {
+      try {
+        let sessionId = sessionStorage.getItem("upsellity_session_id");
+        if (!sessionId) {
+          sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+          sessionStorage.setItem("upsellity_session_id", sessionId);
+        }
+        return sessionId;
+      } catch (e) {
+        return "sess_" + Date.now();
+      }
+    },
+    track(event) {
+      if (!this.shop) {
+        console.warn("[Upsellity Analytics] Shop not detected, skipping tracking");
+        return;
+      }
+      if (!this.appUrl) {
+        console.warn("[Upsellity Analytics] App URL not configured, skipping tracking");
+        return;
+      }
+      const payload = {
+        shop: this.shop,
+        events: [__spreadProps(__spreadValues({}, event), {
+          sessionId: this.getSessionId(),
+          url: window.location.href
+        })]
+      };
+      const apiUrl = `${this.appUrl}/api/analytics`;
+      console.log("[Upsellity Analytics]", event.eventType, event.component, payload);
+      if (navigator.sendBeacon) {
+        const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+        const sent = navigator.sendBeacon(apiUrl, blob);
+        if (!sent) {
+          console.warn("[Upsellity Analytics] sendBeacon failed, falling back to fetch");
+          this.fallbackFetch(apiUrl, payload);
+        }
+      } else {
+        this.fallbackFetch(apiUrl, payload);
+      }
+    },
+    fallbackFetch(apiUrl, payload) {
+      fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+        keepalive: true
+      }).then((response) => {
+        if (!response.ok) {
+          console.error("[Upsellity Analytics] API error:", response.status, apiUrl);
+        }
+      }).catch((err) => console.error("[Upsellity Analytics] Fetch error:", err));
+    }
+  };
+
+  // assets/modules/nudge-popup-entry.js
   var NudgePopup = class {
     constructor() {
       this.shop = null;
@@ -8338,6 +8429,7 @@
         if (!productHandle) {
           return;
         }
+        Analytics.init(this.appUrl);
         const apiUrl = `${this.appUrl}/api/nudge?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(productHandle)}`;
         const response = await fetch(apiUrl);
         if (!response.ok) {
@@ -8371,7 +8463,7 @@
       const addToCartButtons = document.querySelectorAll('[name="add"], [data-add-to-cart], button[type="submit"][name="add"], form[action*="/cart/add"] button[type="submit"]');
       addToCartButtons.forEach((button) => {
         button.addEventListener("click", async (e) => {
-          var _a;
+          var _a2;
           if (this.recommendations.length > 0 && this.config.showOnAddToCart) {
             e.preventDefault();
             e.stopPropagation();
@@ -8380,7 +8472,7 @@
             const form = button.closest("form");
             if (form) {
               const formData = new FormData(form);
-              const variantId = formData.get("id") || formData.get("variant_id") || ((_a = form.querySelector('[name="id"]')) == null ? void 0 : _a.value);
+              const variantId = formData.get("id") || formData.get("variant_id") || ((_a2 = form.querySelector('[name="id"]')) == null ? void 0 : _a2.value);
               if (variantId) {
                 this.originalProductVariantId = variantId.toString();
               } else if (this.currentProduct && this.currentProduct.variants && this.currentProduct.variants.length > 0) {
@@ -8430,18 +8522,35 @@
           onClose: () => this.closePopup(),
           onContinue: () => this.continueWithOriginal(),
           onSelectProduct: (product) => this.selectProduct(product),
-          onSelectAll: (products) => this.selectAllProducts(products)
+          onSelectAll: (products) => this.selectAllProducts(products),
+          onImpression: () => {
+            Analytics.track({
+              eventType: "impression",
+              component: "nudge",
+              value: 0
+            });
+          }
         })
       );
     }
     async selectProduct(product) {
       this.selectedProduct = product;
+      Analytics.track({
+        eventType: "click",
+        component: "nudge",
+        productId: product.id,
+        variantId: product.variantId || product.id,
+        value: 0
+      });
       this.closePopup();
       try {
         const formData = {
           items: [{
             id: product.variantId || product.id,
-            quantity: 1
+            quantity: 1,
+            properties: {
+              "_upsell_source": "nudge"
+            }
           }]
         };
         const response = await fetch("/cart/add.js", {
@@ -8452,6 +8561,13 @@
           body: JSON.stringify(formData)
         });
         if (response.ok) {
+          Analytics.track({
+            eventType: "add_to_cart",
+            component: "nudge",
+            productId: product.id,
+            variantId: product.variantId || product.id,
+            value: product.price
+          });
           document.dispatchEvent(new CustomEvent("cart:updated"));
           this.openCartDrawer();
         }
@@ -8469,8 +8585,8 @@
           if (this.originalProductVariantId && cart.items) {
             const normalizedOriginalId = this.originalProductVariantId.replace("gid://shopify/ProductVariant/", "");
             const matchingItem = cart.items.find((item) => {
-              var _a;
-              const itemVariantId = (_a = item.variant_id) == null ? void 0 : _a.toString();
+              var _a2;
+              const itemVariantId = (_a2 = item.variant_id) == null ? void 0 : _a2.toString();
               return itemVariantId === normalizedOriginalId || itemVariantId === this.originalProductVariantId;
             });
             if (matchingItem) {
@@ -8523,7 +8639,10 @@
             if (typeof variantId === "number") {
               itemsToAdd.push({
                 id: variantId,
-                quantity: 1
+                quantity: 1,
+                properties: {
+                  "_upsell_source": "nudge"
+                }
               });
             } else if (typeof variantId === "string") {
               if (variantId.includes("gid://shopify/ProductVariant/")) {
@@ -8536,7 +8655,10 @@
               }
               itemsToAdd.push({
                 id: numericId,
-                quantity: 1
+                quantity: 1,
+                properties: {
+                  "_upsell_source": "nudge"
+                }
               });
             } else {
               console.warn("Unexpected variant ID type for product:", product.title);
@@ -8573,6 +8695,15 @@
           }
           return;
         }
+        products.forEach((product) => {
+          Analytics.track({
+            eventType: "add_to_cart",
+            component: "nudge",
+            productId: product.id,
+            variantId: product.variantId || product.id,
+            value: product.price
+          });
+        });
         await new Promise((resolve) => setTimeout(resolve, 150));
         document.dispatchEvent(new CustomEvent("cart:updated"));
         this.openCartDrawer();
