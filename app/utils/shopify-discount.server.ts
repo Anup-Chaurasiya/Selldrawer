@@ -286,6 +286,11 @@ async function createGiftDiscount(
   title: string,
   variantIds: string[]
 ): Promise<{ discountId: string; code: string } | null> {
+  console.log("=== createGiftDiscount called ===");
+  console.log("Code:", code);
+  console.log("Title:", title);
+  console.log("Variant IDs received:", variantIds);
+
   const mutation = `
     mutation discountCodeBasicCreate($basicCodeDiscount: DiscountCodeBasicInput!) {
       discountCodeBasicCreate(basicCodeDiscount: $basicCodeDiscount) {
@@ -314,9 +319,21 @@ async function createGiftDiscount(
 
   // Convert variant IDs to proper GID format
   const formattedVariantIds = variantIds.map(id => {
+    console.log("Processing variant ID:", id, "Type:", typeof id);
+    if (!id) {
+      console.log("WARNING: Empty variant ID found!");
+      return null;
+    }
     if (id.startsWith('gid://')) return id;
     return `gid://shopify/ProductVariant/${id}`;
-  });
+  }).filter(id => id !== null) as string[];
+
+  console.log("Formatted variant IDs:", formattedVariantIds);
+
+  if (formattedVariantIds.length === 0) {
+    console.error("ERROR: No valid variant IDs after formatting!");
+    return null;
+  }
 
   const variables = {
     basicCodeDiscount: {
@@ -331,8 +348,8 @@ async function createGiftDiscount(
           percentage: 1.0, // 100% off
         },
         items: {
-          productVariants: {
-            add: formattedVariantIds,
+          products: {
+            productVariantsToAdd: formattedVariantIds,
           },
         },
       },
@@ -341,8 +358,10 @@ async function createGiftDiscount(
 
   try {
     console.log("Creating gift discount with variant IDs:", formattedVariantIds);
+    console.log("Gift discount variables:", JSON.stringify(variables, null, 2));
     const response = await admin.graphql(mutation, { variables });
     const data = await response.json();
+    console.log("Gift discount response:", JSON.stringify(data, null, 2));
 
     if (data.errors) {
       console.error("GraphQL errors creating gift discount:", JSON.stringify(data.errors, null, 2));
@@ -442,18 +461,20 @@ export async function createMilestoneDiscount(
         }
         return await createFixedDiscount(admin, code, title, milestone.rewardValue);
 
-      case "gift_wrapping":
-        // For gifts, create a 100% discount on the gift variants
-        const variantIds = milestone.giftProducts
-          ?.map(p => p.shopifyVariantId)
-          .filter((id): id is string => !!id) || [];
-        
-        if (variantIds.length === 0) {
-          console.error("Gift discount requires at least one variant with a variant ID");
-          return null;
-        }
-        
-        return await createGiftDiscount(admin, code, title, variantIds);
+    case "gift_wrapping":
+      // For gifts, create a 100% discount on the gift variants
+      // Filter to only include products with valid variant IDs
+      const variantIds = milestone.giftProducts
+        ?.map(p => p.shopifyVariantId)
+        .filter((id): id is string => !!id) || [];
+      
+      if (variantIds.length === 0) {
+        console.error("Gift discount requires at least one product with a variant ID");
+        console.error("Gift products received:", JSON.stringify(milestone.giftProducts, null, 2));
+        return null;
+      }
+      
+      return await createGiftDiscount(admin, code, title, variantIds);
 
       default:
         console.error("Unknown reward type:", milestone.rewardType);

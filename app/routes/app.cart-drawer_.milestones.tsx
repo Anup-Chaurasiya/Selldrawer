@@ -189,63 +189,70 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   if (intent === "add-milestone") {
-    // Check if maximum milestones reached
-    const existingMilestones = await prisma.cartMilestone.count({
-      where: { cartDrawerId: cartDrawer.id }
-    });
+    try {
+      // Check if maximum milestones reached
+      const existingMilestones = await prisma.cartMilestone.count({
+        where: { cartDrawerId: cartDrawer.id }
+      });
 
-    if (existingMilestones >= 3) {
-      return json({ error: "Maximum 3 milestones allowed" }, { status: 400 });
-    }
-
-    const title = formData.get("title") as string;
-    const targetAmount = parseFloat(formData.get("targetAmount") as string);
-    const rewardType = formData.get("rewardType") as string;
-    const rewardValue = formData.get("rewardValue") ? parseFloat(formData.get("rewardValue") as string) : null;
-    const targetType = "store_wide"; // Always store_wide now
-    const icon = formData.get("icon") as string;
-    const unlockedMessage = formData.get("unlockedMessage") as string;
-    const inProgressMessage = formData.get("inProgressMessage") as string;
-    const showProgressBar = formData.get("showProgressBar") === "true";
-    const iconColor = formData.get("iconColor") as string;
-    const titleColor = formData.get("titleColor") as string;
-    const amountColor = formData.get("amountColor") as string;
-
-    // Parse gift products first (needed for discount creation)
-    let giftProducts: any[] = [];
-    if (rewardType === "gift_wrapping") {
-      const giftProductsJson = formData.get("giftProducts") as string;
-      if (giftProductsJson) {
-        giftProducts = JSON.parse(giftProductsJson);
+      if (existingMilestones >= 3) {
+        return json({ error: "Maximum 3 milestones allowed" }, { status: 400 });
       }
-      
-      // Validate that at least one gift product is selected
-      if (giftProducts.length === 0) {
-        return json({ error: "Please select at least one gift product" }, { status: 400 });
+
+      const title = formData.get("title") as string;
+      const targetAmount = parseFloat(formData.get("targetAmount") as string);
+      const rewardType = formData.get("rewardType") as string;
+      const rewardValue = formData.get("rewardValue") ? parseFloat(formData.get("rewardValue") as string) : null;
+      const targetType = "store_wide"; // Always store_wide now
+      const icon = formData.get("icon") as string;
+      const unlockedMessage = formData.get("unlockedMessage") as string;
+      const inProgressMessage = formData.get("inProgressMessage") as string;
+      const showProgressBar = formData.get("showProgressBar") === "true";
+      const iconColor = formData.get("iconColor") as string;
+      const titleColor = formData.get("titleColor") as string;
+      const amountColor = formData.get("amountColor") as string;
+
+      // Parse gift products first (needed for discount creation)
+      let giftProducts: any[] = [];
+      if (rewardType === "gift_wrapping") {
+        const giftProductsJson = formData.get("giftProducts") as string;
+        console.log("Gift products JSON:", giftProductsJson);
+        
+        if (giftProductsJson) {
+          giftProducts = JSON.parse(giftProductsJson);
+          console.log("Parsed gift products:", giftProducts);
+        }
+        
+        // Validate that at least one gift product is selected
+        if (giftProducts.length === 0) {
+          console.log("No gift products selected");
+          return json({ error: "Please select at least one gift product" }, { status: 400 });
+        }
       }
-      
-      // Validate that all gift products have variant IDs
-      const hasInvalidProducts = giftProducts.some(p => !p.shopifyVariantId);
-      if (hasInvalidProducts) {
-        return json({ error: "All gift products must have valid variants" }, { status: 400 });
+
+      // Validate reward value for discount types
+      if ((rewardType === "discount_percentage" || rewardType === "discount_fixed") && !rewardValue) {
+        return json({ error: "Please enter a discount value" }, { status: 400 });
       }
-    }
 
-    // Validate reward value for discount types
-    if ((rewardType === "discount_percentage" || rewardType === "discount_fixed") && !rewardValue) {
-      return json({ error: "Please enter a discount value" }, { status: 400 });
-    }
+      console.log("Creating discount with:", { title, rewardType, rewardValue, giftProductsCount: giftProducts.length });
 
-    // Create Shopify discount automatically
-    const discountResult = await createMilestoneDiscount(admin, {
-      title,
-      rewardType,
-      rewardValue,
-      giftProducts,
-    });
+      // Create Shopify discount automatically
+      const discountResult = await createMilestoneDiscount(admin, {
+        title,
+        rewardType,
+        rewardValue,
+        giftProducts,
+      });
 
-    if (!discountResult) {
-      return json({ error: "Failed to create Shopify discount. Please check your configuration and try again." }, { status: 500 });
+      console.log("Discount result:", discountResult);
+
+      if (!discountResult) {
+        return json({ error: "Failed to create Shopify discount. Please check your configuration and try again." }, { status: 500 });
+      }
+    } catch (error) {
+      console.error("Error in add-milestone:", error);
+      return json({ error: error instanceof Error ? error.message : "An error occurred" }, { status: 500 });
     }
 
     // Get the highest priority and add 1
@@ -327,19 +334,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     let giftProducts: any[] = [];
     if (rewardType === "gift_wrapping") {
       const giftProductsJson = formData.get("giftProducts") as string;
+      console.log("UPDATE - Gift products JSON:", giftProductsJson);
+      
       if (giftProductsJson) {
         giftProducts = JSON.parse(giftProductsJson);
+        console.log("UPDATE - Parsed gift products:", giftProducts);
       }
       
       // Validate that at least one gift product is selected
       if (giftProducts.length === 0) {
+        console.log("UPDATE - No gift products selected");
         return json({ error: "Please select at least one gift product" }, { status: 400 });
-      }
-      
-      // Validate that all gift products have variant IDs
-      const hasInvalidProducts = giftProducts.some(p => !p.shopifyVariantId);
-      if (hasInvalidProducts) {
-        return json({ error: "All gift products must have valid variants" }, { status: 400 });
       }
     }
 
@@ -347,6 +352,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if ((rewardType === "discount_percentage" || rewardType === "discount_fixed") && !rewardValue) {
       return json({ error: "Please enter a discount value" }, { status: 400 });
     }
+
+    console.log("UPDATE - Creating discount with:", { title, rewardType, rewardValue, giftProductsCount: giftProducts.length });
 
     // Update Shopify discount (delete old, create new)
     const discountResult = await updateMilestoneDiscount(
@@ -359,6 +366,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         giftProducts,
       }
     );
+
+    console.log("UPDATE - Discount result:", discountResult);
 
     if (!discountResult) {
       return json({ error: "Failed to update Shopify discount. Please check your configuration and try again." }, { status: 500 });
@@ -606,7 +615,7 @@ export default function CartMilestones() {
 
     submit(formData, { method: "post" });
     setShowMilestoneModal(false);
-  }, [formState, selectedTargets, editingMilestone, submit]);
+  }, [formState, selectedTargets, selectedGiftProducts, editingMilestone, submit]);
 
   const handleDeleteMilestone = useCallback((milestoneId: string) => {
     if (confirm("Are you sure you want to delete this milestone?")) {
