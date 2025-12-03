@@ -8,6 +8,9 @@ import { createRoot } from 'react-dom/client';
 import { FBTWidget } from '../../../../app/components/shared/FBTWidget.tsx';
 import { Analytics } from './analytics.js';
 
+// App URL is injected at build time from config.js
+const APP_URL = typeof __APP_URL__ !== 'undefined' ? __APP_URL__ : 'https://app.upsellity.com';
+
 class FrequentlyBoughtTogether {
   constructor(container) {
     this.container = container;
@@ -44,18 +47,10 @@ class FrequentlyBoughtTogether {
 
   async loadConfig() {
     try {
-      const appUrl = this.container.dataset.appUrl;
-      if (!appUrl) {
-        console.warn('FBT Widget: App URL not configured. Please set app_url in theme block settings.');
-        this.config = null;
-        this.recommendations = [];
-        return;
-      }
-
       // Initialize Analytics with the app URL
-      Analytics.init(appUrl);
+      Analytics.init(APP_URL);
 
-      const apiUrl = `${appUrl}/api/fbt?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(this.productHandle)}`;
+      const apiUrl = `${APP_URL}/api/fbt?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(this.productHandle)}`;
       const response = await fetch(apiUrl);
 
       if (!response.ok) {

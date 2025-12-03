@@ -14,7 +14,8 @@ import { UnifiedCartDrawer } from './components/UnifiedCartDrawer.jsx';
 import { Analytics } from './analytics.js';
 
 export class UpsellityCartDrawer {
-  constructor() {
+  constructor(appUrl) {
+    this.appUrl = appUrl;
     this.shop = window.Shopify?.shop || null;
     this.config = null;
     this.isOpen = false;
@@ -35,6 +36,11 @@ export class UpsellityCartDrawer {
       return;
     }
 
+    if (!this.appUrl) {
+      console.error('Upsellity: App URL not configured');
+      return;
+    }
+
     this.createDrawer();
     await this.loadConfig();
     this.interceptAddToCart();
@@ -44,18 +50,11 @@ export class UpsellityCartDrawer {
 
   async loadConfig() {
     try {
-      const appUrl = document.querySelector('[data-upsellity-app-url]')?.dataset.upsellityAppUrl;
-      if (!appUrl) {
-        console.warn('Upsellity: App URL not configured');
-        this.config = { enabled: false, features: {} };
-        return;
-      }
-
       // Initialize Analytics with the app URL
-      Analytics.init(appUrl);
+      Analytics.init(this.appUrl);
 
       const timestamp = new Date().getTime();
-      const response = await fetch(`${appUrl}/api/cart-drawer?shop=${this.shop}&_t=${timestamp}`, {
+      const response = await fetch(`${this.appUrl}/api/cart-drawer?shop=${this.shop}&_t=${timestamp}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache',
@@ -88,7 +87,7 @@ export class UpsellityCartDrawer {
       // Load all secondary data in parallel (can complete after drawer is open)
       const [productCompareAtPrices, availableDiscounts] = await Promise.all([
         ProductLoader.loadProductCompareAtPrices(this.cart),
-        DiscountManager.loadAvailableDiscounts(this.shop, this.config),
+        DiscountManager.loadAvailableDiscounts(this.appUrl, this.shop, this.config),
         ProductLoader.loadShopifyRecommendations(this.cart, this.config)
       ]);
       
@@ -423,7 +422,7 @@ export class UpsellityCartDrawer {
       // Load all secondary data in parallel
       const [productCompareAtPrices, availableDiscounts] = await Promise.all([
         ProductLoader.loadProductCompareAtPrices(this.cart),
-        DiscountManager.loadAvailableDiscounts(this.shop, this.config),
+        DiscountManager.loadAvailableDiscounts(this.appUrl, this.shop, this.config),
         ProductLoader.loadShopifyRecommendations(this.cart, this.config)
       ]);
       
@@ -497,14 +496,14 @@ export class UpsellityCartDrawer {
 
   // Discount management
   async applyCoupon() {
-    const newDiscount = await DiscountManager.applyCoupon(this.shop, this.config, this.appliedDiscount, this.render.bind(this));
+    const newDiscount = await DiscountManager.applyCoupon(this.appUrl, this.shop, this.config, this.appliedDiscount, this.render.bind(this));
     if (newDiscount) {
       this.appliedDiscount = newDiscount;
     }
   }
 
   async applyCouponWithCode(code) {
-    const newDiscount = await DiscountManager.validateAndApplyCoupon(this.shop, this.config, code, this.cart);
+    const newDiscount = await DiscountManager.validateAndApplyCoupon(this.appUrl, this.shop, this.config, code, this.cart);
     if (newDiscount) {
       this.appliedDiscount = newDiscount;
       // Clear removal preference when user manually applies a discount

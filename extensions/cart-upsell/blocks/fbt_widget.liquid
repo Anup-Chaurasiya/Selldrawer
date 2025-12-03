@@ -1,30 +1,21 @@
 {% comment %}
   Frequently Bought Together Widget
   Displays product bundles on product pages
+  Configuration is managed in extensions/cart-upsell/config.js
 {% endcomment %}
-
-{% comment %} Get app URL from settings or use default {% endcomment %}
-{% if block.settings.app_url != blank %}
-  {% assign app_url = block.settings.app_url %}
-{% else %}
-  {% assign app_url = "https://app.upsellity.com" %}
-{% endif %}
 
 <script>
   (function() {
-    // Version number for cache busting
-    var version = '{{ block.settings.version | default: "1.0.2" }}';
-    
     // Load the FBT widget CSS
     var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.type = 'text/css';
-    link.href = '{{ 'fbt-widget.css' | asset_url }}' + '?v=' + version;
+    link.href = '{{ 'fbt-widget.css' | asset_url }}';
     document.head.appendChild(link);
     
     // Load the FBT widget script
     var script = document.createElement('script');
-    script.src = '{{ 'fbt-widget.js' | asset_url }}' + '?v=' + version;
+    script.src = '{{ 'fbt-widget.js' | asset_url }}';
     script.async = true;
     document.head.appendChild(script);
   })();
@@ -35,7 +26,6 @@
   data-product-handle="{{ product.handle }}"
   data-product-id="{{ product.id }}"
   data-shop="{{ shop.permanent_domain }}"
-  data-app-url="{{ app_url }}"
 >
   <div class="upsellity-fbt-loading">
     <div class="upsellity-fbt-spinner"></div>
@@ -47,22 +37,7 @@
 {
   "name": "FBT Widget",
   "target": "section",
-  "settings": [
-    {
-      "type": "text",
-      "id": "app_url",
-      "label": "App URL",
-      "info": "Enter your Upsellity app URL (e.g., https://your-app.fly.dev)",
-      "default": "https://app.upsellity.com"
-    },
-    {
-      "type": "text",
-      "id": "version",
-      "label": "Version",
-      "info": "Version number for cache busting. Update this when you release new versions.",
-      "default": "1.0.2"
-    }
-  ]
+  "settings": []
 }
 {% endschema %}
 

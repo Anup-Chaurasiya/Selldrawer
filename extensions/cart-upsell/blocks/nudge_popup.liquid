@@ -1,30 +1,18 @@
 {% comment %}
   Nudge Popup Widget
   Shows alternative products in a popup when "Add to Cart" is clicked
-  Built with React and bundled via esbuild
+  Configuration is managed in extensions/cart-upsell/config.js
 {% endcomment %}
-
-{% comment %} Get app URL from settings or use default {% endcomment %}
-{% if block.settings.app_url != blank %}
-  {% assign app_url = block.settings.app_url %}
-{% else %}
-  {% assign app_url = "https://app.upsellity.com" %}
-{% endif %}
 
 {% comment %} Add meta tag for shop domain {% endcomment %}
 <meta name="shopify-shop" content="{{ shop.permanent_domain }}">
 
 <script>
   (function() {
-    // Version number for cache busting
-    var version = '{{ block.settings.version | default: "1.0.2" }}';
-    var appUrl = '{{ app_url }}';
-    
     // Load the Nudge Popup script
     var script = document.createElement('script');
-    script.src = '{{ 'nudge-popup.js' | asset_url }}' + '?v=' + version;
+    script.src = '{{ 'nudge-popup.js' | asset_url }}';
     script.async = true;
-    script.setAttribute('data-nudge-app-url', appUrl);
     document.head.appendChild(script);
   })();
 </script>
@@ -44,20 +32,6 @@
       "label": "Enable Nudge Popup",
       "default": true,
       "info": "You can also enable/disable from the Upsellity admin panel"
-    },
-    {
-      "type": "text",
-      "id": "app_url",
-      "label": "App URL",
-      "default": "https://app.upsellity.com",
-      "info": "The URL of your Upsellity app (leave default if unsure)"
-    },
-    {
-      "type": "text",
-      "id": "version",
-      "label": "Version",
-      "info": "Version number for cache busting. Update this when you release new versions.",
-      "default": "1.0.2"
     }
   ]
 }

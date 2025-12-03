@@ -8,6 +8,9 @@ import { createRoot } from 'react-dom/client';
 import { PromotionalBannerWrapper } from './components/PromotionalBannerWrapper.jsx';
 import { Analytics } from './analytics.js';
 
+// App URL is injected at build time from config.js
+const APP_URL = typeof __APP_URL__ !== 'undefined' ? __APP_URL__ : 'https://app.upsellity.com';
+
 // Version info
 const VERSION = typeof __PROMOTIONAL_BANNER_VERSION__ !== 'undefined' 
   ? __PROMOTIONAL_BANNER_VERSION__ 
@@ -23,12 +26,11 @@ function initPromotionalBannerBlocks() {
   }
 
   containers.forEach((container) => {
-    const appUrl = container.getAttribute('data-app-url');
     const shop = container.getAttribute('data-shop');
     const maxHeight = container.getAttribute('data-max-height') || '180px';
 
-    if (!appUrl || !shop) {
-      console.error('Missing required attributes: data-app-url or data-shop');
+    if (!shop) {
+      console.error('Missing required attribute: data-shop');
       return;
     }
 
@@ -64,10 +66,10 @@ function initPromotionalBannerBlocks() {
     `;
 
     // Initialize Analytics with the app URL
-    Analytics.init(appUrl);
+    Analytics.init(APP_URL);
 
     // Fetch promotional banner data
-    const apiUrl = `${appUrl}/api/promotional-banner?shop=${encodeURIComponent(shop)}`;
+    const apiUrl = `${APP_URL}/api/promotional-banner?shop=${encodeURIComponent(shop)}`;
     
     fetch(apiUrl)
       .then(response => {

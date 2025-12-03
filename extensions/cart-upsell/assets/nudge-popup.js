@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.2
- * Built: 2025-12-03T11:18:53.734Z
+ * Built: 2025-12-03T12:40:08.847Z
  */
 "use strict";
 (() => {
@@ -47,9 +47,9 @@
     mod
   ));
 
-  // ../../node_modules/react/cjs/react.production.min.js
+  // node_modules/react/cjs/react.production.min.js
   var require_react_production_min = __commonJS({
-    "../../node_modules/react/cjs/react.production.min.js"(exports) {
+    "node_modules/react/cjs/react.production.min.js"(exports) {
       "use strict";
       var l = Symbol.for("react.element");
       var n = Symbol.for("react.portal");
@@ -346,9 +346,9 @@
     }
   });
 
-  // ../../node_modules/react/index.js
+  // node_modules/react/index.js
   var require_react = __commonJS({
-    "../../node_modules/react/index.js"(exports, module) {
+    "node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production_min();
@@ -358,9 +358,9 @@
     }
   });
 
-  // ../../node_modules/scheduler/cjs/scheduler.production.min.js
+  // node_modules/scheduler/cjs/scheduler.production.min.js
   var require_scheduler_production_min = __commonJS({
-    "../../node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
+    "node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
       "use strict";
       function f(a, b) {
         var c = a.length;
@@ -629,9 +629,9 @@
     }
   });
 
-  // ../../node_modules/scheduler/index.js
+  // node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "../../node_modules/scheduler/index.js"(exports, module) {
+    "node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production_min();
@@ -641,9 +641,9 @@
     }
   });
 
-  // ../../node_modules/react-dom/cjs/react-dom.production.min.js
+  // node_modules/react-dom/cjs/react-dom.production.min.js
   var require_react_dom_production_min = __commonJS({
-    "../../node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
+    "node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
       "use strict";
       var aa = require_react();
       var ca = require_scheduler();
@@ -7781,9 +7781,9 @@
     }
   });
 
-  // ../../node_modules/react-dom/index.js
+  // node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "../../node_modules/react-dom/index.js"(exports, module) {
+    "node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -7807,9 +7807,9 @@
     }
   });
 
-  // ../../node_modules/react-dom/client.js
+  // node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "../../node_modules/react-dom/client.js"(exports) {
+    "node_modules/react-dom/client.js"(exports) {
       "use strict";
       var m = require_react_dom();
       if (true) {
@@ -7838,9 +7838,9 @@
     }
   });
 
-  // ../../node_modules/react/cjs/react-jsx-runtime.production.min.js
+  // node_modules/react/cjs/react-jsx-runtime.production.min.js
   var require_react_jsx_runtime_production_min = __commonJS({
-    "../../node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
+    "node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
       "use strict";
       var f = require_react();
       var k = Symbol.for("react.element");
@@ -7866,9 +7866,9 @@
     }
   });
 
-  // ../../node_modules/react/jsx-runtime.js
+  // node_modules/react/jsx-runtime.js
   var require_jsx_runtime = __commonJS({
-    "../../node_modules/react/jsx-runtime.js"(exports, module) {
+    "node_modules/react/jsx-runtime.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_jsx_runtime_production_min();
@@ -7878,11 +7878,11 @@
     }
   });
 
-  // assets/modules/nudge-popup-entry.js
+  // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
   var import_react2 = __toESM(require_react(), 1);
   var import_client = __toESM(require_client(), 1);
 
-  // ../../app/components/shared/NudgeWidget.tsx
+  // app/components/shared/NudgeWidget.tsx
   var import_react = __toESM(require_react(), 1);
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
   var NudgeWidget = ({
@@ -8308,7 +8308,7 @@
     );
   };
 
-  // assets/modules/analytics.js
+  // extensions/cart-upsell/assets/modules/analytics.js
   var _a;
   var Analytics = {
     shop: ((_a = window.Shopify) == null ? void 0 : _a.shop) || window.location.hostname,
@@ -8374,11 +8374,11 @@
     }
   };
 
-  // assets/modules/nudge-popup-entry.js
+  // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
+  var APP_URL = true ? "https://selections-bias-novelty-jackson.trycloudflare.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;
-      this.appUrl = null;
       this.config = null;
       this.enabled = false;
       this.recommendations = [];
@@ -8393,9 +8393,8 @@
     async init() {
       try {
         this.shop = this.getShopDomain();
-        this.appUrl = this.getAppUrl();
-        if (!this.shop || !this.appUrl) {
-          console.warn("Nudge Popup: Shop or App URL not configured");
+        if (!this.shop) {
+          console.warn("Nudge Popup: Shop not configured");
           return;
         }
         await this.loadConfig();
@@ -8416,21 +8415,14 @@
       }
       return null;
     }
-    getAppUrl() {
-      const scriptTag = document.querySelector("script[data-nudge-app-url]");
-      if (scriptTag) {
-        return scriptTag.dataset.nudgeAppUrl;
-      }
-      return "https://app.upsellity.com";
-    }
     async loadConfig() {
       try {
         const productHandle = this.getCurrentProductHandle();
         if (!productHandle) {
           return;
         }
-        Analytics.init(this.appUrl);
-        const apiUrl = `${this.appUrl}/api/nudge?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(productHandle)}`;
+        Analytics.init(APP_URL);
+        const apiUrl = `${APP_URL}/api/nudge?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(productHandle)}`;
         const response = await fetch(apiUrl);
         if (!response.ok) {
           throw new Error(`Failed to load Nudge config: ${response.status}`);
