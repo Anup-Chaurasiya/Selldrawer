@@ -1,6 +1,6 @@
 /**
- * Upsellity Cart Drawer v1.0.2
- * Built: 2025-12-03T12:45:06.627Z
+ * Upsellity Cart Drawer v1.0.3
+ * Built: 2025-12-03T13:18:54.225Z
  */
 "use strict";
 (() => {
@@ -11267,8 +11267,8 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://selections-bias-novelty-jackson.trycloudflare.com" : "https://app.upsellity.com";
-  var CART_DRAWER_VERSION = true ? "1.0.2" : "dev";
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var CART_DRAWER_VERSION = true ? "1.0.3" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {
       window.upsellityDrawer = new UpsellityCartDrawer(APP_URL);
