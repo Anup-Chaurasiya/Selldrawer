@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.3
- * Built: 2025-12-02T08:47:44.625Z
+ * Built: 2025-12-03T10:13:07.139Z
  */
 "use strict";
 (() => {
@@ -47,9 +47,9 @@
     mod
   ));
 
-  // ../../node_modules/react/cjs/react.production.min.js
+  // node_modules/react/cjs/react.production.min.js
   var require_react_production_min = __commonJS({
-    "../../node_modules/react/cjs/react.production.min.js"(exports) {
+    "node_modules/react/cjs/react.production.min.js"(exports) {
       "use strict";
       var l = Symbol.for("react.element");
       var n = Symbol.for("react.portal");
@@ -346,9 +346,9 @@
     }
   });
 
-  // ../../node_modules/react/index.js
+  // node_modules/react/index.js
   var require_react = __commonJS({
-    "../../node_modules/react/index.js"(exports, module) {
+    "node_modules/react/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_production_min();
@@ -358,9 +358,9 @@
     }
   });
 
-  // ../../node_modules/scheduler/cjs/scheduler.production.min.js
+  // node_modules/scheduler/cjs/scheduler.production.min.js
   var require_scheduler_production_min = __commonJS({
-    "../../node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
+    "node_modules/scheduler/cjs/scheduler.production.min.js"(exports) {
       "use strict";
       function f(a, b) {
         var c = a.length;
@@ -629,9 +629,9 @@
     }
   });
 
-  // ../../node_modules/scheduler/index.js
+  // node_modules/scheduler/index.js
   var require_scheduler = __commonJS({
-    "../../node_modules/scheduler/index.js"(exports, module) {
+    "node_modules/scheduler/index.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_scheduler_production_min();
@@ -641,9 +641,9 @@
     }
   });
 
-  // ../../node_modules/react-dom/cjs/react-dom.production.min.js
+  // node_modules/react-dom/cjs/react-dom.production.min.js
   var require_react_dom_production_min = __commonJS({
-    "../../node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
+    "node_modules/react-dom/cjs/react-dom.production.min.js"(exports) {
       "use strict";
       var aa = require_react();
       var ca = require_scheduler();
@@ -7781,9 +7781,9 @@
     }
   });
 
-  // ../../node_modules/react-dom/index.js
+  // node_modules/react-dom/index.js
   var require_react_dom = __commonJS({
-    "../../node_modules/react-dom/index.js"(exports, module) {
+    "node_modules/react-dom/index.js"(exports, module) {
       "use strict";
       function checkDCE() {
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ === "undefined" || typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.checkDCE !== "function") {
@@ -7807,9 +7807,9 @@
     }
   });
 
-  // ../../node_modules/react-dom/client.js
+  // node_modules/react-dom/client.js
   var require_client = __commonJS({
-    "../../node_modules/react-dom/client.js"(exports) {
+    "node_modules/react-dom/client.js"(exports) {
       "use strict";
       var m = require_react_dom();
       if (true) {
@@ -7838,9 +7838,9 @@
     }
   });
 
-  // ../../node_modules/react/cjs/react-jsx-runtime.production.min.js
+  // node_modules/react/cjs/react-jsx-runtime.production.min.js
   var require_react_jsx_runtime_production_min = __commonJS({
-    "../../node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
+    "node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
       "use strict";
       var f = require_react();
       var k = Symbol.for("react.element");
@@ -7866,9 +7866,9 @@
     }
   });
 
-  // ../../node_modules/react/jsx-runtime.js
+  // node_modules/react/jsx-runtime.js
   var require_jsx_runtime = __commonJS({
-    "../../node_modules/react/jsx-runtime.js"(exports, module) {
+    "node_modules/react/jsx-runtime.js"(exports, module) {
       "use strict";
       if (true) {
         module.exports = require_react_jsx_runtime_production_min();
@@ -7878,11 +7878,11 @@
     }
   });
 
-  // assets/modules/cart-drawer-class.js
+  // extensions/cart-upsell/assets/modules/cart-drawer-class.js
   var import_react6 = __toESM(require_react(), 1);
   var import_client = __toESM(require_client(), 1);
 
-  // assets/modules/utils.js
+  // extensions/cart-upsell/assets/modules/utils.js
   function formatMoney(cents) {
     const amount = cents / 100;
     return `\u20B9${Math.round(amount)}`;
@@ -7915,7 +7915,7 @@
     }, 3e3);
   }
 
-  // assets/modules/cart-operations.js
+  // extensions/cart-upsell/assets/modules/cart-operations.js
   async function addProductToCart(variantId, quantity = 1, loadCartCallback) {
     try {
       if (!variantId) {
@@ -8117,7 +8117,7 @@
     }
   }
 
-  // assets/modules/discount-manager.js
+  // extensions/cart-upsell/assets/modules/discount-manager.js
   async function loadAvailableDiscounts(shop, config) {
     var _a, _b;
     const couponField = (_a = config == null ? void 0 : config.features) == null ? void 0 : _a.couponCodeField;
@@ -8318,7 +8318,7 @@
     return "/checkout";
   }
 
-  // assets/modules/product-loader.js
+  // extensions/cart-upsell/assets/modules/product-loader.js
   async function loadProductCompareAtPrices(cart) {
     const productCompareAtPrices = {};
     if (!cart || !cart.items) {
@@ -8445,7 +8445,7 @@
     }
   }
 
-  // assets/modules/auto-apply-storage.js
+  // extensions/cart-upsell/assets/modules/auto-apply-storage.js
   var STORAGE_KEY = "upsellity_discount_removed";
   var EXPIRATION_MINUTES = 15;
   function markDiscountRemoved() {
@@ -8485,7 +8485,7 @@
     }
   }
 
-  // assets/modules/milestone-reward-manager.js
+  // extensions/cart-upsell/assets/modules/milestone-reward-manager.js
   var GIFT_PROPERTY_KEY = "_upsellity_gift";
   var GIFT_PROPERTY_VALUE = "true";
   var GIFT_MILESTONE_ID_KEY = "_upsellity_milestone_id";
@@ -8724,10 +8724,10 @@
     return unlockedMilestone;
   }
 
-  // assets/modules/components/UnifiedCartDrawer.jsx
+  // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
   var import_react5 = __toESM(require_react(), 1);
 
-  // ../../app/components/shared/FreeShippingBar.tsx
+  // app/components/shared/FreeShippingBar.tsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
   var FreeShippingBar = ({
     thresholdMode,
@@ -8831,7 +8831,7 @@
     ] });
   };
 
-  // ../../app/components/shared/PromotionalBannerCard.tsx
+  // app/components/shared/PromotionalBannerCard.tsx
   var import_react = __toESM(require_react(), 1);
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
   var getYouTubeEmbedUrl = (url) => {
@@ -9504,7 +9504,7 @@
     ] });
   };
 
-  // ../../app/components/shared/CartItems.tsx
+  // app/components/shared/CartItems.tsx
   var import_react2 = __toESM(require_react(), 1);
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
   var CartItemRow = ({
@@ -9860,7 +9860,7 @@
     )) });
   };
 
-  // ../../app/components/shared/ProductRecommendations.tsx
+  // app/components/shared/ProductRecommendations.tsx
   var import_react3 = __toESM(require_react(), 1);
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
   var ProductRecommendations = ({
@@ -10224,7 +10224,7 @@
     ] });
   };
 
-  // ../../app/components/shared/SavingsDisplay.tsx
+  // app/components/shared/SavingsDisplay.tsx
   var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
   var SavingsDisplay = ({
     message,
@@ -10253,7 +10253,7 @@
     }, children: formattedMessage });
   };
 
-  // ../../app/components/shared/FreeShippingMessage.tsx
+  // app/components/shared/FreeShippingMessage.tsx
   var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
   var FreeShippingMessage = ({
     thresholdAmount,
@@ -10308,7 +10308,7 @@
     ] });
   };
 
-  // ../../app/components/shared/CouponCodeField.tsx
+  // app/components/shared/CouponCodeField.tsx
   var import_react4 = __toESM(require_react(), 1);
   var import_jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
   var CheckIcon = ({ size = 16, color = "currentColor" }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "3", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("polyline", { points: "20 6 9 17 4 12" }) });
@@ -10554,7 +10554,7 @@
     ] });
   };
 
-  // ../../app/components/shared/CartTotals.tsx
+  // app/components/shared/CartTotals.tsx
   var import_jsx_runtime8 = __toESM(require_jsx_runtime(), 1);
   var CartTotals = ({
     items,
@@ -10696,7 +10696,7 @@
     ] });
   };
 
-  // ../../app/components/shared/MilestonesWidget.tsx
+  // app/components/shared/MilestonesWidget.tsx
   var import_jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
   function MilestonesWidget({
     milestones,
@@ -10942,7 +10942,7 @@
     ] });
   }
 
-  // assets/modules/components/UnifiedCartDrawer.jsx
+  // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
   var import_jsx_runtime10 = __toESM(require_jsx_runtime(), 1);
   var UnifiedCartDrawer = ({
     config,
@@ -11185,33 +11185,6 @@
         }
       ) }),
       afterItems.map(renderFeature),
-      unlockedMilestone && unlockedMilestone.discountCode && /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: {
-        marginBottom: "12px",
-        padding: "12px",
-        backgroundColor: "#dcfce7",
-        border: "1px solid #86efac",
-        borderRadius: "8px",
-        display: "flex",
-        alignItems: "center",
-        gap: "8px"
-      }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { style: { fontSize: "20px" }, children: unlockedMilestone.icon || "\u{1F381}" }),
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: { flex: 1 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: { fontSize: "13px", fontWeight: "600", color: "#15803d", marginBottom: "2px" }, children: [
-            unlockedMilestone.title,
-            " Unlocked!"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { fontSize: "12px", color: "#166534" }, children: unlockedMilestone.rewardType === "gift_wrapping" ? "Free gift added to your cart" : `Discount code ${unlockedMilestone.discountCode} will be applied at checkout` })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: {
-          backgroundColor: "#15803d",
-          color: "white",
-          padding: "4px 8px",
-          borderRadius: "4px",
-          fontSize: "11px",
-          fontWeight: "600"
-        }, children: "\u2713 ACTIVE" })
-      ] }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
         CartTotals,
         {
@@ -11269,7 +11242,7 @@
     ] });
   };
 
-  // assets/modules/cart-drawer-class.js
+  // extensions/cart-upsell/assets/modules/cart-drawer-class.js
   var UpsellityCartDrawer = class {
     constructor() {
       var _a;
@@ -11750,7 +11723,7 @@
     }
   };
 
-  // assets/modules/cart-drawer-entry.js
+  // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
   var CART_DRAWER_VERSION = true ? "1.0.3" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

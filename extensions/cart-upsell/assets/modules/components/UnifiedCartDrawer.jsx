@@ -291,7 +291,7 @@ export const UnifiedCartDrawer = ({
       {afterItems.map(renderFeature)}
 
       {/* Milestone Reward Indicator */}
-      {unlockedMilestone && unlockedMilestone.discountCode && (
+      {/* {unlockedMilestone && unlockedMilestone.discountCode && (
         <div style={{
           marginBottom: '12px',
           padding: '12px',
@@ -324,7 +324,7 @@ export const UnifiedCartDrawer = ({
             ✓ ACTIVE
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Cart totals */}
       <div style={{ marginBottom: '12px' }}>

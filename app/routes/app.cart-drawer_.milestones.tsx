@@ -250,63 +250,63 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       if (!discountResult) {
         return json({ error: "Failed to create Shopify discount. Please check your configuration and try again." }, { status: 500 });
       }
+
+      // Get the highest priority and add 1
+      const highestPriority = await prisma.cartMilestone.findFirst({
+        where: { cartDrawerId: cartDrawer.id },
+        orderBy: { priority: 'desc' },
+        select: { priority: true }
+      });
+
+      const priority = (highestPriority?.priority || 0) + 1;
+
+      const milestone = await prisma.cartMilestone.create({
+        data: {
+          cartDrawerId: cartDrawer.id,
+          shop,
+          title,
+          targetAmount,
+          rewardType,
+          rewardValue,
+          discountCode: discountResult.code,
+          shopifyDiscountId: discountResult.discountId,
+          targetType,
+          priority,
+          icon,
+          unlockedMessage,
+          inProgressMessage,
+          showProgressBar,
+          iconColor,
+          titleColor,
+          amountColor,
+        } as any
+      });
+
+      // Add gift products if applicable
+      if (rewardType === "gift_wrapping" && giftProducts.length > 0) {
+        for (let i = 0; i < giftProducts.length; i++) {
+          const product = giftProducts[i];
+          await prisma.cartMilestoneGiftProduct.create({
+            data: {
+              milestoneId: milestone.id,
+              shopifyProductId: product.shopifyProductId,
+              shopifyVariantId: product.shopifyVariantId || null,
+              title: product.title,
+              price: product.price,
+              compareAtPrice: product.compareAtPrice || null,
+              imageUrl: product.imageUrl || null,
+              handle: product.handle,
+              position: i,
+            }
+          });
+        }
+      }
+
+      return json({ success: true });
     } catch (error) {
       console.error("Error in add-milestone:", error);
       return json({ error: error instanceof Error ? error.message : "An error occurred" }, { status: 500 });
     }
-
-    // Get the highest priority and add 1
-    const highestPriority = await prisma.cartMilestone.findFirst({
-      where: { cartDrawerId: cartDrawer.id },
-      orderBy: { priority: 'desc' },
-      select: { priority: true }
-    });
-
-    const priority = (highestPriority?.priority || 0) + 1;
-
-    const milestone = await prisma.cartMilestone.create({
-      data: {
-        cartDrawerId: cartDrawer.id,
-        shop,
-        title,
-        targetAmount,
-        rewardType,
-        rewardValue,
-        discountCode: discountResult.code,
-        shopifyDiscountId: discountResult.discountId,
-        targetType,
-        priority,
-        icon,
-        unlockedMessage,
-        inProgressMessage,
-        showProgressBar,
-        iconColor,
-        titleColor,
-        amountColor,
-      } as any
-    });
-
-    // Add gift products if applicable
-    if (rewardType === "gift_wrapping" && giftProducts.length > 0) {
-      for (let i = 0; i < giftProducts.length; i++) {
-        const product = giftProducts[i];
-        await prisma.cartMilestoneGiftProduct.create({
-          data: {
-            milestoneId: milestone.id,
-            shopifyProductId: product.shopifyProductId,
-            shopifyVariantId: product.shopifyVariantId || null,
-            title: product.title,
-            price: product.price,
-            compareAtPrice: product.compareAtPrice || null,
-            imageUrl: product.imageUrl || null,
-            handle: product.handle,
-            position: i,
-          }
-        });
-      }
-    }
-
-    return json({ success: true });
   }
 
   if (intent === "update-milestone") {
