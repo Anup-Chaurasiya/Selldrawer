@@ -24,7 +24,7 @@ export function generateDiscountCode(rewardType: string): string {
   
   // Generate code with max 20 characters to stay within Shopify limits
   const code = `${prefix}${timestamp}${randomStr}`;
-  return code.substring(0, 20).toUpperCase();
+  return code.substring(0, 15).toUpperCase();
 }
 
 /**
@@ -72,6 +72,11 @@ async function createFreeShippingDiscount(
       destination: {
         all: true,
       },
+      combinesWith: {
+        orderDiscounts: true,
+        productDiscounts: true,
+        shippingDiscounts: true
+      }
     },
   };
 
@@ -148,9 +153,14 @@ async function createPercentageDiscount(
       customerSelection: {
         all: true,
       },
+      combinesWith: {  // FIXED: Moved to root level
+        orderDiscounts: true,
+        productDiscounts: true,
+        shippingDiscounts: true
+      },
       customerGets: {
         value: {
-          percentage: percentage / 100, // Convert to decimal (5% = 0.05)
+          percentage: percentage / 100,
         },
         items: {
           all: true,
@@ -233,11 +243,16 @@ async function createFixedDiscount(
       customerSelection: {
         all: true,
       },
+      combinesWith: {  // ADDED: combinesWith for fixed discounts
+        orderDiscounts: true,
+        productDiscounts: true,
+        shippingDiscounts: true
+      },
       customerGets: {
         value: {
-          discountAmount: {
-            amount: amount.toString(),
-            appliesOnEachItem: false,
+          fixedAmount: {  // FIXED: Changed from discountAmount to fixedAmount
+            amount: amount,
+            currencyCode: currencyCode
           },
         },
         items: {
@@ -342,6 +357,11 @@ async function createGiftDiscount(
       startsAt: new Date().toISOString(),
       customerSelection: {
         all: true,
+      },
+      combinesWith: {  // FIXED: Moved to root level
+        orderDiscounts: true,
+        productDiscounts: true,
+        shippingDiscounts: true
       },
       customerGets: {
         value: {
@@ -461,20 +481,19 @@ export async function createMilestoneDiscount(
         }
         return await createFixedDiscount(admin, code, title, milestone.rewardValue);
 
-    case "gift_wrapping":
-      // For gifts, create a 100% discount on the gift variants
-      // Filter to only include products with valid variant IDs
-      const variantIds = milestone.giftProducts
-        ?.map(p => p.shopifyVariantId)
-        .filter((id): id is string => !!id) || [];
-      
-      if (variantIds.length === 0) {
-        console.error("Gift discount requires at least one product with a variant ID");
-        console.error("Gift products received:", JSON.stringify(milestone.giftProducts, null, 2));
-        return null;
-      }
-      
-      return await createGiftDiscount(admin, code, title, variantIds);
+      case "gift_wrapping":
+        // For gifts, create a 100% discount on the gift variants
+        const variantIds = milestone.giftProducts
+          ?.map(p => p.shopifyVariantId)
+          .filter((id): id is string => !!id) || [];
+        
+        if (variantIds.length === 0) {
+          console.error("Gift discount requires at least one product with a variant ID");
+          console.error("Gift products received:", JSON.stringify(milestone.giftProducts, null, 2));
+          return null;
+        }
+        
+        return await createGiftDiscount(admin, code, title, variantIds);
 
       default:
         console.error("Unknown reward type:", milestone.rewardType);
@@ -507,4 +526,3 @@ export async function updateMilestoneDiscount(
   // Create new discount
   return createMilestoneDiscount(admin, milestone);
 }
-
