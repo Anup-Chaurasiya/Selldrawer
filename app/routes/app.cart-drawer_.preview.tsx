@@ -52,7 +52,7 @@ export default function CartDrawerPreview() {
             price: 2999.00,
             originalPrice: 4999.00,
             quantity: 1,
-            image: "https://via.placeholder.com/80",
+            image: null,
           }
         ],
         total: 2999.00,
@@ -86,7 +86,7 @@ export default function CartDrawerPreview() {
           price: sampleTotal / sampleItemCount,
           originalPrice: (sampleTotal / sampleItemCount) * 1.67, // 40% discount
           quantity: sampleItemCount,
-          image: "https://via.placeholder.com/80",
+          image: null,
         }
       ],
       total: sampleTotal,

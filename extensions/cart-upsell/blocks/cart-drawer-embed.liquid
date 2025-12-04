@@ -1,23 +1,28 @@
 {% comment %}
   Upsellity Cart Drawer - App Embed
   This app embed enables the cart drawer functionality
-  Configuration is managed in extensions/cart-upsell/config.js
 {% endcomment %}
 
-<div data-upsellity-cart-drawer></div>
+<div data-upsellity-app-url="{{ block.settings.app_url }}"></div>
 
 <script>
   (function() {
+    // Version number for cache busting (update this when you release new versions)
+    var version = '{{ block.settings.version | default: "1.0.4" }}';
+    // Add timestamp for additional cache busting during development
+    var timestamp = new Date().getTime();
+    var cacheParam = '?v=' + version + '&t=' + Math.floor(timestamp / 60000); // Update every minute
+    
     // Load the cart drawer CSS
     var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.type = 'text/css';
-    link.href = '{{ 'cart-drawer.css' | asset_url }}';
+    link.href = '{{ 'cart-drawer.css' | asset_url }}' + cacheParam;
     document.head.appendChild(link);
     
     // Load the cart drawer script
     var script = document.createElement('script');
-    script.src = '{{ 'cart-drawer.js' | asset_url }}';
+    script.src = '{{ 'cart-drawer.js' | asset_url }}' + cacheParam;
     script.async = true;
     document.head.appendChild(script);
   })();
@@ -27,7 +32,21 @@
 {
   "name": "Upsellity Cart Drawer",
   "target": "body",
-  "settings": []
+  "settings": [
+    {
+      "type": "text",
+      "id": "app_url",
+      "label": "App URL",
+      "info": "Enter your Upsellity app URL (e.g., https://your-app.fly.dev)",
+      "default": "https://app.upsellity.com"
+    },
+    {
+      "type": "text",
+      "id": "version",
+      "label": "Version",
+      "info": "Version number for cache busting. Update this when you release new versions.",
+      "default": "1.0.4"
+    }
+  ]
 }
 {% endschema %}
-

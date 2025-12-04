@@ -1,6 +1,6 @@
 /**
- * Upsellity Cart Drawer v1.0.3
- * Built: 2025-12-03T13:18:54.225Z
+ * Upsellity Cart Drawer v1.0.4
+ * Built: 2025-12-04T11:51:13.766Z
  */
 "use strict";
 (() => {
@@ -8910,18 +8910,29 @@
           );
         }
       }
-      return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-        "img",
-        {
-          src: slide.imageUrl || "https://via.placeholder.com/400x200",
-          alt: "Promotional banner",
-          style: {
-            width: "100%",
-            height: "100%",
-            objectFit: "cover"
+      if (slide.imageUrl) {
+        return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "img",
+          {
+            src: slide.imageUrl,
+            alt: "Promotional banner",
+            style: {
+              width: "100%",
+              height: "100%",
+              objectFit: "cover"
+            }
           }
-        }
-      );
+        );
+      }
+      return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+        width: "100%",
+        height: "100%",
+        backgroundColor: "#f3f4f6",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "48px"
+      }, children: "\u{1F5BC}\uFE0F" });
     };
     const scrollToIndex = (index) => {
       const container = scrollContainerRef.current;
@@ -11267,8 +11278,8 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
-  var CART_DRAWER_VERSION = true ? "1.0.3" : "dev";
+  var APP_URL = true ? "https://joseph-those-before-such.trycloudflare.com" : "https://app.upsellity.com";
+  var CART_DRAWER_VERSION = true ? "1.0.4" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {
       window.upsellityDrawer = new UpsellityCartDrawer(APP_URL);

@@ -389,17 +389,34 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         );
       }
     }
-    // Fallback to image
+    // Fallback to image or placeholder
+    if (slide.imageUrl) {
+      return (
+        <img
+          src={slide.imageUrl}
+          alt="Promotional banner"
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+          }}
+        />
+      );
+    }
+    
+    // No image available
     return (
-      <img
-        src={slide.imageUrl || 'https://via.placeholder.com/400x200'}
-        alt="Promotional banner"
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover'
-        }}
-      />
+      <div style={{
+        width: '100%',
+        height: '100%',
+        backgroundColor: '#f3f4f6',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '48px'
+      }}>
+        🖼️
+      </div>
     );
   };
 

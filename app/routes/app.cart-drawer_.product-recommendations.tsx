@@ -590,17 +590,33 @@ export default function ProductRecommendations() {
                                 >
                                   <div style={{ display: 'flex', gap: '12px' }}>
                                     <div style={{ flexShrink: 0 }}>
-                                      <img 
-                                        src={product.images?.[0]?.src || "https://via.placeholder.com/80x80?text=No+Image"} 
-                                        alt={product.title}
-                                        style={{ 
+                                      {product.images?.[0]?.src ? (
+                                        <img 
+                                          src={product.images[0].src} 
+                                          alt={product.title}
+                                          style={{ 
+                                            width: '80px', 
+                                            height: '80px', 
+                                            objectFit: 'cover',
+                                            borderRadius: '6px',
+                                            border: '1px solid #e5e7eb'
+                                          }}
+                                        />
+                                      ) : (
+                                        <div style={{ 
                                           width: '80px', 
                                           height: '80px', 
-                                          objectFit: 'cover',
+                                          backgroundColor: '#f3f4f6',
                                           borderRadius: '6px',
-                                          border: '1px solid #e5e7eb'
-                                        }}
-                                      />
+                                          border: '1px solid #e5e7eb',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontSize: '32px'
+                                        }}>
+                                          📦
+                                        </div>
+                                      )}
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
@@ -718,17 +734,33 @@ export default function ProductRecommendations() {
                                 }}>
                                   <div style={{ display: 'flex', gap: '8px' }}>
                                     <div style={{ flexShrink: 0 }}>
-                                      <img 
-                                        src={product.images?.[0]?.src || "https://via.placeholder.com/60x60?text=No+Image"} 
-                                        alt={product.title}
-                                        style={{ 
+                                      {product.images?.[0]?.src ? (
+                                        <img 
+                                          src={product.images[0].src} 
+                                          alt={product.title}
+                                          style={{ 
+                                            width: '60px', 
+                                            height: '60px', 
+                                            objectFit: 'cover',
+                                            borderRadius: '4px',
+                                            border: '1px solid #e5e7eb'
+                                          }}
+                                        />
+                                      ) : (
+                                        <div style={{ 
                                           width: '60px', 
                                           height: '60px', 
-                                          objectFit: 'cover',
+                                          backgroundColor: '#f3f4f6',
                                           borderRadius: '4px',
-                                          border: '1px solid #e5e7eb'
-                                        }}
-                                      />
+                                          border: '1px solid #e5e7eb',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontSize: '24px'
+                                        }}>
+                                          📦
+                                        </div>
+                                      )}
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                       <h5 style={{ 

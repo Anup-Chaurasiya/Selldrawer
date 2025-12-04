@@ -545,7 +545,7 @@ export default function FrequentlyBoughtTogether() {
       handle: `sample-product-${i}`,
       price: 29.99 + (i * 10),
       compareAtPrice: 39.99 + (i * 10),
-      imageUrl: `https://via.placeholder.com/300x300/4F46E5/FFFFFF?text=Product+${i + 1}`
+      imageUrl: null // Will show fallback icon in the component
     }));
   };
 
@@ -1313,16 +1313,31 @@ export default function FrequentlyBoughtTogether() {
                           const product = shopProducts.find((p: any) => p.handle === row.selectedTriggerProduct);
                           return product ? (
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              <img
-                                src={product.images?.[0]?.src || "https://via.placeholder.com/40x40"}
-                                alt={product.title}
-                                style={{
+                              {product.images?.[0]?.src ? (
+                                <img
+                                  src={product.images[0].src}
+                                  alt={product.title}
+                                  style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    objectFit: 'cover',
+                                    borderRadius: '4px'
+                                  }}
+                                />
+                              ) : (
+                                <div style={{
                                   width: '40px',
                                   height: '40px',
-                                  objectFit: 'cover',
-                                  borderRadius: '4px'
-                                }}
-                              />
+                                  backgroundColor: '#f3f4f6',
+                                  borderRadius: '4px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '20px'
+                                }}>
+                                  📦
+                                </div>
+                              )}
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: '600', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {product.title}
@@ -1446,16 +1461,31 @@ export default function FrequentlyBoughtTogether() {
                               }}>
                                 {idx + 1}
                               </div>
-                              <img
-                                src={product.images?.[0]?.src || "https://via.placeholder.com/40x40"}
-                                alt={product.title}
-                                style={{
+                              {product.images?.[0]?.src ? (
+                                <img
+                                  src={product.images[0].src}
+                                  alt={product.title}
+                                  style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    objectFit: 'cover',
+                                    borderRadius: '4px'
+                                  }}
+                                />
+                              ) : (
+                                <div style={{
                                   width: '40px',
                                   height: '40px',
-                                  objectFit: 'cover',
-                                  borderRadius: '4px'
-                                }}
-                              />
+                                  backgroundColor: '#f3f4f6',
+                                  borderRadius: '4px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '20px'
+                                }}>
+                                  📦
+                                </div>
+                              )}
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: '600', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {product.title}
@@ -1605,16 +1635,31 @@ export default function FrequentlyBoughtTogether() {
                                 alignItems: 'center'
                               }}
                             >
-                              <img
-                                src={product.images?.[0]?.src || "https://via.placeholder.com/40x40"}
-                                alt={product.title}
-                                style={{
+                              {product.images?.[0]?.src ? (
+                                <img
+                                  src={product.images[0].src}
+                                  alt={product.title}
+                                  style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    objectFit: 'cover',
+                                    borderRadius: '4px'
+                                  }}
+                                />
+                              ) : (
+                                <div style={{
                                   width: '40px',
                                   height: '40px',
-                                  objectFit: 'cover',
-                                  borderRadius: '4px'
-                                }}
-                              />
+                                  backgroundColor: '#f3f4f6',
+                                  borderRadius: '4px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '20px'
+                                }}>
+                                  📦
+                                </div>
+                              )}
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: '600', fontSize: '13px', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {product.title}
@@ -1751,16 +1796,31 @@ export default function FrequentlyBoughtTogether() {
                               alignItems: 'center'
                             }}
                           >
-                            <img
-                              src={product.images?.[0]?.src || "https://via.placeholder.com/40x40"}
-                              alt={product.title}
-                              style={{
+                            {product.images?.[0]?.src ? (
+                              <img
+                                src={product.images[0].src}
+                                alt={product.title}
+                                style={{
+                                  width: '40px',
+                                  height: '40px',
+                                  objectFit: 'cover',
+                                  borderRadius: '4px'
+                                }}
+                              />
+                            ) : (
+                              <div style={{
                                 width: '40px',
                                 height: '40px',
-                                objectFit: 'cover',
-                                borderRadius: '4px'
-                              }}
-                            />
+                                backgroundColor: '#f3f4f6',
+                                borderRadius: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '20px'
+                              }}>
+                                📦
+                              </div>
+                            )}
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontWeight: '600', fontSize: '13px', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {product.title}
