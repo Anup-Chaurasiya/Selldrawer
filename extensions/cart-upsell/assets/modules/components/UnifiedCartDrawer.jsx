@@ -20,8 +20,6 @@ export const UnifiedCartDrawer = ({
   appliedDiscount,
   availableDiscounts,
   productCompareAtPrices,
-  showingAllOffers,
-  unlockedMilestone,
   onClose,
   onCheckout,
   onAddProductToCart,
@@ -305,42 +303,6 @@ export const UnifiedCartDrawer = ({
 
       {/* Features after cart items */}
       {afterItems.map(renderFeature)}
-
-      {/* Milestone Reward Indicator */}
-      {/* {unlockedMilestone && unlockedMilestone.discountCode && (
-        <div style={{
-          marginBottom: '12px',
-          padding: '12px',
-          backgroundColor: '#dcfce7',
-          border: '1px solid #86efac',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <span style={{ fontSize: '20px' }}>{unlockedMilestone.icon || '🎁'}</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '13px', fontWeight: '600', color: '#15803d', marginBottom: '2px' }}>
-              {unlockedMilestone.title} Unlocked!
-            </div>
-            <div style={{ fontSize: '12px', color: '#166534' }}>
-              {unlockedMilestone.rewardType === 'gift_wrapping' 
-                ? 'Free gift added to your cart'
-                : `Discount code ${unlockedMilestone.discountCode} will be applied at checkout`}
-            </div>
-          </div>
-          <div style={{
-            backgroundColor: '#15803d',
-            color: 'white',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: '600'
-          }}>
-            ✓ ACTIVE
-          </div>
-        </div>
-      )} */}
 
       {/* Cart totals */}
       <div style={{ marginBottom: '12px' }}>
