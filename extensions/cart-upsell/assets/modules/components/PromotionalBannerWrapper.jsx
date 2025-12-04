@@ -10,10 +10,15 @@ export const PromotionalBannerWrapper = ({
   slides,
   carouselSettings,
   isPreview = false,
-  maxHeight = '180px'
+  maxHeight = '180px',
+  onImpression,
+  onCtaClick
 }) => {
   // Handle CTA clicks
   const handleCtaClick = (url) => {
+    if (onCtaClick) {
+      onCtaClick(url);
+    }
     if (url && !isPreview) {
       window.location.href = url;
     }
@@ -25,6 +30,7 @@ export const PromotionalBannerWrapper = ({
         slides={slides}
         carouselSettings={carouselSettings}
         onCtaClick={handleCtaClick}
+        onImpression={onImpression}
         isPreview={isPreview}
         context="block"
         maxHeight={maxHeight}

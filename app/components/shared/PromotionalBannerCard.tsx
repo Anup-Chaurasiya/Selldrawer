@@ -26,6 +26,7 @@ interface PromotionalBannerCardProps {
   slides: Slide[];
   carouselSettings?: CarouselSettings;
   onCtaClick?: (url: string) => void;
+  onImpression?: () => void;
   isPreview?: boolean;
   context?: 'cart-drawer' | 'block'; // 'cart-drawer' for cart drawer, 'block' for standalone promotional banner
   maxHeight?: string; // Custom max height for block context (e.g., '180px', '200px', 'auto')
@@ -51,6 +52,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
   slides,
   carouselSettings = {},
   onCtaClick,
+  onImpression,
   isPreview = false,
   context = 'cart-drawer',
   maxHeight = '180px'
@@ -61,9 +63,17 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isScrolling = useRef(false);
   const currentIndexRef = useRef(0);
+  const impressionTracked = useRef(false);
 
   // Determine if we're in block context (standalone promotional banner)
   const isBlockContext = context === 'block';
+
+  useEffect(() => {
+    if (!impressionTracked.current && onImpression && !isPreview && slides.length > 0) {
+      onImpression();
+      impressionTracked.current = true;
+    }
+  }, [onImpression, isPreview, slides.length]);
 
   // Check scroll state
   const updateScrollState = () => {

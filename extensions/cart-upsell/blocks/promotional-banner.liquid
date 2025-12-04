@@ -2,14 +2,8 @@
   Upsellity Promotional Banner Block
   Standalone promotional banner that can be placed anywhere on the site
   Displays carousel with images/videos, titles, descriptions, and CTA buttons
+  Configuration is managed in extensions/cart-upsell/config.js
 {% endcomment %}
-
-{% comment %} Get app URL from settings or use default {% endcomment %}
-{% if block.settings.app_url != blank %}
-  {% assign app_url = block.settings.app_url %}
-{% else %}
-  {% assign app_url = "https://app.upsellity.com" %}
-{% endif %}
 
 {% comment %} Only render if enabled {% endcomment %}
 {% if block.settings.enabled %}
@@ -44,7 +38,6 @@
   
   <div 
     class="upsellity-promotional-banner-container{% if is_full_width %} upsellity-promotional-banner-fullwidth{% endif %}"
-    data-app-url="{{ app_url }}"
     data-shop="{{ shop.permanent_domain }}"
     data-max-height="{{ block.settings.max_height }}"
     style="margin: {{ block.settings.margin_top }}px 0 {{ block.settings.margin_bottom }}px 0; {% if is_full_width %}width: 100%; max-width: 100%;{% else %}max-width: {{ block.settings.max_width }}; width: 100%; margin-left: auto; margin-right: auto;{% endif %} padding: 0 {{ block.settings.horizontal_padding }}px;"
@@ -71,12 +64,9 @@
 
   <script>
     (function() {
-      // Version number for cache busting
-      var version = '{{ block.settings.version | default: "1.0.2" }}';
-      
       // Load the promotional banner script
       var script = document.createElement('script');
-      script.src = '{{ 'promotional-banner.js' | asset_url }}' + '?v=' + version;
+      script.src = '{{ 'promotional-banner.js' | asset_url }}';
       script.async = true;
       document.head.appendChild(script);
     })();
@@ -98,20 +88,6 @@
       "label": "Enable Promotional Banner",
       "default": true,
       "info": "You can also enable/disable from the Upsellity admin panel"
-    },
-    {
-      "type": "text",
-      "id": "app_url",
-      "label": "App URL",
-      "default": "https://app.upsellity.com",
-      "info": "Enter your Upsellity app URL (e.g., https://your-app.fly.dev)"
-    },
-    {
-      "type": "text",
-      "id": "version",
-      "label": "Version",
-      "default": "1.0.2",
-      "info": "Version number for cache busting. Update this when you release new versions."
     },
     {
       "type": "header",

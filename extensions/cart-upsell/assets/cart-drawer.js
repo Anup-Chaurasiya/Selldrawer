@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.3
- * Built: 2025-12-03T13:49:44.759Z
+ * Built: 2025-12-04T08:58:18.234Z
  */
 "use strict";
 (() => {
@@ -7916,7 +7916,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-operations.js
-  async function addProductToCart(variantId, quantity = 1, loadCartCallback) {
+  async function addProductToCart(variantId, quantity = 1, loadCartCallback, properties = {}) {
     try {
       if (!variantId) {
         throw new Error("No variant ID provided");
@@ -7925,6 +7925,9 @@
         const formData = new FormData();
         formData.append("id", variantId);
         formData.append("quantity", quantity.toString());
+        Object.keys(properties).forEach((key) => {
+          formData.append(`properties[${key}]`, properties[key]);
+        });
         const response = await fetch("/cart/add.js", {
           method: "POST",
           body: formData
@@ -7938,20 +7941,23 @@
           showNotification(error.description || "Failed to add product to cart", "error");
         }
       } else {
-        await addProductToCartByHandle(variantId, null, quantity, loadCartCallback);
+        await addProductToCartByHandle(variantId, null, quantity, loadCartCallback, properties);
       }
     } catch (error) {
       console.error("Error adding product to cart:", error);
       showNotification("Failed to add product to cart", "error");
     }
   }
-  async function addProductToCartByHandle(productHandle, variantId, quantity = 1, loadCartCallback) {
+  async function addProductToCartByHandle(productHandle, variantId, quantity = 1, loadCartCallback, properties = {}) {
     try {
       let productResponse;
       if (/^\d+$/.test(productHandle)) {
         const formData2 = new FormData();
         formData2.append("id", productHandle);
         formData2.append("quantity", quantity.toString());
+        Object.keys(properties).forEach((key) => {
+          formData2.append(`properties[${key}]`, properties[key]);
+        });
         const response2 = await fetch("/cart/add.js", {
           method: "POST",
           body: formData2
@@ -7996,6 +8002,9 @@
       const formData = new FormData();
       formData.append("id", variant.id);
       formData.append("quantity", quantity.toString());
+      Object.keys(properties).forEach((key) => {
+        formData.append(`properties[${key}]`, properties[key]);
+      });
       const response = await fetch("/cart/add.js", {
         method: "POST",
         body: formData
@@ -8118,14 +8127,13 @@
   }
 
   // extensions/cart-upsell/assets/modules/discount-manager.js
-  async function loadAvailableDiscounts(shop, config) {
-    var _a, _b;
-    const couponField = (_a = config == null ? void 0 : config.features) == null ? void 0 : _a.couponCodeField;
+  async function loadAvailableDiscounts(appUrl, shop, config) {
+    var _a2;
+    const couponField = (_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.couponCodeField;
     if (!couponField || !couponField.enableAutoApply && !couponField.showAllOffers) {
       return [];
     }
     try {
-      const appUrl = ((_b = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _b.dataset.upsellityAppUrl) || "";
       const response = await fetch(`${appUrl}/api/available-discounts?shop=${shop}`);
       const data = await response.json();
       if (data.discounts && data.discounts.length > 0) {
@@ -8144,11 +8152,11 @@
     }
   }
   function autoApplyBestDiscount(availableDiscounts, cart, config) {
-    var _a;
+    var _a2;
     if (!availableDiscounts || availableDiscounts.length === 0) {
       return null;
     }
-    const couponField = (_a = config == null ? void 0 : config.features) == null ? void 0 : _a.couponCodeField;
+    const couponField = (_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.couponCodeField;
     const strategy = (couponField == null ? void 0 : couponField.autoApplyStrategy) || "best_value";
     let bestDiscount = null;
     if (strategy === "best_value") {
@@ -8190,15 +8198,13 @@
         return 0;
     }
   }
-  async function validateAndApplyCoupon(shop, config, couponCode, cart) {
-    var _a;
+  async function validateAndApplyCoupon(appUrl, shop, config, couponCode, cart) {
     if (!couponCode || !couponCode.trim()) {
       showNotification("Please enter a coupon code", "error");
       return null;
     }
     const code = couponCode.trim().toUpperCase();
     try {
-      const appUrl = ((_a = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a.dataset.upsellityAppUrl) || "";
       const response = await fetch(`${appUrl}/api/validate-discount?shop=${shop}&code=${encodeURIComponent(code)}`);
       const data = await response.json();
       if (data.valid) {
@@ -8222,8 +8228,7 @@
       return null;
     }
   }
-  async function applyCoupon(shop, config, appliedDiscount, renderCallback) {
-    var _a;
+  async function applyCoupon(appUrl, shop, config, appliedDiscount, renderCallback) {
     const couponInput = document.getElementById("upsellity-coupon-input");
     const messageDiv = document.getElementById("upsellity-coupon-message");
     const applyBtn = document.querySelector(".upsellity-coupon-apply-btn");
@@ -8242,7 +8247,6 @@
     if (applyBtn)
       applyBtn.disabled = true;
     try {
-      const appUrl = ((_a = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a.dataset.upsellityAppUrl) || "";
       const response = await fetch(`${appUrl}/api/validate-discount?shop=${shop}&code=${encodeURIComponent(couponCode)}`);
       const data = await response.json();
       if (data.valid) {
@@ -8369,8 +8373,8 @@
     return productCompareAtPrices;
   }
   async function loadShopifyRecommendations(cart, config) {
-    var _a;
-    const recommendations = (_a = config == null ? void 0 : config.features) == null ? void 0 : _a.productRecommendations;
+    var _a2;
+    const recommendations = (_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.productRecommendations;
     if (!recommendations) {
       return;
     }
@@ -8395,9 +8399,9 @@
       if (response.ok) {
         const data = await response.json();
         const shopifyRecommendations = (data.products || []).map((product) => {
-          var _a2, _b, _c;
+          var _a3, _b, _c;
           let variantId = null;
-          if ((_b = (_a2 = product.variants) == null ? void 0 : _a2[0]) == null ? void 0 : _b.id) {
+          if ((_b = (_a3 = product.variants) == null ? void 0 : _a3[0]) == null ? void 0 : _b.id) {
             const idStr = product.variants[0].id.toString();
             if (idStr.includes("gid://")) {
               variantId = idStr.replace("gid://shopify/ProductVariant/", "");
@@ -8850,6 +8854,7 @@
     slides,
     carouselSettings = {},
     onCtaClick,
+    onImpression,
     isPreview = false,
     context = "cart-drawer",
     maxHeight = "180px"
@@ -8860,7 +8865,14 @@
     const scrollContainerRef = (0, import_react.useRef)(null);
     const isScrolling = (0, import_react.useRef)(false);
     const currentIndexRef = (0, import_react.useRef)(0);
+    const impressionTracked = (0, import_react.useRef)(false);
     const isBlockContext = context === "block";
+    (0, import_react.useEffect)(() => {
+      if (!impressionTracked.current && onImpression && !isPreview && slides.length > 0) {
+        onImpression();
+        impressionTracked.current = true;
+      }
+    }, [onImpression, isPreview, slides.length]);
     const updateScrollState = () => {
       const container = scrollContainerRef.current;
       if (!container || slides.length <= 1)
@@ -9518,7 +9530,7 @@
     formatMoney: formatMoney2,
     calculateItemPrices
   }) => {
-    var _a;
+    var _a2;
     const [inputValue, setInputValue] = (0, import_react2.useState)(item.quantity.toString());
     const [isEditing, setIsEditing] = (0, import_react2.useState)(false);
     const [error, setError] = (0, import_react2.useState)(null);
@@ -9569,7 +9581,7 @@
       }
     }, [item.quantity, isEditing]);
     const prices = calculateItemPrices(item, cartTotalPrice);
-    const imageUrl = ((_a = item.featured_image) == null ? void 0 : _a.url) || item.image || "";
+    const imageUrl = ((_a2 = item.featured_image) == null ? void 0 : _a2.url) || item.image || "";
     return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
       "div",
       {
@@ -9872,13 +9884,22 @@
     showDiscountBadge = true,
     showAddButton = true,
     onAddToCart,
+    onImpression,
+    onProductClick,
     isPreview = false
   }) => {
     const [canScrollLeft, setCanScrollLeft] = (0, import_react3.useState)(false);
     const [canScrollRight, setCanScrollRight] = (0, import_react3.useState)(false);
     const scrollContainerRef = (0, import_react3.useRef)(null);
+    const impressionTracked = (0, import_react3.useRef)(false);
     const isGrid = layout === "grid";
     const displayProducts = products.slice(0, maxProducts);
+    (0, import_react3.useEffect)(() => {
+      if (!impressionTracked.current && onImpression && !isPreview && displayProducts.length > 0) {
+        onImpression();
+        impressionTracked.current = true;
+      }
+    }, [onImpression, isPreview, displayProducts.length]);
     const updateScrollState = () => {
       const container = scrollContainerRef.current;
       if (!container || isGrid)
@@ -9910,6 +9931,14 @@
       const variantId = product.shopifyVariantId || product.shopifyProductId;
       if (variantId && onAddToCart) {
         onAddToCart(variantId);
+      }
+    };
+    const handleCardClick = (product) => {
+      if (onProductClick) {
+        const variantId = product.shopifyVariantId || product.shopifyProductId;
+        onProductClick(product.id, variantId);
+      }
+      if (!isPreview && product.id) {
       }
     };
     if (displayProducts.length === 0) {
@@ -10038,6 +10067,7 @@
               return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
                 "div",
                 {
+                  onClick: () => handleCardClick(product),
                   style: isGrid ? {
                     border: "1px solid #e5e7eb",
                     borderRadius: "6px",
@@ -10706,12 +10736,12 @@
     progressBarColor,
     allUnlockedMessage
   }) {
-    var _a, _b;
+    var _a2, _b;
     if (!milestones || milestones.length === 0) {
       return null;
     }
     const sortedMilestones = [...milestones].sort((a, b) => a.targetAmount - b.targetAmount);
-    const maxTarget = ((_a = sortedMilestones[sortedMilestones.length - 1]) == null ? void 0 : _a.targetAmount) || 100;
+    const maxTarget = ((_a2 = sortedMilestones[sortedMilestones.length - 1]) == null ? void 0 : _a2.targetAmount) || 100;
     const minTarget = ((_b = sortedMilestones[0]) == null ? void 0 : _b.targetAmount) || 0;
     const getPosition = (targetAmount) => {
       const index = sortedMilestones.findIndex((m) => m.targetAmount === targetAmount);
@@ -10960,9 +10990,17 @@
     onApplyCoupon,
     onRemoveDiscount,
     onSwitchDiscount,
-    onSlideCtaClick
+    onSlideCtaClick,
+    onImpression,
+    onFeatureImpression,
+    onFeatureClick
   }) => {
-    var _a, _b, _c, _d, _e, _f;
+    var _a2, _b, _c, _d, _e, _f;
+    import_react5.default.useEffect(() => {
+      if (onImpression) {
+        onImpression();
+      }
+    }, []);
     const getFeatureOrder = () => {
       const featureOrder = (config == null ? void 0 : config.featureOrder) || [];
       let orderArray = [];
@@ -10982,8 +11020,8 @@
       return { beforeItems: beforeItems2, afterItems: afterItems2 };
     };
     const calculateSavings = () => {
-      var _a2;
-      if (!((_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.savingsDisplay))
+      var _a3;
+      if (!((_a3 = config == null ? void 0 : config.features) == null ? void 0 : _a3.savingsDisplay))
         return 0;
       const itemLevelSavings = cart.items.reduce((sum, item) => {
         return sum + Math.max(0, item.original_price - item.final_price) * item.quantity;
@@ -11009,10 +11047,10 @@
       return url;
     };
     const renderFeature = (featureId) => {
-      var _a2, _b2, _c2, _d2, _e2, _f2, _g, _h, _i, _j, _k, _l, _m;
+      var _a3, _b2, _c2, _d2, _e2, _f2, _g, _h, _i, _j, _k, _l, _m;
       switch (featureId) {
         case "free-shipping-bar": {
-          const bar = (_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.freeShippingProgressBar;
+          const bar = (_a3 = config == null ? void 0 : config.features) == null ? void 0 : _a3.freeShippingProgressBar;
           if (!bar)
             return null;
           return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
@@ -11044,7 +11082,13 @@
             {
               slides,
               carouselSettings: banner.carouselSettings || {},
-              onCtaClick: onSlideCtaClick,
+              onCtaClick: (url) => {
+                if (onFeatureClick)
+                  onFeatureClick("promotional_banner", { url });
+                if (onSlideCtaClick)
+                  onSlideCtaClick(url);
+              },
+              onImpression: () => onFeatureImpression && onFeatureImpression("promotional_banner"),
               isPreview: false
             }
           ) }, featureId);
@@ -11067,6 +11111,8 @@
               showDiscountBadge: (_f2 = recommendations.showDiscountBadge) != null ? _f2 : true,
               showAddButton: (_g = recommendations.showAddButton) != null ? _g : true,
               onAddToCart: onAddProductToCart,
+              onImpression: () => onFeatureImpression && onFeatureImpression("product_recommendations"),
+              onProductClick: (productId, variantId) => onFeatureClick && onFeatureClick("product_recommendations", { productId, variantId }),
               isPreview: false
             }
           ) }, featureId);
@@ -11191,7 +11237,7 @@
           items: cart.items,
           totalPrice: cart.total_price,
           appliedDiscount,
-          config: ((_a = config == null ? void 0 : config.features) == null ? void 0 : _a.cartTotals) ? {
+          config: ((_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.cartTotals) ? {
             showOriginalPrice: (_b = config.features.cartTotals.showOriginalPrice) != null ? _b : true,
             showItemDiscounts: (_c = config.features.cartTotals.showItemDiscounts) != null ? _c : true,
             showSubtotal: (_d = config.features.cartTotals.showSubtotal) != null ? _d : true,
@@ -11242,11 +11288,78 @@
     ] });
   };
 
+  // extensions/cart-upsell/assets/modules/analytics.js
+  var _a;
+  var Analytics = {
+    shop: ((_a = window.Shopify) == null ? void 0 : _a.shop) || window.location.hostname,
+    appUrl: null,
+    init(appUrl) {
+      this.appUrl = appUrl;
+      console.log("[Upsellity Analytics] Initialized with app URL:", appUrl);
+    },
+    getSessionId() {
+      try {
+        let sessionId = sessionStorage.getItem("upsellity_session_id");
+        if (!sessionId) {
+          sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+          sessionStorage.setItem("upsellity_session_id", sessionId);
+        }
+        return sessionId;
+      } catch (e) {
+        return "sess_" + Date.now();
+      }
+    },
+    track(event) {
+      if (!this.shop) {
+        console.warn("[Upsellity Analytics] Shop not detected, skipping tracking");
+        return;
+      }
+      if (!this.appUrl) {
+        console.warn("[Upsellity Analytics] App URL not configured, skipping tracking");
+        return;
+      }
+      const payload = {
+        shop: this.shop,
+        events: [__spreadProps(__spreadValues({}, event), {
+          sessionId: this.getSessionId(),
+          url: window.location.href
+        })]
+      };
+      const apiUrl = `${this.appUrl}/api/analytics`;
+      console.log("[Upsellity Analytics]", event.eventType, event.component, payload);
+      if (navigator.sendBeacon) {
+        const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+        const sent = navigator.sendBeacon(apiUrl, blob);
+        if (!sent) {
+          console.warn("[Upsellity Analytics] sendBeacon failed, falling back to fetch");
+          this.fallbackFetch(apiUrl, payload);
+        }
+      } else {
+        this.fallbackFetch(apiUrl, payload);
+      }
+    },
+    fallbackFetch(apiUrl, payload) {
+      fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+        keepalive: true
+      }).then((response) => {
+        if (!response.ok) {
+          console.error("[Upsellity Analytics] API error:", response.status, apiUrl);
+        }
+      }).catch((err) => console.error("[Upsellity Analytics] Fetch error:", err));
+    }
+  };
+
   // extensions/cart-upsell/assets/modules/cart-drawer-class.js
   var UpsellityCartDrawer = class {
-    constructor() {
-      var _a;
-      this.shop = ((_a = window.Shopify) == null ? void 0 : _a.shop) || null;
+    constructor(appUrl) {
+      var _a2;
+      this.appUrl = appUrl;
+      this.shop = ((_a2 = window.Shopify) == null ? void 0 : _a2.shop) || null;
       this.config = null;
       this.isOpen = false;
       this.cart = null;
@@ -11266,6 +11379,10 @@
         console.error("Upsellity: Shop not detected");
         return;
       }
+      if (!this.appUrl) {
+        console.error("Upsellity: App URL not configured");
+        return;
+      }
       this.createDrawer();
       await this.loadConfig();
       this.interceptAddToCart();
@@ -11273,16 +11390,11 @@
       await this.loadCart();
     }
     async loadConfig() {
-      var _a, _b, _c;
+      var _a2, _b;
       try {
-        const appUrl = (_a = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a.dataset.upsellityAppUrl;
-        if (!appUrl) {
-          console.warn("Upsellity: App URL not configured");
-          this.config = { enabled: false, features: {} };
-          return;
-        }
+        Analytics.init(this.appUrl);
         const timestamp = (/* @__PURE__ */ new Date()).getTime();
-        const response = await fetch(`${appUrl}/api/cart-drawer?shop=${this.shop}&_t=${timestamp}`, {
+        const response = await fetch(`${this.appUrl}/api/cart-drawer?shop=${this.shop}&_t=${timestamp}`, {
           cache: "no-store",
           headers: {
             "Cache-Control": "no-cache",
@@ -11290,7 +11402,7 @@
           }
         });
         this.config = await response.json();
-        if ((_c = (_b = this.config) == null ? void 0 : _b.features) == null ? void 0 : _c.milestonesEnabled) {
+        if ((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.milestonesEnabled) {
           await this.loadMilestones();
         }
       } catch (error) {
@@ -11299,9 +11411,9 @@
       }
     }
     async loadMilestones() {
-      var _a;
+      var _a2;
       try {
-        const appUrl = (_a = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a.dataset.upsellityAppUrl;
+        const appUrl = (_a2 = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a2.dataset.upsellityAppUrl;
         if (!appUrl)
           return;
         const cartTotal = this.cart ? this.cart.total_price / 100 : 0;
@@ -11359,7 +11471,7 @@
       }
     }
     async loadCart(cartData = null, skipRender = false) {
-      var _a, _b, _c, _d, _e;
+      var _a2, _b, _c, _d, _e;
       try {
         if (cartData) {
           this.cart = cartData;
@@ -11372,10 +11484,10 @@
         }
         const promises = [
           loadProductCompareAtPrices(this.cart),
-          loadAvailableDiscounts(this.shop, this.config),
+          loadAvailableDiscounts(this.appUrl, this.shop, this.config),
           loadShopifyRecommendations(this.cart, this.config)
         ];
-        if ((_b = (_a = this.config) == null ? void 0 : _a.features) == null ? void 0 : _b.milestonesEnabled) {
+        if ((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.milestonesEnabled) {
           promises.push(this.loadMilestones());
         }
         const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
@@ -11439,8 +11551,8 @@
       }, true);
       const originalFetch = window.fetch;
       window.fetch = async (...args) => {
-        var _a;
-        const url = typeof args[0] === "string" ? args[0] : (_a = args[0]) == null ? void 0 : _a.url;
+        var _a2;
+        const url = typeof args[0] === "string" ? args[0] : (_a2 = args[0]) == null ? void 0 : _a2.url;
         const isCartAdd = url && (url.includes("/cart/add.js") || url.includes("/cart/add"));
         const response = await originalFetch(...args);
         if (isCartAdd && !isHandlingAddToCart) {
@@ -11557,14 +11669,35 @@
           showingAllOffers: this.showingAllOffers,
           unlockedMilestone: this.unlockedMilestone,
           onClose: () => this.close(),
-          onCheckout: () => this.handleCheckout(),
-          onAddProductToCart: (variantId) => this.addProductToCart(variantId),
+          onCheckout: () => window.location.href = getCheckoutUrl(this.appliedDiscount),
+          onAddProductToCart: (variantId) => this.addProductToCart(variantId, 1, { "_upsell_source": "cart_drawer_recommendation" }),
           onUpdateQuantity: (itemKey, newQuantity) => this.updateQuantity(itemKey, newQuantity),
           onRemoveItem: (itemKey) => this.removeItem(itemKey),
           onApplyCoupon: (code) => this.applyCouponWithCode(code),
           onRemoveDiscount: () => this.removeDiscount(),
           onSwitchDiscount: (code) => this.switchDiscount(code),
-          onSlideCtaClick: (url) => this.handleSlideCtaClick(url)
+          onSlideCtaClick: (url) => this.handleSlideCtaClick(url),
+          onImpression: () => {
+            Analytics.track({
+              eventType: "impression",
+              component: "cart_drawer",
+              value: 0
+            });
+          },
+          onFeatureImpression: (feature) => {
+            Analytics.track({
+              eventType: "impression",
+              component: feature,
+              value: 0
+            });
+          },
+          onFeatureClick: (feature, data) => {
+            Analytics.track(__spreadValues({
+              eventType: "click",
+              component: feature,
+              value: 0
+            }, data));
+          }
         })
       );
     }
@@ -11589,14 +11722,14 @@
       }
     }
     async loadSecondaryData() {
-      var _a, _b, _c, _d, _e;
+      var _a2, _b, _c, _d, _e;
       try {
         const promises = [
           loadProductCompareAtPrices(this.cart),
-          loadAvailableDiscounts(this.shop, this.config),
+          loadAvailableDiscounts(this.appUrl, this.shop, this.config),
           loadShopifyRecommendations(this.cart, this.config)
         ];
-        if ((_b = (_a = this.config) == null ? void 0 : _a.features) == null ? void 0 : _b.milestonesEnabled) {
+        if ((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.milestonesEnabled) {
           promises.push(this.loadMilestones());
         }
         const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
@@ -11665,11 +11798,20 @@
       }
     }
     // Cart operations
-    async addProductToCart(variantId, quantity = 1) {
-      await addProductToCart(variantId, quantity, this.loadCart.bind(this));
+    async addProductToCart(variantId, quantity = 1, properties = {}) {
+      await addProductToCart(variantId, quantity, this.loadCart.bind(this), properties);
+      if (properties._upsell_source) {
+        Analytics.track({
+          eventType: "add_to_cart",
+          component: properties._upsell_source,
+          variantId: variantId.toString(),
+          value: 0
+          // Ideally we'd have price here, but we might not
+        });
+      }
     }
-    async addProductToCartByHandle(productHandle, variantId, quantity = 1) {
-      await addProductToCartByHandle(productHandle, variantId, quantity, this.loadCart.bind(this));
+    async addProductToCartByHandle(productHandle, variantId, quantity = 1, properties = {}) {
+      await addProductToCartByHandle(productHandle, variantId, quantity, this.loadCart.bind(this), properties);
     }
     async updateQuantity(itemKey, newQuantity) {
       await updateQuantity(itemKey, newQuantity, this.loadCart.bind(this), this.render.bind(this));
@@ -11679,13 +11821,13 @@
     }
     // Discount management
     async applyCoupon() {
-      const newDiscount = await applyCoupon(this.shop, this.config, this.appliedDiscount, this.render.bind(this));
+      const newDiscount = await applyCoupon(this.appUrl, this.shop, this.config, this.appliedDiscount, this.render.bind(this));
       if (newDiscount) {
         this.appliedDiscount = newDiscount;
       }
     }
     async applyCouponWithCode(code) {
-      const newDiscount = await validateAndApplyCoupon(this.shop, this.config, code, this.cart);
+      const newDiscount = await validateAndApplyCoupon(this.appUrl, this.shop, this.config, code, this.cart);
       if (newDiscount) {
         this.appliedDiscount = newDiscount;
         clearDiscountRemoval();
@@ -11724,10 +11866,11 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.3" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {
-      window.upsellityDrawer = new UpsellityCartDrawer();
+      window.upsellityDrawer = new UpsellityCartDrawer(APP_URL);
       window.upsellityDrawer.version = CART_DRAWER_VERSION;
     }
   }

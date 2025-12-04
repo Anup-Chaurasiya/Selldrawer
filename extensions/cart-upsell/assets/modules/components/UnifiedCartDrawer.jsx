@@ -30,8 +30,18 @@ export const UnifiedCartDrawer = ({
   onApplyCoupon,
   onRemoveDiscount,
   onSwitchDiscount,
-  onSlideCtaClick
+  onSlideCtaClick,
+  onImpression,
+  onFeatureImpression,
+  onFeatureClick
 }) => {
+  
+  React.useEffect(() => {
+    if (onImpression) {
+      onImpression();
+    }
+  }, []);
+
   // Helper to calculate feature order
   const getFeatureOrder = () => {
     const featureOrder = config?.featureOrder || [];
@@ -133,7 +143,11 @@ export const UnifiedCartDrawer = ({
             <PromotionalBannerCard
               slides={slides}
               carouselSettings={banner.carouselSettings || {}}
-              onCtaClick={onSlideCtaClick}
+              onCtaClick={(url) => {
+                if (onFeatureClick) onFeatureClick('promotional_banner', { url });
+                if (onSlideCtaClick) onSlideCtaClick(url);
+              }}
+              onImpression={() => onFeatureImpression && onFeatureImpression('promotional_banner')}
               isPreview={false}
             />
           </div>
@@ -158,6 +172,8 @@ export const UnifiedCartDrawer = ({
               showDiscountBadge={recommendations.showDiscountBadge ?? true}
               showAddButton={recommendations.showAddButton ?? true}
               onAddToCart={onAddProductToCart}
+              onImpression={() => onFeatureImpression && onFeatureImpression('product_recommendations')}
+              onProductClick={(productId, variantId) => onFeatureClick && onFeatureClick('product_recommendations', { productId, variantId })}
               isPreview={false}
             />
           </div>

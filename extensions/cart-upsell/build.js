@@ -6,21 +6,32 @@ import { readFileSync, writeFileSync } from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Read version from version.js
-function getVersion() {
+// Read config from config.js
+function getConfig() {
   try {
-    const versionContent = readFileSync(join(__dirname, 'version.js'), 'utf-8');
-    const match = versionContent.match(/export const VERSION = ['"](.+)['"]/);
-    return match ? match[1] : '1.0.0';
+    const configContent = readFileSync(join(__dirname, 'config.js'), 'utf-8');
+    const versionMatch = configContent.match(/export const VERSION = ['"](.+)['"]/);
+    const appUrlMatch = configContent.match(/export const APP_URL = ['"](.+)['"]/);
+    
+    return {
+      version: versionMatch ? versionMatch[1] : '1.0.0',
+      appUrl: appUrlMatch ? appUrlMatch[1] : 'https://app.upsellity.com'
+    };
   } catch (error) {
-    console.warn('⚠️ Could not read version.js, using default version 1.0.0');
-    return '1.0.0';
+    console.warn('⚠️ Could not read config.js, using defaults');
+    return {
+      version: '1.0.0',
+      appUrl: 'https://app.upsellity.com'
+    };
   }
 }
 
 async function build() {
   try {
-    const version = getVersion();
+    const config = getConfig();
+    const { version, appUrl } = config;
+    
+    console.log(`📦 Building with VERSION: ${version}, APP_URL: ${appUrl}`);
     
     // Build Cart Drawer
     await esbuild.build({
@@ -43,7 +54,8 @@ async function build() {
       },
       define: {
         'process.env.NODE_ENV': '"production"',
-        '__CART_DRAWER_VERSION__': `"${version}"`
+        '__CART_DRAWER_VERSION__': `"${version}"`,
+        '__APP_URL__': `"${appUrl}"`
       },
       external: [],
     });
@@ -76,7 +88,8 @@ async function build() {
       },
       define: {
         'process.env.NODE_ENV': '"production"',
-        '__FBT_VERSION__': `"${version}"`
+        '__FBT_VERSION__': `"${version}"`,
+        '__APP_URL__': `"${appUrl}"`
       },
       external: [],
     });
@@ -109,7 +122,8 @@ async function build() {
       },
       define: {
         'process.env.NODE_ENV': '"production"',
-        '__NUDGE_VERSION__': `"${version}"`
+        '__NUDGE_VERSION__': `"${version}"`,
+        '__APP_URL__': `"${appUrl}"`
       },
       external: [],
     });
@@ -142,7 +156,8 @@ async function build() {
       },
       define: {
         'process.env.NODE_ENV': '"production"',
-        '__PROMOTIONAL_BANNER_VERSION__': `"${version}"`
+        '__PROMOTIONAL_BANNER_VERSION__': `"${version}"`,
+        '__APP_URL__': `"${appUrl}"`
       },
       external: [],
     });

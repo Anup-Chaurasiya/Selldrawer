@@ -25,6 +25,7 @@ interface FBTProductCardProps {
   showIndividualPrices: boolean;
   showReviews: boolean;
   onToggle?: (variantId: string, checked: boolean) => void;
+  onProductClick?: (productId: string, variantId?: string) => void;
   isPreview?: boolean;
 }
 
@@ -37,6 +38,7 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
   showIndividualPrices,
   showReviews,
   onToggle,
+  onProductClick,
   isPreview = false
 }) => {
   const variantId = product.variantId || product.id;
@@ -56,6 +58,18 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
     if (onToggle && !isDisabled) {
       onToggle(variantId, e.target.checked);
     }
+  };
+
+  const handleProductClick = (e: React.MouseEvent) => {
+    if (isPreview) {
+      e.preventDefault();
+      return;
+    }
+    
+    if (onProductClick) {
+      onProductClick(product.id, variantId);
+    }
+    // Allow default navigation
   };
 
   return (
@@ -94,18 +108,24 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
       )}
       
       <div className="upsellity-fbt-product-image-wrapper" style={{ position: 'relative', marginBottom: '0.375rem' }}>
-        <img 
-          src={product.imageUrl || 'https://via.placeholder.com/150'} 
-          alt={product.title}
-          className="upsellity-fbt-product-image"
-          style={{
-            width: '100%',
-            height: '80px',
-            objectFit: 'cover',
-            borderRadius: '4px',
-            background: '#f3f4f6'
-          }}
-        />
+        <a 
+          href={`/products/${product.handle}`} 
+          onClick={handleProductClick}
+          style={{ display: 'block', cursor: 'pointer', textDecoration: 'none' }}
+        >
+          <img 
+            src={product.imageUrl || 'https://via.placeholder.com/150'} 
+            alt={product.title}
+            className="upsellity-fbt-product-image"
+            style={{
+              width: '100%',
+              height: '80px',
+              objectFit: 'cover',
+              borderRadius: '4px',
+              background: '#f3f4f6'
+            }}
+          />
+        </a>
         {discountPercent > 0 && showDiscount && (
           <div 
             className="upsellity-fbt-discount-badge"
@@ -128,23 +148,30 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
         )}
       </div>
       
-      <h3 
-        className="upsellity-fbt-product-title"
-        style={{
-          fontSize: '0.75rem',
-          fontWeight: '500',
-          marginBottom: '0.25rem',
-          color: '#111827',
-          lineHeight: 1.2,
-          minHeight: '1.75rem',
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden'
-        }}
+      <a 
+        href={`/products/${product.handle}`} 
+        onClick={handleProductClick}
+        style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
       >
-        {product.title}
-      </h3>
+        <h3 
+          className="upsellity-fbt-product-title"
+          style={{
+            fontSize: '0.75rem',
+            fontWeight: '500',
+            marginBottom: '0.25rem',
+            color: '#111827',
+            lineHeight: 1.2,
+            minHeight: '1.75rem',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            cursor: 'pointer'
+          }}
+        >
+          {product.title}
+        </h3>
+      </a>
       
       {showIndividualPrices && (
         <div 

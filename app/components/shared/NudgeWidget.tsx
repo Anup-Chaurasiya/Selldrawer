@@ -51,6 +51,7 @@ interface NudgeWidgetProps {
   onContinue?: () => void;
   onSelectProduct?: (product: NudgeProduct) => void;
   onSelectAll?: (products: NudgeProduct[]) => void;
+  onImpression?: () => void;
   isPreview?: boolean;
   isVisible?: boolean;
 }
@@ -62,10 +63,19 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
   onContinue,
   onSelectProduct,
   onSelectAll,
+  onImpression,
   isPreview = false,
   isVisible = true
 }) => {
   const [animationClass, setAnimationClass] = useState('');
+  const impressionTracked = React.useRef(false);
+
+  useEffect(() => {
+    if (isVisible && !isPreview && !impressionTracked.current && onImpression) {
+      onImpression();
+      impressionTracked.current = true;
+    }
+  }, [isVisible, isPreview, onImpression]);
 
   useEffect(() => {
     if (isVisible && config.enableAnimation) {

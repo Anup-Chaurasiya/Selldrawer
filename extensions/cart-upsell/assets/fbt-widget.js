@@ -1,15 +1,32 @@
 /**
  * Upsellity FBT Widget v1.0.3
- * Built: 2025-12-03T13:36:23.716Z
+ * Built: 2025-12-04T08:58:18.256Z
  */
 "use strict";
 (() => {
   var __create = Object.create;
   var __defProp = Object.defineProperty;
+  var __defProps = Object.defineProperties;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
   var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __getOwnPropSymbols = Object.getOwnPropertySymbols;
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __propIsEnum = Object.prototype.propertyIsEnumerable;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __spreadValues = (a, b) => {
+    for (var prop in b || (b = {}))
+      if (__hasOwnProp.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    if (__getOwnPropSymbols)
+      for (var prop of __getOwnPropSymbols(b)) {
+        if (__propIsEnum.call(b, prop))
+          __defNormalProp(a, prop, b[prop]);
+      }
+    return a;
+  };
+  var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
   var __commonJS = (cb, mod) => function __require() {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
   };
@@ -7879,6 +7896,7 @@
     showIndividualPrices,
     showReviews,
     onToggle,
+    onProductClick,
     isPreview = false
   }) => {
     const variantId = product.variantId || product.id;
@@ -7890,6 +7908,15 @@
     const handleCheckboxChange = (e) => {
       if (onToggle && !isDisabled) {
         onToggle(variantId, e.target.checked);
+      }
+    };
+    const handleProductClick = (e) => {
+      if (isPreview) {
+        e.preventDefault();
+        return;
+      }
+      if (onProductClick) {
+        onProductClick(product.id, variantId);
       }
     };
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
@@ -7930,18 +7957,26 @@
           ),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "upsellity-fbt-product-image-wrapper", style: { position: "relative", marginBottom: "0.375rem" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              "img",
+              "a",
               {
-                src: product.imageUrl || "https://via.placeholder.com/150",
-                alt: product.title,
-                className: "upsellity-fbt-product-image",
-                style: {
-                  width: "100%",
-                  height: "80px",
-                  objectFit: "cover",
-                  borderRadius: "4px",
-                  background: "#f3f4f6"
-                }
+                href: `/products/${product.handle}`,
+                onClick: handleProductClick,
+                style: { display: "block", cursor: "pointer", textDecoration: "none" },
+                children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "img",
+                  {
+                    src: product.imageUrl || "https://via.placeholder.com/150",
+                    alt: product.title,
+                    className: "upsellity-fbt-product-image",
+                    style: {
+                      width: "100%",
+                      height: "80px",
+                      objectFit: "cover",
+                      borderRadius: "4px",
+                      background: "#f3f4f6"
+                    }
+                  }
+                )
               }
             ),
             discountPercent > 0 && showDiscount && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
@@ -7970,22 +8005,31 @@
             )
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "h3",
+            "a",
             {
-              className: "upsellity-fbt-product-title",
-              style: {
-                fontSize: "0.75rem",
-                fontWeight: "500",
-                marginBottom: "0.25rem",
-                color: "#111827",
-                lineHeight: 1.2,
-                minHeight: "1.75rem",
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden"
-              },
-              children: product.title
+              href: `/products/${product.handle}`,
+              onClick: handleProductClick,
+              style: { textDecoration: "none", color: "inherit", display: "block" },
+              children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "h3",
+                {
+                  className: "upsellity-fbt-product-title",
+                  style: {
+                    fontSize: "0.75rem",
+                    fontWeight: "500",
+                    marginBottom: "0.25rem",
+                    color: "#111827",
+                    lineHeight: 1.2,
+                    minHeight: "1.75rem",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    cursor: "pointer"
+                  },
+                  children: product.title
+                }
+              )
             }
           ),
           showIndividualPrices && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
@@ -8682,7 +8726,7 @@
           flexWrap: "wrap"
         },
         children: recommendations.map((product, index) => {
-          var _a, _b, _c, _d;
+          var _a2, _b, _c, _d;
           const variantId = product.variantId || product.id;
           const isSelected = selectedProducts.has(variantId);
           const isDisabled = isAtLimit && !isSelected;
@@ -8693,7 +8737,7 @@
                 product,
                 isSelected,
                 isDisabled,
-                showCheckbox: (_a = config.showCheckboxes) != null ? _a : true,
+                showCheckbox: (_a2 = config.showCheckboxes) != null ? _a2 : true,
                 showDiscount: (_b = config.showDiscount) != null ? _b : true,
                 showIndividualPrices: (_c = config.showIndividualPrices) != null ? _c : true,
                 showReviews: (_d = config.showProductReviews) != null ? _d : false,
@@ -8732,6 +8776,8 @@
     selectedProductIds: initialSelectedIds,
     onSelectionChange,
     onAddToCart,
+    onImpression,
+    onProductClick,
     isPreview = false
   }) => {
     const [selectedProducts, setSelectedProducts] = (0, import_react4.useState)(
@@ -8747,6 +8793,13 @@
     const [isDragging, setIsDragging] = (0, import_react4.useState)(false);
     const [startX, setStartX] = (0, import_react4.useState)(0);
     const [scrollLeft, setScrollLeft] = (0, import_react4.useState)(0);
+    const impressionTracked = (0, import_react4.useRef)(false);
+    (0, import_react4.useEffect)(() => {
+      if (!impressionTracked.current && onImpression && !isPreview && recommendations.length > 0) {
+        onImpression();
+        impressionTracked.current = true;
+      }
+    }, [onImpression, isPreview, recommendations.length]);
     const maxUpsells = config.limitUpsellsInCart && config.maxUpsellsInCart ? config.maxUpsellsInCart : null;
     (0, import_react4.useEffect)(() => {
       const checkMobile = () => {
@@ -8759,9 +8812,9 @@
       return () => window.removeEventListener("resize", checkMobile);
     }, []);
     const handlePrevSlide = () => {
-      var _a;
+      var _a2;
       if (carouselRef.current) {
-        const cardWidth = ((_a = carouselRef.current.querySelector(".upsellity-fbt-product")) == null ? void 0 : _a.clientWidth) || 200;
+        const cardWidth = ((_a2 = carouselRef.current.querySelector(".upsellity-fbt-product")) == null ? void 0 : _a2.clientWidth) || 200;
         const gap = 12;
         carouselRef.current.scrollBy({
           left: -(cardWidth + gap),
@@ -8770,9 +8823,9 @@
       }
     };
     const handleNextSlide = () => {
-      var _a;
+      var _a2;
       if (carouselRef.current) {
-        const cardWidth = ((_a = carouselRef.current.querySelector(".upsellity-fbt-product")) == null ? void 0 : _a.clientWidth) || 200;
+        const cardWidth = ((_a2 = carouselRef.current.querySelector(".upsellity-fbt-product")) == null ? void 0 : _a2.clientWidth) || 200;
         const gap = 12;
         carouselRef.current.scrollBy({
           left: cardWidth + gap,
@@ -9189,7 +9242,7 @@
                   userSelect: "none"
                 },
                 children: recommendations.map((product) => {
-                  var _a, _b, _c, _d;
+                  var _a2, _b, _c, _d;
                   const variantId = product.variantId || product.id;
                   const isSelected = selectedProducts.has(variantId);
                   const isDisabled = isAtLimit && !isSelected;
@@ -9207,7 +9260,7 @@
                           product,
                           isSelected,
                           isDisabled,
-                          showCheckbox: (_a = config.showCheckboxes) != null ? _a : true,
+                          showCheckbox: (_a2 = config.showCheckboxes) != null ? _a2 : true,
                           showDiscount: (_b = config.showDiscount) != null ? _b : true,
                           showIndividualPrices: (_c = config.showIndividualPrices) != null ? _c : true,
                           showReviews: (_d = config.showProductReviews) != null ? _d : false,
@@ -9422,7 +9475,74 @@
     ] });
   };
 
+  // extensions/cart-upsell/assets/modules/analytics.js
+  var _a;
+  var Analytics = {
+    shop: ((_a = window.Shopify) == null ? void 0 : _a.shop) || window.location.hostname,
+    appUrl: null,
+    init(appUrl) {
+      this.appUrl = appUrl;
+      console.log("[Upsellity Analytics] Initialized with app URL:", appUrl);
+    },
+    getSessionId() {
+      try {
+        let sessionId = sessionStorage.getItem("upsellity_session_id");
+        if (!sessionId) {
+          sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+          sessionStorage.setItem("upsellity_session_id", sessionId);
+        }
+        return sessionId;
+      } catch (e) {
+        return "sess_" + Date.now();
+      }
+    },
+    track(event) {
+      if (!this.shop) {
+        console.warn("[Upsellity Analytics] Shop not detected, skipping tracking");
+        return;
+      }
+      if (!this.appUrl) {
+        console.warn("[Upsellity Analytics] App URL not configured, skipping tracking");
+        return;
+      }
+      const payload = {
+        shop: this.shop,
+        events: [__spreadProps(__spreadValues({}, event), {
+          sessionId: this.getSessionId(),
+          url: window.location.href
+        })]
+      };
+      const apiUrl = `${this.appUrl}/api/analytics`;
+      console.log("[Upsellity Analytics]", event.eventType, event.component, payload);
+      if (navigator.sendBeacon) {
+        const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+        const sent = navigator.sendBeacon(apiUrl, blob);
+        if (!sent) {
+          console.warn("[Upsellity Analytics] sendBeacon failed, falling back to fetch");
+          this.fallbackFetch(apiUrl, payload);
+        }
+      } else {
+        this.fallbackFetch(apiUrl, payload);
+      }
+    },
+    fallbackFetch(apiUrl, payload) {
+      fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+        keepalive: true
+      }).then((response) => {
+        if (!response.ok) {
+          console.error("[Upsellity Analytics] API error:", response.status, apiUrl);
+        }
+      }).catch((err) => console.error("[Upsellity Analytics] Fetch error:", err));
+    }
+  };
+
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;
@@ -9456,14 +9576,8 @@
     }
     async loadConfig() {
       try {
-        const appUrl = this.container.dataset.appUrl;
-        if (!appUrl) {
-          console.warn("FBT Widget: App URL not configured. Please set app_url in theme block settings.");
-          this.config = null;
-          this.recommendations = [];
-          return;
-        }
-        const apiUrl = `${appUrl}/api/fbt?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(this.productHandle)}`;
+        Analytics.init(APP_URL);
+        const apiUrl = `${APP_URL}/api/fbt?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(this.productHandle)}`;
         const response = await fetch(apiUrl);
         if (!response.ok) {
           throw new Error(`Failed to load FBT config: ${response.status} ${response.statusText}`);
@@ -9492,13 +9606,13 @@
       }
     }
     async loadRecommendations() {
-      var _a, _b;
+      var _a2, _b;
       const recommendationType = this.config.recommendationType || "manual";
       const manualRecommendations = [...this.recommendations];
       let aiRecommendations = [];
       if (recommendationType === "ai" || recommendationType === "hybrid") {
         try {
-          const rawProductId = ((_a = this.currentProduct) == null ? void 0 : _a.id) || this.productId;
+          const rawProductId = ((_a2 = this.currentProduct) == null ? void 0 : _a2.id) || this.productId;
           const productId = this.extractProductId(rawProductId);
           if (!productId) {
             console.warn("FBT Widget: Product ID not available for AI recommendations");
@@ -9509,10 +9623,10 @@
             if (response.ok) {
               const data = await response.json();
               aiRecommendations = ((_b = data.products) == null ? void 0 : _b.map((product) => {
-                var _a2, _b2, _c, _d, _e, _f, _g;
+                var _a3, _b2, _c, _d, _e, _f, _g;
                 return {
                   id: product.id.toString(),
-                  variantId: (_c = (_b2 = (_a2 = product.variants) == null ? void 0 : _a2[0]) == null ? void 0 : _b2.id) == null ? void 0 : _c.toString(),
+                  variantId: (_c = (_b2 = (_a3 = product.variants) == null ? void 0 : _a3[0]) == null ? void 0 : _b2.id) == null ? void 0 : _c.toString(),
                   title: product.title,
                   handle: product.handle,
                   price: ((_e = (_d = product.variants) == null ? void 0 : _d[0]) == null ? void 0 : _e.price) ? parseFloat(product.variants[0].price) / 100 : 0,
@@ -9555,9 +9669,9 @@
       });
     }
     render() {
-      var _a;
+      var _a2;
       if (this.recommendations.length === 0) {
-        const recommendationType = ((_a = this.config) == null ? void 0 : _a.recommendationType) || "manual";
+        const recommendationType = ((_a2 = this.config) == null ? void 0 : _a2.recommendationType) || "manual";
         console.warn(`FBT Widget: No recommendations found (Type: ${recommendationType}). Hiding widget.`);
         this.container.style.display = "none";
         return;
@@ -9576,6 +9690,22 @@
               this.selectedProducts = selectedIds;
             },
             onAddToCart: (selectedIds) => this.addToCart(selectedIds),
+            onImpression: () => {
+              Analytics.track({
+                eventType: "impression",
+                component: "fbt",
+                value: 0
+              });
+            },
+            onProductClick: (productId, variantId) => {
+              Analytics.track({
+                eventType: "click",
+                component: "fbt",
+                productId,
+                variantId,
+                value: 0
+              });
+            },
             isPreview: false
           })
         );
@@ -9585,7 +9715,7 @@
       }
     }
     async addToCart(selectedIds) {
-      var _a, _b;
+      var _a2, _b, _c, _d, _e;
       try {
         const items = [];
         for (const product of this.recommendations) {
@@ -9596,8 +9726,18 @@
               if (response.ok) {
                 const productData = await response.json();
                 items.push({
-                  id: (_b = (_a = productData.variants) == null ? void 0 : _a[0]) == null ? void 0 : _b.id,
-                  quantity: 1
+                  id: (_b = (_a2 = productData.variants) == null ? void 0 : _a2[0]) == null ? void 0 : _b.id,
+                  quantity: 1,
+                  properties: {
+                    "_upsell_source": "fbt"
+                  }
+                });
+                Analytics.track({
+                  eventType: "add_to_cart",
+                  component: "fbt",
+                  productId: product.id,
+                  variantId: (_e = (_d = (_c = productData.variants) == null ? void 0 : _c[0]) == null ? void 0 : _d.id) == null ? void 0 : _e.toString(),
+                  value: typeof product.price === "number" ? product.price : parseFloat(product.price)
                 });
               }
             } catch (error) {

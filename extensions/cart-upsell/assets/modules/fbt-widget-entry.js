@@ -6,6 +6,10 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { FBTWidget } from '../../../../app/components/shared/FBTWidget.tsx';
+import { Analytics } from './analytics.js';
+
+// App URL is injected at build time from config.js
+const APP_URL = typeof __APP_URL__ !== 'undefined' ? __APP_URL__ : 'https://app.upsellity.com';
 
 class FrequentlyBoughtTogether {
   constructor(container) {
@@ -43,15 +47,10 @@ class FrequentlyBoughtTogether {
 
   async loadConfig() {
     try {
-      const appUrl = this.container.dataset.appUrl;
-      if (!appUrl) {
-        console.warn('FBT Widget: App URL not configured. Please set app_url in theme block settings.');
-        this.config = null;
-        this.recommendations = [];
-        return;
-      }
+      // Initialize Analytics with the app URL
+      Analytics.init(APP_URL);
 
-      const apiUrl = `${appUrl}/api/fbt?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(this.productHandle)}`;
+      const apiUrl = `${APP_URL}/api/fbt?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(this.productHandle)}`;
       const response = await fetch(apiUrl);
 
       if (!response.ok) {
@@ -195,6 +194,22 @@ class FrequentlyBoughtTogether {
             this.selectedProducts = selectedIds;
           },
           onAddToCart: (selectedIds) => this.addToCart(selectedIds),
+          onImpression: () => {
+            Analytics.track({
+              eventType: 'impression',
+              component: 'fbt',
+              value: 0
+            });
+          },
+          onProductClick: (productId, variantId) => {
+            Analytics.track({
+              eventType: 'click',
+              component: 'fbt',
+              productId: productId,
+              variantId: variantId,
+              value: 0
+            });
+          },
           isPreview: false
         })
       );
@@ -217,7 +232,19 @@ class FrequentlyBoughtTogether {
               const productData = await response.json();
               items.push({
                 id: productData.variants?.[0]?.id,
-                quantity: 1
+                quantity: 1,
+                properties: {
+                  '_upsell_source': 'fbt'
+                }
+              });
+
+              // Track Add to Cart
+              Analytics.track({
+                eventType: 'add_to_cart',
+                component: 'fbt',
+                productId: product.id,
+                variantId: productData.variants?.[0]?.id?.toString(),
+                value: typeof product.price === 'number' ? product.price : parseFloat(product.price)
               });
             }
           } catch (error) {

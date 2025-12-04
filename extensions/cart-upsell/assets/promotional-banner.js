@@ -1,6 +1,6 @@
 /**
  * Upsellity Promotional Banner Block v1.0.3
- * Built: 2025-12-03T13:36:23.719Z
+ * Built: 2025-12-04T08:58:18.354Z
  */
 "use strict";
 (() => {
@@ -7904,6 +7904,7 @@
     slides,
     carouselSettings = {},
     onCtaClick,
+    onImpression,
     isPreview = false,
     context = "cart-drawer",
     maxHeight = "180px"
@@ -7914,7 +7915,14 @@
     const scrollContainerRef = (0, import_react.useRef)(null);
     const isScrolling = (0, import_react.useRef)(false);
     const currentIndexRef = (0, import_react.useRef)(0);
+    const impressionTracked = (0, import_react.useRef)(false);
     const isBlockContext = context === "block";
+    (0, import_react.useEffect)(() => {
+      if (!impressionTracked.current && onImpression && !isPreview && slides.length > 0) {
+        onImpression();
+        impressionTracked.current = true;
+      }
+    }, [onImpression, isPreview, slides.length]);
     const updateScrollState = () => {
       const container = scrollContainerRef.current;
       if (!container || slides.length <= 1)
@@ -8564,9 +8572,14 @@
     slides,
     carouselSettings,
     isPreview = false,
-    maxHeight = "180px"
+    maxHeight = "180px",
+    onImpression,
+    onCtaClick
   }) => {
     const handleCtaClick = (url) => {
+      if (onCtaClick) {
+        onCtaClick(url);
+      }
       if (url && !isPreview) {
         window.location.href = url;
       }
@@ -8577,6 +8590,7 @@
         slides,
         carouselSettings,
         onCtaClick: handleCtaClick,
+        onImpression,
         isPreview,
         context: "block",
         maxHeight
@@ -8584,19 +8598,85 @@
     ) });
   };
 
+  // extensions/cart-upsell/assets/modules/analytics.js
+  var _a;
+  var Analytics = {
+    shop: ((_a = window.Shopify) == null ? void 0 : _a.shop) || window.location.hostname,
+    appUrl: null,
+    init(appUrl) {
+      this.appUrl = appUrl;
+      console.log("[Upsellity Analytics] Initialized with app URL:", appUrl);
+    },
+    getSessionId() {
+      try {
+        let sessionId = sessionStorage.getItem("upsellity_session_id");
+        if (!sessionId) {
+          sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+          sessionStorage.setItem("upsellity_session_id", sessionId);
+        }
+        return sessionId;
+      } catch (e) {
+        return "sess_" + Date.now();
+      }
+    },
+    track(event) {
+      if (!this.shop) {
+        console.warn("[Upsellity Analytics] Shop not detected, skipping tracking");
+        return;
+      }
+      if (!this.appUrl) {
+        console.warn("[Upsellity Analytics] App URL not configured, skipping tracking");
+        return;
+      }
+      const payload = {
+        shop: this.shop,
+        events: [__spreadProps(__spreadValues({}, event), {
+          sessionId: this.getSessionId(),
+          url: window.location.href
+        })]
+      };
+      const apiUrl = `${this.appUrl}/api/analytics`;
+      console.log("[Upsellity Analytics]", event.eventType, event.component, payload);
+      if (navigator.sendBeacon) {
+        const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+        const sent = navigator.sendBeacon(apiUrl, blob);
+        if (!sent) {
+          console.warn("[Upsellity Analytics] sendBeacon failed, falling back to fetch");
+          this.fallbackFetch(apiUrl, payload);
+        }
+      } else {
+        this.fallbackFetch(apiUrl, payload);
+      }
+    },
+    fallbackFetch(apiUrl, payload) {
+      fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+        keepalive: true
+      }).then((response) => {
+        if (!response.ok) {
+          console.error("[Upsellity Analytics] API error:", response.status, apiUrl);
+        }
+      }).catch((err) => console.error("[Upsellity Analytics] Fetch error:", err));
+    }
+  };
+
   // extensions/cart-upsell/assets/modules/promotional-banner-entry.js
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
   function initPromotionalBannerBlocks() {
     const containers = document.querySelectorAll(".upsellity-promotional-banner-container");
     if (containers.length === 0) {
       return;
     }
     containers.forEach((container) => {
-      const appUrl = container.getAttribute("data-app-url");
       const shop = container.getAttribute("data-shop");
       const maxHeight = container.getAttribute("data-max-height") || "180px";
-      if (!appUrl || !shop) {
-        console.error("Missing required attributes: data-app-url or data-shop");
+      if (!shop) {
+        console.error("Missing required attribute: data-shop");
         return;
       }
       container.innerHTML = `
@@ -8628,7 +8708,8 @@
         }
       </style>
     `;
-      const apiUrl = `${appUrl}/api/promotional-banner?shop=${encodeURIComponent(shop)}`;
+      Analytics.init(APP_URL);
+      const apiUrl = `${APP_URL}/api/promotional-banner?shop=${encodeURIComponent(shop)}`;
       fetch(apiUrl).then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -8648,7 +8729,22 @@
               slides: data.slides,
               carouselSettings: data.carouselSettings,
               isPreview: false,
-              maxHeight
+              maxHeight,
+              onImpression: () => {
+                Analytics.track({
+                  eventType: "impression",
+                  component: "promotional_banner",
+                  value: 0
+                });
+              },
+              onCtaClick: (url) => {
+                Analytics.track({
+                  eventType: "click",
+                  component: "promotional_banner",
+                  url,
+                  value: 0
+                });
+              }
             }
           )
         );
@@ -8682,9 +8778,9 @@
       let shouldInit = false;
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
-          var _a, _b;
+          var _a2, _b;
           if (node.nodeType === 1) {
-            if (((_a = node.classList) == null ? void 0 : _a.contains("upsellity-promotional-banner-container")) || ((_b = node.querySelector) == null ? void 0 : _b.call(node, ".upsellity-promotional-banner-container"))) {
+            if (((_a2 = node.classList) == null ? void 0 : _a2.contains("upsellity-promotional-banner-container")) || ((_b = node.querySelector) == null ? void 0 : _b.call(node, ".upsellity-promotional-banner-container"))) {
               shouldInit = true;
             }
           }

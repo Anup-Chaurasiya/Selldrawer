@@ -7,7 +7,7 @@ import { showNotification, formatMoney } from './utils.js';
 /**
  * Load available discounts from API
  */
-export async function loadAvailableDiscounts(shop, config) {
+export async function loadAvailableDiscounts(appUrl, shop, config) {
   const couponField = config?.features?.couponCodeField;
   
   if (!couponField || (!couponField.enableAutoApply && !couponField.showAllOffers)) {
@@ -15,8 +15,6 @@ export async function loadAvailableDiscounts(shop, config) {
   }
 
   try {
-    const appUrl = document.querySelector('[data-upsellity-app-url]')?.dataset.upsellityAppUrl || '';
-    
     const response = await fetch(`${appUrl}/api/available-discounts?shop=${shop}`);
     const data = await response.json();
 
@@ -98,7 +96,7 @@ export function calculateDiscountSavings(discount, cart) {
 /**
  * Validate and apply coupon code (used with React component)
  */
-export async function validateAndApplyCoupon(shop, config, couponCode, cart) {
+export async function validateAndApplyCoupon(appUrl, shop, config, couponCode, cart) {
   if (!couponCode || !couponCode.trim()) {
     showNotification('Please enter a coupon code', 'error');
     return null;
@@ -107,8 +105,6 @@ export async function validateAndApplyCoupon(shop, config, couponCode, cart) {
   const code = couponCode.trim().toUpperCase();
 
   try {
-    const appUrl = document.querySelector('[data-upsellity-app-url]')?.dataset.upsellityAppUrl || '';
-    
     const response = await fetch(`${appUrl}/api/validate-discount?shop=${shop}&code=${encodeURIComponent(code)}`);
     const data = await response.json();
 
@@ -139,7 +135,7 @@ export async function validateAndApplyCoupon(shop, config, couponCode, cart) {
 /**
  * Apply coupon code (legacy function for non-React implementations)
  */
-export async function applyCoupon(shop, config, appliedDiscount, renderCallback) {
+export async function applyCoupon(appUrl, shop, config, appliedDiscount, renderCallback) {
   const couponInput = document.getElementById('upsellity-coupon-input');
   const messageDiv = document.getElementById('upsellity-coupon-message');
   const applyBtn = document.querySelector('.upsellity-coupon-apply-btn');
@@ -161,8 +157,6 @@ export async function applyCoupon(shop, config, appliedDiscount, renderCallback)
   if (applyBtn) applyBtn.disabled = true;
 
   try {
-    const appUrl = document.querySelector('[data-upsellity-app-url]')?.dataset.upsellityAppUrl || '';
-    
     const response = await fetch(`${appUrl}/api/validate-discount?shop=${shop}&code=${encodeURIComponent(couponCode)}`);
     const data = await response.json();
 

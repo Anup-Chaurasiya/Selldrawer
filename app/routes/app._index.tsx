@@ -15,6 +15,7 @@ import {
   Divider,
   Icon,
   Banner,
+  DataTable,
 } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { CheckIcon } from "@shopify/polaris-icons";
@@ -33,6 +34,83 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Check if app embed is enabled
   const appEmbedEnabled = await checkAppEmbedEnabled(admin, session);
+
+  // Analytics Data Fetching
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
+
+  const analyticsEvents = await prisma.analyticsEvent.findMany({
+    where: {
+      shop,
+      createdAt: { gte: thirtyDaysAgo }
+    }
+  });
+
+  // Aggregate Data
+  const aggregatedData = {
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalImpressions: 0,
+    totalClicks: 0,
+    totalAddToCart: 0,
+    components: {} as Record<string, any>,
+    products: {} as Record<string, any>
+  };
+
+  const uniqueOrderIds = new Set();
+
+  analyticsEvents.forEach((event: any) => {
+    const component = event.component || 'unknown';
+    
+    if (!aggregatedData.components[component]) {
+      aggregatedData.components[component] = {
+        impressions: 0,
+        clicks: 0,
+        addToCarts: 0,
+        conversions: 0,
+        revenue: 0
+      };
+    }
+
+    if (event.eventType === 'impression') {
+      aggregatedData.components[component].impressions++;
+      aggregatedData.totalImpressions++;
+    }
+    if (event.eventType === 'click') {
+      aggregatedData.components[component].clicks++;
+      aggregatedData.totalClicks++;
+    }
+    if (event.eventType === 'add_to_cart') {
+      aggregatedData.components[component].addToCarts++;
+      aggregatedData.totalAddToCart++;
+    }
+    if (event.eventType === 'conversion') {
+      aggregatedData.components[component].conversions++;
+      const value = Number(event.value || 0);
+      aggregatedData.components[component].revenue += value;
+      aggregatedData.totalRevenue += value;
+      if (event.orderId) uniqueOrderIds.add(event.orderId);
+    }
+
+    // Product Metrics
+    if (event.productId) {
+      if (!aggregatedData.products[event.productId]) {
+        aggregatedData.products[event.productId] = {
+          id: event.productId,
+          impressions: 0,
+          clicks: 0,
+          addToCarts: 0,
+          revenue: 0
+        };
+      }
+      if (event.eventType === 'impression') aggregatedData.products[event.productId].impressions++;
+      if (event.eventType === 'click') aggregatedData.products[event.productId].clicks++;
+      if (event.eventType === 'add_to_cart') aggregatedData.products[event.productId].addToCarts++;
+      if (event.eventType === 'conversion') aggregatedData.products[event.productId].revenue += Number(event.value || 0);
+    }
+  });
+
+  aggregatedData.totalOrders = uniqueOrderIds.size;
 
   // Get available plans from billing configuration
   const plans = [
@@ -85,6 +163,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     appEmbedEnabled,
     shopDomain: process.env.SHOPIFY_SHOP_DOMAIN || 'admin.shopify.com',
     apiKey: process.env.SHOPIFY_API_KEY || '',
+    analytics: aggregatedData,
   });
 };
 
@@ -210,7 +289,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Index() {
-  const { hasActiveSubscription, plans, appEmbedEnabled, shopDomain, apiKey } = useLoaderData<typeof loader>();
+  const { hasActiveSubscription, plans, appEmbedEnabled, shopDomain, apiKey, analytics } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigate = useNavigate();
   const navigation = useNavigation();
@@ -246,18 +325,29 @@ export default function Index() {
 
   // Handle billing confirmation redirect
   useEffect(() => {
-    if (actionData && 'requiresRedirect' in actionData && actionData.requiresRedirect && 'confirmationUrl' in actionData && actionData.confirmationUrl) {
-      // Use window.top to break out of iframe and redirect to Shopify billing page
-      if (window.top) {
-        window.top.location.href = actionData.confirmationUrl;
-      } else {
-        window.location.href = actionData.confirmationUrl;
+    if (actionData && 'requiresRedirect' in actionData && actionData.requiresRedirect) {
+      const data = actionData as { confirmationUrl?: string };
+      if (data.confirmationUrl) {
+        // Use window.top to break out of iframe and redirect to Shopify billing page
+        if (window.top) {
+          window.top.location.href = data.confirmationUrl;
+        } else {
+          window.location.href = data.confirmationUrl;
+        }
       }
     }
   }, [actionData]);
 
   // If user has active subscription, show dashboard instead of pricing
   if (hasActiveSubscription) {
+    const rows = Object.values(analytics.products).map((product: any) => [
+      product.id,
+      product.impressions,
+      product.clicks,
+      product.addToCarts,
+      product.revenue.toLocaleString('en-US', { style: 'currency', currency: 'USD' }),
+    ]);
+
     return (
       <Page>
         <TitleBar title="Upsellity AI Dashboard" />
@@ -308,27 +398,124 @@ export default function Index() {
 
                   <Divider />
 
-                  {/* Quick Stats - Placeholder for analytics */}
-                  <BlockStack gap="300">
+                  {/* Analytics Dashboard */}
+                  <BlockStack gap="400">
                     <Text as="h3" variant="headingMd">
-                      Analytics Overview
+                      Analytics Overview (Last 30 Days)
                     </Text>
-                    <div style={{ 
-                      padding: '40px',
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      borderRadius: '12px',
-                      color: 'white',
-                      textAlign: 'center'
-                    }}>
-                      <Text as="p" variant="headingLg" tone="inherit">
-                        📊 Analytics Coming Soon
-                      </Text>
-                      <Box paddingBlockStart="200">
-                        <Text as="p" variant="bodyMd" tone="inherit">
-                          Track your cart performance, conversion rates, and revenue impact here.
-                        </Text>
-                      </Box>
+                    
+                    <InlineStack gap="400" align="start">
+                      <div style={{ flex: 1 }}>
+                        <Card>
+                          <BlockStack gap="200">
+                            <Text as="h3" variant="headingSm" tone="subdued">Upsell Revenue</Text>
+                            <Text as="p" variant="headingXl">
+                              {analytics.totalRevenue.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                            </Text>
+                          </BlockStack>
+                        </Card>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <Card>
+                          <BlockStack gap="200">
+                            <Text as="h3" variant="headingSm" tone="subdued">Orders with Upsell</Text>
+                            <Text as="p" variant="headingXl">
+                              {analytics.totalOrders}
+                            </Text>
+                          </BlockStack>
+                        </Card>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <Card>
+                          <BlockStack gap="200">
+                            <Text as="h3" variant="headingSm" tone="subdued">Add to Carts</Text>
+                            <Text as="p" variant="headingXl">
+                              {analytics.totalAddToCart}
+                            </Text>
+                          </BlockStack>
+                        </Card>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <Card>
+                          <BlockStack gap="200">
+                            <Text as="h3" variant="headingSm" tone="subdued">CTR</Text>
+                            <Text as="p" variant="headingXl">
+                              {analytics.totalImpressions > 0 
+                                ? ((analytics.totalClicks / analytics.totalImpressions) * 100).toFixed(1) + '%' 
+                                : '0%'}
+                            </Text>
+                          </BlockStack>
+                        </Card>
+                      </div>
+                    </InlineStack>
+
+                    <Divider />
+
+                    <Text as="h3" variant="headingMd">
+                      Performance by Component
+                    </Text>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid #e1e3e5' }}>
+                            <th style={{ padding: '12px' }}>Component</th>
+                            <th style={{ padding: '12px' }}>Impressions</th>
+                            <th style={{ padding: '12px' }}>Clicks</th>
+                            <th style={{ padding: '12px' }}>CTR</th>
+                            <th style={{ padding: '12px' }}>Add to Cart</th>
+                            <th style={{ padding: '12px' }}>Revenue</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.entries(analytics.components).map(([name, data]: [string, any]) => (
+                            <tr key={name} style={{ borderBottom: '1px solid #f1f2f3' }}>
+                              <td style={{ padding: '12px', textTransform: 'capitalize' }}>{name.replace(/_/g, ' ')}</td>
+                              <td style={{ padding: '12px' }}>{data.impressions}</td>
+                              <td style={{ padding: '12px' }}>{data.clicks}</td>
+                              <td style={{ padding: '12px' }}>
+                                {data.impressions > 0 ? ((data.clicks / data.impressions) * 100).toFixed(1) + '%' : '0%'}
+                              </td>
+                              <td style={{ padding: '12px' }}>{data.addToCarts}</td>
+                              <td style={{ padding: '12px' }}>
+                                {data.revenue.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                              </td>
+                            </tr>
+                          ))}
+                          {Object.keys(analytics.components).length === 0 && (
+                            <tr>
+                              <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#6d7175' }}>
+                                No data available yet.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
                     </div>
+
+                    <Divider />
+
+                    <Text as="h3" variant="headingMd">
+                      Product Performance
+                    </Text>
+                    <Card>
+                      <DataTable
+                        columnContentTypes={[
+                          'text',
+                          'numeric',
+                          'numeric',
+                          'numeric',
+                          'numeric',
+                        ]}
+                        headings={[
+                          'Product ID',
+                          'Impressions',
+                          'Clicks',
+                          'Add to Cart',
+                          'Revenue',
+                        ]}
+                        rows={rows.length > 0 ? rows : [['No data', 0, 0, 0, '$0.00']]}
+                      />
+                    </Card>
                   </BlockStack>
 
                   <Divider />

@@ -12,9 +12,11 @@ import * as ProductLoader from './product-loader.js';
 import * as AutoApplyStorage from './auto-apply-storage.js';
 import * as MilestoneRewardManager from './milestone-reward-manager.js';
 import { UnifiedCartDrawer } from './components/UnifiedCartDrawer.jsx';
+import { Analytics } from './analytics.js';
 
 export class UpsellityCartDrawer {
-  constructor() {
+  constructor(appUrl) {
+    this.appUrl = appUrl;
     this.shop = window.Shopify?.shop || null;
     this.config = null;
     this.isOpen = false;
@@ -38,6 +40,11 @@ export class UpsellityCartDrawer {
       return;
     }
 
+    if (!this.appUrl) {
+      console.error('Upsellity: App URL not configured');
+      return;
+    }
+
     this.createDrawer();
     await this.loadConfig();
     this.interceptAddToCart();
@@ -47,15 +54,11 @@ export class UpsellityCartDrawer {
 
   async loadConfig() {
     try {
-      const appUrl = document.querySelector('[data-upsellity-app-url]')?.dataset.upsellityAppUrl;
-      if (!appUrl) {
-        console.warn('Upsellity: App URL not configured');
-        this.config = { enabled: false, features: {} };
-        return;
-      }
+      // Initialize Analytics with the app URL
+      Analytics.init(this.appUrl);
 
       const timestamp = new Date().getTime();
-      const response = await fetch(`${appUrl}/api/cart-drawer?shop=${this.shop}&_t=${timestamp}`, {
+      const response = await fetch(`${this.appUrl}/api/cart-drawer?shop=${this.shop}&_t=${timestamp}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache',
@@ -171,7 +174,7 @@ export class UpsellityCartDrawer {
       // Load all secondary data in parallel (can complete after drawer is open)
       const promises = [
         ProductLoader.loadProductCompareAtPrices(this.cart),
-        DiscountManager.loadAvailableDiscounts(this.shop, this.config),
+        DiscountManager.loadAvailableDiscounts(this.appUrl, this.shop, this.config),
         ProductLoader.loadShopifyRecommendations(this.cart, this.config)
       ];
       
@@ -427,14 +430,36 @@ export class UpsellityCartDrawer {
         showingAllOffers: this.showingAllOffers,
         unlockedMilestone: this.unlockedMilestone,
         onClose: () => this.close(),
-        onCheckout: () => this.handleCheckout(),
-        onAddProductToCart: (variantId) => this.addProductToCart(variantId),
+        onCheckout: () => window.location.href = DiscountManager.getCheckoutUrl(this.appliedDiscount),
+        onAddProductToCart: (variantId) => this.addProductToCart(variantId, 1, { '_upsell_source': 'cart_drawer_recommendation' }),
         onUpdateQuantity: (itemKey, newQuantity) => this.updateQuantity(itemKey, newQuantity),
         onRemoveItem: (itemKey) => this.removeItem(itemKey),
         onApplyCoupon: (code) => this.applyCouponWithCode(code),
         onRemoveDiscount: () => this.removeDiscount(),
         onSwitchDiscount: (code) => this.switchDiscount(code),
-        onSlideCtaClick: (url) => this.handleSlideCtaClick(url)
+        onSlideCtaClick: (url) => this.handleSlideCtaClick(url),
+        onImpression: () => {
+          Analytics.track({
+            eventType: 'impression',
+            component: 'cart_drawer',
+            value: 0
+          });
+        },
+        onFeatureImpression: (feature) => {
+          Analytics.track({
+            eventType: 'impression',
+            component: feature,
+            value: 0
+          });
+        },
+        onFeatureClick: (feature, data) => {
+          Analytics.track({
+            eventType: 'click',
+            component: feature,
+            value: 0,
+            ...data
+          });
+        }
       })
     );
   }
@@ -476,7 +501,7 @@ export class UpsellityCartDrawer {
       // Load all secondary data in parallel
       const promises = [
         ProductLoader.loadProductCompareAtPrices(this.cart),
-        DiscountManager.loadAvailableDiscounts(this.shop, this.config),
+        DiscountManager.loadAvailableDiscounts(this.appUrl, this.shop, this.config),
         ProductLoader.loadShopifyRecommendations(this.cart, this.config)
       ];
       
@@ -582,12 +607,22 @@ export class UpsellityCartDrawer {
   }
 
   // Cart operations
-  async addProductToCart(variantId, quantity = 1) {
-    await CartOps.addProductToCart(variantId, quantity, this.loadCart.bind(this));
+  async addProductToCart(variantId, quantity = 1, properties = {}) {
+    await CartOps.addProductToCart(variantId, quantity, this.loadCart.bind(this), properties);
+    
+    // Track add to cart if coming from upsell
+    if (properties._upsell_source) {
+      Analytics.track({
+        eventType: 'add_to_cart',
+        component: properties._upsell_source,
+        variantId: variantId.toString(),
+        value: 0 // Ideally we'd have price here, but we might not
+      });
+    }
   }
 
-  async addProductToCartByHandle(productHandle, variantId, quantity = 1) {
-    await CartOps.addProductToCartByHandle(productHandle, variantId, quantity, this.loadCart.bind(this));
+  async addProductToCartByHandle(productHandle, variantId, quantity = 1, properties = {}) {
+    await CartOps.addProductToCartByHandle(productHandle, variantId, quantity, this.loadCart.bind(this), properties);
   }
 
   async updateQuantity(itemKey, newQuantity) {
@@ -600,14 +635,14 @@ export class UpsellityCartDrawer {
 
   // Discount management
   async applyCoupon() {
-    const newDiscount = await DiscountManager.applyCoupon(this.shop, this.config, this.appliedDiscount, this.render.bind(this));
+    const newDiscount = await DiscountManager.applyCoupon(this.appUrl, this.shop, this.config, this.appliedDiscount, this.render.bind(this));
     if (newDiscount) {
       this.appliedDiscount = newDiscount;
     }
   }
 
   async applyCouponWithCode(code) {
-    const newDiscount = await DiscountManager.validateAndApplyCoupon(this.shop, this.config, code, this.cart);
+    const newDiscount = await DiscountManager.validateAndApplyCoupon(this.appUrl, this.shop, this.config, code, this.cart);
     if (newDiscount) {
       this.appliedDiscount = newDiscount;
       // Clear removal preference when user manually applies a discount
