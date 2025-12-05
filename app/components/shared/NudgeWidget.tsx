@@ -54,6 +54,8 @@ interface NudgeWidgetProps {
   onImpression?: () => void;
   isPreview?: boolean;
   isVisible?: boolean;
+  checkboxMode?: boolean; // Enable checkbox selection mode
+  selectedProductIds?: Set<string>; // Set of selected product IDs for checkbox mode
 }
 
 export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
@@ -65,7 +67,9 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
   onSelectAll,
   onImpression,
   isPreview = false,
-  isVisible = true
+  isVisible = true,
+  checkboxMode = false,
+  selectedProductIds = new Set()
 }) => {
   const [animationClass, setAnimationClass] = useState('');
   const impressionTracked = React.useRef(false);
@@ -256,36 +260,69 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
             maxWidth: '100%'
           }}
         >
-          {productsToShow.map((product) => (
-            <div
-              key={product.id}
-              className="upsellity-nudge-product-card"
-              onClick={() => !isPreview && onSelectProduct && onSelectProduct(product)}
-              style={{
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                overflow: 'hidden',
-                background: '#ffffff',
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                width: '100%',
-                maxWidth: '280px',
-                display: 'flex',
-                flexDirection: 'column',
-                cursor: isPreview ? 'default' : 'pointer',
-                minWidth: config.layout === 'carousel' ? '250px' : undefined,
-                scrollSnapAlign: config.layout === 'carousel' ? 'start' : undefined
-              }}
-              onMouseEnter={(e) => {
-                if (!isPreview) {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
+          {productsToShow.map((product) => {
+            const isSelected = checkboxMode && selectedProductIds.has(product.id);
+            return (
+              <div
+                key={product.id}
+                className="upsellity-nudge-product-card"
+                onClick={() => !isPreview && onSelectProduct && onSelectProduct(product)}
+                style={{
+                  border: checkboxMode && isSelected ? '2px solid #4F46E5' : '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  background: '#ffffff',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
+                  width: '100%',
+                  maxWidth: '280px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  cursor: isPreview ? 'default' : 'pointer',
+                  minWidth: config.layout === 'carousel' ? '250px' : undefined,
+                  scrollSnapAlign: config.layout === 'carousel' ? 'start' : undefined,
+                  position: 'relative'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isPreview) {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                {/* Checkbox for checkbox mode */}
+                {checkboxMode && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '0.75rem',
+                      right: '0.75rem',
+                      zIndex: 2
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!isPreview && onSelectProduct) {
+                        onSelectProduct(product);
+                      }
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {}}
+                      disabled={isPreview}
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        cursor: isPreview ? 'not-allowed' : 'pointer',
+                        accentColor: config.selectButtonColor || '#4F46E5'
+                      }}
+                    />
+                  </div>
+                )}
               {config.showProductImage && product.imageUrl && (
                 <img 
                   src={product.imageUrl}
@@ -314,7 +351,8 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                     fontSize: '1rem',
                     fontWeight: 600,
                     margin: '0 0 0.5rem 0',
-                    lineHeight: 1.4
+                    lineHeight: 1.4,
+                    paddingRight: checkboxMode ? '2rem' : '0'
                   }}
                 >
                   {product.title}
@@ -371,7 +409,8 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Bottom Action Section */}
@@ -386,44 +425,46 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
             maxWidth: '100%'
           }}
         >
-          {/* Continue Button */}
-          <div 
-            className="upsellity-nudge-continue-section"
-            style={{
-              flex: 1,
-              minWidth: 0
-            }}
-          >
-            <button
-              className="upsellity-nudge-continue-btn"
-              onClick={onContinue}
-              disabled={isPreview}
+          {/* Continue Button - Hide in checkbox mode */}
+          {!checkboxMode && onContinue && (
+            <div 
+              className="upsellity-nudge-continue-section"
               style={{
-                width: '100%',
-                padding: '1rem 1.5rem',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '1rem',
-                fontWeight: 600,
-                cursor: isPreview ? 'not-allowed' : 'pointer',
-                transition: 'opacity 0.2s ease',
-                backgroundColor: config.continueButtonColor,
-                color: config.continueButtonTextColor,
-                opacity: isPreview ? 0.6 : 1
-              }}
-              onMouseEnter={(e) => {
-                if (!isPreview) e.currentTarget.style.opacity = '0.9';
-              }}
-              onMouseLeave={(e) => {
-                if (!isPreview) e.currentTarget.style.opacity = '1';
+                flex: 1,
+                minWidth: 0
               }}
             >
-              {config.continueButtonText}
-            </button>
-          </div>
+              <button
+                className="upsellity-nudge-continue-btn"
+                onClick={onContinue}
+                disabled={isPreview}
+                style={{
+                  width: '100%',
+                  padding: '1rem 1.5rem',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  cursor: isPreview ? 'not-allowed' : 'pointer',
+                  transition: 'opacity 0.2s ease',
+                  backgroundColor: config.continueButtonColor,
+                  color: config.continueButtonTextColor,
+                  opacity: isPreview ? 0.6 : 1
+                }}
+                onMouseEnter={(e) => {
+                  if (!isPreview) e.currentTarget.style.opacity = '0.9';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isPreview) e.currentTarget.style.opacity = '1';
+                }}
+              >
+                {config.continueButtonText}
+              </button>
+            </div>
+          )}
 
-          {/* Select All Button */}
-          {productsToShow.length > 0 && (
+          {/* Select All Button - Show only if not in checkbox mode or if checkbox mode, show as "Add Selected" */}
+          {productsToShow.length > 0 && !checkboxMode && (
             <div 
               className="upsellity-nudge-selection-section"
               style={{
@@ -456,6 +497,43 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                 }}
               >
                 {config.selectButtonText}
+              </button>
+            </div>
+          )}
+          {/* Add Selected Button for checkbox mode */}
+          {checkboxMode && productsToShow.length > 0 && (
+            <div 
+              className="upsellity-nudge-selection-section"
+              style={{
+                flex: 1,
+                minWidth: 0
+              }}
+            >
+              <button
+                className="upsellity-nudge-add-selected-btn"
+                onClick={() => !isPreview && onSelectAll && onSelectAll(productsToShow.filter(p => selectedProductIds.has(p.id)))}
+                disabled={isPreview || selectedProductIds.size === 0}
+                style={{
+                  width: '100%',
+                  padding: '1rem 1.5rem',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  cursor: (isPreview || selectedProductIds.size === 0) ? 'not-allowed' : 'pointer',
+                  transition: 'opacity 0.2s ease',
+                  backgroundColor: config.selectButtonColor,
+                  color: config.selectButtonTextColor,
+                  opacity: (isPreview || selectedProductIds.size === 0) ? 0.6 : 1
+                }}
+                onMouseEnter={(e) => {
+                  if (!isPreview && selectedProductIds.size > 0) e.currentTarget.style.opacity = '0.9';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isPreview && selectedProductIds.size > 0) e.currentTarget.style.opacity = '1';
+                }}
+              >
+                {config.selectButtonText} {selectedProductIds.size > 0 && `(${selectedProductIds.size})`}
               </button>
             </div>
           )}

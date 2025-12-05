@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.4
- * Built: 2025-12-04T13:48:20.372Z
+ * Built: 2025-12-05T08:05:44.044Z
  */
 "use strict";
 (() => {
@@ -11278,7 +11278,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://census-vegetables-cdt-competitors.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://unsubscribe-heritage-project-influenced.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.4" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {
