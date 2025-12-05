@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Add Together v1.0.4
- * Built: 2025-12-05T08:05:44.148Z
+ * Built: 2025-12-05T09:36:37.045Z
  */
 "use strict";
 (() => {
@@ -8598,7 +8598,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/nudge-add-together-entry.js
-  var APP_URL = true ? "https://unsubscribe-heritage-project-influenced.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://delaware-educated-pcs-banner.trycloudflare.com" : "https://app.upsellity.com";
   var NudgeAddTogether = class {
     constructor() {
       this.shop = null;
@@ -8617,6 +8617,12 @@
     async init() {
       var _a2, _b;
       try {
+        if (document.readyState === "loading") {
+          await new Promise((resolve) => {
+            document.addEventListener("DOMContentLoaded", resolve);
+          });
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100));
         this.shop = this.getShopDomain();
         if (!this.shop) {
           console.warn("Nudge Add Together: Shop not configured");
@@ -8630,13 +8636,7 @@
           showOnAddToCart: (_a2 = this.config) == null ? void 0 : _a2.showOnAddToCart
         });
         if (this.enabled && this.config && this.config.showOnAddToCart) {
-          if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", () => {
-              setTimeout(() => this.setupAddToCartInterceptor(), 100);
-            });
-          } else {
-            setTimeout(() => this.setupAddToCartInterceptor(), 100);
-          }
+          setTimeout(() => this.setupAddToCartInterceptor(), 200);
         } else {
           console.log("Nudge Add Together: Not enabled or no config", {
             enabled: this.enabled,
@@ -8670,10 +8670,27 @@
         Analytics.init(APP_URL);
         const apiUrl = `${APP_URL}/api/nudge-add-together?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(productHandle)}`;
         console.log("Nudge Add Together: Fetching config from:", apiUrl);
-        const response = await fetch(apiUrl);
+        let response;
+        try {
+          response = await fetch(apiUrl, {
+            method: "GET",
+            headers: {
+              "Accept": "application/json"
+            },
+            mode: "cors",
+            credentials: "omit"
+          });
+        } catch (fetchError) {
+          console.error("Nudge Add Together: Fetch error (network/CORS):", fetchError);
+          console.error("Nudge Add Together: Check if APP_URL is correct:", APP_URL);
+          this.enabled = false;
+          return;
+        }
         if (!response.ok) {
-          console.error(`Nudge Add Together: Failed to load config: ${response.status}`, await response.text());
-          throw new Error(`Failed to load Nudge Add Together config: ${response.status}`);
+          const errorText = await response.text();
+          console.error(`Nudge Add Together: Failed to load config: ${response.status}`, errorText);
+          this.enabled = false;
+          return;
         }
         const data = await response.json();
         console.log("Nudge Add Together: Config received:", {
@@ -8686,6 +8703,11 @@
         this.recommendations = data.recommendations || [];
       } catch (error) {
         console.error("Error loading Nudge Add Together config:", error);
+        console.error("Error details:", {
+          message: error.message,
+          stack: error.stack,
+          APP_URL
+        });
         this.enabled = false;
       }
     }
@@ -8966,13 +8988,22 @@
       this.isOpen = false;
     }
   };
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-      new NudgeAddTogether();
-    });
-  } else {
-    new NudgeAddTogether();
-  }
+  (function() {
+    function initNudgeAddTogether() {
+      try {
+        setTimeout(() => {
+          new NudgeAddTogether();
+        }, 200);
+      } catch (error) {
+        console.error("Failed to initialize Nudge Add Together:", error);
+      }
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initNudgeAddTogether);
+    } else {
+      initNudgeAddTogether();
+    }
+  })();
 })();
 /*! Bundled license information:
 

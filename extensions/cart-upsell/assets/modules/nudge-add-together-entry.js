@@ -30,6 +30,16 @@ class NudgeAddTogether {
 
   async init() {
     try {
+      // Wait for DOM to be ready
+      if (document.readyState === 'loading') {
+        await new Promise(resolve => {
+          document.addEventListener('DOMContentLoaded', resolve);
+        });
+      }
+      
+      // Small delay to ensure everything is loaded
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Get shop from meta tags
       this.shop = this.getShopDomain();
       
@@ -48,14 +58,8 @@ class NudgeAddTogether {
       });
       
       if (this.enabled && this.config && this.config.showOnAddToCart) {
-        // Wait a bit for DOM to be ready, then setup interceptor
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => this.setupAddToCartInterceptor(), 100);
-          });
-        } else {
-          setTimeout(() => this.setupAddToCartInterceptor(), 100);
-        }
+        // Setup interceptor after a small delay
+        setTimeout(() => this.setupAddToCartInterceptor(), 200);
       } else {
         console.log('Nudge Add Together: Not enabled or no config', {
           enabled: this.enabled,
@@ -99,11 +103,28 @@ class NudgeAddTogether {
       const apiUrl = `${APP_URL}/api/nudge-add-together?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(productHandle)}`;
       console.log('Nudge Add Together: Fetching config from:', apiUrl);
       
-      const response = await fetch(apiUrl);
+      let response;
+      try {
+        response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+          mode: 'cors',
+          credentials: 'omit'
+        });
+      } catch (fetchError) {
+        console.error('Nudge Add Together: Fetch error (network/CORS):', fetchError);
+        console.error('Nudge Add Together: Check if APP_URL is correct:', APP_URL);
+        this.enabled = false;
+        return;
+      }
 
       if (!response.ok) {
-        console.error(`Nudge Add Together: Failed to load config: ${response.status}`, await response.text());
-        throw new Error(`Failed to load Nudge Add Together config: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`Nudge Add Together: Failed to load config: ${response.status}`, errorText);
+        this.enabled = false;
+        return;
       }
       
       const data = await response.json();
@@ -120,6 +141,11 @@ class NudgeAddTogether {
       
     } catch (error) {
       console.error('Error loading Nudge Add Together config:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        APP_URL: APP_URL
+      });
       this.enabled = false;
     }
   }
@@ -488,11 +514,22 @@ class NudgeAddTogether {
 }
 
 // Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    new NudgeAddTogether();
-  });
-} else {
-  new NudgeAddTogether();
-}
+(function() {
+  function initNudgeAddTogether() {
+    try {
+      // Small delay to ensure page is fully loaded
+      setTimeout(() => {
+        new NudgeAddTogether();
+      }, 200);
+    } catch (error) {
+      console.error('Failed to initialize Nudge Add Together:', error);
+    }
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initNudgeAddTogether);
+  } else {
+    initNudgeAddTogether();
+  }
+})();
 
