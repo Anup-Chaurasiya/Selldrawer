@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Add Together v1.0.4
- * Built: 2025-12-05T09:36:37.045Z
+ * Built: 2025-12-05T10:56:01.111Z
  */
 "use strict";
 (() => {
@@ -8791,11 +8791,16 @@
                 };
               }
             }
-            console.log("Nudge Add Together: Showing popup");
-            if (this.config.popupDelay > 0) {
-              setTimeout(() => this.showPopup(), this.config.popupDelay);
-            } else {
-              this.showPopup();
+            try {
+              await this.addOriginalProductToCart(form);
+              console.log("Nudge Add Together: Showing popup");
+              if (this.config.popupDelay > 0) {
+                setTimeout(() => this.showPopup(), this.config.popupDelay);
+              } else {
+                setTimeout(() => this.showPopup(), 300);
+              }
+            } catch (error) {
+              console.error("Nudge Add Together: Failed to add original product, not showing popup");
             }
           } else {
             console.log("Nudge Add Together: Not intercepting", {
@@ -8823,6 +8828,42 @@
       }
       return null;
     }
+    async addOriginalProductToCart(form) {
+      try {
+        if (!form) {
+          console.warn("Nudge Add Together: No form found to add original product");
+          return;
+        }
+        const formData = new FormData(form);
+        const response = await fetch("/cart/add.js", {
+          method: "POST",
+          body: formData
+        });
+        if (response.ok) {
+          console.log("Nudge Add Together: Original product added to cart");
+          document.dispatchEvent(new CustomEvent("cart:updated"));
+          if (this.originalProduct) {
+            Analytics.track({
+              eventType: "add_to_cart",
+              component: "nudge-add-together",
+              productId: this.originalProduct.id,
+              variantId: this.originalProduct.variantId,
+              value: this.originalProduct.price
+            });
+          }
+          setTimeout(() => {
+            this.openCartDrawer();
+          }, 100);
+        } else {
+          const errorText = await response.text();
+          console.error("Nudge Add Together: Failed to add original product to cart:", errorText);
+          throw new Error("Failed to add product to cart");
+        }
+      } catch (error) {
+        console.error("Nudge Add Together: Error adding original product to cart:", error);
+        throw error;
+      }
+    }
     showPopup() {
       if (this.isOpen)
         return;
@@ -8849,24 +8890,6 @@
       this.closePopup();
       try {
         const itemsToAdd = [];
-        if (this.originalProductVariantId) {
-          let originalVariantId = String(this.originalProductVariantId);
-          if (originalVariantId.includes("gid://shopify/ProductVariant/")) {
-            originalVariantId = originalVariantId.replace("gid://shopify/ProductVariant/", "");
-          }
-          const numericId = parseInt(originalVariantId.replace(/\D/g, ""), 10);
-          if (!isNaN(numericId) && numericId > 0) {
-            itemsToAdd.push({
-              id: numericId,
-              quantity: 1,
-              properties: {
-                "_upsell_source": "nudge-add-together-original"
-              }
-            });
-          } else {
-            console.warn("Nudge Add Together: Invalid original variant ID:", this.originalProductVariantId);
-          }
-        }
         for (const product of selectedProducts) {
           try {
             const productResponse = await fetch(`/products/${product.handle}.js`);
@@ -8940,15 +8963,6 @@
             alert("Error adding products: " + errorData.description);
           }
           return;
-        }
-        if (this.originalProduct) {
-          Analytics.track({
-            eventType: "add_to_cart",
-            component: "nudge-add-together",
-            productId: this.originalProduct.id,
-            variantId: this.originalProduct.variantId,
-            value: this.originalProduct.price
-          });
         }
         selectedProducts.forEach((product) => {
           Analytics.track({

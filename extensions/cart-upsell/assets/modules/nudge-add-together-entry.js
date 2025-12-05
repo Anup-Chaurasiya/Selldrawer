@@ -252,14 +252,23 @@ class NudgeAddTogether {
               };
             }
           }
-          
-          console.log('Nudge Add Together: Showing popup');
-          
-          // Show popup with delay
-          if (this.config.popupDelay > 0) {
-            setTimeout(() => this.showPopup(), this.config.popupDelay);
-          } else {
-            this.showPopup();
+
+          // FIRST: Add original product to cart immediately
+          try {
+            await this.addOriginalProductToCart(form);
+            
+            console.log('Nudge Add Together: Showing popup');
+            
+            // THEN: Show popup with delay (cart drawer will already be open)
+            if (this.config.popupDelay > 0) {
+              setTimeout(() => this.showPopup(), this.config.popupDelay);
+            } else {
+              // Small delay to ensure cart drawer opens first, then popup appears on top
+              setTimeout(() => this.showPopup(), 300);
+            }
+          } catch (error) {
+            console.error('Nudge Add Together: Failed to add original product, not showing popup');
+            // If adding to cart fails, don't show popup
           }
         } else {
           console.log('Nudge Add Together: Not intercepting', {
@@ -288,6 +297,52 @@ class NudgeAddTogether {
       console.error('Error loading current product:', error);
     }
     return null;
+  }
+
+  async addOriginalProductToCart(form) {
+    try {
+      if (!form) {
+        console.warn('Nudge Add Together: No form found to add original product');
+        return;
+      }
+
+      const formData = new FormData(form);
+      
+      const response = await fetch('/cart/add.js', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        console.log('Nudge Add Together: Original product added to cart');
+        
+        // Trigger cart update events
+        document.dispatchEvent(new CustomEvent('cart:updated'));
+        
+        // Track analytics
+        if (this.originalProduct) {
+          Analytics.track({
+            eventType: 'add_to_cart',
+            component: 'nudge-add-together',
+            productId: this.originalProduct.id,
+            variantId: this.originalProduct.variantId,
+            value: this.originalProduct.price
+          });
+        }
+        
+        // Open cart drawer after a small delay to ensure cart is updated
+        setTimeout(() => {
+          this.openCartDrawer();
+        }, 100);
+      } else {
+        const errorText = await response.text();
+        console.error('Nudge Add Together: Failed to add original product to cart:', errorText);
+        throw new Error('Failed to add product to cart');
+      }
+    } catch (error) {
+      console.error('Nudge Add Together: Error adding original product to cart:', error);
+      throw error;
+    }
   }
 
   showPopup() {
@@ -324,29 +379,8 @@ class NudgeAddTogether {
     try {
       const itemsToAdd = [];
 
-      // Always add the original product first
-      if (this.originalProductVariantId) {
-        let originalVariantId = String(this.originalProductVariantId);
-        
-        // Normalize variant ID - remove GID prefix if present
-        if (originalVariantId.includes('gid://shopify/ProductVariant/')) {
-          originalVariantId = originalVariantId.replace('gid://shopify/ProductVariant/', '');
-        }
-        
-        // Extract numeric part
-        const numericId = parseInt(originalVariantId.replace(/\D/g, ''), 10);
-        if (!isNaN(numericId) && numericId > 0) {
-          itemsToAdd.push({
-            id: numericId,
-            quantity: 1,
-            properties: {
-              '_upsell_source': 'nudge-add-together-original'
-            }
-          });
-        } else {
-          console.warn('Nudge Add Together: Invalid original variant ID:', this.originalProductVariantId);
-        }
-      }
+      // NOTE: Original product is already in cart (added immediately when "Add to Cart" was clicked)
+      // So we only add the selected popup products here
 
       // Add selected popup products
       for (const product of selectedProducts) {
@@ -443,17 +477,7 @@ class NudgeAddTogether {
         return;
       }
 
-      // Track events for all added items
-      if (this.originalProduct) {
-        Analytics.track({
-          eventType: 'add_to_cart',
-          component: 'nudge-add-together',
-          productId: this.originalProduct.id,
-          variantId: this.originalProduct.variantId,
-          value: this.originalProduct.price
-        });
-      }
-
+      // Track events for selected products (original already tracked)
       selectedProducts.forEach(product => {
         Analytics.track({
           eventType: 'add_to_cart',
