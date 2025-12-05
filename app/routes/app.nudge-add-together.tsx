@@ -905,6 +905,8 @@ export default function NudgeAddTogether() {
                         isPreview={true}
                         checkboxMode={true}
                         selectedProductIds={new Set()}
+                        onSelectProduct={() => {}} // No-op for preview
+                        onSelectAll={() => {}} // No-op for preview
                       />
                     </div>
                   </div>

@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.4
- * Built: 2025-12-05T10:56:19.961Z
+ * Built: 2025-12-05T11:47:58.476Z
  */
 "use strict";
 (() => {
@@ -8035,7 +8035,7 @@
                     fontSize: "1.75rem",
                     fontWeight: 600,
                     margin: "0 0 0.5rem 0",
-                    paddingRight: "3rem",
+                    paddingRight: "1rem",
                     textAlign: "center",
                     width: "100%",
                     color: config.titleColor

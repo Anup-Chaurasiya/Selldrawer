@@ -218,7 +218,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
             fontSize: '1.75rem',
             fontWeight: 600,
             margin: '0 0 0.5rem 0',
-            paddingRight: '3rem',
+            paddingRight: '1rem',
             textAlign: 'center',
             width: '100%',
             color: config.titleColor

@@ -936,6 +936,9 @@ export default function NudgePopup() {
                         recommendations={previewProducts}
                         isVisible={true}
                         isPreview={true}
+                        onContinue={() => {}} // No-op for preview
+                        onSelectProduct={() => {}} // No-op for preview
+                        onSelectAll={() => {}} // No-op for preview
                       />
                     </div>
                   </div>
