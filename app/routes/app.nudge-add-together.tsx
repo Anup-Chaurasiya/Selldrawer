@@ -66,14 +66,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
   }
 
-  // Fetch products from Shopify
+  // Fetch products from Shopify (only active products)
   let shopProducts: any[] = [];
   let shopCollections: any[] = [];
   
   try {
     const response = await admin.graphql(`
-      query getProducts($first: Int!) {
-        products(first: $first) {
+      query getProducts($first: Int!, $query: String!) {
+        products(first: $first, query: $query) {
           edges {
             node {
               id
@@ -103,32 +103,37 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         }
       }
     `, {
-      variables: { first: 100 }
+      variables: { 
+        first: 100,
+        query: "status:active"
+      }
     });
 
     const responseJson = await response.json();
     
     if (responseJson.data?.products?.edges) {
-      shopProducts = responseJson.data.products.edges.map((edge: any) => {
-        const product = edge.node;
-        const image = product.images.edges[0]?.node;
-        const variant = product.variants.edges[0]?.node;
-        
-        return {
-          id: product.handle,
-          shopifyProductId: product.id.replace('gid://shopify/Product/', ''),
-          title: product.title,
-          handle: product.handle,
-          description: product.description || '',
-          status: product.status.toLowerCase(),
-          images: image ? [{ src: image.url, alt: image.altText }] : [],
-          variants: variant ? [{
-            id: variant.id.replace('gid://shopify/ProductVariant/', ''),
-            price: variant.price,
-            compare_at_price: variant.compareAtPrice
-          }] : []
-        };
-      });
+      shopProducts = responseJson.data.products.edges
+        .filter((edge: any) => edge.node.status === 'ACTIVE')
+        .map((edge: any) => {
+          const product = edge.node;
+          const image = product.images.edges[0]?.node;
+          const variant = product.variants.edges[0]?.node;
+          
+          return {
+            id: product.handle,
+            shopifyProductId: product.id.replace('gid://shopify/Product/', ''),
+            title: product.title,
+            handle: product.handle,
+            description: product.description || '',
+            status: product.status.toLowerCase(),
+            images: image ? [{ src: image.url, alt: image.altText }] : [],
+            variants: variant ? [{
+              id: variant.id.replace('gid://shopify/ProductVariant/', ''),
+              price: variant.price,
+              compare_at_price: variant.compareAtPrice
+            }] : []
+          };
+        });
     }
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -265,6 +270,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               id
               title
               handle
+              status
               description
               images(first: 1) {
                 edges {
@@ -292,6 +298,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         
         if (responseJson.data?.productByHandle) {
           const product = responseJson.data.productByHandle;
+          
+          // Only save active products
+          if (product.status !== 'ACTIVE') {
+            console.warn(`Skipping product ${productHandle}: status is ${product.status}, only ACTIVE products are allowed`);
+            continue;
+          }
+          
           const variant = product.variants.edges[0]?.node;
           const image = product.images.edges[0]?.node;
           
