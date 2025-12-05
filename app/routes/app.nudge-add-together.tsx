@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
+import { useLoaderData, useSubmit, useNavigation, useActionData } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -26,7 +26,7 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { DeleteIcon, EditIcon } from "@shopify/polaris-icons";
 import { NudgeWidget } from "../components/shared/NudgeWidget";
 
@@ -446,6 +446,7 @@ export default function NudgeAddTogether() {
   const { nudgeAddTogetherConfig, shopProducts, shopCollections } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
+  const actionData = useActionData<typeof action>();
   
   // Check which action is being submitted
   const formData = navigation.formData;
@@ -453,6 +454,36 @@ export default function NudgeAddTogether() {
   const isSubmitting = navigation.state === "submitting";
   const isToggleLoading = isSubmitting && submittingIntent === "toggle";
   const isSaveSettingsLoading = isSubmitting && submittingIntent === "save-settings";
+
+  // Track previous submission state to detect when save completes
+  const prevIsSubmitting = useRef(false);
+  const prevSubmittingIntent = useRef<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+
+  // Show toast notification when settings are saved successfully
+  useEffect(() => {
+    // Check if we just finished submitting a save-settings action
+    const justFinishedSave = 
+      prevIsSubmitting.current && 
+      prevSubmittingIntent.current === "save-settings" &&
+      !isSubmitting &&
+      actionData &&
+      'success' in actionData &&
+      actionData.success;
+
+    if (justFinishedSave) {
+      setShowToast(true);
+      // Auto-hide after 3 seconds
+      const timer = setTimeout(() => {
+        setShowToast(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+
+    // Update refs for next render
+    prevIsSubmitting.current = isSubmitting;
+    prevSubmittingIntent.current = submittingIntent;
+  }, [actionData, submittingIntent, isSubmitting]);
 
   const [formState, setFormState] = useState(() => {
     return {
@@ -671,6 +702,83 @@ export default function NudgeAddTogether() {
       }}
     >
       <TitleBar title="Nudge Add Together" />
+      
+      {/* Custom Toast Notification - Appears at Top */}
+      {showToast && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 10000,
+          animation: 'slideDown 0.3s ease-out',
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            padding: '12px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            minWidth: '300px',
+            maxWidth: '500px',
+          }}>
+            <div style={{
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              backgroundColor: '#10b981',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div style={{ flex: 1 }}>
+              <Text as="p" variant="bodyMd" fontWeight="medium">
+                Settings saved successfully
+              </Text>
+            </div>
+            <button
+              onClick={() => setShowToast(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#6b7280',
+                flexShrink: 0,
+              }}
+              aria-label="Close"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+          }
+        }
+      `}</style>
       
       <Layout>
         <Layout.Section variant="oneHalf">
