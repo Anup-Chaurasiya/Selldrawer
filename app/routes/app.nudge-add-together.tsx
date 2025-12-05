@@ -27,7 +27,7 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback } from "react";
-import { DeleteIcon } from "@shopify/polaris-icons";
+import { DeleteIcon, EditIcon } from "@shopify/polaris-icons";
 import { NudgeWidget } from "../components/shared/NudgeWidget";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -341,6 +341,104 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ success: true });
   }
 
+  if (intent === "update-rule") {
+    const ruleId = formData.get("ruleId") as string;
+    const triggerType = formData.get("triggerType") as string;
+    const triggerValue = formData.get("triggerValue") as string;
+    const triggerProductId = formData.get("triggerProductId") as string;
+    const triggerTitle = formData.get("triggerTitle") as string;
+    const upsellProducts = JSON.parse(formData.get("upsellProducts") as string || "[]");
+
+    // Update the rule
+    await prisma.nudgeAddTogetherRule.update({
+      where: { id: ruleId },
+      data: {
+        triggerType,
+        triggerValue,
+        triggerProductId,
+        triggerTitle,
+      }
+    });
+
+    // Delete existing products for this rule
+    await prisma.nudgeAddTogetherProduct.deleteMany({
+      where: { ruleId }
+    });
+
+    // Add updated upsell products
+    for (let i = 0; i < upsellProducts.length; i++) {
+      const productHandle = upsellProducts[i];
+
+      try {
+        const response = await admin.graphql(`
+          query getProductByHandle($handle: String!) {
+            productByHandle(handle: $handle) {
+              id
+              title
+              handle
+              status
+              description
+              images(first: 1) {
+                edges {
+                  node {
+                    url
+                  }
+                }
+              }
+              variants(first: 1) {
+                edges {
+                  node {
+                    id
+                    price
+                    compareAtPrice
+                  }
+                }
+              }
+            }
+          }
+        `, {
+          variables: { handle: productHandle }
+        });
+
+        const responseJson = await response.json();
+
+        if (responseJson.data?.productByHandle) {
+          const product = responseJson.data.productByHandle;
+          
+          // Only save active products
+          if (product.status !== 'ACTIVE') {
+            console.warn(`Skipping product ${productHandle}: status is ${product.status}, only ACTIVE products are allowed`);
+            continue;
+          }
+          
+          const variant = product.variants.edges[0]?.node;
+          const image = product.images.edges[0]?.node;
+
+          if (variant) {
+            await prisma.nudgeAddTogetherProduct.create({
+              data: {
+                ruleId: ruleId,
+                shopifyProductId: productHandle,
+                shopifyVariantId: variant.id.replace('gid://shopify/ProductVariant/', ''),
+                title: product.title,
+                handle: product.handle,
+                description: product.description || null,
+                price: parseFloat(variant.price),
+                compareAtPrice: variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
+                imageUrl: image?.url || null,
+                position: i,
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching product ${productHandle}:`, error);
+      }
+    }
+
+    return json({ success: true });
+  }
+
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
@@ -385,6 +483,7 @@ export default function NudgeAddTogether() {
   });
 
   const [showManualModal, setShowManualModal] = useState(false);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [modalConfig, setModalConfig] = useState({
     triggerType: "specific_product" as "specific_product" | "collection" | "all_products",
     selectedTriggerProduct: null as string | null,
@@ -416,7 +515,12 @@ export default function NudgeAddTogether() {
 
   const handleAddRule = useCallback(() => {
     const formData = new FormData();
-    formData.append("intent", "add-rule");
+    const intent = editingRuleId ? "update-rule" : "add-rule";
+    formData.append("intent", intent);
+    
+    if (editingRuleId) {
+      formData.append("ruleId", editingRuleId);
+    }
     
     let triggerType = "all";
     let triggerValue = "all";
@@ -444,6 +548,7 @@ export default function NudgeAddTogether() {
 
     submit(formData, { method: "post" });
     setShowManualModal(false);
+    setEditingRuleId(null);
     setModalConfig({
       triggerType: "specific_product",
       selectedTriggerProduct: null,
@@ -456,7 +561,7 @@ export default function NudgeAddTogether() {
       showTriggerModal: false,
       showUpsellModal: false,
     });
-  }, [modalConfig, shopProducts, shopCollections, submit]);
+  }, [modalConfig, shopProducts, shopCollections, submit, editingRuleId]);
 
   const handleDeleteRule = useCallback((ruleId: string) => {
     if (confirm("Are you sure you want to delete this rule?")) {
@@ -466,6 +571,37 @@ export default function NudgeAddTogether() {
       submit(formData, { method: "post" });
     }
   }, [submit]);
+
+  const handleEditRule = useCallback((rule: any) => {
+    setEditingRuleId(rule.id);
+    
+    // Convert rule to modal config format
+    const triggerType = rule.triggerType === "product" ? "specific_product" : 
+                        rule.triggerType === "collection" ? "collection" : 
+                        "all_products";
+    const selectedTriggerProduct = triggerType === "specific_product" && rule.triggerValue && rule.triggerValue !== "all"
+      ? rule.triggerValue
+      : null;
+    const selectedTriggerCollection = triggerType === "collection" && rule.triggerValue
+      ? rule.triggerValue
+      : null;
+    const selectedUpsellProducts = rule.products.map((p: any) => p.handle);
+
+    setModalConfig({
+      triggerType: triggerType as "specific_product" | "collection" | "all_products",
+      selectedTriggerProduct: selectedTriggerProduct,
+      selectedTriggerCollection: selectedTriggerCollection,
+      selectedUpsellProducts: selectedUpsellProducts,
+      triggerTab: triggerType === "collection" ? "collection" : "product",
+      upsellTab: "product",
+      searchQuery: "",
+      upsellSearchQuery: "",
+      showTriggerModal: false,
+      showUpsellModal: false,
+    });
+    
+    setShowManualModal(true);
+  }, []);
 
   const filteredProducts = shopProducts.filter(product =>
     product.title.toLowerCase().includes(modalConfig.searchQuery.toLowerCase()) ||
@@ -529,7 +665,7 @@ export default function NudgeAddTogether() {
     <Page
       title="Nudge Add Together"
       primaryAction={{
-        content: "Save Settings",
+        content: "Save",
         onAction: handleSaveSettings,
         loading: isSaveSettingsLoading,
       }}
@@ -764,7 +900,10 @@ export default function NudgeAddTogether() {
                   <Text as="h2" variant="headingMd">
                     Manual Rules 
                   </Text>
-                  <Button onClick={() => setShowManualModal(true)}>
+                  <Button onClick={() => {
+                    setEditingRuleId(null);
+                    setShowManualModal(true);
+                  }}>
                     Add Rule
                   </Button>
                 </InlineStack>
@@ -803,12 +942,19 @@ export default function NudgeAddTogether() {
                                   </Text>
                                 </BlockStack>
                               </InlineStack>
-                              <Button
-                                icon={DeleteIcon}
-                                variant="plain"
-                                tone="critical"
-                                onClick={() => handleDeleteRule(id)}
-                              />
+                              <InlineStack gap="200">
+                                <Button
+                                  icon={EditIcon}
+                                  variant="plain"
+                                  onClick={() => handleEditRule(rule)}
+                                />
+                                <Button
+                                  icon={DeleteIcon}
+                                  variant="plain"
+                                  tone="critical"
+                                  onClick={() => handleDeleteRule(id)}
+                                />
+                              </InlineStack>
                             </InlineStack>
                             {products.length > 0 && (
                               <Box paddingBlockStart="200">
@@ -948,10 +1094,25 @@ export default function NudgeAddTogether() {
       {/* Add Rule Modal */}
       <Modal
         open={showManualModal}
-        onClose={() => setShowManualModal(false)}
-        title="Add Nudge Rule"
+        onClose={() => {
+          setShowManualModal(false);
+          setEditingRuleId(null);
+          setModalConfig({
+            triggerType: "specific_product",
+            selectedTriggerProduct: null,
+            selectedTriggerCollection: null,
+            selectedUpsellProducts: [],
+            triggerTab: "product",
+            upsellTab: "product",
+            searchQuery: "",
+            upsellSearchQuery: "",
+            showTriggerModal: false,
+            showUpsellModal: false,
+          });
+        }}
+        title={editingRuleId ? "Edit Nudge Rule" : "Add Nudge Rule"}
         primaryAction={{
-          content: "Add Rule",
+          content: editingRuleId ? "Update Rule" : "Add Rule",
           onAction: handleAddRule,
           disabled: modalConfig.selectedUpsellProducts.length === 0,
         }}
@@ -1103,7 +1264,9 @@ export default function NudgeAddTogether() {
                     onClick={() => {
                       setModalConfig({
                         ...modalConfig,
+                        triggerType: "collection",
                         selectedTriggerCollection: collection.handle,
+                        selectedTriggerProduct: null,
                         showTriggerModal: false,
                       });
                     }}
@@ -1135,7 +1298,9 @@ export default function NudgeAddTogether() {
                     onClick={() => {
                       setModalConfig({
                         ...modalConfig,
+                        triggerType: "specific_product",
                         selectedTriggerProduct: product.handle,
+                        selectedTriggerCollection: null,
                         showTriggerModal: false,
                       });
                     }}

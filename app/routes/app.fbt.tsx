@@ -27,7 +27,7 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback } from "react";
-import { DeleteIcon, PlusIcon } from "@shopify/polaris-icons";
+import { DeleteIcon, PlusIcon, EditIcon } from "@shopify/polaris-icons";
 import { FBTWidget } from "../components/shared/FBTWidget";
 import type { FBTProduct } from "../components/shared/FBTProductCard";
 
@@ -336,6 +336,102 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ success: true });
   }
 
+  if (intent === "update-rule") {
+    const ruleId = formData.get("ruleId") as string;
+    const triggerType = formData.get("triggerType") as string;
+    const triggerValue = formData.get("triggerValue") as string;
+    const triggerProductId = formData.get("triggerProductId") as string;
+    const triggerTitle = formData.get("triggerTitle") as string;
+    const upsellProducts = JSON.parse(formData.get("upsellProducts") as string || "[]");
+
+    // Update the rule
+    await prisma.fBTRule.update({
+      where: { id: ruleId },
+      data: {
+        triggerType,
+        triggerValue,
+        triggerProductId,
+        triggerTitle,
+      }
+    });
+
+    // Delete existing products for this rule
+    await prisma.fBTProduct.deleteMany({
+      where: { ruleId }
+    });
+
+    // Add updated upsell products
+    for (let i = 0; i < upsellProducts.length; i++) {
+      const productHandle = upsellProducts[i];
+
+      try {
+        const response = await admin.graphql(`
+          query getProductByHandle($handle: String!) {
+            productByHandle(handle: $handle) {
+              id
+              title
+              handle
+              status
+              images(first: 1) {
+                edges {
+                  node {
+                    url
+                  }
+                }
+              }
+              variants(first: 1) {
+                edges {
+                  node {
+                    id
+                    price
+                    compareAtPrice
+                  }
+                }
+              }
+            }
+          }
+        `, {
+          variables: { handle: productHandle }
+        });
+
+        const responseJson = await response.json();
+
+        if (responseJson.data?.productByHandle) {
+          const product = responseJson.data.productByHandle;
+          
+          // Only save active products
+          if (product.status !== 'ACTIVE') {
+            console.warn(`Skipping product ${productHandle}: status is ${product.status}, only ACTIVE products are allowed`);
+            continue;
+          }
+          
+          const variant = product.variants.edges[0]?.node;
+          const image = product.images.edges[0]?.node;
+
+          if (variant) {
+            await prisma.fBTProduct.create({
+              data: {
+                ruleId: ruleId,
+                shopifyProductId: productHandle,
+                shopifyVariantId: variant.id.replace('gid://shopify/ProductVariant/', ''),
+                title: product.title,
+                handle: product.handle,
+                price: parseFloat(variant.price),
+                compareAtPrice: variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
+                imageUrl: image?.url || null,
+                position: i,
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching product ${productHandle}:`, error);
+      }
+    }
+
+    return json({ success: true });
+  }
+
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
@@ -379,6 +475,7 @@ export default function FrequentlyBoughtTogether() {
   });
 
   const [showManualModal, setShowManualModal] = useState(false);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
 
   // State for managing multiple upsell rows
   interface UpsellRow {
@@ -492,7 +589,11 @@ export default function FrequentlyBoughtTogether() {
       }
 
       const formData = new FormData();
-      formData.append("intent", "add-rule");
+      const intent = editingRuleId ? "update-rule" : "add-rule";
+      formData.append("intent", intent);
+      if (editingRuleId) {
+        formData.append("ruleId", editingRuleId);
+      }
       formData.append("triggerType", actualTriggerType);
       formData.append("triggerValue", triggerValue);
       formData.append("triggerProductId", triggerProductId);
@@ -504,6 +605,7 @@ export default function FrequentlyBoughtTogether() {
 
     // Reset modal state
     setShowManualModal(false);
+    setEditingRuleId(null);
     setUpsellRows([
       {
         id: '1',
@@ -519,7 +621,7 @@ export default function FrequentlyBoughtTogether() {
         showUpsellModal: false,
       }
     ]);
-  }, [upsellRows, shopProducts, shopCollections, submit]);
+  }, [upsellRows, shopProducts, shopCollections, submit, editingRuleId]);
 
   const handleDeleteRule = useCallback((ruleId: string) => {
     const formData = new FormData();
@@ -527,6 +629,38 @@ export default function FrequentlyBoughtTogether() {
     formData.append("ruleId", ruleId);
     submit(formData, { method: "post" });
   }, [submit]);
+
+  const handleEditRule = useCallback((rule: any) => {
+    setEditingRuleId(rule.id);
+    
+    // Convert rule to upsell row format
+    const triggerType = rule.triggerType as "specific_product" | "collection" | "all_products";
+    const selectedTriggerProduct = triggerType === "specific_product" && rule.triggerValue && rule.triggerValue !== "all"
+      ? rule.triggerValue
+      : null;
+    const selectedTriggerCollection = triggerType === "collection" && rule.triggerValue
+      ? rule.triggerValue
+      : null;
+    const selectedUpsellProducts = rule.products.map((p: any) => p.handle);
+
+    setUpsellRows([
+      {
+        id: '1',
+        triggerType: triggerType,
+        selectedTriggerProduct: selectedTriggerProduct,
+        selectedTriggerCollection: selectedTriggerCollection,
+        selectedUpsellProducts: selectedUpsellProducts,
+        triggerTab: triggerType === "collection" ? "collection" : "product",
+        upsellTab: "product",
+        searchQuery: "",
+        upsellSearchQuery: "",
+        showTriggerModal: false,
+        showUpsellModal: false,
+      }
+    ]);
+    
+    setShowManualModal(true);
+  }, []);
 
   const getFilteredTriggerProducts = (row: UpsellRow) => {
     return shopProducts.filter((product: any) =>
@@ -660,7 +794,7 @@ export default function FrequentlyBoughtTogether() {
     <Page
       title="Frequently Bought Together"
       primaryAction={{
-        content: "Save Settings",
+        content: "Save",
         onAction: handleSaveSettings,
         loading: isSaveSettingsLoading,
       }}
@@ -908,7 +1042,10 @@ export default function FrequentlyBoughtTogether() {
                           <Text as="h2" variant="headingMd">
                             Manual Rules
                           </Text>
-                          <Button onClick={() => setShowManualModal(true)}>
+                          <Button onClick={() => {
+                            setEditingRuleId(null);
+                            setShowManualModal(true);
+                          }}>
                             Add Rule
                           </Button>
                         </InlineStack>
@@ -987,12 +1124,19 @@ export default function FrequentlyBoughtTogether() {
                                           </Text>
                                         </BlockStack>
                                       </InlineStack>
-                                      <Button
-                                        icon={DeleteIcon}
-                                        variant="plain"
-                                        tone="critical"
-                                        onClick={() => handleDeleteRule(id)}
-                                      />
+                                      <InlineStack gap="200">
+                                        <Button
+                                          icon={EditIcon}
+                                          variant="plain"
+                                          onClick={() => handleEditRule(rule)}
+                                        />
+                                        <Button
+                                          icon={DeleteIcon}
+                                          variant="plain"
+                                          tone="critical"
+                                          onClick={() => handleDeleteRule(id)}
+                                        />
+                                      </InlineStack>
                                     </InlineStack>
                                     {products.length > 0 && (
                                       <Box paddingBlockStart="200">
@@ -1149,6 +1293,7 @@ export default function FrequentlyBoughtTogether() {
         open={showManualModal}
         onClose={() => {
           setShowManualModal(false);
+          setEditingRuleId(null);
           setUpsellRows([
             {
               id: '1',
@@ -1165,9 +1310,9 @@ export default function FrequentlyBoughtTogether() {
             }
           ]);
         }}
-        title="Configure Manual Upsells"
+        title={editingRuleId ? "Edit Manual Rule" : "Configure Manual Upsells"}
         primaryAction={{
-          content: "Update",
+          content: editingRuleId ? "Update Rule" : "Add Rule",
           onAction: handleSaveAllRules,
           disabled: upsellRows.every(row => row.selectedUpsellProducts.length === 0),
         }}
@@ -1277,21 +1422,28 @@ export default function FrequentlyBoughtTogether() {
                     {/* Trigger Type Selection */}
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <button
-                        onClick={() => updateUpsellRow(row.id, { triggerType: "specific_product", showTriggerModal: true })}
+                        onClick={() => {
+                          // If currently collection type, preserve it when opening modal
+                          const updates: any = { showTriggerModal: true };
+                          if (row.triggerType !== "collection") {
+                            updates.triggerType = "specific_product";
+                          }
+                          updateUpsellRow(row.id, updates);
+                        }}
                         style={{
                           flex: 1,
                           padding: '10px 12px',
-                          border: row.triggerType === "specific_product" ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                          border: (row.triggerType === "specific_product" || row.triggerType === "collection") ? '2px solid #3b82f6' : '1px solid #d1d5db',
                           borderRadius: '6px',
-                          backgroundColor: row.triggerType === "specific_product" ? '#eff6ff' : 'white',
+                          backgroundColor: (row.triggerType === "specific_product" || row.triggerType === "collection") ? '#eff6ff' : 'white',
                           cursor: 'pointer',
                           fontWeight: '600',
                           fontSize: '13px',
-                          color: row.triggerType === "specific_product" ? '#3b82f6' : '#6b7280',
+                          color: (row.triggerType === "specific_product" || row.triggerType === "collection") ? '#3b82f6' : '#6b7280',
                           transition: 'all 0.2s'
                         }}
                       >
-                        Specific Product
+                        {row.triggerType === "collection" ? "Collection" : "Specific Product"}
                       </button>
                       <span style={{ color: '#6b7280', fontWeight: '600', fontSize: '12px' }}>OR</span>
                       <button
@@ -1634,6 +1786,7 @@ export default function FrequentlyBoughtTogether() {
                             <div
                               key={product.handle}
                               onClick={() => updateUpsellRow(row.id, {
+                                triggerType: "specific_product",
                                 selectedTriggerProduct: product.handle,
                                 selectedTriggerCollection: null
                               })}
@@ -1699,6 +1852,7 @@ export default function FrequentlyBoughtTogether() {
                             <div
                               key={collection.handle}
                               onClick={() => updateUpsellRow(row.id, {
+                                triggerType: "collection",
                                 selectedTriggerCollection: collection.handle,
                                 selectedTriggerProduct: null
                               })}
