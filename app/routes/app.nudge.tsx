@@ -29,6 +29,7 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { checkPlanAccess } from "../utils/planAccess.server";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { DeleteIcon, EditIcon } from "@shopify/polaris-icons";
 import { NudgeWidget } from "../components/shared/NudgeWidget";
@@ -36,6 +37,9 @@ import { NudgeWidget } from "../components/shared/NudgeWidget";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
+
+  // Check plan access for nudge feature
+  const planAccess = await checkPlanAccess(shop, 'nudge');
 
   // Get or create Nudge configuration
   let nudgeConfig = await prisma.nudgePopup.findUnique({
@@ -179,7 +183,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.error('Error fetching collections:', error);
   }
 
-  return json({ nudgeConfig, shopProducts, shopCollections });
+  return json({ nudgeConfig, shopProducts, shopCollections, planAccess });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {

@@ -18,10 +18,50 @@ const shopify = shopifyApp({
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
   billing: {
-    growth: {
+    trial: {
       lineItems: [
         {
-          amount: 29.99,
+          amount: 0,
+          currencyCode: "USD",
+          interval: BillingInterval.Every30Days,
+        },
+      ],
+      trialDays: 14,
+    },
+    upsell_growth: {
+      lineItems: [
+        {
+          amount: 49.0,
+          currencyCode: "USD",
+          interval: BillingInterval.Every30Days,
+        },
+      ],
+      trialDays: 14,
+    },
+    upsell_pro: {
+      lineItems: [
+        {
+          amount: 89.0,
+          currencyCode: "USD",
+          interval: BillingInterval.Every30Days,
+        },
+      ],
+      trialDays: 14,
+    },
+    cart_growth: {
+      lineItems: [
+        {
+          amount: 78.0,
+          currencyCode: "USD",
+          interval: BillingInterval.Every30Days,
+        },
+      ],
+      trialDays: 14,
+    },
+    cart_pro: {
+      lineItems: [
+        {
+          amount: 141.0,
           currencyCode: "USD",
           interval: BillingInterval.Every30Days,
         },
@@ -31,7 +71,17 @@ const shopify = shopifyApp({
     enterprise: {
       lineItems: [
         {
-          amount: 299.0,
+          amount: 111.0,
+          currencyCode: "USD",
+          interval: BillingInterval.Every30Days,
+        },
+      ],
+      trialDays: 14,
+    },
+    enterprise_plus: {
+      lineItems: [
+        {
+          amount: 200.0,
           currencyCode: "USD",
           interval: BillingInterval.Every30Days,
         },

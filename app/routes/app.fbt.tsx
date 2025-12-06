@@ -30,10 +30,14 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { DeleteIcon, PlusIcon, EditIcon } from "@shopify/polaris-icons";
 import { FBTWidget } from "../components/shared/FBTWidget";
 import type { FBTProduct } from "../components/shared/FBTProductCard";
+import { checkPlanAccess } from "../utils/planAccess.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
+
+  // Check plan access for FBT feature
+  const planAccess = await checkPlanAccess(shop, 'fbt');
 
   // Get or create FBT configuration
   let fbtConfig = await prisma.frequentlyBoughtTogether.findUnique({
@@ -175,7 +179,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.error('Error fetching collections:', error);
   }
 
-  return json({ fbtConfig, shopProducts, shopCollections });
+  return json({ fbtConfig, shopProducts, shopCollections, planAccess });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {

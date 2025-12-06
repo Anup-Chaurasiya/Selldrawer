@@ -3,6 +3,7 @@ import { json } from "@remix-run/node";
 import { cors } from "remix-utils/cors";
 import prisma from "../db.server";
 import { normalizeFeatureOrder } from "../utils/featureOrder";
+import { checkPlanAccess } from "../utils/planAccess.server";
 
 /**
  * Public API endpoint for cart drawer data
@@ -19,6 +20,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   try {
+    // Check plan access for cart drawer feature
+    const planAccess = await checkPlanAccess(shop, 'cart_drawer');
+    if (!planAccess.hasAccess) {
+      const response = json({ error: planAccess.reason, hasAccess: false }, { status: 403 });
+      return cors(request, response);
+    }
+
     // Get cart drawer configuration
     const cartDrawer = await prisma.cartDrawer.findUnique({
       where: { shop },

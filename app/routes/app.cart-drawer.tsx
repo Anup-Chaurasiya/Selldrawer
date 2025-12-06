@@ -36,6 +36,7 @@ import {
   splitFeatureOrder,
 } from "../utils/featureOrder";
 import { checkAppEmbedEnabled } from "../utils/appEmbed.server";
+import { checkPlanAccess } from "../utils/planAccess.server";
 import { PromotionalBannerCard } from "../components/shared/PromotionalBannerCard";
 import { ProductRecommendations } from "../components/shared/ProductRecommendations";
 import { FreeShippingBar } from "../components/shared/FreeShippingBar";
@@ -68,6 +69,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shop = session.shop;
   const url = new URL(request.url);
   const error = url.searchParams.get("error");
+
+  // Check plan access for cart drawer feature
+  const planAccess = await checkPlanAccess(shop, 'cart_drawer');
 
   // Check if app embed is enabled
   const appEmbedEnabled = await checkAppEmbedEnabled(admin, session);
@@ -203,6 +207,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     appEmbedEnabled,
     shopDomain: process.env.SHOPIFY_SHOP_DOMAIN || shop,
     error,
+    planAccess,
   });
 };
 

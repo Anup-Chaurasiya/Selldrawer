@@ -26,6 +26,7 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { checkPlanAccess } from "../utils/planAccess.server";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { DeleteIcon, EditIcon } from "@shopify/polaris-icons";
 import { NudgeWidget } from "../components/shared/NudgeWidget";
@@ -33,6 +34,9 @@ import { NudgeWidget } from "../components/shared/NudgeWidget";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
+
+  // Check plan access for nudge add together feature
+  const planAccess = await checkPlanAccess(shop, 'nudge_add_together');
 
   // Get or create NudgeAddTogether configuration
   let nudgeAddTogetherConfig = await prisma.nudgeAddTogether.findUnique({
@@ -176,7 +180,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.error('Error fetching collections:', error);
   }
 
-  return json({ nudgeAddTogetherConfig, shopProducts, shopCollections });
+  return json({ nudgeAddTogetherConfig, shopProducts, shopCollections, planAccess });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {

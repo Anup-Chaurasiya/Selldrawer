@@ -2,6 +2,7 @@ import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { cors } from "remix-utils/cors";
 import prisma from "../db.server";
+import { checkPlanAccess } from "../utils/planAccess.server";
 
 /**
  * Public API endpoint for Nudge Popup data
@@ -19,6 +20,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   try {
+    // Check plan access for nudge feature
+    const planAccess = await checkPlanAccess(shop, 'nudge');
+    if (!planAccess.hasAccess) {
+      const response = json({ error: planAccess.reason, hasAccess: false }, { status: 403 });
+      return cors(request, response);
+    }
+
     // Get Nudge configuration
     const nudgeConfig = await prisma.nudgePopup.findUnique({
       where: { shop },

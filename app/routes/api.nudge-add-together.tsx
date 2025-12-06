@@ -2,6 +2,7 @@ import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { cors } from "remix-utils/cors";
 import prisma from "../db.server";
+import { checkPlanAccess } from "../utils/planAccess.server";
 
 /**
  * Public API endpoint for Nudge Add Together Popup data
@@ -19,6 +20,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   try {
+    // Check plan access for nudge add together feature
+    const planAccess = await checkPlanAccess(shop, 'nudge_add_together');
+    if (!planAccess.hasAccess) {
+      const response = json({ error: planAccess.reason, hasAccess: false }, { status: 403 });
+      return cors(request, response);
+    }
+
     // Get NudgeAddTogether configuration
     const nudgeAddTogetherConfig = await prisma.nudgeAddTogether.findUnique({
       where: { shop },
