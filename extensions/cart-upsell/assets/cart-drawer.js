@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.3
- * Built: 2025-12-04T08:58:18.234Z
+ * Built: 2025-12-04T14:37:47.476Z
  */
 "use strict";
 (() => {
@@ -10980,8 +10980,6 @@
     appliedDiscount,
     availableDiscounts,
     productCompareAtPrices,
-    showingAllOffers,
-    unlockedMilestone,
     onClose,
     onCheckout,
     onAddProductToCart,
@@ -11866,7 +11864,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://system-myspace-dos-paying.trycloudflare.com/" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.3" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

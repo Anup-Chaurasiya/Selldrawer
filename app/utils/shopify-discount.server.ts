@@ -74,8 +74,7 @@ async function createFreeShippingDiscount(
       },
       combinesWith: {
         orderDiscounts: true,
-        productDiscounts: true,
-        shippingDiscounts: true
+        productDiscounts: true
       }
     },
   };
