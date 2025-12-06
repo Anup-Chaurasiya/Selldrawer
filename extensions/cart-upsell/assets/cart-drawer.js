@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.4
- * Built: 2025-12-05T12:12:41.392Z
+ * Built: 2025-12-06T18:20:05.612Z
  */
 "use strict";
 (() => {
@@ -11278,7 +11278,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://delaware-educated-pcs-banner.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.4" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

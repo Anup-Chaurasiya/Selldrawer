@@ -1,6 +1,6 @@
 /**
  * Upsellity Promotional Banner Block v1.0.4
- * Built: 2025-12-05T12:12:41.387Z
+ * Built: 2025-12-06T18:20:05.680Z
  */
 "use strict";
 (() => {
@@ -8677,7 +8677,7 @@
 
   // extensions/cart-upsell/assets/modules/promotional-banner-entry.js
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://delaware-educated-pcs-banner.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
   function initPromotionalBannerBlocks() {
     const containers = document.querySelectorAll(".upsellity-promotional-banner-container");
     if (containers.length === 0) {

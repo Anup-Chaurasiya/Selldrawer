@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Add Together v1.0.4
- * Built: 2025-12-05T10:56:01.111Z
+ * Built: 2025-12-06T18:20:05.665Z
  */
 "use strict";
 (() => {
@@ -8038,7 +8038,7 @@
                     fontSize: "1.75rem",
                     fontWeight: 600,
                     margin: "0 0 0.5rem 0",
-                    paddingRight: "3rem",
+                    paddingRight: "1rem",
                     textAlign: "center",
                     width: "100%",
                     color: config.titleColor
@@ -8598,7 +8598,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/nudge-add-together-entry.js
-  var APP_URL = true ? "https://delaware-educated-pcs-banner.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
   var NudgeAddTogether = class {
     constructor() {
       this.shop = null;
