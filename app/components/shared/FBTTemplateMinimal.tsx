@@ -94,17 +94,32 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
                   onClick={() => !isDisabled && handleToggle(variantId, !isSelected)}
                 >
                   <div style={{ position: 'relative', width: '100%' }}>
-                    <img
-                      src={product.imageUrl || 'https://via.placeholder.com/80'}
-                      alt={product.title}
-                      style={{
+                    {product.imageUrl ? (
+                      <img
+                        src={product.imageUrl}
+                        alt={product.title}
+                        style={{
+                          width: '100%',
+                          height: '110px',
+                          objectFit: 'cover',
+                          borderRadius: '8px',
+                          background: '#f3f4f6'
+                        }}
+                      />
+                    ) : (
+                      <div style={{
                         width: '100%',
                         height: '110px',
-                        objectFit: 'cover',
+                        backgroundColor: '#f3f4f6',
                         borderRadius: '8px',
-                        background: '#f3f4f6'
-                      }}
-                    />
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '40px'
+                      }}>
+                        📦
+                      </div>
+                    )}
                     {discountPercent > 0 && config.showDiscount && (
                       <div
                         style={{

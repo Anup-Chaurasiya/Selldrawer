@@ -90,6 +90,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       cartDrawer.featureOrder = featureOrder ?? cartDrawer.featureOrder;
     }
 
+    // Transform product recommendations to ensure proper data structure
+    let productRecommendations = null;
+    if (cartDrawer.productRecommendationsEnabled && cartDrawer.productRecommendations[0]) {
+      const rec = cartDrawer.productRecommendations[0];
+      productRecommendations = {
+        ...rec,
+        products: (rec.products || []).map((product: any) => ({
+          id: product.shopifyProductId || product.id,
+          shopifyProductId: product.shopifyProductId,
+          shopifyVariantId: product.shopifyVariantId,
+          title: product.title,
+          price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
+          compareAtPrice: product.compareAtPrice ? (typeof product.compareAtPrice === 'string' ? parseFloat(product.compareAtPrice) : product.compareAtPrice) : null,
+          imageUrl: product.imageUrl,
+        }))
+      };
+    }
+
     const features = {
       freeShippingProgressBar: cartDrawer.freeShippingProgressBarEnabled && cartDrawer.freeShippingBars[0]
         ? cartDrawer.freeShippingBars[0]
@@ -97,9 +115,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       promotionalBanner: cartDrawer.promotionalBannerEnabled
         ? activePromotionalBanners[0]
         : null,
-      productRecommendations: cartDrawer.productRecommendationsEnabled && cartDrawer.productRecommendations[0]
-        ? cartDrawer.productRecommendations[0]
-        : null,
+      productRecommendations,
       couponCodeField: cartDrawer.couponCodeFieldEnabled && couponCodeField?.isActive
         ? couponCodeField
         : null,

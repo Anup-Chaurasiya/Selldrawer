@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
+import { useLoaderData, useSubmit, useNavigation, useActionData } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -29,7 +29,7 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { DeleteIcon, EditIcon } from "@shopify/polaris-icons";
 import { NudgeWidget } from "../components/shared/NudgeWidget";
 
@@ -69,14 +69,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
   }
 
-  // Fetch products from Shopify
+  // Fetch products from Shopify (only active products)
   let shopProducts: any[] = [];
   let shopCollections: any[] = [];
   
   try {
     const response = await admin.graphql(`
-      query getProducts($first: Int!) {
-        products(first: $first) {
+      query getProducts($first: Int!, $query: String!) {
+        products(first: $first, query: $query) {
           edges {
             node {
               id
@@ -106,32 +106,37 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         }
       }
     `, {
-      variables: { first: 100 }
+      variables: { 
+        first: 100,
+        query: "status:active"
+      }
     });
 
     const responseJson = await response.json();
     
     if (responseJson.data?.products?.edges) {
-      shopProducts = responseJson.data.products.edges.map((edge: any) => {
-        const product = edge.node;
-        const image = product.images.edges[0]?.node;
-        const variant = product.variants.edges[0]?.node;
-        
-        return {
-          id: product.handle,
-          shopifyProductId: product.id.replace('gid://shopify/Product/', ''),
-          title: product.title,
-          handle: product.handle,
-          description: product.description || '',
-          status: product.status.toLowerCase(),
-          images: image ? [{ src: image.url, alt: image.altText }] : [],
-          variants: variant ? [{
-            id: variant.id.replace('gid://shopify/ProductVariant/', ''),
-            price: variant.price,
-            compare_at_price: variant.compareAtPrice
-          }] : []
-        };
-      });
+      shopProducts = responseJson.data.products.edges
+        .filter((edge: any) => edge.node.status === 'ACTIVE')
+        .map((edge: any) => {
+          const product = edge.node;
+          const image = product.images.edges[0]?.node;
+          const variant = product.variants.edges[0]?.node;
+          
+          return {
+            id: product.handle,
+            shopifyProductId: product.id.replace('gid://shopify/Product/', ''),
+            title: product.title,
+            handle: product.handle,
+            description: product.description || '',
+            status: product.status.toLowerCase(),
+            images: image ? [{ src: image.url, alt: image.altText }] : [],
+            variants: variant ? [{
+              id: variant.id.replace('gid://shopify/ProductVariant/', ''),
+              price: variant.price,
+              compare_at_price: variant.compareAtPrice
+            }] : []
+          };
+        });
     }
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -271,6 +276,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               id
               title
               handle
+              status
               description
               images(first: 1) {
                 edges {
@@ -298,6 +304,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         
         if (responseJson.data?.productByHandle) {
           const product = responseJson.data.productByHandle;
+          
+          // Only save active products
+          if (product.status !== 'ACTIVE') {
+            console.warn(`Skipping product ${productHandle}: status is ${product.status}, only ACTIVE products are allowed`);
+            continue;
+          }
+          
           const variant = product.variants.edges[0]?.node;
           const image = product.images.edges[0]?.node;
           
@@ -334,6 +347,104 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ success: true });
   }
 
+  if (intent === "update-rule") {
+    const ruleId = formData.get("ruleId") as string;
+    const triggerType = formData.get("triggerType") as string;
+    const triggerValue = formData.get("triggerValue") as string;
+    const triggerProductId = formData.get("triggerProductId") as string;
+    const triggerTitle = formData.get("triggerTitle") as string;
+    const upsellProducts = JSON.parse(formData.get("upsellProducts") as string || "[]");
+
+    // Update the rule
+    await prisma.nudgeRule.update({
+      where: { id: ruleId },
+      data: {
+        triggerType,
+        triggerValue,
+        triggerProductId,
+        triggerTitle,
+      }
+    });
+
+    // Delete existing products for this rule
+    await prisma.nudgeProduct.deleteMany({
+      where: { ruleId }
+    });
+
+    // Add updated upsell products
+    for (let i = 0; i < upsellProducts.length; i++) {
+      const productHandle = upsellProducts[i];
+
+      try {
+        const response = await admin.graphql(`
+          query getProductByHandle($handle: String!) {
+            productByHandle(handle: $handle) {
+              id
+              title
+              handle
+              status
+              description
+              images(first: 1) {
+                edges {
+                  node {
+                    url
+                  }
+                }
+              }
+              variants(first: 1) {
+                edges {
+                  node {
+                    id
+                    price
+                    compareAtPrice
+                  }
+                }
+              }
+            }
+          }
+        `, {
+          variables: { handle: productHandle }
+        });
+
+        const responseJson = await response.json();
+
+        if (responseJson.data?.productByHandle) {
+          const product = responseJson.data.productByHandle;
+          
+          // Only save active products
+          if (product.status !== 'ACTIVE') {
+            console.warn(`Skipping product ${productHandle}: status is ${product.status}, only ACTIVE products are allowed`);
+            continue;
+          }
+          
+          const variant = product.variants.edges[0]?.node;
+          const image = product.images.edges[0]?.node;
+
+          if (variant) {
+            await prisma.nudgeProduct.create({
+              data: {
+                ruleId: ruleId,
+                shopifyProductId: productHandle,
+                shopifyVariantId: variant.id.replace('gid://shopify/ProductVariant/', ''),
+                title: product.title,
+                handle: product.handle,
+                description: product.description || null,
+                price: parseFloat(variant.price),
+                compareAtPrice: variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
+                imageUrl: image?.url || null,
+                position: i,
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching product ${productHandle}:`, error);
+      }
+    }
+
+    return json({ success: true });
+  }
+
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
@@ -341,6 +452,7 @@ export default function NudgePopup() {
   const { nudgeConfig, shopProducts, shopCollections } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
+  const actionData = useActionData<typeof action>();
   
   // Check which action is being submitted
   const formData = navigation.formData;
@@ -348,6 +460,36 @@ export default function NudgePopup() {
   const isSubmitting = navigation.state === "submitting";
   const isToggleLoading = isSubmitting && submittingIntent === "toggle";
   const isSaveSettingsLoading = isSubmitting && submittingIntent === "save-settings";
+
+  // Track previous submission state to detect when save completes
+  const prevIsSubmitting = useRef(false);
+  const prevSubmittingIntent = useRef<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+
+  // Show toast notification when settings are saved successfully
+  useEffect(() => {
+    // Check if we just finished submitting a save-settings action
+    const justFinishedSave = 
+      prevIsSubmitting.current && 
+      prevSubmittingIntent.current === "save-settings" &&
+      !isSubmitting &&
+      actionData &&
+      'success' in actionData &&
+      actionData.success;
+
+    if (justFinishedSave) {
+      setShowToast(true);
+      // Auto-hide after 3 seconds
+      const timer = setTimeout(() => {
+        setShowToast(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+
+    // Update refs for next render
+    prevIsSubmitting.current = isSubmitting;
+    prevSubmittingIntent.current = submittingIntent;
+  }, [actionData, submittingIntent, isSubmitting]);
 
   const [formState, setFormState] = useState(() => {
     return {
@@ -381,6 +523,7 @@ export default function NudgePopup() {
   });
 
   const [showManualModal, setShowManualModal] = useState(false);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [modalConfig, setModalConfig] = useState({
     triggerType: "specific_product" as "specific_product" | "collection" | "all_products",
     selectedTriggerProduct: null as string | null,
@@ -412,7 +555,12 @@ export default function NudgePopup() {
 
   const handleAddRule = useCallback(() => {
     const formData = new FormData();
-    formData.append("intent", "add-rule");
+    const intent = editingRuleId ? "update-rule" : "add-rule";
+    formData.append("intent", intent);
+    
+    if (editingRuleId) {
+      formData.append("ruleId", editingRuleId);
+    }
     
     let triggerType = "all";
     let triggerValue = "all";
@@ -440,6 +588,7 @@ export default function NudgePopup() {
 
     submit(formData, { method: "post" });
     setShowManualModal(false);
+    setEditingRuleId(null);
     setModalConfig({
       triggerType: "specific_product",
       selectedTriggerProduct: null,
@@ -452,7 +601,7 @@ export default function NudgePopup() {
       showTriggerModal: false,
       showUpsellModal: false,
     });
-  }, [modalConfig, shopProducts, shopCollections, submit]);
+  }, [modalConfig, shopProducts, shopCollections, submit, editingRuleId]);
 
   const handleDeleteRule = useCallback((ruleId: string) => {
     if (confirm("Are you sure you want to delete this rule?")) {
@@ -462,6 +611,37 @@ export default function NudgePopup() {
       submit(formData, { method: "post" });
     }
   }, [submit]);
+
+  const handleEditRule = useCallback((rule: any) => {
+    setEditingRuleId(rule.id);
+    
+    // Convert rule to modal config format
+    const triggerType = rule.triggerType === "product" ? "specific_product" : 
+                        rule.triggerType === "collection" ? "collection" : 
+                        "all_products";
+    const selectedTriggerProduct = triggerType === "specific_product" && rule.triggerValue && rule.triggerValue !== "all"
+      ? rule.triggerValue
+      : null;
+    const selectedTriggerCollection = triggerType === "collection" && rule.triggerValue
+      ? rule.triggerValue
+      : null;
+    const selectedUpsellProducts = rule.products.map((p: any) => p.handle);
+
+    setModalConfig({
+      triggerType: triggerType as "specific_product" | "collection" | "all_products",
+      selectedTriggerProduct: selectedTriggerProduct,
+      selectedTriggerCollection: selectedTriggerCollection,
+      selectedUpsellProducts: selectedUpsellProducts,
+      triggerTab: triggerType === "collection" ? "collection" : "product",
+      upsellTab: "product",
+      searchQuery: "",
+      upsellSearchQuery: "",
+      showTriggerModal: false,
+      showUpsellModal: false,
+    });
+    
+    setShowManualModal(true);
+  }, []);
 
   const filteredProducts = shopProducts.filter(product =>
     product.title.toLowerCase().includes(modalConfig.searchQuery.toLowerCase()) ||
@@ -525,12 +705,89 @@ export default function NudgePopup() {
     <Page
       title="Nudge Upsell"
       primaryAction={{
-        content: "Save Settings",
+        content: "Save",
         onAction: handleSaveSettings,
         loading: isSaveSettingsLoading,
       }}
     >
       <TitleBar title="Nudge Upsell" />
+      
+      {/* Custom Toast Notification - Appears at Top */}
+      {showToast && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 10000,
+          animation: 'slideDown 0.3s ease-out',
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            padding: '12px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            minWidth: '300px',
+            maxWidth: '500px',
+          }}>
+            <div style={{
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              backgroundColor: '#10b981',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div style={{ flex: 1 }}>
+              <Text as="p" variant="bodyMd" fontWeight="medium">
+                Settings saved successfully
+              </Text>
+            </div>
+            <button
+              onClick={() => setShowToast(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#6b7280',
+                flexShrink: 0,
+              }}
+              aria-label="Close"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+          }
+        }
+      `}</style>
       
       <Layout>
         <Layout.Section variant="oneHalf">
@@ -781,7 +1038,10 @@ export default function NudgePopup() {
                   <Text as="h2" variant="headingMd">
                     Manual Rules 
                   </Text>
-                  <Button onClick={() => setShowManualModal(true)}>
+                  <Button onClick={() => {
+                    setEditingRuleId(null);
+                    setShowManualModal(true);
+                  }}>
                     Add Rule
                   </Button>
                 </InlineStack>
@@ -820,12 +1080,19 @@ export default function NudgePopup() {
                                   </Text>
                                 </BlockStack>
                               </InlineStack>
-                              <Button
-                                icon={DeleteIcon}
-                                variant="plain"
-                                tone="critical"
-                                onClick={() => handleDeleteRule(id)}
-                              />
+                              <InlineStack gap="200">
+                                <Button
+                                  icon={EditIcon}
+                                  variant="plain"
+                                  onClick={() => handleEditRule(rule)}
+                                />
+                                <Button
+                                  icon={DeleteIcon}
+                                  variant="plain"
+                                  tone="critical"
+                                  onClick={() => handleDeleteRule(id)}
+                                />
+                              </InlineStack>
                             </InlineStack>
                             {products.length > 0 && (
                               <Box paddingBlockStart="200">
@@ -936,6 +1203,9 @@ export default function NudgePopup() {
                         recommendations={previewProducts}
                         isVisible={true}
                         isPreview={true}
+                        onContinue={() => {}} // No-op for preview
+                        onSelectProduct={() => {}} // No-op for preview
+                        onSelectAll={() => {}} // No-op for preview
                       />
                     </div>
                   </div>
@@ -964,10 +1234,25 @@ export default function NudgePopup() {
       {/* Add Rule Modal */}
       <Modal
         open={showManualModal}
-        onClose={() => setShowManualModal(false)}
-        title="Add Nudge Rule"
+        onClose={() => {
+          setShowManualModal(false);
+          setEditingRuleId(null);
+          setModalConfig({
+            triggerType: "specific_product",
+            selectedTriggerProduct: null,
+            selectedTriggerCollection: null,
+            selectedUpsellProducts: [],
+            triggerTab: "product",
+            upsellTab: "product",
+            searchQuery: "",
+            upsellSearchQuery: "",
+            showTriggerModal: false,
+            showUpsellModal: false,
+          });
+        }}
+        title={editingRuleId ? "Edit Nudge Rule" : "Add Nudge Rule"}
         primaryAction={{
-          content: "Add Rule",
+          content: editingRuleId ? "Update Rule" : "Add Rule",
           onAction: handleAddRule,
           disabled: modalConfig.selectedUpsellProducts.length === 0,
         }}
@@ -1119,7 +1404,9 @@ export default function NudgePopup() {
                     onClick={() => {
                       setModalConfig({
                         ...modalConfig,
+                        triggerType: "collection",
                         selectedTriggerCollection: collection.handle,
+                        selectedTriggerProduct: null,
                         showTriggerModal: false,
                       });
                     }}
@@ -1151,7 +1438,9 @@ export default function NudgePopup() {
                     onClick={() => {
                       setModalConfig({
                         ...modalConfig,
+                        triggerType: "specific_product",
                         selectedTriggerProduct: product.handle,
+                        selectedTriggerCollection: null,
                         showTriggerModal: false,
                       });
                     }}

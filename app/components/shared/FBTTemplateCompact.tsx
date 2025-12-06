@@ -114,17 +114,32 @@ export const FBTTemplateCompact: React.FC<FBTTemplateCompactProps> = ({
               )}
 
               <div style={{ position: 'relative', marginBottom: '0.5rem', width: '100%' }}>
-                <img
-                  src={product.imageUrl || 'https://via.placeholder.com/150'}
-                  alt={product.title}
-                  style={{
+                {product.imageUrl ? (
+                  <img
+                    src={product.imageUrl}
+                    alt={product.title}
+                    style={{
+                      width: '100%',
+                      height: '150px',
+                      objectFit: 'cover',
+                      borderRadius: '6px',
+                      background: '#f3f4f6'
+                    }}
+                  />
+                ) : (
+                  <div style={{
                     width: '100%',
                     height: '150px',
-                    objectFit: 'cover',
+                    backgroundColor: '#f3f4f6',
                     borderRadius: '6px',
-                    background: '#f3f4f6'
-                  }}
-                />
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '48px'
+                  }}>
+                    📦
+                  </div>
+                )}
                 {discountPercent > 0 && config.showDiscount && (
                   <div
                     style={{

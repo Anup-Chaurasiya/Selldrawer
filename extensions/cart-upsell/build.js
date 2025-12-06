@@ -135,6 +135,40 @@ async function build() {
     writeFileSync(nudgePopupFile, nudgePopupBanner + nudgePopupContent);
     
     
+    // Build Nudge Add Together
+    await esbuild.build({
+      entryPoints: [join(__dirname, 'assets/modules/nudge-add-together-entry.js')],
+      bundle: true,
+      outfile: join(__dirname, 'assets/nudge-add-together.js'),
+      format: 'iife',
+      target: 'es2017',
+      minify: false,
+      sourcemap: false,
+      platform: 'browser',
+      logLevel: 'info',
+      jsx: 'automatic',
+      jsxImportSource: 'react',
+      loader: {
+        '.tsx': 'tsx',
+        '.ts': 'ts',
+        '.jsx': 'jsx',
+        '.js': 'js',
+      },
+      define: {
+        'process.env.NODE_ENV': '"production"',
+        '__NUDGE_ADD_TOGETHER_VERSION__': `"${version}"`,
+        '__APP_URL__': `"${appUrl}"`
+      },
+      external: [],
+    });
+    
+    // Add version banner to nudge-add-together
+    const nudgeAddTogetherFile = join(__dirname, 'assets/nudge-add-together.js');
+    const nudgeAddTogetherContent = readFileSync(nudgeAddTogetherFile, 'utf-8');
+    const nudgeAddTogetherBanner = `/**\n * Upsellity Nudge Add Together v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
+    writeFileSync(nudgeAddTogetherFile, nudgeAddTogetherBanner + nudgeAddTogetherContent);
+    
+    
     // Build Promotional Banner Block
     await esbuild.build({
       entryPoints: [join(__dirname, 'assets/modules/promotional-banner-entry.js')],

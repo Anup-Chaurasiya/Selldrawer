@@ -28,6 +28,7 @@ export default function App() {
         <Link to="/app/promotional-banner-block">Promotional Banner Block</Link>
         <Link to="/app/fbt">Frequently Bought Together</Link>
         <Link to="/app/nudge">Nudge Upsell</Link>
+        <Link to="/app/nudge-add-together">Nudge Cross-Sell</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>

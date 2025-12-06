@@ -1,6 +1,6 @@
 /**
- * Upsellity Nudge Popup v1.0.3
- * Built: 2025-12-03T13:18:54.267Z
+ * Upsellity Nudge Popup v1.0.4
+ * Built: 2025-12-06T18:20:05.647Z
  */
 "use strict";
 (() => {
@@ -7894,7 +7894,9 @@
     onSelectAll,
     onImpression,
     isPreview = false,
-    isVisible = true
+    isVisible = true,
+    checkboxMode = false,
+    selectedProductIds = /* @__PURE__ */ new Set()
   }) => {
     const [animationClass, setAnimationClass] = (0, import_react.useState)("");
     const impressionTracked = import_react.default.useRef(false);
@@ -8033,7 +8035,7 @@
                     fontSize: "1.75rem",
                     fontWeight: 600,
                     margin: "0 0 0.5rem 0",
-                    paddingRight: "3rem",
+                    paddingRight: "1rem",
                     textAlign: "center",
                     width: "100%",
                     color: config.titleColor
@@ -8074,135 +8076,173 @@
                     width: "100%",
                     maxWidth: "100%"
                   },
-                  children: productsToShow.map((product) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                    "div",
-                    {
-                      className: "upsellity-nudge-product-card",
-                      onClick: () => !isPreview && onSelectProduct && onSelectProduct(product),
-                      style: {
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                        overflow: "hidden",
-                        background: "#ffffff",
-                        transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                        width: "100%",
-                        maxWidth: "280px",
-                        display: "flex",
-                        flexDirection: "column",
-                        cursor: isPreview ? "default" : "pointer",
-                        minWidth: config.layout === "carousel" ? "250px" : void 0,
-                        scrollSnapAlign: config.layout === "carousel" ? "start" : void 0
-                      },
-                      onMouseEnter: (e) => {
-                        if (!isPreview) {
-                          e.currentTarget.style.transform = "translateY(-2px)";
-                          e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.1)";
-                        }
-                      },
-                      onMouseLeave: (e) => {
-                        e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.boxShadow = "none";
-                      },
-                      children: [
-                        config.showProductImage && product.imageUrl && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                          "img",
-                          {
-                            src: product.imageUrl,
-                            alt: product.title,
-                            className: "upsellity-nudge-product-image",
-                            style: {
-                              width: "100%",
-                              height: "200px",
-                              objectFit: "cover"
-                            }
+                  children: productsToShow.map((product) => {
+                    const isSelected = checkboxMode && selectedProductIds.has(product.id);
+                    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                      "div",
+                      {
+                        className: "upsellity-nudge-product-card",
+                        onClick: () => !isPreview && onSelectProduct && onSelectProduct(product),
+                        style: {
+                          border: checkboxMode && isSelected ? "2px solid #4F46E5" : "1px solid #e5e7eb",
+                          borderRadius: "8px",
+                          overflow: "hidden",
+                          background: "#ffffff",
+                          transition: "transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease",
+                          width: "100%",
+                          maxWidth: "280px",
+                          display: "flex",
+                          flexDirection: "column",
+                          cursor: isPreview ? "default" : "pointer",
+                          minWidth: config.layout === "carousel" ? "250px" : void 0,
+                          scrollSnapAlign: config.layout === "carousel" ? "start" : void 0,
+                          position: "relative"
+                        },
+                        onMouseEnter: (e) => {
+                          if (!isPreview) {
+                            e.currentTarget.style.transform = "translateY(-2px)";
+                            e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.1)";
                           }
-                        ),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                          "div",
-                          {
-                            className: "upsellity-nudge-product-details",
-                            style: {
-                              padding: "1rem",
-                              display: "flex",
-                              flexDirection: "column",
-                              flexGrow: 1
-                            },
-                            children: [
-                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                                "h3",
-                                {
-                                  className: "upsellity-nudge-product-title",
-                                  style: {
-                                    fontSize: "1rem",
-                                    fontWeight: 600,
-                                    margin: "0 0 0.5rem 0",
-                                    lineHeight: 1.4
-                                  },
-                                  children: product.title
+                        },
+                        onMouseLeave: (e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                          e.currentTarget.style.boxShadow = "none";
+                        },
+                        children: [
+                          checkboxMode && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                            "div",
+                            {
+                              style: {
+                                position: "absolute",
+                                top: "0.75rem",
+                                right: "0.75rem",
+                                zIndex: 2
+                              },
+                              onClick: (e) => {
+                                e.stopPropagation();
+                                if (!isPreview && onSelectProduct) {
+                                  onSelectProduct(product);
                                 }
-                              ),
-                              config.showProductDescription && product.description && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                                "p",
+                              },
+                              children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                                "input",
                                 {
-                                  className: "upsellity-nudge-product-description",
-                                  style: {
-                                    fontSize: "0.875rem",
-                                    color: "#6b7280",
-                                    margin: "0 0 0.75rem 0",
-                                    lineHeight: 1.5
+                                  type: "checkbox",
+                                  checked: isSelected,
+                                  onChange: () => {
                                   },
-                                  children: [
-                                    stripHtml(product.description).substring(0, 100),
-                                    "..."
-                                  ]
-                                }
-                              ),
-                              config.showProductPrice && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                                "div",
-                                {
-                                  className: "upsellity-nudge-product-price-container",
+                                  disabled: isPreview,
                                   style: {
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.5rem",
-                                    marginTop: "auto",
-                                    paddingTop: "0.5rem"
-                                  },
-                                  children: [
-                                    config.showProductComparePrice && product.compareAtPrice && product.compareAtPrice > product.price && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                                      "span",
-                                      {
-                                        className: "upsellity-nudge-product-compare-price",
-                                        style: {
-                                          fontSize: "0.875rem",
-                                          color: "#9ca3af",
-                                          textDecoration: "line-through"
-                                        },
-                                        children: formatPrice(product.compareAtPrice)
-                                      }
-                                    ),
-                                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                                      "span",
-                                      {
-                                        className: "upsellity-nudge-product-price",
-                                        style: {
-                                          fontSize: "1.125rem",
-                                          fontWeight: 600,
-                                          color: "#111827"
-                                        },
-                                        children: formatPrice(product.price)
-                                      }
-                                    )
-                                  ]
+                                    width: "20px",
+                                    height: "20px",
+                                    cursor: isPreview ? "not-allowed" : "pointer",
+                                    accentColor: config.selectButtonColor || "#4F46E5"
+                                  }
                                 }
                               )
-                            ]
-                          }
-                        )
-                      ]
-                    },
-                    product.id
-                  ))
+                            }
+                          ),
+                          config.showProductImage && product.imageUrl && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                            "img",
+                            {
+                              src: product.imageUrl,
+                              alt: product.title,
+                              className: "upsellity-nudge-product-image",
+                              style: {
+                                width: "100%",
+                                height: "200px",
+                                objectFit: "cover"
+                              }
+                            }
+                          ),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                            "div",
+                            {
+                              className: "upsellity-nudge-product-details",
+                              style: {
+                                padding: "1rem",
+                                display: "flex",
+                                flexDirection: "column",
+                                flexGrow: 1
+                              },
+                              children: [
+                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                                  "h3",
+                                  {
+                                    className: "upsellity-nudge-product-title",
+                                    style: {
+                                      fontSize: "1rem",
+                                      fontWeight: 600,
+                                      margin: "0 0 0.5rem 0",
+                                      lineHeight: 1.4,
+                                      paddingRight: checkboxMode ? "2rem" : "0"
+                                    },
+                                    children: product.title
+                                  }
+                                ),
+                                config.showProductDescription && product.description && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                                  "p",
+                                  {
+                                    className: "upsellity-nudge-product-description",
+                                    style: {
+                                      fontSize: "0.875rem",
+                                      color: "#6b7280",
+                                      margin: "0 0 0.75rem 0",
+                                      lineHeight: 1.5
+                                    },
+                                    children: [
+                                      stripHtml(product.description).substring(0, 100),
+                                      "..."
+                                    ]
+                                  }
+                                ),
+                                config.showProductPrice && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                                  "div",
+                                  {
+                                    className: "upsellity-nudge-product-price-container",
+                                    style: {
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "0.5rem",
+                                      marginTop: "auto",
+                                      paddingTop: "0.5rem"
+                                    },
+                                    children: [
+                                      config.showProductComparePrice && product.compareAtPrice && product.compareAtPrice > product.price && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                                        "span",
+                                        {
+                                          className: "upsellity-nudge-product-compare-price",
+                                          style: {
+                                            fontSize: "0.875rem",
+                                            color: "#9ca3af",
+                                            textDecoration: "line-through"
+                                          },
+                                          children: formatPrice(product.compareAtPrice)
+                                        }
+                                      ),
+                                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                                        "span",
+                                        {
+                                          className: "upsellity-nudge-product-price",
+                                          style: {
+                                            fontSize: "1.125rem",
+                                            fontWeight: 600,
+                                            color: "#111827"
+                                          },
+                                          children: formatPrice(product.price)
+                                        }
+                                      )
+                                    ]
+                                  }
+                                )
+                              ]
+                            }
+                          )
+                        ]
+                      },
+                      product.id
+                    );
+                  })
                 }
               ),
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
@@ -8218,7 +8258,7 @@
                     maxWidth: "100%"
                   },
                   children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    !checkboxMode && onContinue && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                       "div",
                       {
                         className: "upsellity-nudge-continue-section",
@@ -8258,7 +8298,7 @@
                         )
                       }
                     ),
-                    productsToShow.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    productsToShow.length > 0 && !checkboxMode && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                       "div",
                       {
                         className: "upsellity-nudge-selection-section",
@@ -8294,6 +8334,50 @@
                                 e.currentTarget.style.opacity = "1";
                             },
                             children: config.selectButtonText
+                          }
+                        )
+                      }
+                    ),
+                    checkboxMode && productsToShow.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                      "div",
+                      {
+                        className: "upsellity-nudge-selection-section",
+                        style: {
+                          flex: 1,
+                          minWidth: 0
+                        },
+                        children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                          "button",
+                          {
+                            className: "upsellity-nudge-add-selected-btn",
+                            onClick: () => !isPreview && onSelectAll && onSelectAll(productsToShow.filter((p) => selectedProductIds.has(p.id))),
+                            disabled: isPreview || selectedProductIds.size === 0,
+                            style: {
+                              width: "100%",
+                              padding: "1rem 1.5rem",
+                              border: "none",
+                              borderRadius: "6px",
+                              fontSize: "1rem",
+                              fontWeight: 600,
+                              cursor: isPreview || selectedProductIds.size === 0 ? "not-allowed" : "pointer",
+                              transition: "opacity 0.2s ease",
+                              backgroundColor: config.selectButtonColor,
+                              color: config.selectButtonTextColor,
+                              opacity: isPreview || selectedProductIds.size === 0 ? 0.6 : 1
+                            },
+                            onMouseEnter: (e) => {
+                              if (!isPreview && selectedProductIds.size > 0)
+                                e.currentTarget.style.opacity = "0.9";
+                            },
+                            onMouseLeave: (e) => {
+                              if (!isPreview && selectedProductIds.size > 0)
+                                e.currentTarget.style.opacity = "1";
+                            },
+                            children: [
+                              config.selectButtonText,
+                              " ",
+                              selectedProductIds.size > 0 && `(${selectedProductIds.size})`
+                            ]
                           }
                         )
                       }

@@ -1,6 +1,6 @@
 /**
- * Upsellity Promotional Banner Block v1.0.3
- * Built: 2025-12-03T13:18:54.284Z
+ * Upsellity Promotional Banner Block v1.0.4
+ * Built: 2025-12-06T18:20:05.680Z
  */
 "use strict";
 (() => {
@@ -8199,18 +8199,29 @@
           );
         }
       }
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        "img",
-        {
-          src: slide.imageUrl || "https://via.placeholder.com/400x200",
-          alt: "Promotional banner",
-          style: {
-            width: "100%",
-            height: "100%",
-            objectFit: "cover"
+      if (slide.imageUrl) {
+        return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          "img",
+          {
+            src: slide.imageUrl,
+            alt: "Promotional banner",
+            style: {
+              width: "100%",
+              height: "100%",
+              objectFit: "cover"
+            }
           }
-        }
-      );
+        );
+      }
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+        width: "100%",
+        height: "100%",
+        backgroundColor: "#f3f4f6",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "48px"
+      }, children: "\u{1F5BC}\uFE0F" });
     };
     const scrollToIndex = (index) => {
       const container = scrollContainerRef.current;
