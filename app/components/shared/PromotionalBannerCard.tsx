@@ -5,6 +5,16 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 
+// Helper function to convert hex to RGB
+const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+};
+
 interface Slide {
   imageUrl?: string;
   videoUrl?: string;
@@ -30,6 +40,11 @@ interface PromotionalBannerCardProps {
   isPreview?: boolean;
   context?: 'cart-drawer' | 'block'; // 'cart-drawer' for cart drawer, 'block' for standalone promotional banner
   maxHeight?: string; // Custom max height for block context (e.g., '180px', '200px', 'auto')
+  titleColor?: string;
+  descriptionColor?: string;
+  ctaTextColor?: string;
+  ctaBackgroundColor?: string;
+  borderColor?: string;
 }
 
 // Helper function to get YouTube embed URL
@@ -55,7 +70,12 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
   onImpression,
   isPreview = false,
   context = 'cart-drawer',
-  maxHeight = '180px'
+  maxHeight = '180px',
+  titleColor = '#111827',
+  descriptionColor = '#6b7280',
+  ctaTextColor = '#374151',
+  ctaBackgroundColor = '#f3f4f6',
+  borderColor = '#e5e7eb'
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -115,7 +135,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
 
   // Auto-rotate carousel
   useEffect(() => {
-    if (!slides || slides.length <= 1 || carouselSettings.autoRotate === false) {
+    if (!slides || slides.length <= 1 || !carouselSettings || carouselSettings.autoRotate === false) {
       return;
     }
 
@@ -150,10 +170,10 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
       setTimeout(() => {
         isScrolling.current = false;
       }, 500);
-    }, carouselSettings.rotationSpeed || 5000);
+    }, carouselSettings?.rotationSpeed || 5000);
     
     return () => clearInterval(interval);
-  }, [slides.length, carouselSettings.autoRotate, carouselSettings.rotationSpeed, isBlockContext]);
+  }, [slides.length, carouselSettings?.autoRotate, carouselSettings?.rotationSpeed, isBlockContext]);
 
   if (!slides || slides.length === 0) {
     return (
@@ -161,7 +181,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         borderRadius: '12px',
         overflow: 'hidden',
         backgroundColor: '#fff',
-        border: '1px solid #e5e7eb',
+        border: `1px solid ${borderColor}`,
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
       }}>
         {/* Media Section */}
@@ -531,7 +551,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
 
       <div style={{ position: 'relative', overflow: 'visible' }}>
         {/* Left Arrow */}
-        {slides.length > 1 && canScrollLeft && (carouselSettings.showArrows !== false) && (
+        {slides.length > 1 && canScrollLeft && (carouselSettings?.showArrows !== false) && (
           <button
             onClick={(e) => handlePrevious(e)}
             style={{
@@ -570,7 +590,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         )}
 
         {/* Right Arrow */}
-        {slides.length > 1 && canScrollRight && (carouselSettings.showArrows !== false) && (
+        {slides.length > 1 && canScrollRight && (carouselSettings?.showArrows !== false) && (
           <button
             onClick={(e) => handleNext(e)}
             style={{
@@ -633,7 +653,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                 borderRadius: isBlockContext ? '' : '12px',
                 overflow: 'hidden',
                 backgroundColor: '#fff',
-                border: isBlockContext ? 'none' : '1px solid #e5e7eb',
+                border: isBlockContext ? 'none' : `1px solid ${borderColor}`,
                 boxShadow: isBlockContext ? 'none' : '0 1px 3px rgba(0, 0, 0, 0.1)',
                 cursor: slide.ctaUrl ? 'pointer' : 'default',
                 transition: 'transform 0.2s ease, box-shadow 0.2s ease'
@@ -686,7 +706,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                         <div style={{
                           fontWeight: isBlockContext ? '600' : '700',
                           fontSize: isBlockContext ? '16px' : '15px',
-                          color: '#111827',
+                          color: titleColor,
                           lineHeight: '1.3',
                           textAlign: 'left',
                           overflow: 'hidden',
@@ -701,7 +721,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                       {slide.description && (
                         <div style={{
                           fontSize: isBlockContext ? '13px' : '12px',
-                          color: '#6b7280',
+                          color: descriptionColor,
                           lineHeight: '1.4',
                           textAlign: 'left',
                           overflow: 'hidden',
@@ -720,9 +740,9 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                       <button
                         onClick={(e) => handleCtaClick(slide, e)}
                         style={{
-                          backgroundColor: isBlockContext ? '#2563eb' : '#f3f4f6',
-                          color: isBlockContext ? '#ffffff' : '#374151',
-                          border: isBlockContext ? 'none' : '1px solid #e5e7eb',
+                          backgroundColor: isBlockContext ? ctaBackgroundColor : ctaBackgroundColor,
+                          color: isBlockContext ? ctaTextColor : ctaTextColor,
+                          border: isBlockContext ? 'none' : `1px solid ${ctaBackgroundColor}`,
                           padding: isBlockContext ? '8px 20px' : '6px 14px',
                           borderRadius: isBlockContext ? '6px' : '8px',
                           fontWeight: '600',
@@ -732,14 +752,15 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                           whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={(e) => {
-                          if (isBlockContext) {
-                            e.currentTarget.style.backgroundColor = '#1d4ed8';
+                          // Darken background on hover
+                          const rgb = hexToRgb(ctaBackgroundColor);
+                          if (rgb) {
+                            const darkened = `rgb(${Math.max(0, rgb.r - 20)}, ${Math.max(0, rgb.g - 20)}, ${Math.max(0, rgb.b - 20)})`;
+                            e.currentTarget.style.backgroundColor = darkened;
                           }
                         }}
                         onMouseLeave={(e) => {
-                          if (isBlockContext) {
-                            e.currentTarget.style.backgroundColor = '#2563eb';
-                          }
+                          e.currentTarget.style.backgroundColor = ctaBackgroundColor;
                         }}
                       >
                         {slide.ctaText}

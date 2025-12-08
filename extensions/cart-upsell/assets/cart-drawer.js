@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.4
- * Built: 2025-12-08T07:33:15.919Z
+ * Built: 2025-12-08T09:00:49.606Z
  */
 "use strict";
 (() => {
@@ -8600,6 +8600,14 @@
   // app/components/shared/PromotionalBannerCard.tsx
   var import_react = __toESM(require_react(), 1);
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
+  var hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  };
   var getYouTubeEmbedUrl = (url) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
@@ -8619,7 +8627,12 @@
     onImpression,
     isPreview = false,
     context = "cart-drawer",
-    maxHeight = "180px"
+    maxHeight = "180px",
+    titleColor = "#111827",
+    descriptionColor = "#6b7280",
+    ctaTextColor = "#374151",
+    ctaBackgroundColor = "#f3f4f6",
+    borderColor = "#e5e7eb"
   }) => {
     const [currentIndex, setCurrentIndex] = (0, import_react.useState)(0);
     const [canScrollLeft, setCanScrollLeft] = (0, import_react.useState)(false);
@@ -8666,7 +8679,7 @@
       }
     }, [slides]);
     (0, import_react.useEffect)(() => {
-      if (!slides || slides.length <= 1 || carouselSettings.autoRotate === false) {
+      if (!slides || slides.length <= 1 || !carouselSettings || carouselSettings.autoRotate === false) {
         return;
       }
       const interval = setInterval(() => {
@@ -8691,15 +8704,15 @@
         setTimeout(() => {
           isScrolling.current = false;
         }, 500);
-      }, carouselSettings.rotationSpeed || 5e3);
+      }, (carouselSettings == null ? void 0 : carouselSettings.rotationSpeed) || 5e3);
       return () => clearInterval(interval);
-    }, [slides.length, carouselSettings.autoRotate, carouselSettings.rotationSpeed, isBlockContext]);
+    }, [slides.length, carouselSettings == null ? void 0 : carouselSettings.autoRotate, carouselSettings == null ? void 0 : carouselSettings.rotationSpeed, isBlockContext]);
     if (!slides || slides.length === 0) {
       return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
         borderRadius: "12px",
         overflow: "hidden",
         backgroundColor: "#fff",
-        border: "1px solid #e5e7eb",
+        border: `1px solid ${borderColor}`,
         boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
       }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
@@ -9032,7 +9045,7 @@
         ` : ""}
       ` }),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative", overflow: "visible" }, children: [
-        slides.length > 1 && canScrollLeft && carouselSettings.showArrows !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        slides.length > 1 && canScrollLeft && (carouselSettings == null ? void 0 : carouselSettings.showArrows) !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "button",
           {
             onClick: (e) => handlePrevious(e),
@@ -9069,7 +9082,7 @@
             children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px", color: "#374151", fontWeight: "300" }, children: "\u2039" })
           }
         ),
-        slides.length > 1 && canScrollRight && carouselSettings.showArrows !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        slides.length > 1 && canScrollRight && (carouselSettings == null ? void 0 : carouselSettings.showArrows) !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "button",
           {
             onClick: (e) => handleNext(e),
@@ -9131,7 +9144,7 @@
                   borderRadius: isBlockContext ? "" : "12px",
                   overflow: "hidden",
                   backgroundColor: "#fff",
-                  border: isBlockContext ? "none" : "1px solid #e5e7eb",
+                  border: isBlockContext ? "none" : `1px solid ${borderColor}`,
                   boxShadow: isBlockContext ? "none" : "0 1px 3px rgba(0, 0, 0, 0.1)",
                   cursor: slide.ctaUrl ? "pointer" : "default",
                   transition: "transform 0.2s ease, box-shadow 0.2s ease"
@@ -9175,7 +9188,7 @@
                       slide.title && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
                         fontWeight: isBlockContext ? "600" : "700",
                         fontSize: isBlockContext ? "16px" : "15px",
-                        color: "#111827",
+                        color: titleColor,
                         lineHeight: "1.3",
                         textAlign: "left",
                         overflow: "hidden",
@@ -9184,7 +9197,7 @@
                       }, children: slide.title }),
                       slide.description && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
                         fontSize: isBlockContext ? "13px" : "12px",
-                        color: "#6b7280",
+                        color: descriptionColor,
                         lineHeight: "1.4",
                         textAlign: "left",
                         overflow: "hidden",
@@ -9197,9 +9210,9 @@
                       {
                         onClick: (e) => handleCtaClick(slide, e),
                         style: {
-                          backgroundColor: isBlockContext ? "#2563eb" : "#f3f4f6",
-                          color: isBlockContext ? "#ffffff" : "#374151",
-                          border: isBlockContext ? "none" : "1px solid #e5e7eb",
+                          backgroundColor: isBlockContext ? ctaBackgroundColor : ctaBackgroundColor,
+                          color: isBlockContext ? ctaTextColor : ctaTextColor,
+                          border: isBlockContext ? "none" : `1px solid ${ctaBackgroundColor}`,
                           padding: isBlockContext ? "8px 20px" : "6px 14px",
                           borderRadius: isBlockContext ? "6px" : "8px",
                           fontWeight: "600",
@@ -9209,14 +9222,14 @@
                           whiteSpace: "nowrap"
                         },
                         onMouseEnter: (e) => {
-                          if (isBlockContext) {
-                            e.currentTarget.style.backgroundColor = "#1d4ed8";
+                          const rgb = hexToRgb(ctaBackgroundColor);
+                          if (rgb) {
+                            const darkened = `rgb(${Math.max(0, rgb.r - 20)}, ${Math.max(0, rgb.g - 20)}, ${Math.max(0, rgb.b - 20)})`;
+                            e.currentTarget.style.backgroundColor = darkened;
                           }
                         },
                         onMouseLeave: (e) => {
-                          if (isBlockContext) {
-                            e.currentTarget.style.backgroundColor = "#2563eb";
-                          }
+                          e.currentTarget.style.backgroundColor = ctaBackgroundColor;
                         },
                         children: slide.ctaText
                       }
@@ -11285,7 +11298,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://bedford-sport-workplace-spokesman.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.4" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

@@ -49,15 +49,22 @@ import { CartItems } from "../components/shared/CartItems";
 // Wrapper component for the preview with state management
 function PromotionalBannerPreview({ 
   slides, 
-  carouselSettings
+  carouselSettings,
+  promotionalBanner
 }: { 
   slides: any[]; 
   carouselSettings?: any;
+  promotionalBanner?: any;
 }) {
     return (
     <PromotionalBannerCard
       slides={slides}
       carouselSettings={carouselSettings}
+      titleColor={promotionalBanner?.titleColor || '#111827'}
+      descriptionColor={promotionalBanner?.descriptionColor || '#6b7280'}
+      ctaTextColor={promotionalBanner?.ctaTextColor || '#374151'}
+      ctaBackgroundColor={promotionalBanner?.ctaBackgroundColor || '#f3f4f6'}
+      borderColor={promotionalBanner?.borderColor || '#e5e7eb'}
       onCtaClick={() => {}}
       isPreview={true}
     />
@@ -459,6 +466,7 @@ function MiniCartDrawerPreview({
             <PromotionalBannerPreview 
               slides={promotionalBanner?.images || []}
               carouselSettings={promotionalBanner?.carouselSettings}
+              promotionalBanner={promotionalBanner}
             />
           )
         );

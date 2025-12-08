@@ -383,6 +383,79 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
 
+    return json({ success: true });
+  }
+
+  if (intent === "save-colors") {
+    const bannerId = formData.get("bannerId") as string;
+    const titleColor = formData.get("titleColor") as string;
+    const descriptionColor = formData.get("descriptionColor") as string;
+    const ctaTextColor = formData.get("ctaTextColor") as string;
+    const ctaBackgroundColor = formData.get("ctaBackgroundColor") as string;
+    const borderColor = formData.get("borderColor") as string;
+
+    await (prisma.promotionalBanner.update as any)({
+      where: { id: bannerId },
+      data: {
+        titleColor,
+        descriptionColor,
+        ctaTextColor,
+        ctaBackgroundColor,
+        borderColor,
+      },
+    });
+
+    return json({ success: true });
+  }
+
+  if (intent === "save") {
+    const bannerId = formData.get("bannerId") as string;
+    
+    if (!bannerId) {
+      return json({ error: "Banner ID is required" }, { status: 400 });
+    }
+
+    // Save carousel settings
+    const autoRotate = formData.get("autoRotate") === "true";
+    const rotationSpeed = parseInt(formData.get("rotationSpeed") as string) || 5000;
+    const showDots = formData.get("showDots") === "true";
+    const showArrows = formData.get("showArrows") === "true";
+
+    await prisma.promotionalBannerCarouselSettings.upsert({
+      where: { bannerId },
+      create: {
+        bannerId,
+        autoRotate,
+        rotationSpeed,
+        showDots,
+        showArrows,
+      },
+      update: {
+        autoRotate,
+        rotationSpeed,
+        showDots,
+        showArrows,
+      },
+    });
+
+    // Save color settings
+    const titleColor = formData.get("titleColor") as string;
+    const descriptionColor = formData.get("descriptionColor") as string;
+    const ctaTextColor = formData.get("ctaTextColor") as string;
+    const ctaBackgroundColor = formData.get("ctaBackgroundColor") as string;
+    const borderColor = formData.get("borderColor") as string;
+
+    await (prisma.promotionalBanner.update as any)({
+      where: { id: bannerId },
+      data: {
+        titleColor,
+        descriptionColor,
+        ctaTextColor,
+        ctaBackgroundColor,
+        borderColor,
+      },
+    });
+
     return redirect("/app/cart-drawer");
   }
 
@@ -526,9 +599,22 @@ function SlideEditor({
 }
 
 // Carousel Preview Component - using the shared PromotionalBannerCard
-function CarouselPreview({ slides, carouselSettings }: { 
+function CarouselPreview({ 
+  slides, 
+  carouselSettings,
+  titleColor,
+  descriptionColor,
+  ctaTextColor,
+  ctaBackgroundColor,
+  borderColor
+}: { 
   slides: any[]; 
   carouselSettings: any;
+  titleColor?: string;
+  descriptionColor?: string;
+  ctaTextColor?: string;
+  ctaBackgroundColor?: string;
+  borderColor?: string;
 }) {
   if (!slides || slides.length === 0) {
     return (
@@ -550,6 +636,11 @@ function CarouselPreview({ slides, carouselSettings }: {
     <PromotionalBannerCard 
       slides={slides}
       carouselSettings={carouselSettings}
+      titleColor={titleColor}
+      descriptionColor={descriptionColor}
+      ctaTextColor={ctaTextColor}
+      ctaBackgroundColor={ctaBackgroundColor}
+      borderColor={borderColor}
       onCtaClick={() => {}}
       isPreview={true}
     />
@@ -574,10 +665,10 @@ export default function PromotionalBanner() {
 
   // Show toast notification when settings are saved successfully
   useEffect(() => {
-    // Check if we just finished submitting a save-carousel-settings action
+    // Check if we just finished submitting a save action
     const justFinishedSave = 
       prevIsSubmitting.current && 
-      prevSubmittingIntent.current === "save-carousel-settings" &&
+      prevSubmittingIntent.current === "save" &&
       !isLoading;
 
     if (justFinishedSave) {
@@ -601,6 +692,14 @@ export default function PromotionalBanner() {
     rotationSpeed: promotionalBanner?.carouselSettings?.rotationSpeed ?? 5000,
     showDots: promotionalBanner?.carouselSettings?.showDots ?? true,
     showArrows: promotionalBanner?.carouselSettings?.showArrows ?? true,
+  });
+
+  const [colorSettings, setColorSettings] = useState({
+    titleColor: (promotionalBanner as any)?.titleColor || "#111827",
+    descriptionColor: (promotionalBanner as any)?.descriptionColor || "#6b7280",
+    ctaTextColor: (promotionalBanner as any)?.ctaTextColor || "#374151",
+    ctaBackgroundColor: (promotionalBanner as any)?.ctaBackgroundColor || "#f3f4f6",
+    borderColor: (promotionalBanner as any)?.borderColor || "#e5e7eb",
   });
 
   const slides = promotionalBanner?.images || [];
@@ -659,25 +758,24 @@ export default function PromotionalBanner() {
     submit(formData, { method: "post", replace: true });
   }, [submit]);
 
-  const handleSaveCarouselSettings = useCallback(() => {
+  const handleSaveAll = useCallback(() => {
+    // Save carousel settings and colors if banner exists
     if (!promotionalBanner?.id) return;
 
     const formData = new FormData();
-    formData.append("intent", "save-carousel-settings");
+    formData.append("intent", "save");
     formData.append("bannerId", promotionalBanner.id);
     formData.append("autoRotate", carouselSettings.autoRotate.toString());
     formData.append("rotationSpeed", carouselSettings.rotationSpeed.toString());
     formData.append("showDots", carouselSettings.showDots.toString());
     formData.append("showArrows", carouselSettings.showArrows.toString());
-    submit(formData, { method: "post", replace: true });
-  }, [promotionalBanner?.id, carouselSettings, submit]);
-
-  const handleSaveAll = useCallback(() => {
-    // Save carousel settings if banner exists
-    if (promotionalBanner?.id) {
-      handleSaveCarouselSettings();
-    }
-  }, [promotionalBanner?.id, handleSaveCarouselSettings]);
+    formData.append("titleColor", colorSettings.titleColor);
+    formData.append("descriptionColor", colorSettings.descriptionColor);
+    formData.append("ctaTextColor", colorSettings.ctaTextColor);
+    formData.append("ctaBackgroundColor", colorSettings.ctaBackgroundColor);
+    formData.append("borderColor", colorSettings.borderColor);
+    submit(formData, { method: "post" });
+  }, [promotionalBanner?.id, carouselSettings, colorSettings, submit]);
 
   return (
     <Page
@@ -879,46 +977,99 @@ export default function PromotionalBanner() {
 
             {/* Carousel Settings */}
             {!isAddingSlide && !editingSlide && promotionalBanner?.id && (
-              <Card>
-                <BlockStack gap="400">
-                  <Text as="h2" variant="headingMd">
-                    Carousel Settings
-                  </Text>
+              <>
+                <Card>
+                  <BlockStack gap="400">
+                    <Text as="h2" variant="headingMd">
+                      Carousel Settings
+                    </Text>
 
-                  <FormLayout>
-                    <Checkbox
-                      label="Auto-rotate slides"
-                      checked={carouselSettings.autoRotate}
-                      onChange={(checked) => setCarouselSettings({ ...carouselSettings, autoRotate: checked })}
-                      helpText="Automatically cycle through slides"
-                    />
-
-                    {carouselSettings.autoRotate && (
-                      <RangeSlider
-                        label="Rotation speed (seconds)"
-                        value={carouselSettings.rotationSpeed / 1000}
-                        onChange={(value: number) => setCarouselSettings({ ...carouselSettings, rotationSpeed: value * 1000 })}
-                        min={2}
-                        max={10}
-                        step={1}
-                        output
+                    <FormLayout>
+                      <Checkbox
+                        label="Auto-rotate slides"
+                        checked={carouselSettings.autoRotate}
+                        onChange={(checked) => setCarouselSettings({ ...carouselSettings, autoRotate: checked })}
+                        helpText="Automatically cycle through slides"
                       />
-                    )}
 
-                    <Checkbox
-                      label="Show dot indicators"
-                      checked={carouselSettings.showDots}
-                      onChange={(checked) => setCarouselSettings({ ...carouselSettings, showDots: checked })}
-                    />
+                      {carouselSettings.autoRotate && (
+                        <RangeSlider
+                          label="Rotation speed (seconds)"
+                          value={carouselSettings.rotationSpeed / 1000}
+                          onChange={(value: number) => setCarouselSettings({ ...carouselSettings, rotationSpeed: value * 1000 })}
+                          min={2}
+                          max={10}
+                          step={1}
+                          output
+                        />
+                      )}
 
-                    <Checkbox
-                      label="Show navigation arrows"
-                      checked={carouselSettings.showArrows}
-                      onChange={(checked) => setCarouselSettings({ ...carouselSettings, showArrows: checked })}
-                    />
-                  </FormLayout>
-                </BlockStack>
-              </Card>
+                      <Checkbox
+                        label="Show dot indicators"
+                        checked={carouselSettings.showDots}
+                        onChange={(checked) => setCarouselSettings({ ...carouselSettings, showDots: checked })}
+                      />
+
+                      <Checkbox
+                        label="Show navigation arrows"
+                        checked={carouselSettings.showArrows}
+                        onChange={(checked) => setCarouselSettings({ ...carouselSettings, showArrows: checked })}
+                      />
+                    </FormLayout>
+                  </BlockStack>
+                </Card>
+
+                {/* Color Settings */}
+                <Card>
+                  <BlockStack gap="400">
+                    <Text as="h2" variant="headingMd">
+                      Color Settings
+                    </Text>
+
+                    <FormLayout>
+                      <TextField
+                        label="Slide Title Color"
+                        {...({ type: "color" } as any)}
+                        value={colorSettings.titleColor}
+                        onChange={(value) => setColorSettings({ ...colorSettings, titleColor: value })}
+                        autoComplete="off"
+                      />
+
+                      <TextField
+                        label="Slide Description Color"
+                        {...({ type: "color" } as any)}
+                        value={colorSettings.descriptionColor}
+                        onChange={(value) => setColorSettings({ ...colorSettings, descriptionColor: value })}
+                        autoComplete="off"
+                      />
+
+                      <TextField
+                        label="CTA Button Text Color"
+                        {...({ type: "color" } as any)}
+                        value={colorSettings.ctaTextColor}
+                        onChange={(value) => setColorSettings({ ...colorSettings, ctaTextColor: value })}
+                        autoComplete="off"
+                      />
+
+                      <TextField
+                        label="CTA Button Background Color"
+                        {...({ type: "color" } as any)}
+                        value={colorSettings.ctaBackgroundColor}
+                        onChange={(value) => setColorSettings({ ...colorSettings, ctaBackgroundColor: value })}
+                        autoComplete="off"
+                      />
+
+                      <TextField
+                        label="Border Color"
+                        {...({ type: "color" } as any)}
+                        value={colorSettings.borderColor}
+                        onChange={(value) => setColorSettings({ ...colorSettings, borderColor: value })}
+                        autoComplete="off"
+                      />
+                    </FormLayout>
+                  </BlockStack>
+                </Card>
+              </>
             )}
           </BlockStack>
         </Layout.Section>
@@ -934,6 +1085,11 @@ export default function PromotionalBanner() {
               <CarouselPreview 
                 slides={slides} 
                 carouselSettings={carouselSettings}
+                titleColor={colorSettings.titleColor}
+                descriptionColor={colorSettings.descriptionColor}
+                ctaTextColor={colorSettings.ctaTextColor}
+                ctaBackgroundColor={colorSettings.ctaBackgroundColor}
+                borderColor={colorSettings.borderColor}
               />
 
               <Text as="p" variant="bodySm" tone="subdued">

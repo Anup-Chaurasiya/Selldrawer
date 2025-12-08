@@ -118,6 +118,11 @@ model PromotionalBanner {
   subtitle         String?
   backgroundColor  String                             @default("#FF6B35")
   textColor        String                             @default("#FFFFFF")
+  titleColor       String                             @default("#111827")
+  descriptionColor String                             @default("#6b7280")
+  ctaTextColor     String                             @default("#374151")
+  ctaBackgroundColor String                           @default("#f3f4f6")
+  borderColor      String                             @default("#e5e7eb")
   startDate        DateTime?
   endDate          DateTime?
   minCartValue     Decimal?

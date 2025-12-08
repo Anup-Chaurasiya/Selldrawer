@@ -30,6 +30,11 @@ export function renderPromotionalBanner(config, reactRoots = {}) {
     const props = {
       slides: slides,
       carouselSettings: banner.carouselSettings || {},
+      titleColor: banner.titleColor || '#111827',
+      descriptionColor: banner.descriptionColor || '#6b7280',
+      ctaTextColor: banner.ctaTextColor || '#374151',
+      ctaBackgroundColor: banner.ctaBackgroundColor || '#f3f4f6',
+      borderColor: banner.borderColor || '#e5e7eb',
       onCtaClick: (url) => {
         if (url && window.upsellityDrawer) {
           window.upsellityDrawer.handleSlideCtaClick(url);
