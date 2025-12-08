@@ -444,6 +444,7 @@ function MiniCartDrawerPreview({
               afterThresholdMessage={freeShippingBar.afterThresholdMessage || "You've unlocked FREE shipping!"}
               backgroundColor={freeShippingBar.backgroundColor || '#f0f9ff'}
               progressBarColor={freeShippingBar.progressBarColor || '#3b82f6'}
+              borderColor={freeShippingBar.borderColor || '#e2e8f0'}
               showPercentage={freeShippingBar.showPercentage ?? true}
               currency="INR"
               cart={sampleCart}
@@ -494,6 +495,7 @@ function MiniCartDrawerPreview({
               amount={Math.round(sampleCart.savings * 100)} // Convert to cents
               backgroundColor={savingsDisplay.backgroundColor || '#dcfce7'}
               textColor={savingsDisplay.textColor || '#15803d'}
+              borderColor={savingsDisplay.borderColor || '#ffffff'}
             />
           )
         );
@@ -508,6 +510,8 @@ function MiniCartDrawerPreview({
               achievedMessage={freeShippingMessage.achievedMessage || 'You qualify for FREE shipping!'}
               backgroundColor={freeShippingMessage.backgroundColor || '#fef3c7'}
               textColor={freeShippingMessage.textColor || '#92400e'}
+              borderColor={freeShippingMessage.borderColor || '#92400e'}
+              icon={freeShippingMessage.icon || '🚚'}
               currency="INR"
               isPreview={true}
             />
@@ -535,6 +539,11 @@ function MiniCartDrawerPreview({
               { code: 'SUMMER20', title: 'Summer Sale', description: '20% OFF', type: 'percentage', value: 20 },
               { code: 'FLAT500', title: 'Flat Discount', description: '₹500 OFF', type: 'fixed', value: 500 }
             ] : []}
+            backgroundColor={(couponCodeField as any)?.backgroundColor || '#d1fae5'}
+            textColor={(couponCodeField as any)?.textColor || '#065f46'}
+            couponCodeColor={(couponCodeField as any)?.couponCodeColor || ''}
+            borderColor={(couponCodeField as any)?.borderColor || '#059669'}
+            appliedDiscountText={(couponCodeField as any)?.appliedDiscountText || ''}
             onApplyCoupon={() => {}}
             onRemoveDiscount={() => {}}
             onSwitchDiscount={() => {}}

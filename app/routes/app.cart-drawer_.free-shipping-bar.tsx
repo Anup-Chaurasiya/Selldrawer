@@ -91,6 +91,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       afterThresholdMessage: formData.get("afterThresholdMessage") as string,
       progressBarColor: formData.get("progressBarColor") as string,
       backgroundColor: formData.get("backgroundColor") as string,
+      borderColor: formData.get("borderColor") as string,
       showPercentage: formData.get("showPercentage") === "true",
     };
 
@@ -171,6 +172,7 @@ export default function FreeShippingBar() {
     afterThresholdMessage: freeShippingBar?.afterThresholdMessage || "You've unlocked FREE shipping!",
     progressBarColor: freeShippingBar?.progressBarColor || "#FF6B35",
     backgroundColor: freeShippingBar?.backgroundColor || "#F3F4F6",
+    borderColor: freeShippingBar?.borderColor || "#e2e8f0",
     showPercentage: freeShippingBar?.showPercentage ?? true,
   });
 
@@ -389,6 +391,14 @@ export default function FreeShippingBar() {
                     autoComplete="off"
                   />
 
+                  <TextField
+                    label="Border Color"
+                    {...({ type: "color" } as any)}
+                    value={formState.borderColor}
+                    onChange={(value) => setFormState({ ...formState, borderColor: value })}
+                    autoComplete="off"
+                  />
+
                   <Checkbox
                     label="Show percentage"
                     checked={formState.showPercentage}
@@ -432,6 +442,7 @@ export default function FreeShippingBar() {
                     afterThresholdMessage={formState.afterThresholdMessage}
                     backgroundColor={formState.backgroundColor}
                     progressBarColor={formState.progressBarColor}
+                    borderColor={formState.borderColor}
                     showPercentage={formState.showPercentage}
                     currency={formState.currency}
                     cart={sampleCart}

@@ -28,6 +28,8 @@ export function renderFreeShippingMessage(config, cart, reactRoots = {}) {
       achievedMessage: msg.achievedMessage || 'You qualify for FREE shipping!',
       backgroundColor: msg.backgroundColor || '#fef3c7',
       textColor: msg.textColor || '#92400e',
+      borderColor: msg.borderColor || '#92400e',
+      icon: msg.icon || '🚚',
       currency: msg.currency || 'INR',
       isPreview: false
     };

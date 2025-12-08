@@ -89,6 +89,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       achievedMessage: formData.get("achievedMessage") as string,
       backgroundColor: formData.get("backgroundColor") as string,
       textColor: formData.get("textColor") as string,
+      borderColor: formData.get("borderColor") as string,
+      icon: formData.get("icon") as string,
     };
 
     const existingMessage = cartDrawer.freeShippingMessages[0];
@@ -167,6 +169,8 @@ export default function FreeShippingMessage() {
     achievedMessage: freeShippingMessage?.achievedMessage || "Free shipping applied!",
     backgroundColor: freeShippingMessage?.backgroundColor || "#FEF3C7",
     textColor: freeShippingMessage?.textColor || "#92400E",
+    borderColor: freeShippingMessage?.borderColor || "#92400E",
+    icon: freeShippingMessage?.icon || "🚚",
   });
 
   const handleToggle = useCallback(() => {
@@ -342,6 +346,22 @@ export default function FreeShippingMessage() {
                     onChange={(value) => setFormState({ ...formState, textColor: value })}
                     autoComplete="off"
                   />
+
+                  <TextField
+                    label="Border Color"
+                    type="color"
+                    value={formState.borderColor}
+                    onChange={(value) => setFormState({ ...formState, borderColor: value })}
+                    autoComplete="off"
+                  />
+
+                  <TextField
+                    label="Icon"
+                    value={formState.icon}
+                    onChange={(value) => setFormState({ ...formState, icon: value })}
+                    helpText="Enter an emoji or icon (e.g., 🚚, 🎁, ✨). Default: 🚚"
+                    autoComplete="off"
+                  />
                 </FormLayout>
               </BlockStack>
             </Card>
@@ -362,6 +382,8 @@ export default function FreeShippingMessage() {
                 achievedMessage={formState.achievedMessage}
                 backgroundColor={formState.backgroundColor}
                 textColor={formState.textColor}
+                borderColor={formState.borderColor}
+                icon={formState.icon}
                 currency={formState.currency}
                 isPreview={true}
               />

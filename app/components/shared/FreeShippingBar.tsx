@@ -18,6 +18,7 @@ interface FreeShippingBarProps {
   afterThresholdMessage?: string;
   backgroundColor?: string;
   progressBarColor?: string;
+  borderColor?: string;
   showPercentage?: boolean;
   currency?: string;
   cart: Cart;
@@ -32,6 +33,7 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
   afterThresholdMessage = "🎉 You qualify for FREE shipping!",
   backgroundColor = '#f0f9ff',
   progressBarColor = '#3b82f6',
+  borderColor = '#e2e8f0',
   showPercentage = true,
   currency = 'INR',
   cart,
@@ -91,7 +93,7 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
       padding: '16px',
       background: backgroundGradient,
       borderRadius: '12px',
-      border: '1px solid #e2e8f0',
+      border: `2px solid ${borderColor}`,
       boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
     }}>
       {/* Progress Text and Percentage */}

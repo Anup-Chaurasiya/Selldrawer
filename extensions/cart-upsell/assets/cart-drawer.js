@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.4
- * Built: 2025-12-06T20:08:04.927Z
+ * Built: 2025-12-08T07:33:15.919Z
  */
 "use strict";
 (() => {
@@ -8502,6 +8502,7 @@
     afterThresholdMessage = "\u{1F389} You qualify for FREE shipping!",
     backgroundColor = "#f0f9ff",
     progressBarColor = "#3b82f6",
+    borderColor = "#e2e8f0",
     showPercentage = true,
     currency = "INR",
     cart,
@@ -8551,7 +8552,7 @@
       padding: "16px",
       background: backgroundGradient,
       borderRadius: "12px",
-      border: "1px solid #e2e8f0",
+      border: `2px solid ${borderColor}`,
       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)"
     }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
@@ -10032,7 +10033,8 @@
     message,
     amount,
     backgroundColor = "#dcfce7",
-    textColor = "#15803d"
+    textColor = "#15803d",
+    borderColor = "#ffffff"
   }) => {
     if (amount <= 0) {
       return null;
@@ -10050,7 +10052,7 @@
       fontSize: "14px",
       fontWeight: "600",
       textAlign: "center",
-      border: `1px solid ${textColor}40`,
+      border: `2px solid ${borderColor}`,
       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)"
     }, children: formattedMessage });
   };
@@ -10064,6 +10066,8 @@
     achievedMessage,
     backgroundColor = "#fef3c7",
     textColor = "#92400e",
+    borderColor = "#92400e",
+    icon = "\u{1F69A}",
     currency = "INR",
     isPreview = false
   }) => {
@@ -10074,7 +10078,7 @@
     return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: {
       backgroundColor,
       color: textColor,
-      border: `2px solid ${textColor}`,
+      border: `2px solid ${borderColor}`,
       padding: "14px 18px",
       borderRadius: "12px",
       display: "flex",
@@ -10100,7 +10104,7 @@
         flexShrink: 0,
         position: "relative",
         zIndex: 1
-      }, isPreview ? {} : { height: "20px", top: "-8px" }), children: "\u{1F69A}" }),
+      }, isPreview ? {} : { height: "20px", top: "-8px" }), children: icon }),
       /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { style: {
         position: "relative",
         zIndex: 1,
@@ -10134,6 +10138,11 @@
     },
     onSwitchDiscount = () => {
     },
+    backgroundColor = "#d1fae5",
+    textColor = "#065f46",
+    couponCodeColor,
+    borderColor = "#059669",
+    appliedDiscountText,
     isPreview = false
   }) => {
     const [couponCode, setCouponCode] = (0, import_react4.useState)("");
@@ -10206,8 +10215,8 @@
         )
       ] }),
       appliedDiscount && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
-        backgroundColor: "#d1fae5",
-        border: "2px solid #059669",
+        backgroundColor,
+        border: `2px solid ${borderColor}`,
         borderRadius: "10px",
         padding: "12px 16px",
         marginBottom: "12px",
@@ -10219,7 +10228,7 @@
           width: "24px",
           height: "24px",
           borderRadius: "50%",
-          backgroundColor: "#059669",
+          backgroundColor: borderColor,
           color: "white",
           display: "flex",
           alignItems: "center",
@@ -10230,7 +10239,7 @@
           /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
             fontSize: "14px",
             fontWeight: "600",
-            color: "#065f46",
+            color: couponCodeColor || textColor,
             marginBottom: "2px"
           }, children: [
             appliedDiscount.code,
@@ -10239,8 +10248,8 @@
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
             fontSize: "12px",
-            color: "#059669"
-          }, children: enableAutoApply ? "Best offer automatically applied" : "Applied" })
+            color: borderColor
+          }, children: appliedDiscountText || (enableAutoApply ? "Best offer automatically applied" : "Applied") })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
           "button",
@@ -10275,8 +10284,6 @@
               padding: "0 15px",
               backgroundColor: "transparent",
               border: "none",
-              // fontSize: '14px',
-              // fontWeight: '500',
               color: "#374151",
               cursor: isPreview ? "default" : "pointer",
               display: "flex",
@@ -10316,7 +10323,7 @@
               borderBottom: "1px solid #f3f4f6",
               cursor: isPreview ? "default" : "pointer",
               transition: "background-color 0.2s ease",
-              backgroundColor: (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? "#f0fdf4" : "transparent",
+              backgroundColor: (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? backgroundColor : "transparent",
               display: "flex",
               alignItems: "center",
               gap: "12px"
@@ -10326,12 +10333,12 @@
                 width: "20px",
                 height: "20px",
                 borderRadius: "50%",
-                border: `2px solid ${(appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? "#059669" : "#d1d5db"}`,
+                border: `2px solid ${(appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? borderColor : "#d1d5db"}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0
-              }, children: (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 12, color: "#059669" }) }),
+              }, children: (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 12, color: borderColor }) }),
               /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { flex: 1 }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
                   fontSize: "14px",

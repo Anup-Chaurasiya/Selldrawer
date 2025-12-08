@@ -39,6 +39,7 @@ export function renderSavingsDisplay(config, cart, appliedDiscount, reactRoots =
       amount: totalSavings,
       backgroundColor: savingsCfg.backgroundColor || '#dcfce7',
       textColor: savingsCfg.textColor || '#15803d',
+      borderColor: savingsCfg.borderColor || '#ffffff',
       isPreview: false
     };
 

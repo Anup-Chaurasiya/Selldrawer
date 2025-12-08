@@ -87,6 +87,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       position: formData.get("position") as string,
       backgroundColor: formData.get("backgroundColor") as string,
       textColor: formData.get("textColor") as string,
+      borderColor: formData.get("borderColor") as string,
       highlightColor: formData.get("highlightColor") as string,
     };
 
@@ -163,6 +164,7 @@ export default function SavingsDisplay() {
     position: savingsDisplay?.position || "above_total",
     backgroundColor: savingsDisplay?.backgroundColor || "#10B981",
     textColor: savingsDisplay?.textColor || "#FFFFFF",
+    borderColor: savingsDisplay?.borderColor || "#FFFFFF",
     highlightColor: savingsDisplay?.highlightColor || "#FFFFFF",
   });
 
@@ -324,6 +326,14 @@ export default function SavingsDisplay() {
                     onChange={(value) => setFormState({ ...formState, textColor: value })}
                     autoComplete="off"
                   />
+
+                  <TextField
+                    label="Border Color"
+                    type="color"
+                    value={formState.borderColor}
+                    onChange={(value) => setFormState({ ...formState, borderColor: value })}
+                    autoComplete="off"
+                  />
                 </FormLayout>
               </BlockStack>
             </Card>
@@ -342,6 +352,7 @@ export default function SavingsDisplay() {
                 amount={330000} // Sample amount in cents (₹3300)
                 backgroundColor={formState.backgroundColor}
                 textColor={formState.textColor}
+                borderColor={formState.borderColor}
                 isPreview={true}
               />
 

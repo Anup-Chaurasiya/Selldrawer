@@ -87,6 +87,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       autoApplyStrategy: formData.get("autoApplyStrategy") as string,
       showAllOffers: formData.get("showAllOffers") === "true",
       showAllOffersButtonText: formData.get("showAllOffersButtonText") as string,
+      backgroundColor: formData.get("backgroundColor") as string,
+      textColor: formData.get("textColor") as string,
+      couponCodeColor: formData.get("couponCodeColor") as string,
+      borderColor: formData.get("borderColor") as string,
+      appliedDiscountText: formData.get("appliedDiscountText") as string,
       isActive: true, // Ensure isActive is set to true when saving configuration
     };
 
@@ -156,6 +161,11 @@ export default function CouponCode() {
     autoApplyStrategy: (couponCodeField as any)?.autoApplyStrategy || "best_value",
     showAllOffers: (couponCodeField as any)?.showAllOffers || false,
     showAllOffersButtonText: (couponCodeField as any)?.showAllOffersButtonText || "Show all offers",
+    backgroundColor: (couponCodeField as any)?.backgroundColor || "#d1fae5",
+    textColor: (couponCodeField as any)?.textColor || "#065f46",
+    couponCodeColor: (couponCodeField as any)?.couponCodeColor || "",
+    borderColor: (couponCodeField as any)?.borderColor || "#059669",
+    appliedDiscountText: (couponCodeField as any)?.appliedDiscountText || "",
   });
 
   const handleToggle = useCallback(() => {
@@ -365,6 +375,56 @@ export default function CouponCode() {
                       />
                     )}
                   </BlockStack>
+
+                  <Divider />
+
+                  <BlockStack gap="300">
+                    <Text as="h3" variant="headingMd">
+                      Applied Discount Styling
+                    </Text>
+                    
+                    <TextField
+                      label="Applied Discount Text"
+                      value={formState.appliedDiscountText}
+                      onChange={(value) => setFormState({ ...formState, appliedDiscountText: value })}
+                      helpText="Custom text shown below the discount code (e.g., 'Best offer automatically applied'). Leave empty to use default."
+                      autoComplete="off"
+                    />
+
+                    <TextField
+                      label="Background Color"
+                      type="color"
+                      value={formState.backgroundColor}
+                      onChange={(value) => setFormState({ ...formState, backgroundColor: value })}
+                      autoComplete="off"
+                    />
+
+                    <TextField
+                      label="Text Color"
+                      type="color"
+                      value={formState.textColor}
+                      onChange={(value) => setFormState({ ...formState, textColor: value })}
+                      helpText="Color for the applied discount message text"
+                      autoComplete="off"
+                    />
+
+                    <TextField
+                      label="Coupon Code Color"
+                      type="color"
+                      value={formState.couponCodeColor || formState.textColor}
+                      onChange={(value) => setFormState({ ...formState, couponCodeColor: value })}
+                      helpText="Color for the coupon code text (e.g., 'SUMMER20 - 20% OFF'). Leave empty to use text color."
+                      autoComplete="off"
+                    />
+
+                    <TextField
+                      label="Border Color"
+                      type="color"
+                      value={formState.borderColor}
+                      onChange={(value) => setFormState({ ...formState, borderColor: value })}
+                      autoComplete="off"
+                    />
+                  </BlockStack>
                 </FormLayout>
               </BlockStack>
             </Card>
@@ -397,6 +457,11 @@ export default function CouponCode() {
                   { code: 'SUMMER20', title: 'Summer Sale', description: '20% OFF', type: 'percentage', value: 20 },
                   { code: 'FLAT500', title: 'Flat Discount', description: '₹500 OFF', type: 'fixed', value: 500 }
                 ] : []}
+                backgroundColor={formState.backgroundColor}
+                textColor={formState.textColor}
+                couponCodeColor={formState.couponCodeColor}
+                borderColor={formState.borderColor}
+                appliedDiscountText={formState.appliedDiscountText}
                 onApplyCoupon={() => {}}
                 onRemoveDiscount={() => {}}
                 onSwitchDiscount={() => {}}
