@@ -90,7 +90,7 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
 
   return (
     <div style={{
-      padding: '16px',
+      padding: '10px 12px',
       background: backgroundGradient,
       borderRadius: '12px',
       border: `2px solid ${borderColor}`,
@@ -101,7 +101,7 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '12px',
+        marginBottom: '8px',
         fontSize: '14px',
         fontWeight: '600'
       }}>
@@ -112,7 +112,7 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
           <span style={{
             background: percentageGradient,
             color: 'white',
-            padding: '4px 12px',
+            padding: '3px 10px',
             borderRadius: '20px',
             fontSize: '12px',
             fontWeight: '700',
@@ -127,7 +127,7 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
       {/* Progress Bar Track */}
       <div style={{
         width: '100%',
-        height: '12px',
+        height: '10px',
         borderRadius: '8px',
         overflow: 'hidden',
         background: backgroundColor,
