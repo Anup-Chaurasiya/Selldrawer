@@ -4,8 +4,8 @@
  */
 
 // App URL - Update this with your deployment URL
-export const APP_URL = 'https://app.upsellity.com';
+export const APP_URL = 'https://recognition-extensive-luis-tenant.trycloudflare.com';
 
 // Version - Update this to force cache invalidation across all components
-export const VERSION = '1.0.3';
+export const VERSION = '1.0.4';
 
