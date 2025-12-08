@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.4
- * Built: 2025-12-08T09:00:49.606Z
+ * Built: 2025-12-08T12:40:28.622Z
  */
 "use strict";
 (() => {
@@ -8549,7 +8549,7 @@
     const incompleteGradient = `linear-gradient(135deg, ${progressBarColor} 0%, ${progressBarColor}dd 100%)`;
     const percentageGradient = isComplete ? completeGradient : incompleteGradient;
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-      padding: "16px",
+      padding: "10px 12px",
       background: backgroundGradient,
       borderRadius: "12px",
       border: `2px solid ${borderColor}`,
@@ -8559,7 +8559,7 @@
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: "12px",
+        marginBottom: "8px",
         fontSize: "14px",
         fontWeight: "600"
       }, children: [
@@ -8567,7 +8567,7 @@
         showPercentage && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: {
           background: percentageGradient,
           color: "white",
-          padding: "4px 12px",
+          padding: "3px 10px",
           borderRadius: "20px",
           fontSize: "12px",
           fontWeight: "700",
@@ -8580,7 +8580,7 @@
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
         width: "100%",
-        height: "12px",
+        height: "10px",
         borderRadius: "8px",
         overflow: "hidden",
         background: backgroundColor,
@@ -11298,7 +11298,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://bedford-sport-workplace-spokesman.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.4" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

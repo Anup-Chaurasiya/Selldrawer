@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.4
- * Built: 2025-12-08T09:00:49.640Z
+ * Built: 2025-12-08T12:40:28.664Z
  */
 "use strict";
 (() => {
@@ -9569,7 +9569,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://bedford-sport-workplace-spokesman.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;
