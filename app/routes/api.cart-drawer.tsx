@@ -11,11 +11,6 @@ import { checkPlanAccess } from "../utils/planAccess.server";
  * URL: /api/cart-drawer?shop=example.myshopify.com
  */
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  // Handle OPTIONS preflight request
-  if (request.method === "OPTIONS") {
-    return cors(request, new Response(null, { status: 204 }));
-  }
-
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
 
@@ -172,4 +167,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     return cors(request, response);
   }
 };
+
+// Handle CORS preflight requests
+export async function options() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+}
 
