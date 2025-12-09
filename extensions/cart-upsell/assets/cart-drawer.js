@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.4
- * Built: 2025-12-08T12:40:28.622Z
+ * Built: 2025-12-09T09:01:19.205Z
  */
 "use strict";
 (() => {
@@ -8858,6 +8858,24 @@
         ] })
       ] });
     }
+    const normalizeImageUrl = (url) => {
+      if (!url || typeof url !== "string" || url.trim() === "") {
+        return null;
+      }
+      const trimmedUrl = url.trim();
+      if (/^https?:\/\//i.test(trimmedUrl)) {
+        return trimmedUrl;
+      }
+      if (trimmedUrl.startsWith("//")) {
+        return `https:${trimmedUrl}`;
+      }
+      if (trimmedUrl.startsWith("/")) {
+        console.warn("[PromotionalBanner] Invalid relative image URL detected:", trimmedUrl);
+        return null;
+      }
+      console.warn("[PromotionalBanner] Potentially invalid image URL:", trimmedUrl);
+      return null;
+    };
     const renderMedia = (slide) => {
       if (slide.videoUrl && slide.videoType) {
         if (slide.videoType === "youtube") {
@@ -8906,34 +8924,50 @@
             );
           }
         } else if (slide.videoType === "mp4") {
-          return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-            "video",
-            {
-              src: slide.videoUrl,
-              style: {
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                pointerEvents: "none"
-              },
-              autoPlay: true,
-              loop: true,
-              muted: true,
-              playsInline: true
-            }
-          );
+          const normalizedVideoUrl = normalizeImageUrl(slide.videoUrl);
+          if (normalizedVideoUrl) {
+            return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              "video",
+              {
+                src: normalizedVideoUrl,
+                style: {
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  pointerEvents: "none"
+                },
+                autoPlay: true,
+                loop: true,
+                muted: true,
+                playsInline: true,
+                onError: (e) => {
+                  console.error("[PromotionalBanner] Video failed to load:", normalizedVideoUrl);
+                  e.currentTarget.style.display = "none";
+                }
+              }
+            );
+          }
         }
       }
-      if (slide.imageUrl) {
+      const normalizedImageUrl = normalizeImageUrl(slide.imageUrl);
+      if (normalizedImageUrl) {
         return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "img",
           {
-            src: slide.imageUrl,
-            alt: "Promotional banner",
+            src: normalizedImageUrl,
+            alt: slide.title || "Promotional banner",
             style: {
               width: "100%",
               height: "100%",
               objectFit: "cover"
+            },
+            onError: (e) => {
+              console.error("[PromotionalBanner] Image failed to load:", normalizedImageUrl);
+              e.currentTarget.style.display = "none";
+              const parent = e.currentTarget.parentElement;
+              if (parent) {
+                parent.innerHTML = '<div style="width: 100%; height: 100%; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 48px;">\u{1F5BC}\uFE0F</div>';
+              }
             }
           }
         );
@@ -11298,7 +11332,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://discrete-colleges-lions-outlined.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.4" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

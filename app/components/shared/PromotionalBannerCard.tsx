@@ -343,6 +343,37 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
     );
   }
 
+  // Helper function to validate and normalize image URLs
+  const normalizeImageUrl = (url: string | undefined | null): string | null => {
+    if (!url || typeof url !== 'string' || url.trim() === '') {
+      return null;
+    }
+    
+    const trimmedUrl = url.trim();
+    
+    // If it's already an absolute URL (http/https), return as is
+    if (/^https?:\/\//i.test(trimmedUrl)) {
+      return trimmedUrl;
+    }
+    
+    // If it starts with //, it's a protocol-relative URL, make it https
+    if (trimmedUrl.startsWith('//')) {
+      return `https:${trimmedUrl}`;
+    }
+    
+    // If it's a relative path starting with /, it's likely invalid for cross-origin use
+    // Log a warning and return null to show placeholder instead
+    if (trimmedUrl.startsWith('/')) {
+      console.warn('[PromotionalBanner] Invalid relative image URL detected:', trimmedUrl);
+      return null;
+    }
+    
+    // If it doesn't start with / or http, it might be a malformed URL
+    // Return null to show placeholder
+    console.warn('[PromotionalBanner] Potentially invalid image URL:', trimmedUrl);
+    return null;
+  };
+
   // Render media based on type
   const renderMedia = (slide: Slide) => {
     if (slide.videoUrl && slide.videoType) {
@@ -392,33 +423,51 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
           );
         }
       } else if (slide.videoType === 'mp4') {
-        return (
-          <video
-            src={slide.videoUrl}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              pointerEvents: 'none'
-            }}
-            autoPlay
-            loop
-            muted
-            playsInline
-          />
-        );
+        const normalizedVideoUrl = normalizeImageUrl(slide.videoUrl);
+        if (normalizedVideoUrl) {
+          return (
+            <video
+              src={normalizedVideoUrl}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                pointerEvents: 'none'
+              }}
+              autoPlay
+              loop
+              muted
+              playsInline
+              onError={(e) => {
+                console.error('[PromotionalBanner] Video failed to load:', normalizedVideoUrl);
+                // Hide video element on error
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          );
+        }
       }
     }
     // Fallback to image or placeholder
-    if (slide.imageUrl) {
+    const normalizedImageUrl = normalizeImageUrl(slide.imageUrl);
+    if (normalizedImageUrl) {
       return (
         <img
-          src={slide.imageUrl}
-          alt="Promotional banner"
+          src={normalizedImageUrl}
+          alt={slide.title || "Promotional banner"}
           style={{
             width: '100%',
             height: '100%',
             objectFit: 'cover'
+          }}
+          onError={(e) => {
+            console.error('[PromotionalBanner] Image failed to load:', normalizedImageUrl);
+            // Hide broken image and show placeholder instead
+            e.currentTarget.style.display = 'none';
+            const parent = e.currentTarget.parentElement;
+            if (parent) {
+              parent.innerHTML = '<div style="width: 100%; height: 100%; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 48px;">🖼️</div>';
+            }
           }}
         />
       );
