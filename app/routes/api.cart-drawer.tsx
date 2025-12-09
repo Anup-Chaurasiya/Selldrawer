@@ -21,18 +21,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   try {
     // Check plan access for cart drawer feature
-    // Allow bypass in development mode (when NODE_ENV is not production)
-    const isDevelopment = process.env.NODE_ENV !== 'production';
     const planAccess = await checkPlanAccess(shop, 'cart_drawer');
     
-    if (!planAccess.hasAccess && !isDevelopment) {
+    if (!planAccess.hasAccess) {
       const response = json({ error: planAccess.reason, hasAccess: false }, { status: 403 });
       return cors(request, response);
-    }
-    
-    // In development, log a warning but allow access
-    if (!planAccess.hasAccess && isDevelopment) {
-      console.warn(`[Cart Drawer API] Plan access check failed for ${shop}, but allowing in development mode. Reason: ${planAccess.reason}`);
     }
 
     // Get cart drawer configuration
