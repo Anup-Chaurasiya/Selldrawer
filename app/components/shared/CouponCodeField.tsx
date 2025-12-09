@@ -45,6 +45,11 @@ interface CouponCodeFieldProps {
   onApplyCoupon?: (code: string) => void;
   onRemoveDiscount?: () => void;
   onSwitchDiscount?: (code: string) => void;
+  backgroundColor?: string;
+  textColor?: string;
+  couponCodeColor?: string;
+  borderColor?: string;
+  appliedDiscountText?: string;
   isPreview?: boolean;
 }
 
@@ -60,6 +65,11 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
   onApplyCoupon = () => {},
   onRemoveDiscount = () => {},
   onSwitchDiscount = () => {},
+  backgroundColor = '#d1fae5',
+  textColor = '#065f46',
+  couponCodeColor,
+  borderColor = '#059669',
+  appliedDiscountText,
   isPreview = false
 }) => {
   const [couponCode, setCouponCode] = useState('');
@@ -139,8 +149,8 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
       {/* Applied Discount */}
       {appliedDiscount && (
         <div style={{
-          backgroundColor: '#d1fae5',
-          border: '2px solid #059669',
+          backgroundColor: backgroundColor,
+          border: `2px solid ${borderColor}`,
           borderRadius: '10px',
           padding: '12px 16px',
           marginBottom: '12px',
@@ -152,7 +162,7 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
             width: '24px',
             height: '24px',
             borderRadius: '50%',
-            backgroundColor: '#059669',
+            backgroundColor: borderColor,
             color: 'white',
             display: 'flex',
             alignItems: 'center',
@@ -165,16 +175,16 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
             <div style={{
               fontSize: '14px',
               fontWeight: '600',
-              color: '#065f46',
+              color: couponCodeColor || textColor,
               marginBottom: '2px'
             }}>
               {appliedDiscount.code} - {appliedDiscount.description}
             </div>
             <div style={{
               fontSize: '12px',
-              color: '#059669'
+              color: borderColor
             }}>
-              {enableAutoApply ? 'Best offer automatically applied' : 'Applied'}
+              {appliedDiscountText || (enableAutoApply ? 'Best offer automatically applied' : 'Applied')}
             </div>
           </div>
           <button
@@ -210,8 +220,6 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
               padding: '0 15px',
               backgroundColor: 'transparent',
               border: 'none',
-              // fontSize: '14px',
-              // fontWeight: '500',
               color: '#374151',
               cursor: isPreview ? 'default' : 'pointer',
               display: 'flex',
@@ -250,7 +258,7 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
                     borderBottom: '1px solid #f3f4f6',
                     cursor: isPreview ? 'default' : 'pointer',
                     transition: 'background-color 0.2s ease',
-                    backgroundColor: appliedDiscount?.code === discount.code ? '#f0fdf4' : 'transparent',
+                    backgroundColor: appliedDiscount?.code === discount.code ? backgroundColor : 'transparent',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px'
@@ -260,13 +268,13 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
                     width: '20px',
                     height: '20px',
                     borderRadius: '50%',
-                    border: `2px solid ${appliedDiscount?.code === discount.code ? '#059669' : '#d1d5db'}`,
+                    border: `2px solid ${appliedDiscount?.code === discount.code ? borderColor : '#d1d5db'}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0
                   }}>
-                    {appliedDiscount?.code === discount.code && <CheckIcon size={12} color="#059669" />}
+                    {appliedDiscount?.code === discount.code && <CheckIcon size={12} color={borderColor} />}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{

@@ -100,6 +100,7 @@ model FreeShippingProgressBar {
   afterThresholdMessage  String     @default("You've unlocked FREE shipping!")
   progressBarColor       String     @default("#FF6B35")
   backgroundColor        String     @default("#F3F4F6")
+  borderColor            String     @default("#e2e8f0")
   showPercentage         Boolean    @default(true)
   createdAt              DateTime   @default(now())
   updatedAt              DateTime   @updatedAt
@@ -121,6 +122,11 @@ model PromotionalBanner {
   subtitle         String?
   backgroundColor  String                             @default("#FF6B35")
   textColor        String                             @default("#FFFFFF")
+  titleColor       String                             @default("#111827")
+  descriptionColor String                             @default("#6b7280")
+  ctaTextColor     String                             @default("#374151")
+  ctaBackgroundColor String                           @default("#f3f4f6")
+  borderColor      String                             @default("#e5e7eb")
   startDate        DateTime?
   endDate          DateTime?
   minCartValue     Decimal?
@@ -292,6 +298,7 @@ model SavingsDisplay {
   position                String     @default("above_total")
   backgroundColor         String     @default("#10B981")
   textColor               String     @default("#FFFFFF")
+  borderColor             String     @default("#FFFFFF")
   highlightColor          String     @default("#FFFFFF")
   includeProductDiscounts Boolean    @default(true)
   includeCartDiscounts    Boolean    @default(true)
@@ -316,6 +323,8 @@ model FreeShippingMessage {
   achievedMessage        String     @default("Free shipping applied!")
   backgroundColor        String     @default("#FEF3C7")
   textColor              String     @default("#92400E")
+  borderColor            String     @default("#92400E")
+  icon                   String     @default("🚚")
   iconColor              String     @default("#F59E0B")
   position               String     @default("above_checkout")
   createdAt              DateTime   @default(now())
@@ -369,6 +378,11 @@ model CouponCodeField {
   enableAutoApply         Boolean  @default(false)
   showAllOffers           Boolean  @default(false)
   showAllOffersButtonText String   @default("Show all offers")
+  backgroundColor         String   @default("#d1fae5")
+  textColor               String   @default("#065f46")
+  couponCodeColor         String   @default("")
+  borderColor             String   @default("#059669")
+  appliedDiscountText     String   @default("")
 
   @@index([shop])
 }
@@ -613,6 +627,78 @@ model CartMilestoneGiftProduct {
   milestone        CartMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
 
   @@index([milestoneId])
+  @@index([position])
+}
+
+model NudgeAddTogether {
+  id                      String                    @id @default(cuid())
+  shop                    String                    @unique
+  isActive                Boolean                   @default(true)
+  title                   String                    @default("Complete your purchase")
+  subtitle                String                    @default("Add these products together")
+  recommendationType      String                    @default("manual")
+  algorithm               String                    @default("related")
+  useAI                   Boolean                   @default(false)
+  showOnAddToCart         Boolean                   @default(true)
+  popupDelay              Int                       @default(0)
+  overlayColor            String                    @default("#000000")
+  overlayOpacity          Int                       @default(50)
+  popupBackgroundColor    String                    @default("#FFFFFF")
+  popupBorderRadius       Int                       @default(8)
+  titleColor              String                    @default("#000000")
+  subtitleColor           String                    @default("#666666")
+  addSelectedButtonText   String                    @default("Add Selected to Cart")
+  addSelectedButtonColor  String                    @default("#4F46E5")
+  addSelectedButtonTextColor String                  @default("#FFFFFF")
+  closeButtonColor        String                    @default("#999999")
+  showProductImage        Boolean                   @default(true)
+  showProductPrice        Boolean                   @default(true)
+  showProductComparePrice Boolean                   @default(true)
+  showProductDescription  Boolean                   @default(false)
+  maxProducts             Int                       @default(4)
+  layout                  String                    @default("grid")
+  enableAnimation         Boolean                   @default(true)
+  animationType           String                    @default("fade")
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  rules                   NudgeAddTogetherRule[]
+
+  @@index([shop, isActive])
+}
+
+model NudgeAddTogetherRule {
+  id               String                    @id @default(cuid())
+  nudgeAddTogetherId String
+  triggerType      String
+  triggerValue     String
+  triggerProductId String?
+  triggerTitle     String?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  products         NudgeAddTogetherProduct[]
+  nudgeAddTogether NudgeAddTogether          @relation(fields: [nudgeAddTogetherId], references: [id], onDelete: Cascade)
+
+  @@index([nudgeAddTogetherId])
+  @@index([triggerProductId])
+}
+
+model NudgeAddTogetherProduct {
+  id               String                    @id @default(cuid())
+  ruleId           String
+  shopifyProductId String
+  shopifyVariantId String?
+  title            String
+  price            Decimal
+  compareAtPrice   Decimal?
+  imageUrl         String?
+  handle           String
+  description      String?
+  position         Int                       @default(0)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  rule             NudgeAddTogetherRule      @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
   @@index([position])
 }
 

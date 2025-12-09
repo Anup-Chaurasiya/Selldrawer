@@ -5,6 +5,16 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 
+// Helper function to convert hex to RGB
+const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+};
+
 interface Slide {
   imageUrl?: string;
   videoUrl?: string;
@@ -30,6 +40,11 @@ interface PromotionalBannerCardProps {
   isPreview?: boolean;
   context?: 'cart-drawer' | 'block'; // 'cart-drawer' for cart drawer, 'block' for standalone promotional banner
   maxHeight?: string; // Custom max height for block context (e.g., '180px', '200px', 'auto')
+  titleColor?: string;
+  descriptionColor?: string;
+  ctaTextColor?: string;
+  ctaBackgroundColor?: string;
+  borderColor?: string;
 }
 
 // Helper function to get YouTube embed URL
@@ -55,7 +70,12 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
   onImpression,
   isPreview = false,
   context = 'cart-drawer',
-  maxHeight = '180px'
+  maxHeight = '180px',
+  titleColor = '#111827',
+  descriptionColor = '#6b7280',
+  ctaTextColor = '#374151',
+  ctaBackgroundColor = '#f3f4f6',
+  borderColor = '#e5e7eb'
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -115,7 +135,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
 
   // Auto-rotate carousel
   useEffect(() => {
-    if (!slides || slides.length <= 1 || carouselSettings.autoRotate === false) {
+    if (!slides || slides.length <= 1 || !carouselSettings || carouselSettings.autoRotate === false) {
       return;
     }
 
@@ -150,10 +170,10 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
       setTimeout(() => {
         isScrolling.current = false;
       }, 500);
-    }, carouselSettings.rotationSpeed || 5000);
+    }, carouselSettings?.rotationSpeed || 5000);
     
     return () => clearInterval(interval);
-  }, [slides.length, carouselSettings.autoRotate, carouselSettings.rotationSpeed, isBlockContext]);
+  }, [slides.length, carouselSettings?.autoRotate, carouselSettings?.rotationSpeed, isBlockContext]);
 
   if (!slides || slides.length === 0) {
     return (
@@ -161,7 +181,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         borderRadius: '12px',
         overflow: 'hidden',
         backgroundColor: '#fff',
-        border: '1px solid #e5e7eb',
+        border: `1px solid ${borderColor}`,
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
       }}>
         {/* Media Section */}
@@ -323,6 +343,37 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
     );
   }
 
+  // Helper function to validate and normalize image URLs
+  const normalizeImageUrl = (url: string | undefined | null): string | null => {
+    if (!url || typeof url !== 'string' || url.trim() === '') {
+      return null;
+    }
+    
+    const trimmedUrl = url.trim();
+    
+    // If it's already an absolute URL (http/https), return as is
+    if (/^https?:\/\//i.test(trimmedUrl)) {
+      return trimmedUrl;
+    }
+    
+    // If it starts with //, it's a protocol-relative URL, make it https
+    if (trimmedUrl.startsWith('//')) {
+      return `https:${trimmedUrl}`;
+    }
+    
+    // If it's a relative path starting with /, it's likely invalid for cross-origin use
+    // Log a warning and return null to show placeholder instead
+    if (trimmedUrl.startsWith('/')) {
+      console.warn('[PromotionalBanner] Invalid relative image URL detected:', trimmedUrl);
+      return null;
+    }
+    
+    // If it doesn't start with / or http, it might be a malformed URL
+    // Return null to show placeholder
+    console.warn('[PromotionalBanner] Potentially invalid image URL:', trimmedUrl);
+    return null;
+  };
+
   // Render media based on type
   const renderMedia = (slide: Slide) => {
     if (slide.videoUrl && slide.videoType) {
@@ -372,34 +423,69 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
           );
         }
       } else if (slide.videoType === 'mp4') {
-        return (
-          <video
-            src={slide.videoUrl}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              pointerEvents: 'none'
-            }}
-            autoPlay
-            loop
-            muted
-            playsInline
-          />
-        );
+        const normalizedVideoUrl = normalizeImageUrl(slide.videoUrl);
+        if (normalizedVideoUrl) {
+          return (
+            <video
+              src={normalizedVideoUrl}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                pointerEvents: 'none'
+              }}
+              autoPlay
+              loop
+              muted
+              playsInline
+              onError={(e) => {
+                console.error('[PromotionalBanner] Video failed to load:', normalizedVideoUrl);
+                // Hide video element on error
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          );
+        }
       }
     }
-    // Fallback to image
+    // Fallback to image or placeholder
+    const normalizedImageUrl = normalizeImageUrl(slide.imageUrl);
+    if (normalizedImageUrl) {
+      return (
+        <img
+          src={normalizedImageUrl}
+          alt={slide.title || "Promotional banner"}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+          }}
+          onError={(e) => {
+            console.error('[PromotionalBanner] Image failed to load:', normalizedImageUrl);
+            // Hide broken image and show placeholder instead
+            e.currentTarget.style.display = 'none';
+            const parent = e.currentTarget.parentElement;
+            if (parent) {
+              parent.innerHTML = '<div style="width: 100%; height: 100%; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 48px;">🖼️</div>';
+            }
+          }}
+        />
+      );
+    }
+    
+    // No image available
     return (
-      <img
-        src={slide.imageUrl || 'https://via.placeholder.com/400x200'}
-        alt="Promotional banner"
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover'
-        }}
-      />
+      <div style={{
+        width: '100%',
+        height: '100%',
+        backgroundColor: '#f3f4f6',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '48px'
+      }}>
+        🖼️
+      </div>
     );
   };
 
@@ -514,7 +600,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
 
       <div style={{ position: 'relative', overflow: 'visible' }}>
         {/* Left Arrow */}
-        {slides.length > 1 && canScrollLeft && (carouselSettings.showArrows !== false) && (
+        {slides.length > 1 && canScrollLeft && (carouselSettings?.showArrows !== false) && (
           <button
             onClick={(e) => handlePrevious(e)}
             style={{
@@ -553,7 +639,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         )}
 
         {/* Right Arrow */}
-        {slides.length > 1 && canScrollRight && (carouselSettings.showArrows !== false) && (
+        {slides.length > 1 && canScrollRight && (carouselSettings?.showArrows !== false) && (
           <button
             onClick={(e) => handleNext(e)}
             style={{
@@ -616,7 +702,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                 borderRadius: isBlockContext ? '' : '12px',
                 overflow: 'hidden',
                 backgroundColor: '#fff',
-                border: isBlockContext ? 'none' : '1px solid #e5e7eb',
+                border: isBlockContext ? 'none' : `1px solid ${borderColor}`,
                 boxShadow: isBlockContext ? 'none' : '0 1px 3px rgba(0, 0, 0, 0.1)',
                 cursor: slide.ctaUrl ? 'pointer' : 'default',
                 transition: 'transform 0.2s ease, box-shadow 0.2s ease'
@@ -669,7 +755,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                         <div style={{
                           fontWeight: isBlockContext ? '600' : '700',
                           fontSize: isBlockContext ? '16px' : '15px',
-                          color: '#111827',
+                          color: titleColor,
                           lineHeight: '1.3',
                           textAlign: 'left',
                           overflow: 'hidden',
@@ -684,7 +770,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                       {slide.description && (
                         <div style={{
                           fontSize: isBlockContext ? '13px' : '12px',
-                          color: '#6b7280',
+                          color: descriptionColor,
                           lineHeight: '1.4',
                           textAlign: 'left',
                           overflow: 'hidden',
@@ -703,9 +789,9 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                       <button
                         onClick={(e) => handleCtaClick(slide, e)}
                         style={{
-                          backgroundColor: isBlockContext ? '#2563eb' : '#f3f4f6',
-                          color: isBlockContext ? '#ffffff' : '#374151',
-                          border: isBlockContext ? 'none' : '1px solid #e5e7eb',
+                          backgroundColor: isBlockContext ? ctaBackgroundColor : ctaBackgroundColor,
+                          color: isBlockContext ? ctaTextColor : ctaTextColor,
+                          border: isBlockContext ? 'none' : `1px solid ${ctaBackgroundColor}`,
                           padding: isBlockContext ? '8px 20px' : '6px 14px',
                           borderRadius: isBlockContext ? '6px' : '8px',
                           fontWeight: '600',
@@ -715,14 +801,15 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                           whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={(e) => {
-                          if (isBlockContext) {
-                            e.currentTarget.style.backgroundColor = '#1d4ed8';
+                          // Darken background on hover
+                          const rgb = hexToRgb(ctaBackgroundColor);
+                          if (rgb) {
+                            const darkened = `rgb(${Math.max(0, rgb.r - 20)}, ${Math.max(0, rgb.g - 20)}, ${Math.max(0, rgb.b - 20)})`;
+                            e.currentTarget.style.backgroundColor = darkened;
                           }
                         }}
                         onMouseLeave={(e) => {
-                          if (isBlockContext) {
-                            e.currentTarget.style.backgroundColor = '#2563eb';
-                          }
+                          e.currentTarget.style.backgroundColor = ctaBackgroundColor;
                         }}
                       >
                         {slide.ctaText}

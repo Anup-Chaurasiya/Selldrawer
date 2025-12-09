@@ -72,15 +72,21 @@ import { Form, Link, useLoaderData } from "@remix-run/react";
          <h2>Product Tour</h2>
          <div className={styles.screenshotGrid}>
            <figure>
-             <img src="https://via.placeholder.com/720x420?text=Cart+Drawer+Preview" alt="Upsellity AI cart drawer preview" />
+             <div style={{ width: '720px', height: '420px', backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', borderRadius: '8px' }}>
+               🛒 Cart Drawer Preview
+             </div>
              <figcaption>Preview and launch a fully branded cart drawer in real time.</figcaption>
            </figure>
            <figure>
-             <img src="https://via.placeholder.com/720x420?text=AI+Recommendations" alt="AI recommendation settings" />
+             <div style={{ width: '720px', height: '420px', backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', borderRadius: '8px' }}>
+               🤖 AI Recommendations
+             </div>
              <figcaption>Configure hybrid upsell logic with manual rules and Shopify recommendations.</figcaption>
            </figure>
            <figure>
-             <img src="https://via.placeholder.com/720x420?text=Performance+Dashboard" alt="Performance analytics dashboard" />
+             <div style={{ width: '720px', height: '420px', backgroundColor: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', borderRadius: '8px' }}>
+               📊 Performance Dashboard
+             </div>
              <figcaption>Monitor campaigns, AOV lift, and customer engagement at a glance.</figcaption>
            </figure>
          </div>

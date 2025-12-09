@@ -31,6 +31,11 @@ export function renderCouponCodeField(config, appliedDiscount, availableDiscount
       enableAutoApply: couponField.enableAutoApply || false,
       appliedDiscount: appliedDiscount,
       availableDiscounts: availableDiscounts,
+      backgroundColor: couponField.backgroundColor || '#d1fae5',
+      textColor: couponField.textColor || '#065f46',
+      couponCodeColor: couponField.couponCodeColor || '',
+      borderColor: couponField.borderColor || '#059669',
+      appliedDiscountText: couponField.appliedDiscountText || '',
       onApplyCoupon: (code) => {
         if (window.upsellityDrawer) {
           window.upsellityDrawer.applyCouponWithCode(code);

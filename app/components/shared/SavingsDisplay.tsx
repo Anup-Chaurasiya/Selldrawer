@@ -10,6 +10,7 @@ interface SavingsDisplayProps {
   amount: number;
   backgroundColor?: string;
   textColor?: string;
+  borderColor?: string;
 }
 
 export const SavingsDisplay: React.FC<SavingsDisplayProps> = ({
@@ -17,6 +18,7 @@ export const SavingsDisplay: React.FC<SavingsDisplayProps> = ({
   amount,
   backgroundColor = '#dcfce7',
   textColor = '#15803d',
+  borderColor = '#ffffff',
 }) => {
   if (amount <= 0) {
     return null;
@@ -39,7 +41,7 @@ export const SavingsDisplay: React.FC<SavingsDisplayProps> = ({
       fontSize: '14px',
       fontWeight: '600',
       textAlign: 'center',
-      border: `1px solid ${textColor}40`,
+      border: `2px solid ${borderColor}`,
       boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
     }}>
       {formattedMessage}

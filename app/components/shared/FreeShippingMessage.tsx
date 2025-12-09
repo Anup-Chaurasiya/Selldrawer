@@ -12,6 +12,8 @@ interface FreeShippingMessageProps {
   achievedMessage: string;
   backgroundColor?: string;
   textColor?: string;
+  borderColor?: string;
+  icon?: string;
   currency?: string;
   isPreview?: boolean;
 }
@@ -23,6 +25,8 @@ export const FreeShippingMessage: React.FC<FreeShippingMessageProps> = ({
   achievedMessage,
   backgroundColor = '#fef3c7',
   textColor = '#92400e',
+  borderColor = '#92400e',
+  icon = '🚚',
   currency = 'INR',
   isPreview = false
 }) => {
@@ -40,7 +44,7 @@ export const FreeShippingMessage: React.FC<FreeShippingMessageProps> = ({
     <div style={{
       backgroundColor: backgroundColor,
       color: textColor,
-      border: `2px solid ${textColor}`,
+      border: `2px solid ${borderColor}`,
       padding: '14px 18px',
       borderRadius: '12px',
       display: 'flex',
@@ -71,7 +75,7 @@ export const FreeShippingMessage: React.FC<FreeShippingMessageProps> = ({
         zIndex: 1,
         ...(isPreview ? {} : { height: '20px', top: '-8px' })
       }}>
-        🚚
+        {icon}
       </div>
       
       {/* Message */}
