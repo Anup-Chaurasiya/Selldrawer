@@ -3,6 +3,7 @@ import { json } from "@remix-run/node";
 import { cors } from "remix-utils/cors";
 import prisma from "../db.server";
 import { normalizeFeatureOrder } from "../utils/featureOrder";
+import { checkPlanAccess } from "../utils/planAccess.server";
 
 /**
  * Public API endpoint for cart drawer data
@@ -19,6 +20,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   try {
+    // Check plan access for cart drawer feature
+    const planAccess = await checkPlanAccess(shop, 'cart_drawer');
+    
+    if (!planAccess.hasAccess) {
+      const response = json({ error: planAccess.reason, hasAccess: false }, { status: 403 });
+      return cors(request, response);
+    }
+
     // Get cart drawer configuration
     const cartDrawer = await prisma.cartDrawer.findUnique({
       where: { shop },
@@ -98,6 +107,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       cartDrawer.featureOrder = featureOrder ?? cartDrawer.featureOrder;
     }
 
+    // Transform product recommendations to ensure proper data structure
+    let productRecommendations = null;
+    if (cartDrawer.productRecommendationsEnabled && cartDrawer.productRecommendations[0]) {
+      const rec = cartDrawer.productRecommendations[0];
+      productRecommendations = {
+        ...rec,
+        products: (rec.products || []).map((product: any) => ({
+          id: product.shopifyProductId || product.id,
+          shopifyProductId: product.shopifyProductId,
+          shopifyVariantId: product.shopifyVariantId,
+          title: product.title,
+          price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
+          compareAtPrice: product.compareAtPrice ? (typeof product.compareAtPrice === 'string' ? parseFloat(product.compareAtPrice) : product.compareAtPrice) : null,
+          imageUrl: product.imageUrl,
+        }))
+      };
+    }
+
     const features = {
       freeShippingProgressBar: cartDrawer.freeShippingProgressBarEnabled && cartDrawer.freeShippingBars[0]
         ? cartDrawer.freeShippingBars[0]
@@ -105,9 +132,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       promotionalBanner: cartDrawer.promotionalBannerEnabled
         ? activePromotionalBanners[0]
         : null,
-      productRecommendations: cartDrawer.productRecommendationsEnabled && cartDrawer.productRecommendations[0]
-        ? cartDrawer.productRecommendations[0]
-        : null,
+      productRecommendations,
       couponCodeField: cartDrawer.couponCodeFieldEnabled && couponCodeField?.isActive
         ? couponCodeField
         : null,
@@ -146,4 +171,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     return cors(request, response);
   }
 };
+
+// Handle CORS preflight requests
+export async function options() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+}
 

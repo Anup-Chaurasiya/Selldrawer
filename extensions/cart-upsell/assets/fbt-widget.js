@@ -1,6 +1,6 @@
 /**
- * Upsellity FBT Widget v1.0.3
- * Built: 2025-12-04T14:37:47.471Z
+ * Upsellity FBT Widget v1.0.4
+ * Built: 2025-12-09T17:54:10.344Z
  */
 "use strict";
 (() => {
@@ -7962,10 +7962,10 @@
                 href: `/products/${product.handle}`,
                 onClick: handleProductClick,
                 style: { display: "block", cursor: "pointer", textDecoration: "none" },
-                children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                children: product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                   "img",
                   {
-                    src: product.imageUrl || "https://via.placeholder.com/150",
+                    src: product.imageUrl,
                     alt: product.title,
                     className: "upsellity-fbt-product-image",
                     style: {
@@ -7976,7 +7976,16 @@
                       background: "#f3f4f6"
                     }
                   }
-                )
+                ) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                  width: "100%",
+                  height: "80px",
+                  backgroundColor: "#f3f4f6",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "32px"
+                }, children: "\u{1F4E6}" })
               }
             ),
             discountPercent > 0 && showDiscount && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
@@ -8170,10 +8179,10 @@
                           }
                         ),
                         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative", marginBottom: "0.5rem", width: "100%" }, children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                          product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                             "img",
                             {
-                              src: product.imageUrl || "https://via.placeholder.com/150",
+                              src: product.imageUrl,
                               alt: product.title,
                               style: {
                                 width: "100%",
@@ -8183,7 +8192,16 @@
                                 background: "#f3f4f6"
                               }
                             }
-                          ),
+                          ) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                            width: "100%",
+                            height: "150px",
+                            backgroundColor: "#f3f4f6",
+                            borderRadius: "6px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "48px"
+                          }, children: "\u{1F4E6}" }),
                           discountPercent > 0 && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                             "div",
                             {
@@ -8462,10 +8480,10 @@
                       onClick: () => !isDisabled && handleToggle(variantId, !isSelected),
                       children: [
                         /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { position: "relative", width: "100%" }, children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                          product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                             "img",
                             {
-                              src: product.imageUrl || "https://via.placeholder.com/80",
+                              src: product.imageUrl,
                               alt: product.title,
                               style: {
                                 width: "100%",
@@ -8475,7 +8493,16 @@
                                 background: "#f3f4f6"
                               }
                             }
-                          ),
+                          ) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
+                            width: "100%",
+                            height: "110px",
+                            backgroundColor: "#f3f4f6",
+                            borderRadius: "8px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "40px"
+                          }, children: "\u{1F4E6}" }),
                           discountPercent > 0 && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
                             "div",
                             {
@@ -9482,7 +9509,6 @@
     appUrl: null,
     init(appUrl) {
       this.appUrl = appUrl;
-      console.log("[Upsellity Analytics] Initialized with app URL:", appUrl);
     },
     getSessionId() {
       try {
@@ -9542,7 +9568,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://system-myspace-dos-paying.trycloudflare.com/" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;
@@ -9586,9 +9612,6 @@
         this.enabled = data.enabled || false;
         this.config = data.config || null;
         this.recommendations = data.recommendations || [];
-        if (!this.enabled || !this.config) {
-          console.warn("FBT Widget: Feature is disabled or config is missing");
-        }
         return data;
       } catch (error) {
         console.error("Error loading FBT config:", error);

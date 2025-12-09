@@ -30,6 +30,7 @@ export function renderFreeShippingBar(config, cart, reactRoots = {}) {
       afterThresholdMessage: bar.afterThresholdMessage || '🎉 You qualify for FREE shipping!',
       backgroundColor: bar.backgroundColor || '#f0f9ff',
       progressBarColor: bar.progressBarColor || '#3b82f6',
+      borderColor: bar.borderColor || '#e2e8f0',
       showPercentage: bar.showPercentage ?? true,
       currency: bar.currency || 'INR',
       cart: cart,

@@ -1,6 +1,6 @@
 /**
- * Upsellity Cart Drawer v1.0.3
- * Built: 2025-12-04T14:37:47.476Z
+ * Upsellity Cart Drawer v1.0.4
+ * Built: 2025-12-09T17:54:10.326Z
  */
 "use strict";
 (() => {
@@ -8741,6 +8741,7 @@
     afterThresholdMessage = "\u{1F389} You qualify for FREE shipping!",
     backgroundColor = "#f0f9ff",
     progressBarColor = "#3b82f6",
+    borderColor = "#e2e8f0",
     showPercentage = true,
     currency = "INR",
     cart,
@@ -8787,17 +8788,17 @@
     const incompleteGradient = `linear-gradient(135deg, ${progressBarColor} 0%, ${progressBarColor}dd 100%)`;
     const percentageGradient = isComplete ? completeGradient : incompleteGradient;
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-      padding: "16px",
+      padding: "10px 12px",
       background: backgroundGradient,
       borderRadius: "12px",
-      border: "1px solid #e2e8f0",
+      border: `2px solid ${borderColor}`,
       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)"
     }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: "12px",
+        marginBottom: "8px",
         fontSize: "14px",
         fontWeight: "600"
       }, children: [
@@ -8805,7 +8806,7 @@
         showPercentage && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: {
           background: percentageGradient,
           color: "white",
-          padding: "4px 12px",
+          padding: "3px 10px",
           borderRadius: "20px",
           fontSize: "12px",
           fontWeight: "700",
@@ -8818,7 +8819,7 @@
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
         width: "100%",
-        height: "12px",
+        height: "10px",
         borderRadius: "8px",
         overflow: "hidden",
         background: backgroundColor,
@@ -8838,6 +8839,14 @@
   // app/components/shared/PromotionalBannerCard.tsx
   var import_react = __toESM(require_react(), 1);
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
+  var hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  };
   var getYouTubeEmbedUrl = (url) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
@@ -8857,7 +8866,12 @@
     onImpression,
     isPreview = false,
     context = "cart-drawer",
-    maxHeight = "180px"
+    maxHeight = "180px",
+    titleColor = "#111827",
+    descriptionColor = "#6b7280",
+    ctaTextColor = "#374151",
+    ctaBackgroundColor = "#f3f4f6",
+    borderColor = "#e5e7eb"
   }) => {
     const [currentIndex, setCurrentIndex] = (0, import_react.useState)(0);
     const [canScrollLeft, setCanScrollLeft] = (0, import_react.useState)(false);
@@ -8904,7 +8918,7 @@
       }
     }, [slides]);
     (0, import_react.useEffect)(() => {
-      if (!slides || slides.length <= 1 || carouselSettings.autoRotate === false) {
+      if (!slides || slides.length <= 1 || !carouselSettings || carouselSettings.autoRotate === false) {
         return;
       }
       const interval = setInterval(() => {
@@ -8929,15 +8943,15 @@
         setTimeout(() => {
           isScrolling.current = false;
         }, 500);
-      }, carouselSettings.rotationSpeed || 5e3);
+      }, (carouselSettings == null ? void 0 : carouselSettings.rotationSpeed) || 5e3);
       return () => clearInterval(interval);
-    }, [slides.length, carouselSettings.autoRotate, carouselSettings.rotationSpeed, isBlockContext]);
+    }, [slides.length, carouselSettings == null ? void 0 : carouselSettings.autoRotate, carouselSettings == null ? void 0 : carouselSettings.rotationSpeed, isBlockContext]);
     if (!slides || slides.length === 0) {
       return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
         borderRadius: "12px",
         overflow: "hidden",
         backgroundColor: "#fff",
-        border: "1px solid #e5e7eb",
+        border: `1px solid ${borderColor}`,
         boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
       }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
@@ -9083,6 +9097,24 @@
         ] })
       ] });
     }
+    const normalizeImageUrl = (url) => {
+      if (!url || typeof url !== "string" || url.trim() === "") {
+        return null;
+      }
+      const trimmedUrl = url.trim();
+      if (/^https?:\/\//i.test(trimmedUrl)) {
+        return trimmedUrl;
+      }
+      if (trimmedUrl.startsWith("//")) {
+        return `https:${trimmedUrl}`;
+      }
+      if (trimmedUrl.startsWith("/")) {
+        console.warn("[PromotionalBanner] Invalid relative image URL detected:", trimmedUrl);
+        return null;
+      }
+      console.warn("[PromotionalBanner] Potentially invalid image URL:", trimmedUrl);
+      return null;
+    };
     const renderMedia = (slide) => {
       if (slide.videoUrl && slide.videoType) {
         if (slide.videoType === "youtube") {
@@ -9131,36 +9163,63 @@
             );
           }
         } else if (slide.videoType === "mp4") {
-          return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-            "video",
-            {
-              src: slide.videoUrl,
-              style: {
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                pointerEvents: "none"
-              },
-              autoPlay: true,
-              loop: true,
-              muted: true,
-              playsInline: true
-            }
-          );
-        }
-      }
-      return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-        "img",
-        {
-          src: slide.imageUrl || "https://via.placeholder.com/400x200",
-          alt: "Promotional banner",
-          style: {
-            width: "100%",
-            height: "100%",
-            objectFit: "cover"
+          const normalizedVideoUrl = normalizeImageUrl(slide.videoUrl);
+          if (normalizedVideoUrl) {
+            return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              "video",
+              {
+                src: normalizedVideoUrl,
+                style: {
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  pointerEvents: "none"
+                },
+                autoPlay: true,
+                loop: true,
+                muted: true,
+                playsInline: true,
+                onError: (e) => {
+                  console.error("[PromotionalBanner] Video failed to load:", normalizedVideoUrl);
+                  e.currentTarget.style.display = "none";
+                }
+              }
+            );
           }
         }
-      );
+      }
+      const normalizedImageUrl = normalizeImageUrl(slide.imageUrl);
+      if (normalizedImageUrl) {
+        return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "img",
+          {
+            src: normalizedImageUrl,
+            alt: slide.title || "Promotional banner",
+            style: {
+              width: "100%",
+              height: "100%",
+              objectFit: "cover"
+            },
+            onError: (e) => {
+              console.error("[PromotionalBanner] Image failed to load:", normalizedImageUrl);
+              e.currentTarget.style.display = "none";
+              const parent = e.currentTarget.parentElement;
+              if (parent) {
+                parent.innerHTML = '<div style="width: 100%; height: 100%; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 48px;">\u{1F5BC}\uFE0F</div>';
+              }
+            }
+          }
+        );
+      }
+      return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+        width: "100%",
+        height: "100%",
+        backgroundColor: "#f3f4f6",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "48px"
+      }, children: "\u{1F5BC}\uFE0F" });
     };
     const scrollToIndex = (index) => {
       const container = scrollContainerRef.current;
@@ -9259,7 +9318,7 @@
         ` : ""}
       ` }),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative", overflow: "visible" }, children: [
-        slides.length > 1 && canScrollLeft && carouselSettings.showArrows !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        slides.length > 1 && canScrollLeft && (carouselSettings == null ? void 0 : carouselSettings.showArrows) !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "button",
           {
             onClick: (e) => handlePrevious(e),
@@ -9296,7 +9355,7 @@
             children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px", color: "#374151", fontWeight: "300" }, children: "\u2039" })
           }
         ),
-        slides.length > 1 && canScrollRight && carouselSettings.showArrows !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+        slides.length > 1 && canScrollRight && (carouselSettings == null ? void 0 : carouselSettings.showArrows) !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "button",
           {
             onClick: (e) => handleNext(e),
@@ -9358,7 +9417,7 @@
                   borderRadius: isBlockContext ? "" : "12px",
                   overflow: "hidden",
                   backgroundColor: "#fff",
-                  border: isBlockContext ? "none" : "1px solid #e5e7eb",
+                  border: isBlockContext ? "none" : `1px solid ${borderColor}`,
                   boxShadow: isBlockContext ? "none" : "0 1px 3px rgba(0, 0, 0, 0.1)",
                   cursor: slide.ctaUrl ? "pointer" : "default",
                   transition: "transform 0.2s ease, box-shadow 0.2s ease"
@@ -9402,7 +9461,7 @@
                       slide.title && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
                         fontWeight: isBlockContext ? "600" : "700",
                         fontSize: isBlockContext ? "16px" : "15px",
-                        color: "#111827",
+                        color: titleColor,
                         lineHeight: "1.3",
                         textAlign: "left",
                         overflow: "hidden",
@@ -9411,7 +9470,7 @@
                       }, children: slide.title }),
                       slide.description && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
                         fontSize: isBlockContext ? "13px" : "12px",
-                        color: "#6b7280",
+                        color: descriptionColor,
                         lineHeight: "1.4",
                         textAlign: "left",
                         overflow: "hidden",
@@ -9424,9 +9483,9 @@
                       {
                         onClick: (e) => handleCtaClick(slide, e),
                         style: {
-                          backgroundColor: isBlockContext ? "#2563eb" : "#f3f4f6",
-                          color: isBlockContext ? "#ffffff" : "#374151",
-                          border: isBlockContext ? "none" : "1px solid #e5e7eb",
+                          backgroundColor: isBlockContext ? ctaBackgroundColor : ctaBackgroundColor,
+                          color: isBlockContext ? ctaTextColor : ctaTextColor,
+                          border: isBlockContext ? "none" : `1px solid ${ctaBackgroundColor}`,
                           padding: isBlockContext ? "8px 20px" : "6px 14px",
                           borderRadius: isBlockContext ? "6px" : "8px",
                           fontWeight: "600",
@@ -9436,14 +9495,14 @@
                           whiteSpace: "nowrap"
                         },
                         onMouseEnter: (e) => {
-                          if (isBlockContext) {
-                            e.currentTarget.style.backgroundColor = "#1d4ed8";
+                          const rgb = hexToRgb(ctaBackgroundColor);
+                          if (rgb) {
+                            const darkened = `rgb(${Math.max(0, rgb.r - 20)}, ${Math.max(0, rgb.g - 20)}, ${Math.max(0, rgb.b - 20)})`;
+                            e.currentTarget.style.backgroundColor = darkened;
                           }
                         },
                         onMouseLeave: (e) => {
-                          if (isBlockContext) {
-                            e.currentTarget.style.backgroundColor = "#2563eb";
-                          }
+                          e.currentTarget.style.backgroundColor = ctaBackgroundColor;
                         },
                         children: slide.ctaText
                       }
@@ -10260,7 +10319,8 @@
     message,
     amount,
     backgroundColor = "#dcfce7",
-    textColor = "#15803d"
+    textColor = "#15803d",
+    borderColor = "#ffffff"
   }) => {
     if (amount <= 0) {
       return null;
@@ -10278,7 +10338,7 @@
       fontSize: "14px",
       fontWeight: "600",
       textAlign: "center",
-      border: `1px solid ${textColor}40`,
+      border: `2px solid ${borderColor}`,
       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)"
     }, children: formattedMessage });
   };
@@ -10292,6 +10352,8 @@
     achievedMessage,
     backgroundColor = "#fef3c7",
     textColor = "#92400e",
+    borderColor = "#92400e",
+    icon = "\u{1F69A}",
     currency = "INR",
     isPreview = false
   }) => {
@@ -10302,7 +10364,7 @@
     return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: {
       backgroundColor,
       color: textColor,
-      border: `2px solid ${textColor}`,
+      border: `2px solid ${borderColor}`,
       padding: "14px 18px",
       borderRadius: "12px",
       display: "flex",
@@ -10328,7 +10390,7 @@
         flexShrink: 0,
         position: "relative",
         zIndex: 1
-      }, isPreview ? {} : { height: "20px", top: "-8px" }), children: "\u{1F69A}" }),
+      }, isPreview ? {} : { height: "20px", top: "-8px" }), children: icon }),
       /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { style: {
         position: "relative",
         zIndex: 1,
@@ -10362,6 +10424,11 @@
     },
     onSwitchDiscount = () => {
     },
+    backgroundColor = "#d1fae5",
+    textColor = "#065f46",
+    couponCodeColor,
+    borderColor = "#059669",
+    appliedDiscountText,
     isPreview = false
   }) => {
     const [couponCode, setCouponCode] = (0, import_react4.useState)("");
@@ -10434,8 +10501,8 @@
         )
       ] }),
       appliedDiscount && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
-        backgroundColor: "#d1fae5",
-        border: "2px solid #059669",
+        backgroundColor,
+        border: `2px solid ${borderColor}`,
         borderRadius: "10px",
         padding: "12px 16px",
         marginBottom: "12px",
@@ -10447,7 +10514,7 @@
           width: "24px",
           height: "24px",
           borderRadius: "50%",
-          backgroundColor: "#059669",
+          backgroundColor: borderColor,
           color: "white",
           display: "flex",
           alignItems: "center",
@@ -10458,7 +10525,7 @@
           /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
             fontSize: "14px",
             fontWeight: "600",
-            color: "#065f46",
+            color: couponCodeColor || textColor,
             marginBottom: "2px"
           }, children: [
             appliedDiscount.code,
@@ -10467,8 +10534,8 @@
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
             fontSize: "12px",
-            color: "#059669"
-          }, children: enableAutoApply ? "Best offer automatically applied" : "Applied" })
+            color: borderColor
+          }, children: appliedDiscountText || (enableAutoApply ? "Best offer automatically applied" : "Applied") })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
           "button",
@@ -10503,8 +10570,6 @@
               padding: "0 15px",
               backgroundColor: "transparent",
               border: "none",
-              // fontSize: '14px',
-              // fontWeight: '500',
               color: "#374151",
               cursor: isPreview ? "default" : "pointer",
               display: "flex",
@@ -10544,7 +10609,7 @@
               borderBottom: "1px solid #f3f4f6",
               cursor: isPreview ? "default" : "pointer",
               transition: "background-color 0.2s ease",
-              backgroundColor: (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? "#f0fdf4" : "transparent",
+              backgroundColor: (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? backgroundColor : "transparent",
               display: "flex",
               alignItems: "center",
               gap: "12px"
@@ -10554,12 +10619,12 @@
                 width: "20px",
                 height: "20px",
                 borderRadius: "50%",
-                border: `2px solid ${(appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? "#059669" : "#d1d5db"}`,
+                border: `2px solid ${(appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? borderColor : "#d1d5db"}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0
-              }, children: (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 12, color: "#059669" }) }),
+              }, children: (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 12, color: borderColor }) }),
               /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { flex: 1 }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
                   fontSize: "14px",
@@ -10786,7 +10851,7 @@
     const allUnlocked = sortedMilestones.every((m) => m.status === "unlocked");
     const displayMessage = allUnlocked ? sortedMilestones.length === 1 ? sortedMilestones[0].message : allUnlockedMessage || "\u{1F389} Congratulations! All rewards unlocked!" : (nextMilestone == null ? void 0 : nextMilestone.message) || "";
     const finalProgressBarColor = progressBarColor || "#3b82f6";
-    const hexToRgb = (hex) => {
+    const hexToRgb2 = (hex) => {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
       return result ? {
         r: parseInt(result[1], 16),
@@ -10795,7 +10860,7 @@
       } : null;
     };
     const getGradient = (color) => {
-      const rgb = hexToRgb(color);
+      const rgb = hexToRgb2(color);
       if (rgb) {
         const darkerR = Math.max(0, rgb.r - 20);
         const darkerG = Math.max(0, rgb.g - 20);
@@ -11061,6 +11126,7 @@
               afterThresholdMessage: bar.afterThresholdMessage || "\u{1F389} You qualify for FREE shipping!",
               backgroundColor: bar.backgroundColor || "#f0f9ff",
               progressBarColor: bar.progressBarColor || "#3b82f6",
+              borderColor: bar.borderColor || "#e2e8f0",
               showPercentage: (_b2 = bar.showPercentage) != null ? _b2 : true,
               currency: bar.currency || "INR",
               cart,
@@ -11080,6 +11146,11 @@
             {
               slides,
               carouselSettings: banner.carouselSettings || {},
+              titleColor: banner.titleColor || "#111827",
+              descriptionColor: banner.descriptionColor || "#6b7280",
+              ctaTextColor: banner.ctaTextColor || "#374151",
+              ctaBackgroundColor: banner.ctaBackgroundColor || "#f3f4f6",
+              borderColor: banner.borderColor || "#e5e7eb",
               onCtaClick: (url) => {
                 if (onFeatureClick)
                   onFeatureClick("promotional_banner", { url });
@@ -11129,6 +11200,7 @@
               amount: totalSavings,
               backgroundColor: savingsCfg.backgroundColor || "#dcfce7",
               textColor: savingsCfg.textColor || "#15803d",
+              borderColor: savingsCfg.borderColor || "#ffffff",
               isPreview: false
             }
           ) }, featureId);
@@ -11146,6 +11218,8 @@
               achievedMessage: msg.achievedMessage || "You qualify for FREE shipping!",
               backgroundColor: msg.backgroundColor || "#fef3c7",
               textColor: msg.textColor || "#92400e",
+              borderColor: msg.borderColor || "#92400e",
+              icon: msg.icon || "\u{1F69A}",
               currency: msg.currency || "INR",
               isPreview: false
             }
@@ -11166,6 +11240,11 @@
               enableAutoApply: couponField.enableAutoApply || false,
               appliedDiscount,
               availableDiscounts,
+              backgroundColor: couponField.backgroundColor || "#d1fae5",
+              textColor: couponField.textColor || "#065f46",
+              couponCodeColor: couponField.couponCodeColor || "",
+              borderColor: couponField.borderColor || "#059669",
+              appliedDiscountText: couponField.appliedDiscountText || "",
               onApplyCoupon,
               onRemoveDiscount,
               onSwitchDiscount,
@@ -11293,7 +11372,6 @@
     appUrl: null,
     init(appUrl) {
       this.appUrl = appUrl;
-      console.log("[Upsellity Analytics] Initialized with app URL:", appUrl);
     },
     getSessionId() {
       try {
@@ -11864,8 +11942,8 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://system-myspace-dos-paying.trycloudflare.com/" : "https://app.upsellity.com";
-  var CART_DRAWER_VERSION = true ? "1.0.3" : "dev";
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var CART_DRAWER_VERSION = true ? "1.0.4" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {
       window.upsellityDrawer = new UpsellityCartDrawer(APP_URL);

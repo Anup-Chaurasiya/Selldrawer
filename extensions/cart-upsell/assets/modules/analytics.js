@@ -4,7 +4,6 @@ export const Analytics = {
   
   init(appUrl) {
     this.appUrl = appUrl;
-    console.log('[Upsellity Analytics] Initialized with app URL:', appUrl);
   },
   
   getSessionId() {

@@ -120,6 +120,7 @@ export const UnifiedCartDrawer = ({
               afterThresholdMessage={bar.afterThresholdMessage || '🎉 You qualify for FREE shipping!'}
               backgroundColor={bar.backgroundColor || '#f0f9ff'}
               progressBarColor={bar.progressBarColor || '#3b82f6'}
+              borderColor={bar.borderColor || '#e2e8f0'}
               showPercentage={bar.showPercentage ?? true}
               currency={bar.currency || 'INR'}
               cart={cart}
@@ -141,6 +142,11 @@ export const UnifiedCartDrawer = ({
             <PromotionalBannerCard
               slides={slides}
               carouselSettings={banner.carouselSettings || {}}
+              titleColor={banner.titleColor || '#111827'}
+              descriptionColor={banner.descriptionColor || '#6b7280'}
+              ctaTextColor={banner.ctaTextColor || '#374151'}
+              ctaBackgroundColor={banner.ctaBackgroundColor || '#f3f4f6'}
+              borderColor={banner.borderColor || '#e5e7eb'}
               onCtaClick={(url) => {
                 if (onFeatureClick) onFeatureClick('promotional_banner', { url });
                 if (onSlideCtaClick) onSlideCtaClick(url);
@@ -192,6 +198,7 @@ export const UnifiedCartDrawer = ({
               amount={totalSavings}
               backgroundColor={savingsCfg.backgroundColor || '#dcfce7'}
               textColor={savingsCfg.textColor || '#15803d'}
+              borderColor={savingsCfg.borderColor || '#ffffff'}
               isPreview={false}
             />
           </div>
@@ -211,6 +218,8 @@ export const UnifiedCartDrawer = ({
               achievedMessage={msg.achievedMessage || 'You qualify for FREE shipping!'}
               backgroundColor={msg.backgroundColor || '#fef3c7'}
               textColor={msg.textColor || '#92400e'}
+              borderColor={msg.borderColor || '#92400e'}
+              icon={msg.icon || '🚚'}
               currency={msg.currency || 'INR'}
               isPreview={false}
             />
@@ -233,6 +242,11 @@ export const UnifiedCartDrawer = ({
               enableAutoApply={couponField.enableAutoApply || false}
               appliedDiscount={appliedDiscount}
               availableDiscounts={availableDiscounts}
+              backgroundColor={couponField.backgroundColor || '#d1fae5'}
+              textColor={couponField.textColor || '#065f46'}
+              couponCodeColor={couponField.couponCodeColor || ''}
+              borderColor={couponField.borderColor || '#059669'}
+              appliedDiscountText={couponField.appliedDiscountText || ''}
               onApplyCoupon={onApplyCoupon}
               onRemoveDiscount={onRemoveDiscount}
               onSwitchDiscount={onSwitchDiscount}

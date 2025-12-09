@@ -1,6 +1,7 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { checkOrderLimit } from "../utils/planAccess.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, payload, topic } = await authenticate.webhook(request);
@@ -12,6 +13,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (!order.line_items) {
     return new Response();
+  }
+
+  // Check order limit for the shop
+  const orderLimitCheck = await checkOrderLimit(shop);
+  if (!orderLimitCheck.withinLimit) {
+    console.log(`Order limit reached for ${shop}: ${orderLimitCheck.currentCount}/${orderLimitCheck.limit}`);
+    // Still process the order but log the limit reached
   }
 
   // Check line items for _upsell_source property

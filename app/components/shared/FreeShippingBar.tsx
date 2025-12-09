@@ -18,6 +18,7 @@ interface FreeShippingBarProps {
   afterThresholdMessage?: string;
   backgroundColor?: string;
   progressBarColor?: string;
+  borderColor?: string;
   showPercentage?: boolean;
   currency?: string;
   cart: Cart;
@@ -32,6 +33,7 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
   afterThresholdMessage = "🎉 You qualify for FREE shipping!",
   backgroundColor = '#f0f9ff',
   progressBarColor = '#3b82f6',
+  borderColor = '#e2e8f0',
   showPercentage = true,
   currency = 'INR',
   cart,
@@ -88,10 +90,10 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
 
   return (
     <div style={{
-      padding: '16px',
+      padding: '10px 12px',
       background: backgroundGradient,
       borderRadius: '12px',
-      border: '1px solid #e2e8f0',
+      border: `2px solid ${borderColor}`,
       boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
     }}>
       {/* Progress Text and Percentage */}
@@ -99,7 +101,7 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '12px',
+        marginBottom: '8px',
         fontSize: '14px',
         fontWeight: '600'
       }}>
@@ -110,7 +112,7 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
           <span style={{
             background: percentageGradient,
             color: 'white',
-            padding: '4px 12px',
+            padding: '3px 10px',
             borderRadius: '20px',
             fontSize: '12px',
             fontWeight: '700',
@@ -125,7 +127,7 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
       {/* Progress Bar Track */}
       <div style={{
         width: '100%',
-        height: '12px',
+        height: '10px',
         borderRadius: '8px',
         overflow: 'hidden',
         background: backgroundColor,

@@ -63,10 +63,6 @@ class FrequentlyBoughtTogether {
       this.config = data.config || null;
       this.recommendations = data.recommendations || [];
       
-      if (!this.enabled || !this.config) {
-        console.warn('FBT Widget: Feature is disabled or config is missing');
-      }
-      
       return data;
     } catch (error) {
       console.error('Error loading FBT config:', error);

@@ -22,6 +22,7 @@ import { CheckIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { checkAppEmbedEnabled } from "../utils/appEmbed.server";
+import { BILLING_PLANS } from "../utils/billingPlans";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing, session, admin } = await authenticate.admin(request);
@@ -113,53 +114,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   aggregatedData.totalOrders = uniqueOrderIds.size;
 
   // Get available plans from billing configuration
-  const plans = [
-    {
-      id: "growth",
-      name: "Growth plan",
-      price: "$29.99",
-      interval: "month",
-      trial: "14 days",
-      features: [
-        "High converting cart",
-        "Customizable design",
-        "Countdown and announcements",
-        "Motivator bar for free shipping and discounts",
-        "Upsells and add-ons",
-        "Discount codes",
-        "Notes",
-        "Recommended for most stores",
-      ],
-      isPopular: true,
-      maxPrice: "$199.99",
-      scalingNote: "Charges increase based on store orders up to a maximum of $199.99/month.",
-    },
-    {
-      id: "enterprise",
-      name: "Enterprise plan",
-      price: "$299.00",
-      interval: "month",
-      trial: "14 days",
-      features: [
-        "High converting cart",
-        "Customizable design",
-        "Countdown and announcements",
-        "Motivator bar for free shipping and discounts",
-        "Upsells and add-ons",
-        "Discount codes",
-        "Notes",
-        "Priority support in-app and via email",
-      ],
-      isPopular: false,
-      scalingNote: "Fixed price of $299.00/month. Charges do not scale with orders. This should only be considered by larger stores.",
-    },
-  ];
+  const plans = BILLING_PLANS;
 
   return json({ 
     subscription, 
     hasActiveSubscription: !!subscription && subscription.status === "ACTIVE",
     shop,
-    plans,
+    plans: plans.filter(p => p.id !== 'trial'), // Don't show trial plan in selection
     appEmbedEnabled,
     shopDomain: process.env.SHOPIFY_SHOP_DOMAIN || 'admin.shopify.com',
     apiKey: process.env.SHOPIFY_API_KEY || '',
@@ -247,29 +208,30 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
     }
 
-    // Store pending subscription in database
-    await prisma.appSubscription.upsert({
-      where: { shop },
-      create: {
-        shop,
-        planId,
-        planName: planId === "growth" ? "Growth plan" : "Enterprise plan",
-        status: "PENDING",
-        amount: planId === "growth" ? 29.99 : 299.0,
-        currencyCode: "USD",
-        interval: "EVERY_30_DAYS",
-        trialDays: 14,
-        shopifyConfirmationUrl: confirmationUrl,
-      },
-      update: {
-        planId,
-        planName: planId === "growth" ? "Growth plan" : "Enterprise plan",
-        status: "PENDING",
-        amount: planId === "growth" ? 29.99 : 299.0,
-        shopifyConfirmationUrl: confirmationUrl,
-        updatedAt: new Date(),
-      },
-    });
+      // Store pending subscription in database
+      const selectedPlan = BILLING_PLANS.find(p => p.id === planId);
+      await prisma.appSubscription.upsert({
+        where: { shop },
+        create: {
+          shop,
+          planId,
+          planName: selectedPlan?.name || planId,
+          status: "PENDING",
+          amount: selectedPlan?.monthlyPrice || 0,
+          currencyCode: "USD",
+          interval: "EVERY_30_DAYS",
+          trialDays: 14,
+          shopifyConfirmationUrl: confirmationUrl,
+        },
+        update: {
+          planId,
+          planName: selectedPlan?.name || planId,
+          status: "PENDING",
+          amount: selectedPlan?.monthlyPrice || 0,
+          shopifyConfirmationUrl: confirmationUrl,
+          updatedAt: new Date(),
+        },
+      });
     
     
     // Return confirmation URL for frontend redirect
@@ -521,13 +483,19 @@ export default function Index() {
                   <Divider />
 
                   {/* CTA to Cart Drawer */}
-                  <InlineStack align="center">
+                  <InlineStack align="center" gap="400">
                     <Button
                       variant="primary"
                       size="large"
                       onClick={() => navigate("/app/cart-drawer")}
                     >
                       Customize Your Cart Drawer
+                    </Button>
+                    <Button
+                      size="large"
+                      onClick={() => navigate("/app/billing")}
+                    >
+                      Manage Billing
                     </Button>
                   </InlineStack>
                 </BlockStack>
@@ -562,14 +530,19 @@ export default function Index() {
         {/* Pricing Cards */}
         <Layout>
           {plans.map((plan) => (
-            <Layout.Section key={plan.id} variant={plan.id === "growth" ? "oneHalf" : "oneHalf"}>
+            <Layout.Section key={plan.id} variant="oneThird">
               <Card>
                 <BlockStack gap="400">
                   {/* Plan Header */}
                   <InlineStack align="space-between" blockAlign="start">
-                    <Text as="h2" variant="headingLg">
-                      {plan.name}
-                    </Text>
+                    <BlockStack gap="100">
+                      <Text as="h2" variant="headingLg">
+                        {plan.name}
+                      </Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        {plan.tagline}
+                      </Text>
+                    </BlockStack>
                     {plan.isPopular && (
                       <Badge tone="info">Most popular</Badge>
                     )}
@@ -579,28 +552,17 @@ export default function Index() {
 
                   {/* Pricing */}
                   <BlockStack gap="200">
-                    <Text as="h3" variant="headingMd">
-                      Pricing
+                    <Text as="h3" variant="headingLg">
+                      ${plan.monthlyPrice}
+                      <Text as="span" variant="bodyMd" tone="subdued">
+                        /month
+                      </Text>
                     </Text>
-                    <Text as="p" variant="bodyMd">
-                      Starting from <strong>{plan.price}/month</strong>.{" "}
-                      {plan.id === "growth" && "maxPrice" in plan && (
-                        <>
-                          Charges{" "}
-                          <a
-                            href="#"
-                            style={{ color: "#005bd3", textDecoration: "underline" }}
-                          >
-                            increase based on store orders
-                          </a>{" "}
-                          up to a maximum of {plan.maxPrice}/month.
-                        </>
-                      )}
-                      {plan.id === "enterprise" && (
-                        <>
-                          Fixed price of {plan.price}/month. Charges do not scale with orders. This should only be considered by larger stores.
-                        </>
-                      )}
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      ${plan.annualPrice}/year
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {plan.orderCap}
                     </Text>
                   </BlockStack>
 
@@ -612,16 +574,21 @@ export default function Index() {
                       Features
                     </Text>
                     <BlockStack gap="200">
-                      {plan.features.map((feature, index) => (
+                      {plan.features.slice(0, 6).map((feature, index) => (
                         <InlineStack key={index} gap="200" blockAlign="start">
                           <Box>
                             <Icon source={CheckIcon} tone="success" />
                           </Box>
-                          <Text as="p" variant="bodyMd">
+                          <Text as="p" variant="bodySm">
                             {feature}
                           </Text>
                         </InlineStack>
                       ))}
+                      {plan.features.length > 6 && (
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          +{plan.features.length - 6} more features
+                        </Text>
+                      )}
                     </BlockStack>
                   </BlockStack>
 

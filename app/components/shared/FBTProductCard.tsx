@@ -113,18 +113,33 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
           onClick={handleProductClick}
           style={{ display: 'block', cursor: 'pointer', textDecoration: 'none' }}
         >
-          <img 
-            src={product.imageUrl || 'https://via.placeholder.com/150'} 
-            alt={product.title}
-            className="upsellity-fbt-product-image"
-            style={{
+          {product.imageUrl ? (
+            <img 
+              src={product.imageUrl} 
+              alt={product.title}
+              className="upsellity-fbt-product-image"
+              style={{
+                width: '100%',
+                height: '80px',
+                objectFit: 'cover',
+                borderRadius: '4px',
+                background: '#f3f4f6'
+              }}
+            />
+          ) : (
+            <div style={{
               width: '100%',
               height: '80px',
-              objectFit: 'cover',
+              backgroundColor: '#f3f4f6',
               borderRadius: '4px',
-              background: '#f3f4f6'
-            }}
-          />
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '32px'
+            }}>
+              📦
+            </div>
+          )}
         </a>
         {discountPercent > 0 && showDiscount && (
           <div 

@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
+import { useLoaderData, useSubmit, useNavigation, useActionData } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -26,14 +26,18 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { useState, useCallback } from "react";
-import { DeleteIcon, PlusIcon } from "@shopify/polaris-icons";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { DeleteIcon, PlusIcon, EditIcon } from "@shopify/polaris-icons";
 import { FBTWidget } from "../components/shared/FBTWidget";
 import type { FBTProduct } from "../components/shared/FBTProductCard";
+import { checkPlanAccess } from "../utils/planAccess.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
+
+  // Check plan access for FBT feature
+  const planAccess = await checkPlanAccess(shop, 'fbt');
 
   // Get or create FBT configuration
   let fbtConfig = await prisma.frequentlyBoughtTogether.findUnique({
@@ -67,14 +71,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
   }
 
-  // Fetch products from Shopify
+  // Fetch products from Shopify (only active products)
   let shopProducts: any[] = [];
   let shopCollections: any[] = [];
 
   try {
     const response = await admin.graphql(`
-      query getProducts($first: Int!) {
-        products(first: $first) {
+      query getProducts($first: Int!, $query: String!) {
+        products(first: $first, query: $query) {
           edges {
             node {
               id
@@ -103,31 +107,36 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         }
       }
     `, {
-      variables: { first: 100 }
+      variables: { 
+        first: 100,
+        query: "status:active"
+      }
     });
 
     const responseJson = await response.json();
 
     if (responseJson.data?.products?.edges) {
-      shopProducts = responseJson.data.products.edges.map((edge: any) => {
-        const product = edge.node;
-        const image = product.images.edges[0]?.node;
-        const variant = product.variants.edges[0]?.node;
+      shopProducts = responseJson.data.products.edges
+        .filter((edge: any) => edge.node.status === 'ACTIVE')
+        .map((edge: any) => {
+          const product = edge.node;
+          const image = product.images.edges[0]?.node;
+          const variant = product.variants.edges[0]?.node;
 
-        return {
-          id: product.handle,
-          shopifyProductId: product.id.replace('gid://shopify/Product/', ''),
-          title: product.title,
-          handle: product.handle,
-          status: product.status.toLowerCase(),
-          images: image ? [{ src: image.url, alt: image.altText }] : [],
-          variants: variant ? [{
-            id: variant.id.replace('gid://shopify/ProductVariant/', ''),
-            price: variant.price,
-            compare_at_price: variant.compareAtPrice
-          }] : []
-        };
-      });
+          return {
+            id: product.handle,
+            shopifyProductId: product.id.replace('gid://shopify/Product/', ''),
+            title: product.title,
+            handle: product.handle,
+            status: product.status.toLowerCase(),
+            images: image ? [{ src: image.url, alt: image.altText }] : [],
+            variants: variant ? [{
+              id: variant.id.replace('gid://shopify/ProductVariant/', ''),
+              price: variant.price,
+              compare_at_price: variant.compareAtPrice
+            }] : []
+          };
+        });
     }
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -170,7 +179,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.error('Error fetching collections:', error);
   }
 
-  return json({ fbtConfig, shopProducts, shopCollections });
+  return json({ fbtConfig, shopProducts, shopCollections, planAccess });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -262,6 +271,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               id
               title
               handle
+              status
               images(first: 1) {
                 edges {
                   node {
@@ -288,6 +298,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
         if (responseJson.data?.productByHandle) {
           const product = responseJson.data.productByHandle;
+          
+          // Only save active products
+          if (product.status !== 'ACTIVE') {
+            console.warn(`Skipping product ${productHandle}: status is ${product.status}, only ACTIVE products are allowed`);
+            continue;
+          }
+          
           const variant = product.variants.edges[0]?.node;
           const image = product.images.edges[0]?.node;
 
@@ -323,6 +340,102 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ success: true });
   }
 
+  if (intent === "update-rule") {
+    const ruleId = formData.get("ruleId") as string;
+    const triggerType = formData.get("triggerType") as string;
+    const triggerValue = formData.get("triggerValue") as string;
+    const triggerProductId = formData.get("triggerProductId") as string;
+    const triggerTitle = formData.get("triggerTitle") as string;
+    const upsellProducts = JSON.parse(formData.get("upsellProducts") as string || "[]");
+
+    // Update the rule
+    await prisma.fBTRule.update({
+      where: { id: ruleId },
+      data: {
+        triggerType,
+        triggerValue,
+        triggerProductId,
+        triggerTitle,
+      }
+    });
+
+    // Delete existing products for this rule
+    await prisma.fBTProduct.deleteMany({
+      where: { ruleId }
+    });
+
+    // Add updated upsell products
+    for (let i = 0; i < upsellProducts.length; i++) {
+      const productHandle = upsellProducts[i];
+
+      try {
+        const response = await admin.graphql(`
+          query getProductByHandle($handle: String!) {
+            productByHandle(handle: $handle) {
+              id
+              title
+              handle
+              status
+              images(first: 1) {
+                edges {
+                  node {
+                    url
+                  }
+                }
+              }
+              variants(first: 1) {
+                edges {
+                  node {
+                    id
+                    price
+                    compareAtPrice
+                  }
+                }
+              }
+            }
+          }
+        `, {
+          variables: { handle: productHandle }
+        });
+
+        const responseJson = await response.json();
+
+        if (responseJson.data?.productByHandle) {
+          const product = responseJson.data.productByHandle;
+          
+          // Only save active products
+          if (product.status !== 'ACTIVE') {
+            console.warn(`Skipping product ${productHandle}: status is ${product.status}, only ACTIVE products are allowed`);
+            continue;
+          }
+          
+          const variant = product.variants.edges[0]?.node;
+          const image = product.images.edges[0]?.node;
+
+          if (variant) {
+            await prisma.fBTProduct.create({
+              data: {
+                ruleId: ruleId,
+                shopifyProductId: productHandle,
+                shopifyVariantId: variant.id.replace('gid://shopify/ProductVariant/', ''),
+                title: product.title,
+                handle: product.handle,
+                price: parseFloat(variant.price),
+                compareAtPrice: variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
+                imageUrl: image?.url || null,
+                position: i,
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching product ${productHandle}:`, error);
+      }
+    }
+
+    return json({ success: true });
+  }
+
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
@@ -330,6 +443,7 @@ export default function FrequentlyBoughtTogether() {
   const { fbtConfig, shopProducts, shopCollections } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
+  const actionData = useActionData<typeof action>();
 
   // Check which action is being submitted
   const formData = navigation.formData;
@@ -337,6 +451,36 @@ export default function FrequentlyBoughtTogether() {
   const isSubmitting = navigation.state === "submitting";
   const isToggleLoading = isSubmitting && submittingIntent === "toggle";
   const isSaveSettingsLoading = isSubmitting && submittingIntent === "save-settings";
+
+  // Track previous submission state to detect when save completes
+  const prevIsSubmitting = useRef(false);
+  const prevSubmittingIntent = useRef<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+
+  // Show toast notification when settings are saved successfully
+  useEffect(() => {
+    // Check if we just finished submitting a save-settings action
+    const justFinishedSave = 
+      prevIsSubmitting.current && 
+      prevSubmittingIntent.current === "save-settings" &&
+      !isSubmitting &&
+      actionData &&
+      'success' in actionData &&
+      actionData.success;
+
+    if (justFinishedSave) {
+      setShowToast(true);
+      // Auto-hide after 3 seconds
+      const timer = setTimeout(() => {
+        setShowToast(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+
+    // Update refs for next render
+    prevIsSubmitting.current = isSubmitting;
+    prevSubmittingIntent.current = submittingIntent;
+  }, [actionData, submittingIntent, isSubmitting]);
 
   const [formState, setFormState] = useState(() => {
     const recommendationType = fbtConfig?.recommendationType || "manual";
@@ -366,6 +510,7 @@ export default function FrequentlyBoughtTogether() {
   });
 
   const [showManualModal, setShowManualModal] = useState(false);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
 
   // State for managing multiple upsell rows
   interface UpsellRow {
@@ -479,7 +624,11 @@ export default function FrequentlyBoughtTogether() {
       }
 
       const formData = new FormData();
-      formData.append("intent", "add-rule");
+      const intent = editingRuleId ? "update-rule" : "add-rule";
+      formData.append("intent", intent);
+      if (editingRuleId) {
+        formData.append("ruleId", editingRuleId);
+      }
       formData.append("triggerType", actualTriggerType);
       formData.append("triggerValue", triggerValue);
       formData.append("triggerProductId", triggerProductId);
@@ -491,6 +640,7 @@ export default function FrequentlyBoughtTogether() {
 
     // Reset modal state
     setShowManualModal(false);
+    setEditingRuleId(null);
     setUpsellRows([
       {
         id: '1',
@@ -506,7 +656,7 @@ export default function FrequentlyBoughtTogether() {
         showUpsellModal: false,
       }
     ]);
-  }, [upsellRows, shopProducts, shopCollections, submit]);
+  }, [upsellRows, shopProducts, shopCollections, submit, editingRuleId]);
 
   const handleDeleteRule = useCallback((ruleId: string) => {
     const formData = new FormData();
@@ -514,6 +664,38 @@ export default function FrequentlyBoughtTogether() {
     formData.append("ruleId", ruleId);
     submit(formData, { method: "post" });
   }, [submit]);
+
+  const handleEditRule = useCallback((rule: any) => {
+    setEditingRuleId(rule.id);
+    
+    // Convert rule to upsell row format
+    const triggerType = rule.triggerType as "specific_product" | "collection" | "all_products";
+    const selectedTriggerProduct = triggerType === "specific_product" && rule.triggerValue && rule.triggerValue !== "all"
+      ? rule.triggerValue
+      : null;
+    const selectedTriggerCollection = triggerType === "collection" && rule.triggerValue
+      ? rule.triggerValue
+      : null;
+    const selectedUpsellProducts = rule.products.map((p: any) => p.handle);
+
+    setUpsellRows([
+      {
+        id: '1',
+        triggerType: triggerType,
+        selectedTriggerProduct: selectedTriggerProduct,
+        selectedTriggerCollection: selectedTriggerCollection,
+        selectedUpsellProducts: selectedUpsellProducts,
+        triggerTab: triggerType === "collection" ? "collection" : "product",
+        upsellTab: "product",
+        searchQuery: "",
+        upsellSearchQuery: "",
+        showTriggerModal: false,
+        showUpsellModal: false,
+      }
+    ]);
+    
+    setShowManualModal(true);
+  }, []);
 
   const getFilteredTriggerProducts = (row: UpsellRow) => {
     return shopProducts.filter((product: any) =>
@@ -545,7 +727,7 @@ export default function FrequentlyBoughtTogether() {
       handle: `sample-product-${i}`,
       price: 29.99 + (i * 10),
       compareAtPrice: 39.99 + (i * 10),
-      imageUrl: `https://via.placeholder.com/300x300/4F46E5/FFFFFF?text=Product+${i + 1}`
+      imageUrl: null // Will show fallback icon in the component
     }));
   };
 
@@ -647,12 +829,89 @@ export default function FrequentlyBoughtTogether() {
     <Page
       title="Frequently Bought Together"
       primaryAction={{
-        content: "Save Settings",
+        content: "Save",
         onAction: handleSaveSettings,
         loading: isSaveSettingsLoading,
       }}
     >
       <TitleBar title="Frequently Bought Together" />
+      
+      {/* Custom Toast Notification - Appears at Top */}
+      {showToast && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 10000,
+          animation: 'slideDown 0.3s ease-out',
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            padding: '12px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            minWidth: '300px',
+            maxWidth: '500px',
+          }}>
+            <div style={{
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              backgroundColor: '#10b981',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div style={{ flex: 1 }}>
+              <Text as="p" variant="bodyMd" fontWeight="medium">
+                Settings saved successfully
+              </Text>
+            </div>
+            <button
+              onClick={() => setShowToast(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#6b7280',
+                flexShrink: 0,
+              }}
+              aria-label="Close"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+          }
+        }
+      `}</style>
 
       <Layout>
         <Layout.Section variant="oneHalf">
@@ -895,7 +1154,10 @@ export default function FrequentlyBoughtTogether() {
                           <Text as="h2" variant="headingMd">
                             Manual Rules
                           </Text>
-                          <Button onClick={() => setShowManualModal(true)}>
+                          <Button onClick={() => {
+                            setEditingRuleId(null);
+                            setShowManualModal(true);
+                          }}>
                             Add Rule
                           </Button>
                         </InlineStack>
@@ -974,12 +1236,19 @@ export default function FrequentlyBoughtTogether() {
                                           </Text>
                                         </BlockStack>
                                       </InlineStack>
-                                      <Button
-                                        icon={DeleteIcon}
-                                        variant="plain"
-                                        tone="critical"
-                                        onClick={() => handleDeleteRule(id)}
-                                      />
+                                      <InlineStack gap="200">
+                                        <Button
+                                          icon={EditIcon}
+                                          variant="plain"
+                                          onClick={() => handleEditRule(rule)}
+                                        />
+                                        <Button
+                                          icon={DeleteIcon}
+                                          variant="plain"
+                                          tone="critical"
+                                          onClick={() => handleDeleteRule(id)}
+                                        />
+                                      </InlineStack>
                                     </InlineStack>
                                     {products.length > 0 && (
                                       <Box paddingBlockStart="200">
@@ -1136,6 +1405,7 @@ export default function FrequentlyBoughtTogether() {
         open={showManualModal}
         onClose={() => {
           setShowManualModal(false);
+          setEditingRuleId(null);
           setUpsellRows([
             {
               id: '1',
@@ -1152,9 +1422,9 @@ export default function FrequentlyBoughtTogether() {
             }
           ]);
         }}
-        title="Configure Manual Upsells"
+        title={editingRuleId ? "Edit Manual Rule" : "Configure Manual Upsells"}
         primaryAction={{
-          content: "Update",
+          content: editingRuleId ? "Update Rule" : "Add Rule",
           onAction: handleSaveAllRules,
           disabled: upsellRows.every(row => row.selectedUpsellProducts.length === 0),
         }}
@@ -1264,21 +1534,28 @@ export default function FrequentlyBoughtTogether() {
                     {/* Trigger Type Selection */}
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <button
-                        onClick={() => updateUpsellRow(row.id, { triggerType: "specific_product", showTriggerModal: true })}
+                        onClick={() => {
+                          // If currently collection type, preserve it when opening modal
+                          const updates: any = { showTriggerModal: true };
+                          if (row.triggerType !== "collection") {
+                            updates.triggerType = "specific_product";
+                          }
+                          updateUpsellRow(row.id, updates);
+                        }}
                         style={{
                           flex: 1,
                           padding: '10px 12px',
-                          border: row.triggerType === "specific_product" ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                          border: (row.triggerType === "specific_product" || row.triggerType === "collection") ? '2px solid #3b82f6' : '1px solid #d1d5db',
                           borderRadius: '6px',
-                          backgroundColor: row.triggerType === "specific_product" ? '#eff6ff' : 'white',
+                          backgroundColor: (row.triggerType === "specific_product" || row.triggerType === "collection") ? '#eff6ff' : 'white',
                           cursor: 'pointer',
                           fontWeight: '600',
                           fontSize: '13px',
-                          color: row.triggerType === "specific_product" ? '#3b82f6' : '#6b7280',
+                          color: (row.triggerType === "specific_product" || row.triggerType === "collection") ? '#3b82f6' : '#6b7280',
                           transition: 'all 0.2s'
                         }}
                       >
-                        Specific Product
+                        {row.triggerType === "collection" ? "Collection" : "Specific Product"}
                       </button>
                       <span style={{ color: '#6b7280', fontWeight: '600', fontSize: '12px' }}>OR</span>
                       <button
@@ -1313,16 +1590,31 @@ export default function FrequentlyBoughtTogether() {
                           const product = shopProducts.find((p: any) => p.handle === row.selectedTriggerProduct);
                           return product ? (
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              <img
-                                src={product.images?.[0]?.src || "https://via.placeholder.com/40x40"}
-                                alt={product.title}
-                                style={{
+                              {product.images?.[0]?.src ? (
+                                <img
+                                  src={product.images[0].src}
+                                  alt={product.title}
+                                  style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    objectFit: 'cover',
+                                    borderRadius: '4px'
+                                  }}
+                                />
+                              ) : (
+                                <div style={{
                                   width: '40px',
                                   height: '40px',
-                                  objectFit: 'cover',
-                                  borderRadius: '4px'
-                                }}
-                              />
+                                  backgroundColor: '#f3f4f6',
+                                  borderRadius: '4px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '20px'
+                                }}>
+                                  📦
+                                </div>
+                              )}
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: '600', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {product.title}
@@ -1446,16 +1738,31 @@ export default function FrequentlyBoughtTogether() {
                               }}>
                                 {idx + 1}
                               </div>
-                              <img
-                                src={product.images?.[0]?.src || "https://via.placeholder.com/40x40"}
-                                alt={product.title}
-                                style={{
+                              {product.images?.[0]?.src ? (
+                                <img
+                                  src={product.images[0].src}
+                                  alt={product.title}
+                                  style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    objectFit: 'cover',
+                                    borderRadius: '4px'
+                                  }}
+                                />
+                              ) : (
+                                <div style={{
                                   width: '40px',
                                   height: '40px',
-                                  objectFit: 'cover',
-                                  borderRadius: '4px'
-                                }}
-                              />
+                                  backgroundColor: '#f3f4f6',
+                                  borderRadius: '4px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '20px'
+                                }}>
+                                  📦
+                                </div>
+                              )}
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: '600', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {product.title}
@@ -1591,6 +1898,7 @@ export default function FrequentlyBoughtTogether() {
                             <div
                               key={product.handle}
                               onClick={() => updateUpsellRow(row.id, {
+                                triggerType: "specific_product",
                                 selectedTriggerProduct: product.handle,
                                 selectedTriggerCollection: null
                               })}
@@ -1605,16 +1913,31 @@ export default function FrequentlyBoughtTogether() {
                                 alignItems: 'center'
                               }}
                             >
-                              <img
-                                src={product.images?.[0]?.src || "https://via.placeholder.com/40x40"}
-                                alt={product.title}
-                                style={{
+                              {product.images?.[0]?.src ? (
+                                <img
+                                  src={product.images[0].src}
+                                  alt={product.title}
+                                  style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    objectFit: 'cover',
+                                    borderRadius: '4px'
+                                  }}
+                                />
+                              ) : (
+                                <div style={{
                                   width: '40px',
                                   height: '40px',
-                                  objectFit: 'cover',
-                                  borderRadius: '4px'
-                                }}
-                              />
+                                  backgroundColor: '#f3f4f6',
+                                  borderRadius: '4px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '20px'
+                                }}>
+                                  📦
+                                </div>
+                              )}
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: '600', fontSize: '13px', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {product.title}
@@ -1641,6 +1964,7 @@ export default function FrequentlyBoughtTogether() {
                             <div
                               key={collection.handle}
                               onClick={() => updateUpsellRow(row.id, {
+                                triggerType: "collection",
                                 selectedTriggerCollection: collection.handle,
                                 selectedTriggerProduct: null
                               })}
@@ -1751,16 +2075,31 @@ export default function FrequentlyBoughtTogether() {
                               alignItems: 'center'
                             }}
                           >
-                            <img
-                              src={product.images?.[0]?.src || "https://via.placeholder.com/40x40"}
-                              alt={product.title}
-                              style={{
+                            {product.images?.[0]?.src ? (
+                              <img
+                                src={product.images[0].src}
+                                alt={product.title}
+                                style={{
+                                  width: '40px',
+                                  height: '40px',
+                                  objectFit: 'cover',
+                                  borderRadius: '4px'
+                                }}
+                              />
+                            ) : (
+                              <div style={{
                                 width: '40px',
                                 height: '40px',
-                                objectFit: 'cover',
-                                borderRadius: '4px'
-                              }}
-                            />
+                                backgroundColor: '#f3f4f6',
+                                borderRadius: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '20px'
+                              }}>
+                                📦
+                              </div>
+                            )}
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontWeight: '600', fontSize: '13px', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {product.title}
