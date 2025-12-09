@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.4
- * Built: 2025-12-09T08:50:01.941Z
+ * Built: 2025-12-09T11:02:36.796Z
  */
 "use strict";
 (() => {
@@ -9509,7 +9509,6 @@
     appUrl: null,
     init(appUrl) {
       this.appUrl = appUrl;
-      console.log("[Upsellity Analytics] Initialized with app URL:", appUrl);
     },
     getSessionId() {
       try {
@@ -9569,7 +9568,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://discrete-colleges-lions-outlined.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://acts-arrangements-seeds-execute.trycloudflare.com" : "https://app.upsellity.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;
@@ -9613,9 +9612,6 @@
         this.enabled = data.enabled || false;
         this.config = data.config || null;
         this.recommendations = data.recommendations || [];
-        if (!this.enabled || !this.config) {
-          console.warn("FBT Widget: Feature is disabled or config is missing");
-        }
         return data;
       } catch (error) {
         console.error("Error loading FBT config:", error);

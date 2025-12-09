@@ -1,6 +1,6 @@
 /**
  * Upsellity Promotional Banner Block v1.0.4
- * Built: 2025-12-09T09:01:19.195Z
+ * Built: 2025-12-09T11:02:36.808Z
  */
 "use strict";
 (() => {
@@ -8663,7 +8663,6 @@
     appUrl: null,
     init(appUrl) {
       this.appUrl = appUrl;
-      console.log("[Upsellity Analytics] Initialized with app URL:", appUrl);
     },
     getSessionId() {
       try {
@@ -8724,7 +8723,7 @@
 
   // extensions/cart-upsell/assets/modules/promotional-banner-entry.js
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://discrete-colleges-lions-outlined.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://acts-arrangements-seeds-execute.trycloudflare.com" : "https://app.upsellity.com";
   function initPromotionalBannerBlocks() {
     const containers = document.querySelectorAll(".upsellity-promotional-banner-container");
     if (containers.length === 0) {

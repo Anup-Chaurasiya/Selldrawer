@@ -198,8 +198,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           return null;
         }
 
-        // Get the first code
-        const code = discount.codes?.edges?.[0]?.node?.code;
+        // Get all codes from this discount
+        const codes = discount.codes?.edges || [];
+        if (codes.length === 0) {
+          return null;
+        }
+
+        // Get the first code (each discount can have multiple codes)
+        const code = codes[0]?.node?.code;
         if (!code) {
           return null;
         }

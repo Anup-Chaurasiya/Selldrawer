@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.4
- * Built: 2025-12-09T09:01:19.205Z
+ * Built: 2025-12-09T11:02:36.867Z
  */
 "use strict";
 (() => {
@@ -10642,6 +10642,7 @@
               afterThresholdMessage: bar.afterThresholdMessage || "\u{1F389} You qualify for FREE shipping!",
               backgroundColor: bar.backgroundColor || "#f0f9ff",
               progressBarColor: bar.progressBarColor || "#3b82f6",
+              borderColor: bar.borderColor || "#e2e8f0",
               showPercentage: (_b2 = bar.showPercentage) != null ? _b2 : true,
               currency: bar.currency || "INR",
               cart,
@@ -10661,6 +10662,11 @@
             {
               slides,
               carouselSettings: banner.carouselSettings || {},
+              titleColor: banner.titleColor || "#111827",
+              descriptionColor: banner.descriptionColor || "#6b7280",
+              ctaTextColor: banner.ctaTextColor || "#374151",
+              ctaBackgroundColor: banner.ctaBackgroundColor || "#f3f4f6",
+              borderColor: banner.borderColor || "#e5e7eb",
               onCtaClick: (url) => {
                 if (onFeatureClick)
                   onFeatureClick("promotional_banner", { url });
@@ -10710,6 +10716,7 @@
               amount: totalSavings,
               backgroundColor: savingsCfg.backgroundColor || "#dcfce7",
               textColor: savingsCfg.textColor || "#15803d",
+              borderColor: savingsCfg.borderColor || "#ffffff",
               isPreview: false
             }
           ) }, featureId);
@@ -10727,6 +10734,8 @@
               achievedMessage: msg.achievedMessage || "You qualify for FREE shipping!",
               backgroundColor: msg.backgroundColor || "#fef3c7",
               textColor: msg.textColor || "#92400e",
+              borderColor: msg.borderColor || "#92400e",
+              icon: msg.icon || "\u{1F69A}",
               currency: msg.currency || "INR",
               isPreview: false
             }
@@ -10747,6 +10756,11 @@
               enableAutoApply: couponField.enableAutoApply || false,
               appliedDiscount,
               availableDiscounts,
+              backgroundColor: couponField.backgroundColor || "#d1fae5",
+              textColor: couponField.textColor || "#065f46",
+              couponCodeColor: couponField.couponCodeColor || "",
+              borderColor: couponField.borderColor || "#059669",
+              appliedDiscountText: couponField.appliedDiscountText || "",
               onApplyCoupon,
               onRemoveDiscount,
               onSwitchDiscount,
@@ -10858,7 +10872,6 @@
     appUrl: null,
     init(appUrl) {
       this.appUrl = appUrl;
-      console.log("[Upsellity Analytics] Initialized with app URL:", appUrl);
     },
     getSessionId() {
       try {
@@ -11332,7 +11345,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://discrete-colleges-lions-outlined.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://acts-arrangements-seeds-execute.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.4" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

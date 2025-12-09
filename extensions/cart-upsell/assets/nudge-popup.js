@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.4
- * Built: 2025-12-09T08:50:01.930Z
+ * Built: 2025-12-09T11:02:36.880Z
  */
 "use strict";
 (() => {
@@ -8399,7 +8399,6 @@
     appUrl: null,
     init(appUrl) {
       this.appUrl = appUrl;
-      console.log("[Upsellity Analytics] Initialized with app URL:", appUrl);
     },
     getSessionId() {
       try {
@@ -8459,7 +8458,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
-  var APP_URL = true ? "https://discrete-colleges-lions-outlined.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://acts-arrangements-seeds-execute.trycloudflare.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;
