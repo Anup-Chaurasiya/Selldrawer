@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Add Together v1.0.4
- * Built: 2025-12-10T09:33:58.298Z
+ * Built: 2025-12-10T14:59:34.120Z
  */
 "use strict";
 (() => {
@@ -8596,7 +8596,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/nudge-add-together-entry.js
-  var APP_URL = true ? "https://systematic-dispatched-seem-teaching.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://dept-grab-nominated-expenses.trycloudflare.com" : "https://app.upsellity.com";
   var NudgeAddTogether = class {
     constructor() {
       this.shop = null;
@@ -8613,7 +8613,6 @@
       this.init();
     }
     async init() {
-      var _a2, _b;
       try {
         if (document.readyState === "loading") {
           await new Promise((resolve) => {
@@ -8645,7 +8644,6 @@
       return null;
     }
     async loadConfig() {
-      var _a2;
       try {
         const productHandle = this.getCurrentProductHandle();
         if (!productHandle) {
@@ -8717,7 +8715,7 @@
         }
         button.dataset.nudgeAddTogetherListener = "true";
         button.addEventListener("click", async (e) => {
-          var _a2, _b, _c, _d, _e, _f;
+          var _a2, _b, _c, _d;
           if (this.recommendations.length > 0 && this.config && this.config.showOnAddToCart && this.enabled) {
             e.preventDefault();
             e.stopPropagation();
@@ -8726,7 +8724,7 @@
             const form = button.closest("form");
             if (form) {
               const formData = new FormData(form);
-              const variantId = formData.get("id") || formData.get("variant_id") || ((_b = form.querySelector('[name="id"]')) == null ? void 0 : _b.value);
+              const variantId = formData.get("id") || formData.get("variant_id") || ((_a2 = form.querySelector('[name="id"]')) == null ? void 0 : _a2.value);
               if (variantId) {
                 this.originalProductVariantId = String(variantId);
               } else if (this.currentProduct && this.currentProduct.variants && this.currentProduct.variants.length > 0) {
@@ -8740,13 +8738,13 @@
                 const originalIdStr = String(this.originalProductVariantId);
                 normalizedOriginalId = originalIdStr.replace("gid://shopify/ProductVariant/", "").replace(/\D/g, "");
               }
-              const variant = ((_c = this.currentProduct.variants) == null ? void 0 : _c.find((v) => {
+              const variant = ((_b = this.currentProduct.variants) == null ? void 0 : _b.find((v) => {
                 if (!v || !v.id)
                   return false;
                 const vIdStr = String(v.id);
                 const vId = vIdStr.replace("gid://shopify/ProductVariant/", "").replace(/\D/g, "");
                 return normalizedOriginalId && vId === normalizedOriginalId;
-              })) || ((_d = this.currentProduct.variants) == null ? void 0 : _d[0]);
+              })) || ((_c = this.currentProduct.variants) == null ? void 0 : _c[0]);
               if (variant && variant.id) {
                 const variantIdStr = String(variant.id);
                 const productIdStr = this.currentProduct.id ? String(this.currentProduct.id) : "";
@@ -8757,7 +8755,7 @@
                   handle: this.currentProduct.handle || "",
                   price: variant.price ? parseFloat(variant.price) : 0,
                   compareAtPrice: variant.compare_at_price ? parseFloat(variant.compare_at_price) : null,
-                  imageUrl: this.currentProduct.featured_image || this.currentProduct.images && ((_e = this.currentProduct.images[0]) == null ? void 0 : _e.src) || null,
+                  imageUrl: this.currentProduct.featured_image || this.currentProduct.images && ((_d = this.currentProduct.images[0]) == null ? void 0 : _d.src) || null,
                   description: this.currentProduct.description || null
                 };
               }

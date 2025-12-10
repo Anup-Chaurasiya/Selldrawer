@@ -1,6 +1,6 @@
 /**
  * Upsellity Promotional Banner Block v1.0.4
- * Built: 2025-12-10T14:51:24.393Z
+ * Built: 2025-12-10T14:59:34.159Z
  */
 "use strict";
 (() => {

@@ -629,7 +629,6 @@ model CartMilestoneGiftProduct {
   @@index([milestoneId])
   @@index([position])
 }
-
 model NudgeAddTogether {
   id                      String                    @id @default(cuid())
   shop                    String                    @unique
