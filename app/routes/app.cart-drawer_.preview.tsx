@@ -480,7 +480,7 @@ export default function CartDrawerPreview() {
                       position: 'relative'
                     }}>
                       <img 
-                        src={item.image} 
+                        src={item.image ?? ''} 
                         alt={item.title}
                         style={{ 
                           width: '80px', 

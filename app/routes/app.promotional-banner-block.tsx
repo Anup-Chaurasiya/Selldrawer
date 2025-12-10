@@ -967,7 +967,17 @@ export default function PromotionalBannerBlockPage() {
         </Layout.Section>
 
         {/* Preview Section */}
-        <Layout.Section variant="oneThird">
+        <div style={{
+          flex: '0 0 40%', 
+          minWidth: '350px',
+          paddingLeft: '12px',
+          position: 'sticky',
+          top: '0',
+          height: 'fit-content',
+          maxHeight: 'calc(100vh)',
+          overflowY: 'auto',
+          paddingTop: '15px'
+        }}>
           <Card>
             <BlockStack gap="400">
               <Text as="h3" variant="headingMd">
@@ -984,7 +994,7 @@ export default function PromotionalBannerBlockPage() {
               </Text>
             </BlockStack>
           </Card>
-        </Layout.Section>
+        </div>
       </Layout>
     </Page>
   );

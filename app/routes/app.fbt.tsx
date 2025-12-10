@@ -1306,7 +1306,17 @@ export default function FrequentlyBoughtTogether() {
         </Layout.Section>
 
         {/* Preview Section */}
-        <Layout.Section variant="oneHalf">
+        <div style={{
+          flex: '0 0 40%', 
+          minWidth: '350px',
+          paddingLeft: '12px',
+          position: 'sticky',
+          top: '0',
+          height: 'fit-content',
+          maxHeight: 'calc(100vh)',
+          overflowY: 'auto',
+          paddingTop: '15px'
+        }}>
           <Card>
             <BlockStack gap="400">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1399,7 +1409,7 @@ export default function FrequentlyBoughtTogether() {
               </Text>
             </BlockStack>
           </Card>
-        </Layout.Section>
+        </div>
       </Layout>
 
       {/* Manual Configuration Modal */}
