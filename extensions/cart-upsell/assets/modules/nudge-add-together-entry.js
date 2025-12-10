@@ -50,22 +50,9 @@ class NudgeAddTogether {
 
       await this.loadConfig();
       
-      console.log('Nudge Add Together: Config loaded', {
-        enabled: this.enabled,
-        hasConfig: !!this.config,
-        recommendationsCount: this.recommendations.length,
-        showOnAddToCart: this.config?.showOnAddToCart
-      });
-      
       if (this.enabled && this.config && this.config.showOnAddToCart) {
         // Setup interceptor after a small delay
         setTimeout(() => this.setupAddToCartInterceptor(), 200);
-      } else {
-        console.log('Nudge Add Together: Not enabled or no config', {
-          enabled: this.enabled,
-          hasConfig: !!this.config,
-          showOnAddToCart: this.config?.showOnAddToCart
-        });
       }
     } catch (error) {
       console.error('Error initializing Nudge Add Together:', error);
@@ -91,17 +78,13 @@ class NudgeAddTogether {
     try {
       const productHandle = this.getCurrentProductHandle();
       if (!productHandle) {
-        console.log('Nudge Add Together: No product handle found');
         return;
       }
-
-      console.log('Nudge Add Together: Loading config for product:', productHandle);
 
       // Initialize Analytics with the app URL
       Analytics.init(APP_URL);
 
       const apiUrl = `${APP_URL}/api/nudge-add-together?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(productHandle)}`;
-      console.log('Nudge Add Together: Fetching config from:', apiUrl);
       
       let response;
       try {
@@ -128,12 +111,6 @@ class NudgeAddTogether {
       }
       
       const data = await response.json();
-      
-      console.log('Nudge Add Together: Config received:', {
-        enabled: data.enabled,
-        hasConfig: !!data.config,
-        recommendationsCount: data.recommendations?.length || 0
-      });
       
       this.enabled = data.enabled || false;
       this.config = data.config || null;
@@ -174,8 +151,6 @@ class NudgeAddTogether {
     // Intercept all "Add to Cart" buttons
     const addToCartButtons = document.querySelectorAll('[name="add"], [data-add-to-cart], button[type="submit"][name="add"], form[action*="/cart/add"] button[type="submit"]');
     
-    console.log('Nudge Add Together: Setting up interceptor, found buttons:', addToCartButtons.length);
-    
     if (addToCartButtons.length === 0) {
       console.warn('Nudge Add Together: No add to cart buttons found. Retrying in 500ms...');
       setTimeout(() => this.setupAddToCartInterceptor(), 500);
@@ -190,18 +165,10 @@ class NudgeAddTogether {
       button.dataset.nudgeAddTogetherListener = 'true';
       
       button.addEventListener('click', async (e) => {
-        console.log('Nudge Add Together: Add to cart clicked', {
-          recommendationsCount: this.recommendations.length,
-          showOnAddToCart: this.config?.showOnAddToCart,
-          enabled: this.enabled
-        });
-        
         // Only intercept if we have recommendations
         if (this.recommendations.length > 0 && this.config && this.config.showOnAddToCart && this.enabled) {
           e.preventDefault();
           e.stopPropagation();
-          
-          console.log('Nudge Add Together: Intercepting add to cart');
           
           this.originalAddToCartButton = button;
           this.currentProduct = await this.getCurrentProductData();
@@ -257,8 +224,6 @@ class NudgeAddTogether {
           try {
             await this.addOriginalProductToCart(form);
             
-            console.log('Nudge Add Together: Showing popup');
-            
             // THEN: Show popup with delay (cart drawer will already be open)
             if (this.config.popupDelay > 0) {
               setTimeout(() => this.showPopup(), this.config.popupDelay);
@@ -270,18 +235,9 @@ class NudgeAddTogether {
             console.error('Nudge Add Together: Failed to add original product, not showing popup');
             // If adding to cart fails, don't show popup
           }
-        } else {
-          console.log('Nudge Add Together: Not intercepting', {
-            hasRecommendations: this.recommendations.length > 0,
-            hasConfig: !!this.config,
-            showOnAddToCart: this.config?.showOnAddToCart,
-            enabled: this.enabled
-          });
         }
       }, true);
     });
-    
-    console.log('Nudge Add Together: Interceptor setup complete');
   }
 
   async getCurrentProductData() {
@@ -314,8 +270,6 @@ class NudgeAddTogether {
       });
 
       if (response.ok) {
-        console.log('Nudge Add Together: Original product added to cart');
-        
         // Trigger cart update events
         document.dispatchEvent(new CustomEvent('cart:updated'));
         

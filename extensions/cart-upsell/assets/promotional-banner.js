@@ -1,6 +1,6 @@
 /**
  * Upsellity Promotional Banner Block v1.0.4
- * Built: 2025-12-09T12:57:21.538Z
+ * Built: 2025-12-10T14:51:24.393Z
  */
 "use strict";
 (() => {
@@ -8693,7 +8693,6 @@
         })]
       };
       const apiUrl = `${this.appUrl}/api/analytics`;
-      console.log("[Upsellity Analytics]", event.eventType, event.component, payload);
       if (navigator.sendBeacon) {
         const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
         const sent = navigator.sendBeacon(apiUrl, blob);
@@ -8723,7 +8722,7 @@
 
   // extensions/cart-upsell/assets/modules/promotional-banner-entry.js
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://cuisine-innovations-area-featuring.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://dept-grab-nominated-expenses.trycloudflare.com" : "https://app.upsellity.com";
   function initPromotionalBannerBlocks() {
     const containers = document.querySelectorAll(".upsellity-promotional-banner-container");
     if (containers.length === 0) {

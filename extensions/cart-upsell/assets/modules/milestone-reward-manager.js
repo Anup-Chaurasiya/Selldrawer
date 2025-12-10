@@ -154,7 +154,6 @@ export async function addGiftToCart(giftProduct, milestoneId) {
     });
     
     if (response.ok) {
-      console.log('Upsellity Milestones: Gift added to cart', giftProduct.title);
       return true;
     } else {
       const error = await response.json();
@@ -190,7 +189,6 @@ export async function removeGiftFromCart(itemKey) {
     });
     
     if (response.ok) {
-      console.log('Upsellity Milestones: Gift removed from cart');
       return true;
     } else {
       console.error('Upsellity Milestones: Failed to remove gift');

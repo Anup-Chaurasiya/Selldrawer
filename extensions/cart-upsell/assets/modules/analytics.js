@@ -43,9 +43,6 @@ export const Analytics = {
     // Use the configured app URL
     const apiUrl = `${this.appUrl}/api/analytics`;
 
-    // Log for debugging
-    console.log('[Upsellity Analytics]', event.eventType, event.component, payload);
-
     if (navigator.sendBeacon) {
       const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
       const sent = navigator.sendBeacon(apiUrl, blob);

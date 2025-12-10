@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.4
- * Built: 2025-12-09T12:57:21.543Z
+ * Built: 2025-12-10T14:51:25.884Z
  */
 "use strict";
 (() => {
@@ -8564,7 +8564,6 @@
         body: formData
       });
       if (response.ok) {
-        console.log("Upsellity Milestones: Gift added to cart", giftProduct.title);
         return true;
       } else {
         const error = await response.json();
@@ -8592,7 +8591,6 @@
         })
       });
       if (response.ok) {
-        console.log("Upsellity Milestones: Gift removed from cart");
         return true;
       } else {
         console.error("Upsellity Milestones: Failed to remove gift");
@@ -11402,7 +11400,6 @@
         })]
       };
       const apiUrl = `${this.appUrl}/api/analytics`;
-      console.log("[Upsellity Analytics]", event.eventType, event.component, payload);
       if (navigator.sendBeacon) {
         const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
         const sent = navigator.sendBeacon(apiUrl, blob);
@@ -11526,7 +11523,6 @@
     }
     async handleMilestoneRewards() {
       if (this.isSyncingGifts) {
-        console.log("Upsellity Milestones: Already syncing gifts, skipping...");
         return;
       }
       try {
@@ -11942,7 +11938,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://cuisine-innovations-area-featuring.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://dept-grab-nominated-expenses.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.4" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

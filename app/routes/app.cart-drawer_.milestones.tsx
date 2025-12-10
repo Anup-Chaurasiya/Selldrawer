@@ -140,7 +140,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
               id
               title
               handle
-              productsCount
+              productsCount {
+                count
+              }
             }
           }
         }
@@ -159,7 +161,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           shopifyCollectionId: collection.id.replace('gid://shopify/Collection/', ''),
           title: collection.title,
           handle: collection.handle,
-          productsCount: collection.productsCount || 0
+          productsCount: collection.productsCount?.count || 0
         };
       });
     }
@@ -216,16 +218,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       let giftProducts: any[] = [];
       if (rewardType === "gift_wrapping") {
         const giftProductsJson = formData.get("giftProducts") as string;
-        console.log("Gift products JSON:", giftProductsJson);
         
         if (giftProductsJson) {
           giftProducts = JSON.parse(giftProductsJson);
-          console.log("Parsed gift products:", giftProducts);
         }
         
         // Validate that at least one gift product is selected
         if (giftProducts.length === 0) {
-          console.log("No gift products selected");
           return json({ error: "Please select at least one gift product" }, { status: 400 });
         }
       }
@@ -235,17 +234,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return json({ error: "Please enter a discount value" }, { status: 400 });
       }
 
-      console.log("Creating discount with:", { title, rewardType, rewardValue, giftProductsCount: giftProducts.length });
-
       // Create Shopify discount automatically
       const discountResult = await createMilestoneDiscount(admin, {
         title,
         rewardType,
         rewardValue,
         giftProducts,
+        minimumSubtotal: targetAmount, // Pass targetAmount as minimumSubtotal threshold
       });
-
-      console.log("Discount result:", discountResult);
 
       if (!discountResult) {
         return json({ error: "Failed to create Shopify discount. Please check your configuration and try again." }, { status: 500 });
@@ -334,16 +330,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     let giftProducts: any[] = [];
     if (rewardType === "gift_wrapping") {
       const giftProductsJson = formData.get("giftProducts") as string;
-      console.log("UPDATE - Gift products JSON:", giftProductsJson);
       
       if (giftProductsJson) {
         giftProducts = JSON.parse(giftProductsJson);
-        console.log("UPDATE - Parsed gift products:", giftProducts);
       }
       
       // Validate that at least one gift product is selected
       if (giftProducts.length === 0) {
-        console.log("UPDATE - No gift products selected");
         return json({ error: "Please select at least one gift product" }, { status: 400 });
       }
     }
@@ -352,8 +345,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if ((rewardType === "discount_percentage" || rewardType === "discount_fixed") && !rewardValue) {
       return json({ error: "Please enter a discount value" }, { status: 400 });
     }
-
-    console.log("UPDATE - Creating discount with:", { title, rewardType, rewardValue, giftProductsCount: giftProducts.length });
 
     // Update Shopify discount (delete old, create new)
     const discountResult = await updateMilestoneDiscount(
@@ -364,10 +355,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         rewardType,
         rewardValue,
         giftProducts,
+        minimumSubtotal: targetAmount, // Pass targetAmount as minimumSubtotal threshold
       }
     );
-
-    console.log("UPDATE - Discount result:", discountResult);
 
     if (!discountResult) {
       return json({ error: "Failed to update Shopify discount. Please check your configuration and try again." }, { status: 500 });
@@ -515,7 +505,7 @@ export default function CartMilestones() {
   const [livePreviewMilestone, setLivePreviewMilestone] = useState<any>(null);
 
   // Check if we've reached the maximum of 3 milestones
-  const hasReachedMaxMilestones = cartDrawer.milestones && cartDrawer.milestones.length >= 3;
+  const hasReachedMaxMilestones = cartDrawer?.milestones && cartDrawer.milestones.length >= 3;
 
   const [formState, setFormState] = useState({
     title: "",
@@ -540,10 +530,10 @@ export default function CartMilestones() {
   const [editingGiftProductIndex, setEditingGiftProductIndex] = useState<number | null>(null);
 
   // Global settings state
-  const [globalSettings, setGlobalSettings] = useState({
-    progressBarColor: (cartDrawer as any).milestonesProgressBarColor || "#3b82f6",
-    allUnlockedMessage: (cartDrawer as any).milestonesAllUnlockedMessage || "🎉 Congratulations! All rewards unlocked!",
-  });
+  const [globalSettings, setGlobalSettings] = useState(() => ({
+    progressBarColor: (cartDrawer as any)?.milestonesProgressBarColor || "#3b82f6",
+    allUnlockedMessage: (cartDrawer as any)?.milestonesAllUnlockedMessage || "🎉 Congratulations! All rewards unlocked!",
+  }));
 
   const handleOpenModal = useCallback((milestone?: any) => {
     if (milestone) {

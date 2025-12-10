@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.4
- * Built: 2025-12-09T12:57:21.545Z
+ * Built: 2025-12-10T14:51:24.387Z
  */
 "use strict";
 (() => {
@@ -8429,7 +8429,6 @@
         })]
       };
       const apiUrl = `${this.appUrl}/api/analytics`;
-      console.log("[Upsellity Analytics]", event.eventType, event.component, payload);
       if (navigator.sendBeacon) {
         const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
         const sent = navigator.sendBeacon(apiUrl, blob);
@@ -8458,7 +8457,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
-  var APP_URL = true ? "https://cuisine-innovations-area-featuring.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://dept-grab-nominated-expenses.trycloudflare.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;

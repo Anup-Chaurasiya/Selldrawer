@@ -156,7 +156,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
               id
               title
               handle
-              productsCount
+              productsCount {
+                count
+              }
             }
           }
         }
@@ -175,7 +177,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           shopifyCollectionId: collection.id.replace('gid://shopify/Collection/', ''),
           title: collection.title,
           handle: collection.handle,
-          productsCount: collection.productsCount || 0
+          productsCount: collection.productsCount?.count || 0
         };
       });
     }
@@ -1420,7 +1422,7 @@ export default function NudgePopup() {
                         {collection.title}
                       </Text>
                       <Text as="p" variant="bodySm" tone="subdued">
-                        {collection.productsCount} products
+                        {collection.productsCount?.count} products
                       </Text>
                     </BlockStack>
                   </ResourceItem>

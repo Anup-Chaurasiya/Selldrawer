@@ -129,7 +129,6 @@ export class UpsellityCartDrawer {
 
   async handleMilestoneRewards() {
     if (this.isSyncingGifts) {
-      console.log('Upsellity Milestones: Already syncing gifts, skipping...');
       return;
     }
     

@@ -51,8 +51,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const body = await request.json();
     const { events, shop } = body;
 
-    console.log("[Analytics API] Received request:", { shop, eventCount: events?.length });
-
     if (!shop || !events || !Array.isArray(events)) {
       console.warn("[Analytics API] Invalid payload:", { shop, events });
       return new Response(JSON.stringify({ error: "Invalid payload" }), {
@@ -82,7 +80,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       await prisma.analyticsEvent.createMany({
         data: validEvents,
       });
-      console.log(`[Analytics API] Successfully saved ${validEvents.length} events for ${shop}`);
     }
 
     return new Response(JSON.stringify({ success: true }), {

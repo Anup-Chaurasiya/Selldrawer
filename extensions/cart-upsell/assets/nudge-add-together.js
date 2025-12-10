@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Add Together v1.0.4
- * Built: 2025-12-09T12:30:48.637Z
+ * Built: 2025-12-10T09:33:58.298Z
  */
 "use strict";
 (() => {
@@ -8568,7 +8568,6 @@
         })]
       };
       const apiUrl = `${this.appUrl}/api/analytics`;
-      console.log("[Upsellity Analytics]", event.eventType, event.component, payload);
       if (navigator.sendBeacon) {
         const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
         const sent = navigator.sendBeacon(apiUrl, blob);
@@ -8597,7 +8596,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/nudge-add-together-entry.js
-  var APP_URL = true ? "https://bunch-process-klein-energy.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://systematic-dispatched-seem-teaching.trycloudflare.com" : "https://app.upsellity.com";
   var NudgeAddTogether = class {
     constructor() {
       this.shop = null;
@@ -8628,20 +8627,8 @@
           return;
         }
         await this.loadConfig();
-        console.log("Nudge Add Together: Config loaded", {
-          enabled: this.enabled,
-          hasConfig: !!this.config,
-          recommendationsCount: this.recommendations.length,
-          showOnAddToCart: (_a2 = this.config) == null ? void 0 : _a2.showOnAddToCart
-        });
         if (this.enabled && this.config && this.config.showOnAddToCart) {
           setTimeout(() => this.setupAddToCartInterceptor(), 200);
-        } else {
-          console.log("Nudge Add Together: Not enabled or no config", {
-            enabled: this.enabled,
-            hasConfig: !!this.config,
-            showOnAddToCart: (_b = this.config) == null ? void 0 : _b.showOnAddToCart
-          });
         }
       } catch (error) {
         console.error("Error initializing Nudge Add Together:", error);
@@ -8662,13 +8649,10 @@
       try {
         const productHandle = this.getCurrentProductHandle();
         if (!productHandle) {
-          console.log("Nudge Add Together: No product handle found");
           return;
         }
-        console.log("Nudge Add Together: Loading config for product:", productHandle);
         Analytics.init(APP_URL);
         const apiUrl = `${APP_URL}/api/nudge-add-together?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(productHandle)}`;
-        console.log("Nudge Add Together: Fetching config from:", apiUrl);
         let response;
         try {
           response = await fetch(apiUrl, {
@@ -8692,11 +8676,6 @@
           return;
         }
         const data = await response.json();
-        console.log("Nudge Add Together: Config received:", {
-          enabled: data.enabled,
-          hasConfig: !!data.config,
-          recommendationsCount: ((_a2 = data.recommendations) == null ? void 0 : _a2.length) || 0
-        });
         this.enabled = data.enabled || false;
         this.config = data.config || null;
         this.recommendations = data.recommendations || [];
@@ -8727,7 +8706,6 @@
     }
     setupAddToCartInterceptor() {
       const addToCartButtons = document.querySelectorAll('[name="add"], [data-add-to-cart], button[type="submit"][name="add"], form[action*="/cart/add"] button[type="submit"]');
-      console.log("Nudge Add Together: Setting up interceptor, found buttons:", addToCartButtons.length);
       if (addToCartButtons.length === 0) {
         console.warn("Nudge Add Together: No add to cart buttons found. Retrying in 500ms...");
         setTimeout(() => this.setupAddToCartInterceptor(), 500);
@@ -8740,15 +8718,9 @@
         button.dataset.nudgeAddTogetherListener = "true";
         button.addEventListener("click", async (e) => {
           var _a2, _b, _c, _d, _e, _f;
-          console.log("Nudge Add Together: Add to cart clicked", {
-            recommendationsCount: this.recommendations.length,
-            showOnAddToCart: (_a2 = this.config) == null ? void 0 : _a2.showOnAddToCart,
-            enabled: this.enabled
-          });
           if (this.recommendations.length > 0 && this.config && this.config.showOnAddToCart && this.enabled) {
             e.preventDefault();
             e.stopPropagation();
-            console.log("Nudge Add Together: Intercepting add to cart");
             this.originalAddToCartButton = button;
             this.currentProduct = await this.getCurrentProductData();
             const form = button.closest("form");
@@ -8792,7 +8764,6 @@
             }
             try {
               await this.addOriginalProductToCart(form);
-              console.log("Nudge Add Together: Showing popup");
               if (this.config.popupDelay > 0) {
                 setTimeout(() => this.showPopup(), this.config.popupDelay);
               } else {
@@ -8801,17 +8772,9 @@
             } catch (error) {
               console.error("Nudge Add Together: Failed to add original product, not showing popup");
             }
-          } else {
-            console.log("Nudge Add Together: Not intercepting", {
-              hasRecommendations: this.recommendations.length > 0,
-              hasConfig: !!this.config,
-              showOnAddToCart: (_f = this.config) == null ? void 0 : _f.showOnAddToCart,
-              enabled: this.enabled
-            });
           }
         }, true);
       });
-      console.log("Nudge Add Together: Interceptor setup complete");
     }
     async getCurrentProductData() {
       try {
@@ -8839,7 +8802,6 @@
           body: formData
         });
         if (response.ok) {
-          console.log("Nudge Add Together: Original product added to cart");
           document.dispatchEvent(new CustomEvent("cart:updated"));
           if (this.originalProduct) {
             Analytics.track({
