@@ -1110,7 +1110,17 @@ export default function NudgeAddTogether() {
         </Layout.Section>
 
         {/* Preview Section */}
-        <Layout.Section variant="oneHalf">
+        <div style={{
+          flex: '0 0 40%', 
+          minWidth: '350px',
+          paddingLeft: '12px',
+          position: 'sticky',
+          top: '0',
+          height: 'fit-content',
+          maxHeight: 'calc(100vh)',
+          overflowY: 'auto',
+          paddingTop: '15px'
+        }}>
           <div style={{ position: 'sticky', top: '24px'}}>
             <Card>
               <BlockStack gap="400">
@@ -1200,7 +1210,7 @@ export default function NudgeAddTogether() {
               </BlockStack>
             </Card>
           </div>
-        </Layout.Section>
+        </div>
       </Layout>
 
       {/* Add Rule Modal */}

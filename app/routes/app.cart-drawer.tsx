@@ -575,7 +575,6 @@ function MiniCartDrawerPreview({
       overflow: 'hidden',
       position: 'relative',
       transformOrigin: 'top center',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     }}>
       {/* Header */}
       <div style={{ 
