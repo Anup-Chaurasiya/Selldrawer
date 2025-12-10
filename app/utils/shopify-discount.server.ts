@@ -1,57 +1,52 @@
 /**
- * Shopify Discount Management Utilities
- * Handles automatic creation, update, and deletion of Shopify discount codes for milestones
+ * Automatic Shopify Discount Management Utilities (2025-01)
+ * - Creates/updates/deletes Shopify Automatic Discounts for milestones
+ * - Uses discountAutomaticFreeShippingCreate, discountAutomaticBasicCreate,
+ *   discountAutomaticBxgyCreate and discountAutomaticDelete (API v: 2025-01)
+ *
+ * Notes:
+ * - admin.graphql(...) is expected to return a parsed JSON-like object (not a Fetch Response)
+ * - Automatic discounts do not expose a customer-facing code; this API returns IDs only.
  */
 
 type AdminApiContext = {
   graphql: (query: string, options?: { variables?: any }) => Promise<any>;
 };
 
+type CreateResult = { discountId: string; code: string } | null;
+
 /**
- * Generate a unique discount code based on reward type
+ * Helper to ensure number -> string with two decimals for money fields
  */
-export function generateDiscountCode(rewardType: string): string {
-  const prefixes: { [key: string]: string } = {
-    free_shipping: "FREESHIP",
-    discount_percentage: "SAVE",
-    discount_fixed: "OFF",
-    gift_wrapping: "GIFT",
-  };
-  
-  const prefix = prefixes[rewardType] || "MILESTONE";
-  const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();
-  const timestamp = Date.now().toString(36).substring(-4).toUpperCase();
-  
-  // Generate code with max 20 characters to stay within Shopify limits
-  const code = `${prefix}${timestamp}${randomStr}`;
-  return code.substring(0, 15).toUpperCase();
+function toAmountString(value: number): string {
+  // Keep as string with two decimals. Shopify expects money as string in many fields.
+  return value.toFixed(2);
 }
 
 /**
- * Create a free shipping discount in Shopify
+ * Convert a variant id (possibly numeric or already gid) to GID form.
  */
-async function createFreeShippingDiscount(
+function toVariantGid(id: string): string | null {
+  if (!id) return null;
+  if (id.startsWith("gid://")) return id;
+  // If numeric or string id, wrap into ProductVariant GID
+  return `gid://shopify/ProductVariant/${id}`;
+}
+
+/**
+ * Create an automatic free shipping discount
+ * - minimumSubtotal: number (threshold in shop's currency, e.g. 2000.00)
+ */
+async function createFreeShippingAutomatic(
   admin: AdminApiContext,
-  code: string,
-  title: string
-): Promise<{ discountId: string; code: string } | null> {
+  title: string,
+  minimumSubtotal: number
+): Promise<CreateResult> {
   const mutation = `
-    mutation discountCodeFreeShippingCreate($freeShippingCodeDiscount: DiscountCodeFreeShippingInput!) {
-      discountCodeFreeShippingCreate(freeShippingCodeDiscount: $freeShippingCodeDiscount) {
-        codeDiscountNode {
+    mutation discountAutomaticFreeShippingCreate($input: DiscountAutomaticFreeShippingInput!) {
+      discountAutomaticFreeShippingCreate(freeShippingAutomaticDiscount: $input) {
+        automaticDiscountNode {
           id
-          codeDiscount {
-            ... on DiscountCodeFreeShipping {
-              title
-              codes(first: 1) {
-                edges {
-                  node {
-                    code
-                  }
-                }
-              }
-            }
-          }
         }
         userErrors {
           field
@@ -62,364 +57,355 @@ async function createFreeShippingDiscount(
   `;
 
   const variables = {
-    freeShippingCodeDiscount: {
-      title: title,
-      code: code,
-      startsAt: new Date().toISOString(),
-      customerSelection: {
-        all: true,
-      },
-      destination: {
-        all: true,
+    input: {
+      title,
+      startsAt: new Date().toISOString(),      
+      // Minimum requirement so Shopify only activates when subtotal >= minimumSubtotal
+      minimumRequirement: {
+        subtotal: {
+          greaterThanOrEqualToSubtotal: toAmountString(minimumSubtotal)
+        }
       },
       combinesWith: {
         orderDiscounts: true,
         productDiscounts: true
-      }
-    },
+      },
+    }
   };
 
   try {
-    const response = await admin.graphql(mutation, { variables });
-    const data = await response.json();
+    const res = await admin.graphql(mutation, { variables });
+    // Try to print readable body (if any)
+    
+    const payloadData = await res.json();
+    const payload = payloadData?.data?.discountAutomaticFreeShippingCreate ?? payloadData?.discountAutomaticFreeShippingCreate ?? null;
 
-    if (data.errors) {
-      console.error("GraphQL errors creating free shipping discount:", JSON.stringify(data.errors, null, 2));
+    if (!payload) {
+      console.error("createFreeShippingAutomatic: invalid response", JSON.stringify(res, null, 2));
       return null;
     }
 
-    if (data.data?.discountCodeFreeShippingCreate?.userErrors?.length > 0) {
-      console.error("User errors creating free shipping discount:", JSON.stringify(data.data.discountCodeFreeShippingCreate.userErrors, null, 2));
+    if (payload.userErrors && payload.userErrors.length) {
+      console.error("createFreeShippingAutomatic userErrors:", JSON.stringify(payload.userErrors, null, 2));
       return null;
     }
 
-    const discountNode = data.data?.discountCodeFreeShippingCreate?.codeDiscountNode;
-    if (!discountNode) {
-      console.error("No discount node returned for free shipping");
-      return null;
-    }
-
-    return {
-      discountId: discountNode.id,
-      code: discountNode.codeDiscount.codes.edges[0]?.node.code || code,
-    };
-  } catch (error) {
-    console.error("Exception creating free shipping discount:", error);
-    return null;
-  }
-}
-
-/**
- * Create a percentage discount in Shopify
- */
-async function createPercentageDiscount(
-  admin: AdminApiContext,
-  code: string,
-  title: string,
-  percentage: number
-): Promise<{ discountId: string; code: string } | null> {
-  const mutation = `
-    mutation discountCodeBasicCreate($basicCodeDiscount: DiscountCodeBasicInput!) {
-      discountCodeBasicCreate(basicCodeDiscount: $basicCodeDiscount) {
-        codeDiscountNode {
-          id
-          codeDiscount {
-            ... on DiscountCodeBasic {
-              title
-              codes(first: 1) {
-                edges {
-                  node {
-                    code
-                  }
-                }
-              }
-            }
-          }
-        }
-        userErrors {
-          field
-          message
-        }
-      }
-    }
-  `;
-
-  const variables = {
-    basicCodeDiscount: {
-      title: title,
-      code: code,
-      startsAt: new Date().toISOString(),
-      customerSelection: {
-        all: true,
-      },
-      combinesWith: {  // FIXED: Moved to root level
-        orderDiscounts: true,
-        productDiscounts: true,
-        shippingDiscounts: true
-      },
-      customerGets: {
-        value: {
-          percentage: percentage / 100,
-        },
-        items: {
-          all: true,
-        },
-      },
-    },
-  };
-
-  try {
-    const response = await admin.graphql(mutation, { variables });
-    const data = await response.json();
-
-    if (data.errors) {
-      console.error("GraphQL errors creating percentage discount:", JSON.stringify(data.errors, null, 2));
-      return null;
-    }
-
-    if (data.data?.discountCodeBasicCreate?.userErrors?.length > 0) {
-      console.error("User errors creating percentage discount:", JSON.stringify(data.data.discountCodeBasicCreate.userErrors, null, 2));
-      return null;
-    }
-
-    const discountNode = data.data?.discountCodeBasicCreate?.codeDiscountNode;
-    if (!discountNode) {
-      console.error("No discount node returned for percentage discount");
-      return null;
-    }
-
-    return {
-      discountId: discountNode.id,
-      code: discountNode.codeDiscount.codes.edges[0]?.node.code || code,
-    };
-  } catch (error) {
-    console.error("Exception creating percentage discount:", error);
-    return null;
-  }
-}
-
-/**
- * Create a fixed amount discount in Shopify
- */
-async function createFixedDiscount(
-  admin: AdminApiContext,
-  code: string,
-  title: string,
-  amount: number,
-  currencyCode: string = "INR"
-): Promise<{ discountId: string; code: string } | null> {
-  const mutation = `
-    mutation discountCodeBasicCreate($basicCodeDiscount: DiscountCodeBasicInput!) {
-      discountCodeBasicCreate(basicCodeDiscount: $basicCodeDiscount) {
-        codeDiscountNode {
-          id
-          codeDiscount {
-            ... on DiscountCodeBasic {
-              title
-              codes(first: 1) {
-                edges {
-                  node {
-                    code
-                  }
-                }
-              }
-            }
-          }
-        }
-        userErrors {
-          field
-          message
-        }
-      }
-    }
-  `;
-
-  const variables = {
-    basicCodeDiscount: {
-      title: title,
-      code: code,
-      startsAt: new Date().toISOString(),
-      customerSelection: {
-        all: true,
-      },
-      combinesWith: {  // ADDED: combinesWith for fixed discounts
-        orderDiscounts: true,
-        productDiscounts: true,
-        shippingDiscounts: true
-      },
-      customerGets: {
-        value: {
-          fixedAmount: {  // FIXED: Changed from discountAmount to fixedAmount
-            amount: amount,
-            currencyCode: currencyCode
-          },
-        },
-        items: {
-          all: true,
-        },
-      },
-    },
-  };
-
-  try {
-    const response = await admin.graphql(mutation, { variables });
-    const data = await response.json();
-
-    if (data.errors) {
-      console.error("GraphQL errors creating fixed discount:", JSON.stringify(data.errors, null, 2));
-      return null;
-    }
-
-    if (data.data?.discountCodeBasicCreate?.userErrors?.length > 0) {
-      console.error("User errors creating fixed discount:", JSON.stringify(data.data.discountCodeBasicCreate.userErrors, null, 2));
-      return null;
-    }
-
-    const discountNode = data.data?.discountCodeBasicCreate?.codeDiscountNode;
-    if (!discountNode) {
-      console.error("No discount node returned for fixed discount");
-      return null;
-    }
-
-    return {
-      discountId: discountNode.id,
-      code: discountNode.codeDiscount.codes.edges[0]?.node.code || code,
-    };
-  } catch (error) {
-    console.error("Exception creating fixed discount:", error);
-    return null;
-  }
-}
-
-/**
- * Create a gift discount (100% off specific variant) in Shopify
- */
-async function createGiftDiscount(
-  admin: AdminApiContext,
-  code: string,
-  title: string,
-  variantIds: string[]
-): Promise<{ discountId: string; code: string } | null> {
-  console.log("=== createGiftDiscount called ===");
-  console.log("Code:", code);
-  console.log("Title:", title);
-  console.log("Variant IDs received:", variantIds);
-
-  const mutation = `
-    mutation discountCodeBasicCreate($basicCodeDiscount: DiscountCodeBasicInput!) {
-      discountCodeBasicCreate(basicCodeDiscount: $basicCodeDiscount) {
-        codeDiscountNode {
-          id
-          codeDiscount {
-            ... on DiscountCodeBasic {
-              title
-              codes(first: 1) {
-                edges {
-                  node {
-                    code
-                  }
-                }
-              }
-            }
-          }
-        }
-        userErrors {
-          field
-          message
-        }
-      }
-    }
-  `;
-
-  // Convert variant IDs to proper GID format
-  const formattedVariantIds = variantIds.map(id => {
-    console.log("Processing variant ID:", id, "Type:", typeof id);
+    const id = payload.automaticDiscountNode?.id;
     if (!id) {
-      console.log("WARNING: Empty variant ID found!");
+      console.error("createFreeShippingAutomatic: no automaticDiscount.id returned", JSON.stringify(payload, null, 2));
       return null;
     }
-    if (id.startsWith('gid://')) return id;
-    return `gid://shopify/ProductVariant/${id}`;
-  }).filter(id => id !== null) as string[];
 
-  console.log("Formatted variant IDs:", formattedVariantIds);
+    return { discountId: id, code: "" };
+  } catch (err) {
+    console.error("Exception in createFreeShippingAutomatic:", err);
+    return null;
+  }
+}
 
-  if (formattedVariantIds.length === 0) {
-    console.error("ERROR: No valid variant IDs after formatting!");
+/**
+ * Create an automatic basic discount (percentage or fixed)
+ * - type: "percentage" | "fixed"
+ * - value: for percentage -> pass 5 for 5% ; for fixed -> pass 200 for ₹200
+ * - minimumSubtotal: threshold amount
+ *
+ * Applies to all items in cart (global).
+ */
+async function createBasicAutomatic(
+  admin: AdminApiContext,
+  title: string,
+  type: "percentage" | "fixed",
+  value: number,
+  minimumSubtotal: number
+): Promise<CreateResult> {
+  const mutation = `
+    mutation discountAutomaticBasicCreate($input: DiscountAutomaticBasicInput!) {
+      discountAutomaticBasicCreate(automaticBasicDiscount: $input) {
+        automaticDiscountNode {
+          id
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `;
+
+  // customerGets configuration differs for percentage vs fixed
+  const customerGets =
+    type === "percentage"
+      ? {
+          items: {
+            all: true
+          },
+          value: {
+            percentage: value / 100.0 // Shopify expects decimal? using API examples, pass decimal here
+          },
+        }
+      : {
+          items: {
+            all: true
+          },
+          value: {
+            // discountAmount needs string amount
+            discountAmount: {
+              amount: toAmountString(value),
+              appliesOnEachItem: false
+            }
+          },
+        };
+
+  const variables = {
+    input: {
+      title,
+      startsAt: new Date().toISOString(),
+      minimumRequirement: {
+        subtotal: {
+          greaterThanOrEqualToSubtotal: toAmountString(minimumSubtotal)
+        }
+      },
+      customerGets,
+      combinesWith: {
+        shippingDiscounts: true
+      }
+    }
+  };
+
+  try {
+    const res = await admin.graphql(mutation, { variables });
+    const payloadData = await res.json();
+    const payload = payloadData?.data?.discountAutomaticBasicCreate ?? payloadData?.discountAutomaticBasicCreate ?? null;
+
+    if (!payload) {
+      console.error("createBasicAutomatic: invalid response", JSON.stringify(res, null, 2));
+      return null;
+    }
+
+    if (payload.userErrors && payload.userErrors.length) {
+      console.error("createBasicAutomatic userErrors:", JSON.stringify(payload.userErrors, null, 2));
+      return null;
+    }
+
+    const id = payload.automaticDiscountNode?.id;
+    if (!id) {
+      console.error("createBasicAutomatic: no automaticDiscount.id returned", JSON.stringify(payload, null, 2));
+      return null;
+    }
+
+    return { discountId: id, code: "" };
+  } catch (err) {
+    console.error("Exception in createBasicAutomatic:", err);
+    return null;
+  }
+}
+
+/**
+ * Get or create a dynamic collection with price > 0 condition
+ * This collection can be used in discount APIs where "all items" is not supported
+ */
+async function getOrCreateAllProductsCollection(
+  admin: AdminApiContext
+): Promise<string | null> {
+  const collectionTitle = "Upsellity - All Products (Price > 0)";
+  const collectionHandle = "upsellity-all-products-price-greater-than-0";
+
+  // First, try to find existing collection by handle
+  const findQuery = `
+    query findCollection($handle: String!) {
+      collectionByHandle(handle: $handle) {
+        id
+      }
+    }
+  `;
+
+  try {
+    const findRes = await admin.graphql(findQuery, { variables: { handle: collectionHandle } });
+    const findData = await findRes.json();
+    const existingCollection = findData?.data?.collectionByHandle;
+
+    if (existingCollection?.id) {
+      return existingCollection.id;
+    }
+  } catch (err) {
+    console.warn("getOrCreateAllProductsCollection: error finding collection, will create new one", err);
+  }
+
+  // Collection doesn't exist, create it
+  const createMutation = `
+    mutation collectionCreate($input: CollectionInput!) {
+      collectionCreate(input: $input) {
+        collection {
+          id
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `;
+
+  const createVariables = {
+    input: {
+      title: collectionTitle,
+      handle: collectionHandle,
+      ruleSet: {
+        appliedDisjunctively: false,
+        rules: [
+          {
+            column: "VARIANT_PRICE",
+            relation: "GREATER_THAN",
+            condition: "0"
+          }
+        ]
+      }
+    }
+  };
+
+  try {
+    const createRes = await admin.graphql(createMutation, { variables: createVariables });
+    const createData = await createRes.json();
+    const payload = createData?.data?.collectionCreate ?? createData?.collectionCreate ?? null;
+
+    if (!payload) {
+      console.error("getOrCreateAllProductsCollection: invalid response", JSON.stringify(createRes, null, 2));
+      return null;
+    }
+
+    if (payload.userErrors && payload.userErrors.length) {
+      console.error("getOrCreateAllProductsCollection userErrors:", JSON.stringify(payload.userErrors, null, 2));
+      return null;
+    }
+
+    const collectionId = payload.collection?.id;
+    if (!collectionId) {
+      console.error("getOrCreateAllProductsCollection: no collection.id returned", JSON.stringify(payload, null, 2));
+      return null;
+    }
+
+    return collectionId;
+  } catch (err) {
+    console.error("Exception in getOrCreateAllProductsCollection:", err);
+    return null;
+  }
+}
+
+/**
+ * Create an automatic BXGY discount (used for free-gift milestone)
+ * - giftVariantIds: array of variant IDs (string numeric or gid) that should be given as 100% off when threshold is met
+ * - minimumSubtotal: threshold value
+ *
+ * Implements a "customerGets" where entitled items are the gift variants with 100% off.
+ */
+async function createBxgyAutomatic(
+  admin: AdminApiContext,
+  title: string,
+  giftVariantIds: string[],
+  minimumSubtotal: number
+): Promise<CreateResult> {
+  const mutation = `
+    mutation discountAutomaticBxgyCreate($input: DiscountAutomaticBxgyInput!) {
+      discountAutomaticBxgyCreate(automaticBxgyDiscount: $input) {
+        automaticDiscountNode {
+          id
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `;
+
+  // Format variants into GIDs and filter invalid
+  const formattedVariants = giftVariantIds
+    .map(v => toVariantGid(v))
+    .filter((v): v is string => !!v);
+
+  if (formattedVariants.length === 0) {
+    console.error("createBxgyAutomatic: no valid variant IDs provided", giftVariantIds);
     return null;
   }
 
+  // Get or create a collection with price > 0 condition to use in customerBuys
+  // This is required because "all: true" is not supported in customerBuys.items
+  const allProductsCollectionId = await getOrCreateAllProductsCollection(admin);
+  if (!allProductsCollectionId) {
+    console.error("createBxgyAutomatic: failed to get or create all products collection");
+    return null;
+  }
+
+  // For BXGY automatic discounts, we can set customerGets to grant entitled product variants with 100% off.
+  // Input shape varies across API versions but we provide the expected structure for 2025-01.
   const variables = {
-    basicCodeDiscount: {
-      title: title,
-      code: code,
+    input: {
+      title,
       startsAt: new Date().toISOString(),
-      customerSelection: {
-        all: true,
-      },
-      combinesWith: {  // FIXED: Moved to root level
-        orderDiscounts: true,
-        productDiscounts: true,
-        shippingDiscounts: true
+      customerBuys: {
+        items: {
+          collections: {
+            add: [allProductsCollectionId]
+          }
+        },
+        value: {
+          amount: toAmountString(minimumSubtotal)
+        }
       },
       customerGets: {
-        value: {
-          percentage: 1.0, // 100% off
-        },
         items: {
           products: {
-            productVariantsToAdd: formattedVariantIds,
-          },
+            productVariantsToAdd: formattedVariants
+          }
         },
+        value: {
+          discountOnQuantity:{
+            effect: {
+              percentage: 1
+            },
+            quantity: '1'
+          }
+        }
       },
-    },
+      combinesWith: {
+        shippingDiscounts: true
+      }
+    }
   };
 
   try {
-    console.log("Creating gift discount with variant IDs:", formattedVariantIds);
-    console.log("Gift discount variables:", JSON.stringify(variables, null, 2));
-    const response = await admin.graphql(mutation, { variables });
-    const data = await response.json();
-    console.log("Gift discount response:", JSON.stringify(data, null, 2));
+    const res = await admin.graphql(mutation, { variables });
+    const payloadData = await res.json();
+    const payload = payloadData?.data?.discountAutomaticBxgyCreate ?? payloadData?.discountAutomaticBxgyCreate ?? null;
 
-    if (data.errors) {
-      console.error("GraphQL errors creating gift discount:", JSON.stringify(data.errors, null, 2));
+    if (!payload) {
+      console.error("createBxgyAutomatic: invalid response", JSON.stringify(res, null, 2));
       return null;
     }
 
-    if (data.data?.discountCodeBasicCreate?.userErrors?.length > 0) {
-      console.error("User errors creating gift discount:", JSON.stringify(data.data.discountCodeBasicCreate.userErrors, null, 2));
+    if (payload.userErrors && payload.userErrors.length) {
+      console.error("createBxgyAutomatic userErrors:", JSON.stringify(payload.userErrors, null  , 2));
       return null;
     }
 
-    const discountNode = data.data?.discountCodeBasicCreate?.codeDiscountNode;
-    if (!discountNode) {
-      console.error("No discount node returned for gift discount");
-      return null;
-    }
-
-    console.log("Successfully created gift discount:", discountNode.id);
-    return {
-      discountId: discountNode.id,
-      code: discountNode.codeDiscount.codes.edges[0]?.node.code || code,
-    };
-  } catch (error) {
-    console.error("Exception creating gift discount:", error);
+    return { discountId: payload.automaticDiscountNode?.id, code: "" };
+  } catch (err) {
+    console.error("Exception in createBxgyAutomatic:", err);
     return null;
   }
 }
 
 /**
- * Delete a discount from Shopify
+ * Delete an automatic discount by ID
  */
 export async function deleteShopifyDiscount(
   admin: AdminApiContext,
   discountId: string
 ): Promise<boolean> {
   const mutation = `
-    mutation discountCodeDelete($id: ID!) {
-      discountCodeDelete(id: $id) {
-        deletedCodeDiscountId
+    mutation discountAutomaticDelete($id: ID!) {
+      discountAutomaticDelete(id: $id) {
+        deletedAutomaticDiscountId
         userErrors {
           field
           message
@@ -429,25 +415,33 @@ export async function deleteShopifyDiscount(
   `;
 
   try {
-    const response = await admin.graphql(mutation, {
-      variables: { id: discountId },
-    });
-    const data = await response.json();
+    const res = await admin.graphql(mutation, { variables: { id: discountId } });
+    const payload = res?.data?.discountAutomaticDelete ?? res?.discountAutomaticDelete ?? null;
 
-    if (data.data?.discountCodeDelete?.userErrors?.length > 0) {
-      console.error("Error deleting discount:", data.data.discountCodeDelete.userErrors);
+    if (!payload) {
+      console.error("deleteShopifyDiscount: invalid response", JSON.stringify(res, null, 2));
       return false;
     }
 
-    return !!data.data?.discountCodeDelete?.deletedCodeDiscountId;
-  } catch (error) {
-    console.error("Error deleting discount:", error);
+    if (payload.userErrors && payload.userErrors.length) {
+      console.error("deleteShopifyDiscount userErrors:", JSON.stringify(payload.userErrors, null, 2));
+      return false;
+    }
+
+    return !!payload.deletedDiscountId;
+  } catch (err) {
+    console.error("Exception in deleteShopifyDiscount:", err);
     return false;
   }
 }
 
 /**
- * Main function to create a Shopify discount based on milestone configuration
+ * Main factory: create an automatic discount based on milestone configuration
+ * - rewardType: "free_shipping" | "discount_percentage" | "discount_fixed" | "gift_wrapping"
+ * - rewardValue: for discount types (percentage -> number 5 = 5%; fixed -> amount)
+ * - giftProducts: array of { shopifyVariantId?: string | null }
+ *
+ * Returns { discountId, code } where code is empty string for automatic discounts.
  */
 export async function createMilestoneDiscount(
   admin: AdminApiContext,
@@ -456,56 +450,59 @@ export async function createMilestoneDiscount(
     rewardType: string;
     rewardValue?: number | null;
     giftProducts?: Array<{ shopifyVariantId?: string | null }>;
+    minimumSubtotal?: number; // threshold, if not provided default to 0
   }
 ): Promise<{ discountId: string; code: string } | null> {
   try {
-    const code = generateDiscountCode(milestone.rewardType);
     const title = `Milestone: ${milestone.title}`;
+    const minSubtotal = milestone.minimumSubtotal ?? 0;
 
     switch (milestone.rewardType) {
       case "free_shipping":
-        return await createFreeShippingDiscount(admin, code, title);
+        return await createFreeShippingAutomatic(admin, title, minSubtotal);
 
       case "discount_percentage":
-        if (!milestone.rewardValue) {
-          console.error("Percentage discount requires rewardValue");
+        if (typeof milestone.rewardValue !== "number") {
+          console.error("createMilestoneDiscount: percentage discount requires rewardValue (number)");
           return null;
         }
-        return await createPercentageDiscount(admin, code, title, milestone.rewardValue);
+        // rewardValue is percent (e.g., 5 means 5%)
+        return await createBasicAutomatic(admin, title, "percentage", milestone.rewardValue, minSubtotal);
 
       case "discount_fixed":
-        if (!milestone.rewardValue) {
-          console.error("Fixed discount requires rewardValue");
+        if (typeof milestone.rewardValue !== "number") {
+          console.error("createMilestoneDiscount: fixed discount requires rewardValue (number)");
           return null;
         }
-        return await createFixedDiscount(admin, code, title, milestone.rewardValue);
+        return await createBasicAutomatic(admin, title, "fixed", milestone.rewardValue, minSubtotal);
 
       case "gift_wrapping":
-        // For gifts, create a 100% discount on the gift variants
-        const variantIds = milestone.giftProducts
-          ?.map(p => p.shopifyVariantId)
-          .filter((id): id is string => !!id) || [];
-        
+        // convert giftProducts to variant ids
+        const variantIds = (milestone.giftProducts ?? [])
+          .map(p => p.shopifyVariantId)
+          .filter((v): v is string => !!v);
+
         if (variantIds.length === 0) {
-          console.error("Gift discount requires at least one product with a variant ID");
-          console.error("Gift products received:", JSON.stringify(milestone.giftProducts, null, 2));
+          console.error("createMilestoneDiscount: gift_wrapping requires at least one variant id");
           return null;
         }
-        
-        return await createGiftDiscount(admin, code, title, variantIds);
+
+        return await createBxgyAutomatic(admin, title, variantIds, minSubtotal);
 
       default:
-        console.error("Unknown reward type:", milestone.rewardType);
+        console.error("createMilestoneDiscount: unknown reward type:", milestone.rewardType);
         return null;
     }
-  } catch (error) {
-    console.error("Error in createMilestoneDiscount:", error);
+  } catch (err) {
+    console.error("Exception in createMilestoneDiscount:", err);
     return null;
   }
 }
 
 /**
- * Update a Shopify discount by deleting the old one and creating a new one
+ * Update a milestone automatic discount:
+ * - If oldDiscountId is provided, attempt to delete it first (best-effort)
+ * - Then create a new automatic discount per new milestone config
  */
 export async function updateMilestoneDiscount(
   admin: AdminApiContext,
@@ -515,13 +512,26 @@ export async function updateMilestoneDiscount(
     rewardType: string;
     rewardValue?: number | null;
     giftProducts?: Array<{ shopifyVariantId?: string | null }>;
+    minimumSubtotal?: number;
   }
 ): Promise<{ discountId: string; code: string } | null> {
-  // Delete old discount if it exists
-  if (oldDiscountId) {
-    await deleteShopifyDiscount(admin, oldDiscountId);
-  }
+  try {
+    if (oldDiscountId) {
+      // best-effort delete; log but continue
+      const deleted = await deleteShopifyDiscount(admin, oldDiscountId);
+      if (!deleted) {
+        console.warn(`updateMilestoneDiscount: failed to delete old discount ${oldDiscountId} (continuing)`);
+      }
+    }
 
-  // Create new discount
-  return createMilestoneDiscount(admin, milestone);
+    const created = await createMilestoneDiscount(admin, milestone);
+    if (!created) {
+      console.error("updateMilestoneDiscount: failed to create updated discount");
+      return null;
+    }
+    return created;
+  } catch (err) {
+    console.error("Exception in updateMilestoneDiscount:", err);
+    return null;
+  }
 }

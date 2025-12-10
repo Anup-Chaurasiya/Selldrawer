@@ -152,7 +152,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
               id
               title
               handle
-              productsCount
+              productsCount {
+                count
+              }
             }
           }
         }
@@ -171,7 +173,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           shopifyCollectionId: collection.id.replace('gid://shopify/Collection/', ''),
           title: collection.title,
           handle: collection.handle,
-          productsCount: collection.productsCount || 0
+          productsCount: collection.productsCount?.count || 0
         };
       });
     }
@@ -1996,7 +1998,7 @@ export default function FrequentlyBoughtTogether() {
                                   {collection.title}
                                 </div>
                                 <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                                  {collection.productsCount} products
+                                  {collection.productsCount?.count} products
                                 </div>
                               </div>
                             </div>

@@ -1,6 +1,6 @@
 /**
  * Upsellity Promotional Banner Block v1.0.4
- * Built: 2025-12-09T17:54:10.401Z
+ * Built: 2025-12-10T20:17:06.558Z
  */
 "use strict";
 (() => {
@@ -8693,7 +8693,6 @@
         })]
       };
       const apiUrl = `${this.appUrl}/api/analytics`;
-      console.log("[Upsellity Analytics]", event.eventType, event.component, payload);
       if (navigator.sendBeacon) {
         const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
         const sent = navigator.sendBeacon(apiUrl, blob);

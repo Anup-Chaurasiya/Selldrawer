@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Add Together v1.0.4
- * Built: 2025-12-09T17:54:10.386Z
+ * Built: 2025-12-10T20:17:04.623Z
  */
 "use strict";
 (() => {
@@ -8568,7 +8568,6 @@
         })]
       };
       const apiUrl = `${this.appUrl}/api/analytics`;
-      console.log("[Upsellity Analytics]", event.eventType, event.component, payload);
       if (navigator.sendBeacon) {
         const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
         const sent = navigator.sendBeacon(apiUrl, blob);
@@ -8614,7 +8613,6 @@
       this.init();
     }
     async init() {
-      var _a2, _b;
       try {
         if (document.readyState === "loading") {
           await new Promise((resolve) => {
@@ -8628,20 +8626,8 @@
           return;
         }
         await this.loadConfig();
-        console.log("Nudge Add Together: Config loaded", {
-          enabled: this.enabled,
-          hasConfig: !!this.config,
-          recommendationsCount: this.recommendations.length,
-          showOnAddToCart: (_a2 = this.config) == null ? void 0 : _a2.showOnAddToCart
-        });
         if (this.enabled && this.config && this.config.showOnAddToCart) {
           setTimeout(() => this.setupAddToCartInterceptor(), 200);
-        } else {
-          console.log("Nudge Add Together: Not enabled or no config", {
-            enabled: this.enabled,
-            hasConfig: !!this.config,
-            showOnAddToCart: (_b = this.config) == null ? void 0 : _b.showOnAddToCart
-          });
         }
       } catch (error) {
         console.error("Error initializing Nudge Add Together:", error);
@@ -8658,17 +8644,13 @@
       return null;
     }
     async loadConfig() {
-      var _a2;
       try {
         const productHandle = this.getCurrentProductHandle();
         if (!productHandle) {
-          console.log("Nudge Add Together: No product handle found");
           return;
         }
-        console.log("Nudge Add Together: Loading config for product:", productHandle);
         Analytics.init(APP_URL);
         const apiUrl = `${APP_URL}/api/nudge-add-together?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(productHandle)}`;
-        console.log("Nudge Add Together: Fetching config from:", apiUrl);
         let response;
         try {
           response = await fetch(apiUrl, {
@@ -8692,11 +8674,6 @@
           return;
         }
         const data = await response.json();
-        console.log("Nudge Add Together: Config received:", {
-          enabled: data.enabled,
-          hasConfig: !!data.config,
-          recommendationsCount: ((_a2 = data.recommendations) == null ? void 0 : _a2.length) || 0
-        });
         this.enabled = data.enabled || false;
         this.config = data.config || null;
         this.recommendations = data.recommendations || [];
@@ -8727,7 +8704,6 @@
     }
     setupAddToCartInterceptor() {
       const addToCartButtons = document.querySelectorAll('[name="add"], [data-add-to-cart], button[type="submit"][name="add"], form[action*="/cart/add"] button[type="submit"]');
-      console.log("Nudge Add Together: Setting up interceptor, found buttons:", addToCartButtons.length);
       if (addToCartButtons.length === 0) {
         console.warn("Nudge Add Together: No add to cart buttons found. Retrying in 500ms...");
         setTimeout(() => this.setupAddToCartInterceptor(), 500);
@@ -8739,22 +8715,16 @@
         }
         button.dataset.nudgeAddTogetherListener = "true";
         button.addEventListener("click", async (e) => {
-          var _a2, _b, _c, _d, _e, _f;
-          console.log("Nudge Add Together: Add to cart clicked", {
-            recommendationsCount: this.recommendations.length,
-            showOnAddToCart: (_a2 = this.config) == null ? void 0 : _a2.showOnAddToCart,
-            enabled: this.enabled
-          });
+          var _a2, _b, _c, _d;
           if (this.recommendations.length > 0 && this.config && this.config.showOnAddToCart && this.enabled) {
             e.preventDefault();
             e.stopPropagation();
-            console.log("Nudge Add Together: Intercepting add to cart");
             this.originalAddToCartButton = button;
             this.currentProduct = await this.getCurrentProductData();
             const form = button.closest("form");
             if (form) {
               const formData = new FormData(form);
-              const variantId = formData.get("id") || formData.get("variant_id") || ((_b = form.querySelector('[name="id"]')) == null ? void 0 : _b.value);
+              const variantId = formData.get("id") || formData.get("variant_id") || ((_a2 = form.querySelector('[name="id"]')) == null ? void 0 : _a2.value);
               if (variantId) {
                 this.originalProductVariantId = String(variantId);
               } else if (this.currentProduct && this.currentProduct.variants && this.currentProduct.variants.length > 0) {
@@ -8768,13 +8738,13 @@
                 const originalIdStr = String(this.originalProductVariantId);
                 normalizedOriginalId = originalIdStr.replace("gid://shopify/ProductVariant/", "").replace(/\D/g, "");
               }
-              const variant = ((_c = this.currentProduct.variants) == null ? void 0 : _c.find((v) => {
+              const variant = ((_b = this.currentProduct.variants) == null ? void 0 : _b.find((v) => {
                 if (!v || !v.id)
                   return false;
                 const vIdStr = String(v.id);
                 const vId = vIdStr.replace("gid://shopify/ProductVariant/", "").replace(/\D/g, "");
                 return normalizedOriginalId && vId === normalizedOriginalId;
-              })) || ((_d = this.currentProduct.variants) == null ? void 0 : _d[0]);
+              })) || ((_c = this.currentProduct.variants) == null ? void 0 : _c[0]);
               if (variant && variant.id) {
                 const variantIdStr = String(variant.id);
                 const productIdStr = this.currentProduct.id ? String(this.currentProduct.id) : "";
@@ -8785,14 +8755,13 @@
                   handle: this.currentProduct.handle || "",
                   price: variant.price ? parseFloat(variant.price) : 0,
                   compareAtPrice: variant.compare_at_price ? parseFloat(variant.compare_at_price) : null,
-                  imageUrl: this.currentProduct.featured_image || this.currentProduct.images && ((_e = this.currentProduct.images[0]) == null ? void 0 : _e.src) || null,
+                  imageUrl: this.currentProduct.featured_image || this.currentProduct.images && ((_d = this.currentProduct.images[0]) == null ? void 0 : _d.src) || null,
                   description: this.currentProduct.description || null
                 };
               }
             }
             try {
               await this.addOriginalProductToCart(form);
-              console.log("Nudge Add Together: Showing popup");
               if (this.config.popupDelay > 0) {
                 setTimeout(() => this.showPopup(), this.config.popupDelay);
               } else {
@@ -8801,17 +8770,9 @@
             } catch (error) {
               console.error("Nudge Add Together: Failed to add original product, not showing popup");
             }
-          } else {
-            console.log("Nudge Add Together: Not intercepting", {
-              hasRecommendations: this.recommendations.length > 0,
-              hasConfig: !!this.config,
-              showOnAddToCart: (_f = this.config) == null ? void 0 : _f.showOnAddToCart,
-              enabled: this.enabled
-            });
           }
         }, true);
       });
-      console.log("Nudge Add Together: Interceptor setup complete");
     }
     async getCurrentProductData() {
       try {
@@ -8839,7 +8800,6 @@
           body: formData
         });
         if (response.ok) {
-          console.log("Nudge Add Together: Original product added to cart");
           document.dispatchEvent(new CustomEvent("cart:updated"));
           if (this.originalProduct) {
             Analytics.track({

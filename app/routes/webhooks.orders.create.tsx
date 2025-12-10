@@ -6,8 +6,6 @@ import { checkOrderLimit } from "../utils/planAccess.server";
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, payload, topic } = await authenticate.webhook(request);
 
-  console.log(`Received ${topic} webhook for ${shop}`);
-
   // payload is the Order resource
   const order = payload;
 
@@ -18,7 +16,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // Check order limit for the shop
   const orderLimitCheck = await checkOrderLimit(shop);
   if (!orderLimitCheck.withinLimit) {
-    console.log(`Order limit reached for ${shop}: ${orderLimitCheck.currentCount}/${orderLimitCheck.limit}`);
     // Still process the order but log the limit reached
   }
 
@@ -28,8 +25,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   });
 
   if (upsellItems.length > 0) {
-    console.log(`Found ${upsellItems.length} upsell items in order ${order.id}`);
-    
     const events = upsellItems.map((item: any) => {
       const sourceProp = item.properties.find((p: any) => p.name === "_upsell_source");
       const component = sourceProp?.value || "unknown";
