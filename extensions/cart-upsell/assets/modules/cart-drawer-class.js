@@ -429,7 +429,7 @@ export class UpsellityCartDrawer {
         showingAllOffers: this.showingAllOffers,
         unlockedMilestone: this.unlockedMilestone,
         onClose: () => this.close(),
-        onCheckout: () => window.location.href = DiscountManager.getCheckoutUrl(this.appliedDiscount),
+        onCheckout: () => this.handleCheckout(),
         onAddProductToCart: (variantId) => this.addProductToCart(variantId, 1, { '_upsell_source': 'cart_drawer_recommendation' }),
         onUpdateQuantity: (itemKey, newQuantity) => this.updateQuantity(itemKey, newQuantity),
         onRemoveItem: (itemKey) => this.removeItem(itemKey),

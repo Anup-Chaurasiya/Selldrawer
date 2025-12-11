@@ -1,6 +1,6 @@
 /**
  * Upsellity Milestone Block v1.0.4
- * Built: 2025-12-11T12:41:12.136Z
+ * Built: 2025-12-11T13:02:50.791Z
  */
 "use strict";
 (() => {
@@ -8718,11 +8718,25 @@
     }
     const giftProducts = unlockedMilestone.giftProducts || [];
     if (giftProducts.length === 0) {
-      return false;
+      for (const giftItem of currentGifts) {
+        const removed = await removeGiftFromCart(giftItem.key);
+        if (removed) {
+          cartModified = true;
+        }
+      }
+      if (cartModified && loadCartCallback) {
+        await loadCartCallback();
+      }
+      return cartModified;
     }
+    const validGiftVariantIds = new Set(
+      giftProducts.map((gp) => normalizeVariantId(gp.shopifyVariantId))
+    );
     for (const giftItem of currentGifts) {
+      const itemVariantId = normalizeVariantId(giftItem.variant_id || giftItem.id);
       const belongsToThisMilestone = giftItem.properties && giftItem.properties[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
-      if (!belongsToThisMilestone) {
+      const shouldRemove = !belongsToThisMilestone || belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId);
+      if (shouldRemove) {
         const removed = await removeGiftFromCart(giftItem.key);
         if (removed) {
           cartModified = true;

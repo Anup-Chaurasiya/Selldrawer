@@ -296,16 +296,42 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
   // Milestone is unlocked and is a gift reward
   const giftProducts = unlockedMilestone.giftProducts || [];
   
+  // If no gift products configured, remove all gifts
   if (giftProducts.length === 0) {
-    return false;
+    for (const giftItem of currentGifts) {
+      const removed = await removeGiftFromCart(giftItem.key);
+      if (removed) {
+        cartModified = true;
+      }
+    }
+    
+    if (cartModified && loadCartCallback) {
+      await loadCartCallback();
+    }
+    
+    return cartModified;
   }
   
-  // Remove gifts that don't belong to this milestone
+  // Create a set of valid gift variant IDs for this milestone
+  // This ensures that if the admin changes the gift product, old gifts are removed
+  const validGiftVariantIds = new Set(
+    giftProducts.map(gp => normalizeVariantId(gp.shopifyVariantId))
+  );
+  
+  // Remove gifts that don't belong to this milestone OR don't match configured products
   for (const giftItem of currentGifts) {
+    const itemVariantId = normalizeVariantId(giftItem.variant_id || giftItem.id);
     const belongsToThisMilestone = giftItem.properties && 
       giftItem.properties[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
     
-    if (!belongsToThisMilestone) {
+    // Remove if:
+    // 1. Doesn't belong to this milestone, OR
+    // 2. Belongs to this milestone but variant is not in the configured gift products
+    //    (this handles the case where admin changed the gift product)
+    const shouldRemove = !belongsToThisMilestone || 
+      (belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId));
+    
+    if (shouldRemove) {
       const removed = await removeGiftFromCart(giftItem.key);
       if (removed) {
         cartModified = true;

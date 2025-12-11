@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.4
- * Built: 2025-12-11T12:44:11.228Z
+ * Built: 2025-12-11T13:02:50.541Z
  */
 "use strict";
 (() => {
@@ -8966,11 +8966,25 @@
     }
     const giftProducts = unlockedMilestone.giftProducts || [];
     if (giftProducts.length === 0) {
-      return false;
+      for (const giftItem of currentGifts) {
+        const removed = await removeGiftFromCart(giftItem.key);
+        if (removed) {
+          cartModified = true;
+        }
+      }
+      if (cartModified && loadCartCallback) {
+        await loadCartCallback();
+      }
+      return cartModified;
     }
+    const validGiftVariantIds = new Set(
+      giftProducts.map((gp) => normalizeVariantId(gp.shopifyVariantId))
+    );
     for (const giftItem of currentGifts) {
+      const itemVariantId = normalizeVariantId(giftItem.variant_id || giftItem.id);
       const belongsToThisMilestone = giftItem.properties && giftItem.properties[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
-      if (!belongsToThisMilestone) {
+      const shouldRemove = !belongsToThisMilestone || belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId);
+      if (shouldRemove) {
         const removed = await removeGiftFromCart(giftItem.key);
         if (removed) {
           cartModified = true;
@@ -9985,6 +9999,7 @@
     }, [item.quantity, isEditing]);
     const prices = calculateItemPrices(item, cartTotalPrice);
     const imageUrl = ((_a2 = item.featured_image) == null ? void 0 : _a2.url) || item.image || "";
+    const isGiftItem = item.properties && (item.properties["_upsellity_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
     return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
       "div",
       {
@@ -10024,12 +10039,31 @@
               marginBottom: "6px"
             }, children: item.variant_title }),
             /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { marginBottom: "8px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
                 flexWrap: "wrap"
-              }, children: [
+              }, children: isGiftItem ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                  textDecoration: "line-through",
+                  color: "#9ca3af",
+                  fontSize: "13px"
+                }, children: formatMoney2(prices.itemSubtotal) }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                  fontWeight: "700",
+                  fontSize: "16px",
+                  color: "#059669"
+                }, children: "FREE" }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                  background: "#dcfce7",
+                  color: "#15803d",
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  fontSize: "10px",
+                  fontWeight: "600"
+                }, children: "\u{1F381} GIFT" })
+              ] }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
                 prices.hasItemDiscount && !prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
                     textDecoration: "line-through",
@@ -10070,7 +10104,7 @@
                   fontSize: "16px",
                   color: "#111827"
                 }, children: formatMoney2(prices.itemSubtotal) })
-              ] }),
+              ] }) }),
               error && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
                 fontSize: "11px",
                 color: "#dc2626",
@@ -11032,14 +11066,23 @@
         return discount.value * 100;
       }
     };
-    const originalTotal = items.reduce((sum, item) => {
+    const isGiftItem = (item) => {
+      return item.properties && (item.properties["_upsellity_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+    };
+    const giftItems = items.filter(isGiftItem);
+    const regularItems = items.filter((item) => !isGiftItem(item));
+    const giftSavings = giftItems.reduce((sum, item) => {
+      const itemPrice = item.price || item.final_price || item.original_price || 0;
+      return sum + itemPrice * item.quantity;
+    }, 0);
+    const originalTotal = regularItems.reduce((sum, item) => {
       return sum + item.original_price * item.quantity;
     }, 0);
     const subtotal = totalPrice;
     const itemLevelSavings = originalTotal - subtotal;
     const couponDiscount = calculateEstimatedDiscount2(appliedDiscount, totalPrice);
     const estimatedTotal = Math.max(0, subtotal - couponDiscount);
-    const totalSavings = itemLevelSavings + couponDiscount;
+    const totalSavings = itemLevelSavings + couponDiscount + giftSavings;
     return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
       borderTop: `2px solid ${borderColor}`,
       paddingTop: "16px",
@@ -11076,6 +11119,29 @@
         /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { fontWeight: "600" }, children: [
           "-",
           formatMoney2(itemLevelSavings)
+        ] })
+      ] }),
+      giftSavings > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
+        fontSize: "14px",
+        marginBottom: "10px",
+        display: "flex",
+        justifyContent: "space-between",
+        color: "#059669"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: "Free Gift" }),
+          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: {
+            background: "#dcfce7",
+            color: "#15803d",
+            padding: "2px 6px",
+            borderRadius: "4px",
+            fontSize: "10px",
+            fontWeight: "600"
+          }, children: "\u{1F381} GIFT" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { fontWeight: "600" }, children: [
+          "-",
+          formatMoney2(giftSavings)
         ] })
       ] }),
       showSubtotal && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
@@ -12087,7 +12153,7 @@
           showingAllOffers: this.showingAllOffers,
           unlockedMilestone: this.unlockedMilestone,
           onClose: () => this.close(),
-          onCheckout: () => window.location.href = getCheckoutUrl(this.appliedDiscount),
+          onCheckout: () => this.handleCheckout(),
           onAddProductToCart: (variantId) => this.addProductToCart(variantId, 1, { "_upsell_source": "cart_drawer_recommendation" }),
           onUpdateQuantity: (itemKey, newQuantity) => this.updateQuantity(itemKey, newQuantity),
           onRemoveItem: (itemKey) => this.removeItem(itemKey),

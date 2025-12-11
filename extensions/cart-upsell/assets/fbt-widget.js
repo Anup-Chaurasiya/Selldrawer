@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.4
- * Built: 2025-12-11T12:41:12.140Z
+ * Built: 2025-12-11T13:02:50.594Z
  */
 "use strict";
 (() => {

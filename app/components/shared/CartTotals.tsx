@@ -9,6 +9,9 @@ interface CartItem {
   original_price: number;
   final_price: number;
   quantity: number;
+  price?: number;
+  line_price?: number;
+  properties?: Record<string, any>;
 }
 
 interface Discount {
@@ -85,8 +88,27 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
     }
   };
 
-  // Calculate totals
-  const originalTotal = items.reduce((sum, item) => {
+  // Helper to check if item is a gift
+  const isGiftItem = (item: CartItem) => {
+    return item.properties && (
+      item.properties['_upsellity_gift'] === 'true' ||
+      item.properties['_gift'] === 'true' ||
+      item.properties['_gift'] === true
+    );
+  };
+
+  // Separate gift items from regular items
+  const giftItems = items.filter(isGiftItem);
+  const regularItems = items.filter(item => !isGiftItem(item));
+
+  // Calculate gift savings (the value of free gifts)
+  const giftSavings = giftItems.reduce((sum, item) => {
+    const itemPrice = item.price || item.final_price || item.original_price || 0;
+    return sum + (itemPrice * item.quantity);
+  }, 0);
+
+  // Calculate totals (excluding gifts)
+  const originalTotal = regularItems.reduce((sum, item) => {
     return sum + (item.original_price * item.quantity);
   }, 0);
   
@@ -94,7 +116,7 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
   const itemLevelSavings = originalTotal - subtotal;
   const couponDiscount = calculateEstimatedDiscount(appliedDiscount, totalPrice);
   const estimatedTotal = Math.max(0, subtotal - couponDiscount);
-  const totalSavings = itemLevelSavings + couponDiscount;
+  const totalSavings = itemLevelSavings + couponDiscount + giftSavings;
 
   return (
     <div style={{
@@ -141,6 +163,32 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
             </span>
           </span>
           <span style={{ fontWeight: '600' }}>-{formatMoney(itemLevelSavings)}</span>
+        </div>
+      )}
+
+      {/* Gift Savings */}
+      {giftSavings > 0 && (
+        <div style={{
+          fontSize: '14px',
+          marginBottom: '10px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          color: '#059669'
+        }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>Free Gift</span>
+            <span style={{
+              background: '#dcfce7',
+              color: '#15803d',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontSize: '10px',
+              fontWeight: '600'
+            }}>
+              🎁 GIFT
+            </span>
+          </span>
+          <span style={{ fontWeight: '600' }}>-{formatMoney(giftSavings)}</span>
         </div>
       )}
 

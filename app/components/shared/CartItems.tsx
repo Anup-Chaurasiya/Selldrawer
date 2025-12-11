@@ -18,6 +18,7 @@ interface CartItem {
   variant_id: string | number;
   featured_image?: { url: string };
   image?: string;
+  properties?: Record<string, any>;
 }
 
 interface Discount {
@@ -122,6 +123,13 @@ const CartItemRow: React.FC<{
 
   const prices = calculateItemPrices(item, cartTotalPrice);
   const imageUrl = item.featured_image?.url || item.image || '';
+  
+  // Check if this is a gift item
+  const isGiftItem = item.properties && (
+    item.properties['_upsellity_gift'] === 'true' ||
+    item.properties['_gift'] === 'true' ||
+    item.properties['_gift'] === true
+  );
 
   return (
     <div
@@ -178,36 +186,7 @@ const CartItemRow: React.FC<{
             gap: '8px',
             flexWrap: 'wrap'
           }}>
-            {prices.hasItemDiscount && !prices.hasCouponDiscount && (
-              <>
-                <span style={{
-                  textDecoration: 'line-through',
-                  color: '#9ca3af',
-                  fontSize: '13px'
-                }}>
-                  {formatMoney(prices.originalLinePrice)}
-                </span>
-                <span style={{
-                  fontWeight: '700',
-                  fontSize: '16px',
-                  color: '#f59e0b'
-                }}>
-                  {formatMoney(prices.itemSubtotal)}
-                </span>
-                <span style={{
-                  background: '#fef3c7',
-                  color: '#92400e',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  fontSize: '10px',
-                  fontWeight: '600'
-                }}>
-                  {prices.itemDiscountPercent}% OFF
-                </span>
-              </>
-            )}
-
-            {prices.hasCouponDiscount && (
+            {isGiftItem ? (
               <>
                 <span style={{
                   textDecoration: 'line-through',
@@ -221,19 +200,79 @@ const CartItemRow: React.FC<{
                   fontSize: '16px',
                   color: '#059669'
                 }}>
-                  {formatMoney(prices.itemPriceWithCoupon)}
+                  FREE
+                </span>
+                <span style={{
+                  background: '#dcfce7',
+                  color: '#15803d',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  fontWeight: '600'
+                }}>
+                  🎁 GIFT
                 </span>
               </>
-            )}
+            ) : (
+              <>
+                {prices.hasItemDiscount && !prices.hasCouponDiscount && (
+                  <>
+                    <span style={{
+                      textDecoration: 'line-through',
+                      color: '#9ca3af',
+                      fontSize: '13px'
+                    }}>
+                      {formatMoney(prices.originalLinePrice)}
+                    </span>
+                    <span style={{
+                      fontWeight: '700',
+                      fontSize: '16px',
+                      color: '#f59e0b'
+                    }}>
+                      {formatMoney(prices.itemSubtotal)}
+                    </span>
+                    <span style={{
+                      background: '#fef3c7',
+                      color: '#92400e',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontSize: '10px',
+                      fontWeight: '600'
+                    }}>
+                      {prices.itemDiscountPercent}% OFF
+                    </span>
+                  </>
+                )}
 
-            {!prices.hasItemDiscount && !prices.hasCouponDiscount && (
-              <span style={{
-                fontWeight: '700',
-                fontSize: '16px',
-                color: '#111827'
-              }}>
-                {formatMoney(prices.itemSubtotal)}
-              </span>
+                {prices.hasCouponDiscount && (
+                  <>
+                    <span style={{
+                      textDecoration: 'line-through',
+                      color: '#9ca3af',
+                      fontSize: '13px'
+                    }}>
+                      {formatMoney(prices.itemSubtotal)}
+                    </span>
+                    <span style={{
+                      fontWeight: '700',
+                      fontSize: '16px',
+                      color: '#059669'
+                    }}>
+                      {formatMoney(prices.itemPriceWithCoupon)}
+                    </span>
+                  </>
+                )}
+
+                {!prices.hasItemDiscount && !prices.hasCouponDiscount && (
+                  <span style={{
+                    fontWeight: '700',
+                    fontSize: '16px',
+                    color: '#111827'
+                  }}>
+                    {formatMoney(prices.itemSubtotal)}
+                  </span>
+                )}
+              </>
             )}
           </div>
 
