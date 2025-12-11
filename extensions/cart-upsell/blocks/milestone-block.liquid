@@ -1,0 +1,87 @@
+{% comment %}
+  Upsellity Milestone Block
+  Standalone milestone widget that can be placed anywhere on the site
+  Displays progress towards cart value milestones with rewards
+  Configuration is managed in the Upsellity admin panel
+{% endcomment %}
+
+{% comment %} Only render if enabled {% endcomment %}
+{% if block.settings.enabled %}
+  <div 
+    class="upsellity-milestone-container"
+    data-shop="{{ shop.permanent_domain }}"
+    style="margin: {{ block.settings.margin_top }}px auto {{ block.settings.margin_bottom }}px auto; max-width: {{ block.settings.max_width }}; width: 100%; padding: 0 {{ block.settings.horizontal_padding }}px;"
+  >
+    <!-- Loading placeholder will be replaced by JavaScript -->
+    <div style="
+      padding: 20px;
+      text-align: center;
+      background: #f9fafb;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+    ">
+      <p style="
+        color: #6b7280;
+        font-size: 14px;
+        margin: 0;
+      ">Loading milestones...</p>
+    </div>
+  </div>
+
+  <!-- Load the milestone block JavaScript -->
+  <script src="{{ 'milestone-block.js' | asset_url }}" defer></script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Milestone Progress",
+  "target": "section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "Enable Milestone Block",
+      "default": true,
+      "info": "Toggle to show/hide the milestone block"
+    },
+    {
+      "type": "text",
+      "id": "max_width",
+      "label": "Maximum Width",
+      "default": "600px",
+      "info": "Maximum width of the milestone block (e.g., 600px, 100%)"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "label": "Top Margin",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 20,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "label": "Bottom Margin",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 20,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "horizontal_padding",
+      "label": "Horizontal Padding",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "default": 15,
+      "unit": "px",
+      "info": "Left and right padding"
+    }
+  ]
+}
+{% endschema %}

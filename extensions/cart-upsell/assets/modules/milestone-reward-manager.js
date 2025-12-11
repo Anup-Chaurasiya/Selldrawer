@@ -133,7 +133,6 @@ export function getAllGiftsInCart(cart) {
  */
 export async function addGiftToCart(giftProduct, milestoneId) {
   if (!giftProduct || !giftProduct.shopifyVariantId) {
-    console.error('Upsellity Milestones: Invalid gift product', giftProduct);
     return false;
   }
   
@@ -154,14 +153,27 @@ export async function addGiftToCart(giftProduct, milestoneId) {
     });
     
     if (response.ok) {
+      const result = await response.json();
+      
+      // Wait a moment for Shopify to process
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Trigger cart update events
+      document.dispatchEvent(new CustomEvent('cart:updated', { detail: result }));
+      document.dispatchEvent(new CustomEvent('cart:change', { detail: result }));
+      
+      // Force cart drawer refresh if it exists
+      if (window.upsellityDrawer && typeof window.upsellityDrawer.loadCart === 'function') {
+        setTimeout(() => {
+          window.upsellityDrawer.loadCart();
+        }, 300);
+      }
+      
       return true;
     } else {
-      const error = await response.json();
-      console.error('Upsellity Milestones: Failed to add gift', error);
       return false;
     }
   } catch (error) {
-    console.error('Upsellity Milestones: Error adding gift to cart', error);
     return false;
   }
 }
@@ -177,25 +189,61 @@ export async function removeGiftFromCart(itemKey) {
   }
   
   try {
-    const response = await fetch('/cart/change.js', {
+    // Use cart/update.js instead of cart/change.js for better compatibility
+    const response = await fetch('/cart/update.js', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        id: itemKey,
-        quantity: 0
+        updates: {
+          [itemKey]: 0
+        }
       })
     });
     
     if (response.ok) {
+      const result = await response.json();
+      
+      // Wait a moment for Shopify to process
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Trigger multiple cart update events to ensure all systems refresh
+      document.dispatchEvent(new CustomEvent('cart:updated', { detail: result }));
+      document.dispatchEvent(new CustomEvent('cart:change', { detail: result }));
+      document.dispatchEvent(new CustomEvent('cart:refresh', { detail: result }));
+      
+      // Also trigger theme-specific events
+      if (window.Shopify && window.Shopify.theme) {
+        document.dispatchEvent(new CustomEvent('theme:cart:change', { detail: result }));
+      }
+      
+      // Try to refresh Shopify's native cart if available
+      if (window.Shopify && window.Shopify.onCartUpdate) {
+        window.Shopify.onCartUpdate(result);
+      }
+      
+      // Trigger section rendering if available (for themes using sections)
+      if (window.Shopify && window.Shopify.theme && window.Shopify.theme.cart) {
+        try {
+          window.Shopify.theme.cart.refresh();
+        } catch (e) {
+          // Theme cart refresh not available
+        }
+      }
+      
+      // Force cart drawer refresh if it exists
+      if (window.upsellityDrawer && typeof window.upsellityDrawer.loadCart === 'function') {
+        setTimeout(() => {
+          window.upsellityDrawer.loadCart();
+        }, 300);
+      }
+      
       return true;
     } else {
-      console.error('Upsellity Milestones: Failed to remove gift');
       return false;
     }
   } catch (error) {
-    console.error('Upsellity Milestones: Error removing gift from cart', error);
     return false;
   }
 }
@@ -216,8 +264,10 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
   // If no milestone is unlocked, remove all gifts
   if (!unlockedMilestone) {
     for (const giftItem of currentGifts) {
-      await removeGiftFromCart(giftItem.key);
-      cartModified = true;
+      const removed = await removeGiftFromCart(giftItem.key);
+      if (removed) {
+        cartModified = true;
+      }
     }
     
     if (cartModified && loadCartCallback) {
@@ -230,8 +280,10 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
   // If milestone is unlocked but not a gift reward, remove all gifts
   if (unlockedMilestone.rewardType !== 'gift_wrapping') {
     for (const giftItem of currentGifts) {
-      await removeGiftFromCart(giftItem.key);
-      cartModified = true;
+      const removed = await removeGiftFromCart(giftItem.key);
+      if (removed) {
+        cartModified = true;
+      }
     }
     
     if (cartModified && loadCartCallback) {
@@ -245,7 +297,6 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
   const giftProducts = unlockedMilestone.giftProducts || [];
   
   if (giftProducts.length === 0) {
-    console.warn('Upsellity Milestones: Gift reward has no products configured');
     return false;
   }
   
@@ -255,8 +306,10 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
       giftItem.properties[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
     
     if (!belongsToThisMilestone) {
-      await removeGiftFromCart(giftItem.key);
-      cartModified = true;
+      const removed = await removeGiftFromCart(giftItem.key);
+      if (removed) {
+        cartModified = true;
+      }
     }
   }
   
@@ -273,10 +326,20 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
   }
   
   // Reload cart if modified
-  if (cartModified && loadCartCallback) {
-    // Wait a bit for Shopify to process the changes
-    await new Promise(resolve => setTimeout(resolve, 300));
-    await loadCartCallback();
+  if (cartModified) {
+    // Wait for Shopify to process the changes
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    if (loadCartCallback) {
+      await loadCartCallback();
+    }
+    
+    // Force a final cart fetch to ensure everything is in sync
+    try {
+      await fetch('/cart.js').then(r => r.json());
+    } catch (e) {
+      // Error fetching final cart state
+    }
   }
   
   return cartModified;
@@ -310,7 +373,6 @@ export async function validateMilestoneForCheckout(unlockedMilestone, cart) {
   
   // Check if discount code is configured
   if (!unlockedMilestone.discountCode) {
-    console.error('Upsellity Milestones: No discount code configured for milestone', unlockedMilestone.title);
     return { 
       valid: false, 
       message: 'Milestone reward is not properly configured. Please contact support.' 

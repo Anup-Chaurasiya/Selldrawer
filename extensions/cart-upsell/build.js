@@ -202,6 +202,40 @@ async function build() {
     const promotionalBannerBanner = `/**\n * Upsellity Promotional Banner Block v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
     writeFileSync(promotionalBannerFile, promotionalBannerBanner + promotionalBannerContent);
     
+    
+    // Build Milestone Block
+    await esbuild.build({
+      entryPoints: [join(__dirname, 'assets/modules/milestone-block-entry.js')],
+      bundle: true,
+      outfile: join(__dirname, 'assets/milestone-block.js'),
+      format: 'iife',
+      target: 'es2017',
+      minify: false,
+      sourcemap: false,
+      platform: 'browser',
+      logLevel: 'info',
+      jsx: 'automatic',
+      jsxImportSource: 'react',
+      loader: {
+        '.tsx': 'tsx',
+        '.ts': 'ts',
+        '.jsx': 'jsx',
+        '.js': 'jsx',
+      },
+      define: {
+        'process.env.NODE_ENV': '"production"',
+        '__MILESTONE_BLOCK_VERSION__': `"${version}"`,
+        '__APP_URL__': `"${appUrl}"`
+      },
+      external: [],
+    });
+    
+    // Add version banner to milestone-block
+    const milestoneBlockFile = join(__dirname, 'assets/milestone-block.js');
+    const milestoneBlockContent = readFileSync(milestoneBlockFile, 'utf-8');
+    const milestoneBlockBanner = `/**\n * Upsellity Milestone Block v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
+    writeFileSync(milestoneBlockFile, milestoneBlockBanner + milestoneBlockContent);
+    
   } catch (error) {
     console.error('❌ Build failed:', error);
     process.exit(1);

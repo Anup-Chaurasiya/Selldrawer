@@ -1,6 +1,6 @@
 /**
  * Upsellity Promotional Banner Block v1.0.4
- * Built: 2025-12-10T20:23:26.050Z
+ * Built: 2025-12-11T12:01:47.650Z
  */
 "use strict";
 (() => {
@@ -8722,7 +8722,7 @@
 
   // extensions/cart-upsell/assets/modules/promotional-banner-entry.js
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://arrangements-theories-mono-volleyball.trycloudflare.com" : "https://app.upsellity.com";
   function initPromotionalBannerBlocks() {
     const containers = document.querySelectorAll(".upsellity-promotional-banner-container");
     if (containers.length === 0) {

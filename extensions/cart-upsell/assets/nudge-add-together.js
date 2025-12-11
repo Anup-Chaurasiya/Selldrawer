@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Add Together v1.0.4
- * Built: 2025-12-10T20:23:26.024Z
+ * Built: 2025-12-11T12:01:47.599Z
  */
 "use strict";
 (() => {
@@ -8596,7 +8596,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/nudge-add-together-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://arrangements-theories-mono-volleyball.trycloudflare.com" : "https://app.upsellity.com";
   var NudgeAddTogether = class {
     constructor() {
       this.shop = null;

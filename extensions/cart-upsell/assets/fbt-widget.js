@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.4
- * Built: 2025-12-10T20:23:25.983Z
+ * Built: 2025-12-11T12:01:47.511Z
  */
 "use strict";
 (() => {
@@ -9567,7 +9567,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://arrangements-theories-mono-volleyball.trycloudflare.com" : "https://app.upsellity.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;

@@ -26,6 +26,7 @@ export default function App() {
         </Link>
         <Link to="/app/cart-drawer">Cart Drawer</Link>
         <Link to="/app/promotional-banner-block">Promotional Banner Block</Link>
+        <Link to="/app/milestone-block">Milestone Block</Link>
         <Link to="/app/fbt">Frequently Bought Together</Link>
         <Link to="/app/nudge">Nudge Upsell</Link>
         <Link to="/app/nudge-add-together">Nudge Cross-Sell</Link>

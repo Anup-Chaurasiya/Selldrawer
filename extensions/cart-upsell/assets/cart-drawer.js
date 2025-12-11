@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.4
- * Built: 2025-12-10T20:23:25.954Z
+ * Built: 2025-12-11T12:01:47.462Z
  */
 "use strict";
 (() => {
@@ -8548,7 +8548,6 @@
   }
   async function addGiftToCart(giftProduct, milestoneId) {
     if (!giftProduct || !giftProduct.shopifyVariantId) {
-      console.error("Upsellity Milestones: Invalid gift product", giftProduct);
       return false;
     }
     try {
@@ -8564,14 +8563,20 @@
         body: formData
       });
       if (response.ok) {
+        const result = await response.json();
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        document.dispatchEvent(new CustomEvent("cart:updated", { detail: result }));
+        document.dispatchEvent(new CustomEvent("cart:change", { detail: result }));
+        if (window.upsellityDrawer && typeof window.upsellityDrawer.loadCart === "function") {
+          setTimeout(() => {
+            window.upsellityDrawer.loadCart();
+          }, 300);
+        }
         return true;
       } else {
-        const error = await response.json();
-        console.error("Upsellity Milestones: Failed to add gift", error);
         return false;
       }
     } catch (error) {
-      console.error("Upsellity Milestones: Error adding gift to cart", error);
       return false;
     }
   }
@@ -8580,24 +8585,45 @@
       return false;
     }
     try {
-      const response = await fetch("/cart/change.js", {
+      const response = await fetch("/cart/update.js", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          id: itemKey,
-          quantity: 0
+          updates: {
+            [itemKey]: 0
+          }
         })
       });
       if (response.ok) {
+        const result = await response.json();
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        document.dispatchEvent(new CustomEvent("cart:updated", { detail: result }));
+        document.dispatchEvent(new CustomEvent("cart:change", { detail: result }));
+        document.dispatchEvent(new CustomEvent("cart:refresh", { detail: result }));
+        if (window.Shopify && window.Shopify.theme) {
+          document.dispatchEvent(new CustomEvent("theme:cart:change", { detail: result }));
+        }
+        if (window.Shopify && window.Shopify.onCartUpdate) {
+          window.Shopify.onCartUpdate(result);
+        }
+        if (window.Shopify && window.Shopify.theme && window.Shopify.theme.cart) {
+          try {
+            window.Shopify.theme.cart.refresh();
+          } catch (e) {
+          }
+        }
+        if (window.upsellityDrawer && typeof window.upsellityDrawer.loadCart === "function") {
+          setTimeout(() => {
+            window.upsellityDrawer.loadCart();
+          }, 300);
+        }
         return true;
       } else {
-        console.error("Upsellity Milestones: Failed to remove gift");
         return false;
       }
     } catch (error) {
-      console.error("Upsellity Milestones: Error removing gift from cart", error);
       return false;
     }
   }
@@ -8606,8 +8632,10 @@
     const currentGifts = getAllGiftsInCart(cart);
     if (!unlockedMilestone) {
       for (const giftItem of currentGifts) {
-        await removeGiftFromCart(giftItem.key);
-        cartModified = true;
+        const removed = await removeGiftFromCart(giftItem.key);
+        if (removed) {
+          cartModified = true;
+        }
       }
       if (cartModified && loadCartCallback) {
         await loadCartCallback();
@@ -8616,8 +8644,10 @@
     }
     if (unlockedMilestone.rewardType !== "gift_wrapping") {
       for (const giftItem of currentGifts) {
-        await removeGiftFromCart(giftItem.key);
-        cartModified = true;
+        const removed = await removeGiftFromCart(giftItem.key);
+        if (removed) {
+          cartModified = true;
+        }
       }
       if (cartModified && loadCartCallback) {
         await loadCartCallback();
@@ -8626,14 +8656,15 @@
     }
     const giftProducts = unlockedMilestone.giftProducts || [];
     if (giftProducts.length === 0) {
-      console.warn("Upsellity Milestones: Gift reward has no products configured");
       return false;
     }
     for (const giftItem of currentGifts) {
       const belongsToThisMilestone = giftItem.properties && giftItem.properties[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
       if (!belongsToThisMilestone) {
-        await removeGiftFromCart(giftItem.key);
-        cartModified = true;
+        const removed = await removeGiftFromCart(giftItem.key);
+        if (removed) {
+          cartModified = true;
+        }
       }
     }
     for (const giftProduct of giftProducts) {
@@ -8645,9 +8676,15 @@
         }
       }
     }
-    if (cartModified && loadCartCallback) {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      await loadCartCallback();
+    if (cartModified) {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      if (loadCartCallback) {
+        await loadCartCallback();
+      }
+      try {
+        await fetch("/cart.js").then((r) => r.json());
+      } catch (e) {
+      }
     }
     return cartModified;
   }
@@ -8662,7 +8699,6 @@
       return { valid: true, message: "" };
     }
     if (!unlockedMilestone.discountCode) {
-      console.error("Upsellity Milestones: No discount code configured for milestone", unlockedMilestone.title);
       return {
         valid: false,
         message: "Milestone reward is not properly configured. Please contact support."
@@ -11938,7 +11974,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://arrangements-theories-mono-volleyball.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.4" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {
