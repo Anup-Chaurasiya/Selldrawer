@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.4
- * Built: 2025-12-11T13:02:50.541Z
+ * Built: 2025-12-11T13:13:10.323Z
  */
 "use strict";
 (() => {
@@ -8348,6 +8348,13 @@
         return;
       }
       const item = cart.items[cartItemIndex];
+      const isGift = item.properties && (item.properties["_upsellity_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+      if (isGift) {
+        showNotification("Gift items are automatically managed and cannot be modified", "info");
+        await loadCartCallback();
+        renderCallback();
+        return;
+      }
       const lineNumber = cartItemIndex + 1;
       const response = await fetch("/cart/change.js", {
         method: "POST",
@@ -8407,6 +8414,20 @@
       cartItem.classList.add("upsellity-loading");
     }
     try {
+      const cartResponse = await fetch("/cart.js");
+      if (cartResponse.ok) {
+        const cart = await cartResponse.json();
+        const item = cart.items.find((i) => i.key === itemKey);
+        if (item) {
+          const isGift = item.properties && (item.properties["_upsellity_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+          if (isGift) {
+            showNotification("Gift items are automatically managed and cannot be removed manually", "info");
+            await loadCartCallback();
+            renderCallback();
+            return;
+          }
+        }
+      }
       const response = await fetch("/cart/change.js", {
         method: "POST",
         headers: {
@@ -8980,23 +9001,51 @@
     const validGiftVariantIds = new Set(
       giftProducts.map((gp) => normalizeVariantId(gp.shopifyVariantId))
     );
+    const seenValidGifts = /* @__PURE__ */ new Set();
     for (const giftItem of currentGifts) {
       const itemVariantId = normalizeVariantId(giftItem.variant_id || giftItem.id);
       const belongsToThisMilestone = giftItem.properties && giftItem.properties[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
-      const shouldRemove = !belongsToThisMilestone || belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId);
+      const isValidGift = belongsToThisMilestone && validGiftVariantIds.has(itemVariantId);
+      const isDuplicate = seenValidGifts.has(itemVariantId);
+      const shouldRemove = !belongsToThisMilestone || belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId) || isDuplicate;
       if (shouldRemove) {
         const removed = await removeGiftFromCart(giftItem.key);
         if (removed) {
           cartModified = true;
         }
+      } else if (isValidGift) {
+        seenValidGifts.add(itemVariantId);
+        if (giftItem.quantity !== 1) {
+          try {
+            const response = await fetch("/cart/change.js", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                id: giftItem.key,
+                quantity: 1
+              })
+            });
+            if (response.ok) {
+              cartModified = true;
+            }
+          } catch (error) {
+          }
+        }
       }
     }
     for (const giftProduct of giftProducts) {
+      const variantId = normalizeVariantId(giftProduct.shopifyVariantId);
+      if (seenValidGifts.has(variantId)) {
+        continue;
+      }
       const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
       if (!existingGift) {
         const added = await addGiftToCart(giftProduct, unlockedMilestone.id);
         if (added) {
           cartModified = true;
+          seenValidGifts.add(variantId);
         }
       }
     }
@@ -10112,121 +10161,150 @@
                 fontWeight: "500"
               }, children: error })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
               display: "flex",
               alignItems: "center"
-            }, children: [
+            }, children: isGiftItem ? (
+              /* Gift items: Show locked quantity with tooltip */
               /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
-                border: "1px solid #e5e7eb",
+                padding: "8px 12px",
+                backgroundColor: "#f9fafb",
                 borderRadius: "6px",
-                padding: "4px"
+                border: "1px solid #e5e7eb"
               }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                  "button",
-                  {
-                    onClick: () => !isPreview && !isUpdating && onUpdateQuantity(item.key, item.quantity - 1),
-                    disabled: isPreview || item.quantity <= 1 || isUpdating,
-                    style: {
-                      width: "24px",
-                      height: "24px",
-                      border: "none",
-                      backgroundColor: isPreview || item.quantity <= 1 || isUpdating ? "#f3f4f6" : "#ffffff",
-                      color: isPreview || item.quantity <= 1 || isUpdating ? "#9ca3af" : "#374151",
-                      borderRadius: "4px",
-                      cursor: isPreview || item.quantity <= 1 || isUpdating ? "not-allowed" : "pointer",
-                      fontSize: "16px",
-                      fontWeight: "700",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      transition: "background-color 0.2s"
-                    },
-                    children: "\u2212"
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                  "input",
-                  {
-                    type: "text",
-                    inputMode: "numeric",
-                    value: inputValue,
-                    onChange: handleInputChange,
-                    onBlur: handleBlur,
-                    onFocus: handleFocus,
-                    onKeyDown: handleKeyDown,
-                    disabled: isPreview || isUpdating,
-                    style: {
-                      minWidth: "32px",
-                      maxWidth: "48px",
-                      textAlign: "center",
-                      fontSize: "14px",
-                      fontWeight: "600",
-                      color: "#111827",
-                      border: "none",
-                      outline: "none",
-                      backgroundColor: "transparent",
-                      cursor: isPreview || isUpdating ? "not-allowed" : "text",
-                      padding: "2px 4px",
-                      borderRadius: "2px",
-                      transition: "background-color 0.2s"
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "#6b7280", strokeWidth: "2", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("rect", { x: "3", y: "11", width: "18", height: "11", rx: "2", ry: "2" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M7 11V7a5 5 0 0 1 10 0v4" })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  color: "#6b7280"
+                }, children: "Qty: 1" }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                  fontSize: "11px",
+                  color: "#9ca3af",
+                  fontStyle: "italic"
+                }, children: "(Auto-added)" })
+              ] })
+            ) : (
+              /* Regular items: Show normal quantity controls */
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "6px",
+                  padding: "4px"
+                }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    "button",
+                    {
+                      onClick: () => !isPreview && !isUpdating && onUpdateQuantity(item.key, item.quantity - 1),
+                      disabled: isPreview || item.quantity <= 1 || isUpdating,
+                      style: {
+                        width: "24px",
+                        height: "24px",
+                        border: "none",
+                        backgroundColor: isPreview || item.quantity <= 1 || isUpdating ? "#f3f4f6" : "#ffffff",
+                        color: isPreview || item.quantity <= 1 || isUpdating ? "#9ca3af" : "#374151",
+                        borderRadius: "4px",
+                        cursor: isPreview || item.quantity <= 1 || isUpdating ? "not-allowed" : "pointer",
+                        fontSize: "16px",
+                        fontWeight: "700",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "background-color 0.2s"
+                      },
+                      children: "\u2212"
                     }
-                  }
-                ),
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    "input",
+                    {
+                      type: "text",
+                      inputMode: "numeric",
+                      value: inputValue,
+                      onChange: handleInputChange,
+                      onBlur: handleBlur,
+                      onFocus: handleFocus,
+                      onKeyDown: handleKeyDown,
+                      disabled: isPreview || isUpdating,
+                      style: {
+                        minWidth: "32px",
+                        maxWidth: "48px",
+                        textAlign: "center",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        color: "#111827",
+                        border: "none",
+                        outline: "none",
+                        backgroundColor: "transparent",
+                        cursor: isPreview || isUpdating ? "not-allowed" : "text",
+                        padding: "2px 4px",
+                        borderRadius: "2px",
+                        transition: "background-color 0.2s"
+                      }
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                    "button",
+                    {
+                      onClick: () => !isPreview && !isUpdating && onUpdateQuantity(item.key, item.quantity + 1),
+                      disabled: isPreview || isUpdating,
+                      style: {
+                        width: "24px",
+                        height: "24px",
+                        border: "none",
+                        backgroundColor: isPreview || isUpdating ? "#f3f4f6" : "#ffffff",
+                        color: isPreview || isUpdating ? "#9ca3af" : "#374151",
+                        borderRadius: "4px",
+                        cursor: isPreview || isUpdating ? "not-allowed" : "pointer",
+                        fontSize: "16px",
+                        fontWeight: "700",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "background-color 0.2s"
+                      },
+                      children: "+"
+                    }
+                  )
+                ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                   "button",
                   {
-                    onClick: () => !isPreview && !isUpdating && onUpdateQuantity(item.key, item.quantity + 1),
-                    disabled: isPreview || isUpdating,
+                    onClick: () => !isPreview && onRemoveItem(item.key),
+                    disabled: isPreview,
+                    title: "Remove item",
                     style: {
-                      width: "24px",
-                      height: "24px",
+                      width: "32px",
+                      height: "32px",
                       border: "none",
-                      backgroundColor: isPreview || isUpdating ? "#f3f4f6" : "#ffffff",
-                      color: isPreview || isUpdating ? "#9ca3af" : "#374151",
-                      borderRadius: "4px",
-                      cursor: isPreview || isUpdating ? "not-allowed" : "pointer",
-                      fontSize: "16px",
-                      fontWeight: "700",
+                      backgroundColor: "transparent",
+                      color: "#4a4a4a",
+                      cursor: "pointer",
+                      borderRadius: "6px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       transition: "background-color 0.2s"
                     },
-                    children: "+"
+                    children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("polyline", { points: "3,6 5,6 21,6" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "10", y1: "11", x2: "10", y2: "17" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "14", y1: "11", x2: "14", y2: "17" })
+                    ] })
                   }
                 )
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                "button",
-                {
-                  onClick: () => !isPreview && onRemoveItem(item.key),
-                  disabled: isPreview,
-                  title: "Remove item",
-                  style: {
-                    width: "32px",
-                    height: "32px",
-                    border: "none",
-                    backgroundColor: "transparent",
-                    color: "#4a4a4a",
-                    cursor: "pointer",
-                    borderRadius: "6px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    transition: "background-color 0.2s"
-                  },
-                  children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("polyline", { points: "3,6 5,6 21,6" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "10", y1: "11", x2: "10", y2: "17" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "14", y1: "11", x2: "14", y2: "17" })
-                  ] })
-                }
-              )
-            ] })
+              ] })
+            ) })
           ] })
         ]
       }
@@ -12355,7 +12433,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://arrangements-theories-mono-volleyball.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://prague-hispanic-maintained-hall.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.4" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

@@ -1,6 +1,6 @@
 /**
  * Upsellity Milestone Block v1.0.4
- * Built: 2025-12-11T13:02:50.791Z
+ * Built: 2025-12-11T13:13:10.554Z
  */
 "use strict";
 (() => {
@@ -8732,23 +8732,51 @@
     const validGiftVariantIds = new Set(
       giftProducts.map((gp) => normalizeVariantId(gp.shopifyVariantId))
     );
+    const seenValidGifts = /* @__PURE__ */ new Set();
     for (const giftItem of currentGifts) {
       const itemVariantId = normalizeVariantId(giftItem.variant_id || giftItem.id);
       const belongsToThisMilestone = giftItem.properties && giftItem.properties[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
-      const shouldRemove = !belongsToThisMilestone || belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId);
+      const isValidGift = belongsToThisMilestone && validGiftVariantIds.has(itemVariantId);
+      const isDuplicate = seenValidGifts.has(itemVariantId);
+      const shouldRemove = !belongsToThisMilestone || belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId) || isDuplicate;
       if (shouldRemove) {
         const removed = await removeGiftFromCart(giftItem.key);
         if (removed) {
           cartModified = true;
         }
+      } else if (isValidGift) {
+        seenValidGifts.add(itemVariantId);
+        if (giftItem.quantity !== 1) {
+          try {
+            const response = await fetch("/cart/change.js", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                id: giftItem.key,
+                quantity: 1
+              })
+            });
+            if (response.ok) {
+              cartModified = true;
+            }
+          } catch (error) {
+          }
+        }
       }
     }
     for (const giftProduct of giftProducts) {
+      const variantId = normalizeVariantId(giftProduct.shopifyVariantId);
+      if (seenValidGifts.has(variantId)) {
+        continue;
+      }
       const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
       if (!existingGift) {
         const added = await addGiftToCart(giftProduct, unlockedMilestone.id);
         if (added) {
           cartModified = true;
+          seenValidGifts.add(variantId);
         }
       }
     }
@@ -8809,7 +8837,7 @@
 
   // extensions/cart-upsell/assets/modules/milestone-block-entry.js
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://arrangements-theories-mono-volleyball.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://prague-hispanic-maintained-hall.trycloudflare.com" : "https://app.upsellity.com";
   function initMilestoneBlocks() {
     const containers = document.querySelectorAll(".upsellity-milestone-container");
     if (containers.length === 0) {

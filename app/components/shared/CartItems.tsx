@@ -294,110 +294,144 @@ const CartItemRow: React.FC<{
           display: 'flex',
           alignItems: 'center',
         }}>
-          {/* Quantity Controls */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            border: '1px solid #e5e7eb',
-            borderRadius: '6px',
-            padding: '4px'
-          }}>
-            <button
-              onClick={() => !isPreview && !isUpdating && onUpdateQuantity(item.key, item.quantity - 1)}
-              disabled={isPreview || item.quantity <= 1 || isUpdating}
-              style={{
-                width: '24px',
-                height: '24px',
-                border: 'none',
-                backgroundColor: isPreview || item.quantity <= 1 || isUpdating ? '#f3f4f6' : '#ffffff',
-                color: isPreview || item.quantity <= 1 || isUpdating ? '#9ca3af' : '#374151',
-                borderRadius: '4px',
-                cursor: isPreview || item.quantity <= 1 || isUpdating ? 'not-allowed' : 'pointer',
-                fontSize: '16px',
-                fontWeight: '700',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'background-color 0.2s'
-              }}
-            >
-              −
-            </button>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={inputValue}
-              onChange={handleInputChange}
-              onBlur={handleBlur}
-              onFocus={handleFocus}
-              onKeyDown={handleKeyDown}
-              disabled={isPreview || isUpdating}
-              style={{
-                minWidth: '32px',
-                maxWidth: '48px',
-                textAlign: 'center',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#111827',
-                border: 'none',
-                outline: 'none',
-                backgroundColor: 'transparent',
-                cursor: isPreview || isUpdating ? 'not-allowed' : 'text',
-                padding: '2px 4px',
-                borderRadius: '2px',
-                transition: 'background-color 0.2s'
-              }}
-            />
-            <button
-              onClick={() => !isPreview && !isUpdating && onUpdateQuantity(item.key, item.quantity + 1)}
-              disabled={isPreview || isUpdating}
-              style={{
-                width: '24px',
-                height: '24px',
-                border: 'none',
-                backgroundColor: isPreview || isUpdating ? '#f3f4f6' : '#ffffff',
-                color: isPreview || isUpdating ? '#9ca3af' : '#374151',
-                borderRadius: '4px',
-                cursor: isPreview || isUpdating ? 'not-allowed' : 'pointer',
-                fontSize: '16px',
-                fontWeight: '700',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'background-color 0.2s'
-              }}
-            >
-              +
-            </button>
-          </div>
-
-          {/* Remove Button */}
-          <button
-            onClick={() => !isPreview && onRemoveItem(item.key)}
-            disabled={isPreview}
-            title="Remove item"
-            style={{
-              width: '32px',
-              height: '32px',
-              border: 'none',
-              backgroundColor: 'transparent',
-              color: '#4a4a4a',
-              cursor: 'pointer',
-              borderRadius: '6px',
+          {isGiftItem ? (
+            /* Gift items: Show locked quantity with tooltip */
+            <div style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'background-color 0.2s'
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3,6 5,6 21,6"></polyline>
-              <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
-              <line x1="10" y1="11" x2="10" y2="17"></line>
-              <line x1="14" y1="11" x2="14" y2="17"></line>
-            </svg>
-          </button>
+              gap: '8px',
+              padding: '8px 12px',
+              backgroundColor: '#f9fafb',
+              borderRadius: '6px',
+              border: '1px solid #e5e7eb'
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <span style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#6b7280'
+              }}>
+                Qty: 1
+              </span>
+              <span style={{
+                fontSize: '11px',
+                color: '#9ca3af',
+                fontStyle: 'italic'
+              }}>
+                (Auto-added)
+              </span>
+            </div>
+          ) : (
+            /* Regular items: Show normal quantity controls */
+            <>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                border: '1px solid #e5e7eb',
+                borderRadius: '6px',
+                padding: '4px'
+              }}>
+                <button
+                  onClick={() => !isPreview && !isUpdating && onUpdateQuantity(item.key, item.quantity - 1)}
+                  disabled={isPreview || item.quantity <= 1 || isUpdating}
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    border: 'none',
+                    backgroundColor: isPreview || item.quantity <= 1 || isUpdating ? '#f3f4f6' : '#ffffff',
+                    color: isPreview || item.quantity <= 1 || isUpdating ? '#9ca3af' : '#374151',
+                    borderRadius: '4px',
+                    cursor: isPreview || item.quantity <= 1 || isUpdating ? 'not-allowed' : 'pointer',
+                    fontSize: '16px',
+                    fontWeight: '700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'background-color 0.2s'
+                  }}
+                >
+                  −
+                </button>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  onBlur={handleBlur}
+                  onFocus={handleFocus}
+                  onKeyDown={handleKeyDown}
+                  disabled={isPreview || isUpdating}
+                  style={{
+                    minWidth: '32px',
+                    maxWidth: '48px',
+                    textAlign: 'center',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#111827',
+                    border: 'none',
+                    outline: 'none',
+                    backgroundColor: 'transparent',
+                    cursor: isPreview || isUpdating ? 'not-allowed' : 'text',
+                    padding: '2px 4px',
+                    borderRadius: '2px',
+                    transition: 'background-color 0.2s'
+                  }}
+                />
+                <button
+                  onClick={() => !isPreview && !isUpdating && onUpdateQuantity(item.key, item.quantity + 1)}
+                  disabled={isPreview || isUpdating}
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    border: 'none',
+                    backgroundColor: isPreview || isUpdating ? '#f3f4f6' : '#ffffff',
+                    color: isPreview || isUpdating ? '#9ca3af' : '#374151',
+                    borderRadius: '4px',
+                    cursor: isPreview || isUpdating ? 'not-allowed' : 'pointer',
+                    fontSize: '16px',
+                    fontWeight: '700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'background-color 0.2s'
+                  }}
+                >
+                  +
+                </button>
+              </div>
+
+              {/* Remove Button - Only for regular items */}
+              <button
+                onClick={() => !isPreview && onRemoveItem(item.key)}
+                disabled={isPreview}
+                title="Remove item"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: '#4a4a4a',
+                  cursor: 'pointer',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background-color 0.2s'
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3,6 5,6 21,6"></polyline>
+                  <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -318,35 +318,76 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
     giftProducts.map(gp => normalizeVariantId(gp.shopifyVariantId))
   );
   
-  // Remove gifts that don't belong to this milestone OR don't match configured products
+  // Track which valid gifts we've already seen to prevent duplicates
+  const seenValidGifts = new Set();
+  
+  // Remove gifts that don't belong to this milestone OR don't match configured products OR are duplicates
   for (const giftItem of currentGifts) {
     const itemVariantId = normalizeVariantId(giftItem.variant_id || giftItem.id);
     const belongsToThisMilestone = giftItem.properties && 
       giftItem.properties[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
     
+    const isValidGift = belongsToThisMilestone && validGiftVariantIds.has(itemVariantId);
+    const isDuplicate = seenValidGifts.has(itemVariantId);
+    
     // Remove if:
     // 1. Doesn't belong to this milestone, OR
-    // 2. Belongs to this milestone but variant is not in the configured gift products
-    //    (this handles the case where admin changed the gift product)
+    // 2. Belongs to this milestone but variant is not in the configured gift products, OR
+    // 3. Is a duplicate (we already have this gift in cart)
     const shouldRemove = !belongsToThisMilestone || 
-      (belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId));
+      (belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId)) ||
+      isDuplicate;
     
     if (shouldRemove) {
       const removed = await removeGiftFromCart(giftItem.key);
       if (removed) {
         cartModified = true;
       }
+    } else if (isValidGift) {
+      // Mark this gift as seen
+      seenValidGifts.add(itemVariantId);
+      
+      // Ensure quantity is exactly 1 for gift items
+      if (giftItem.quantity !== 1) {
+        try {
+          // Update quantity to 1
+          const response = await fetch('/cart/change.js', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              id: giftItem.key,
+              quantity: 1
+            })
+          });
+          
+          if (response.ok) {
+            cartModified = true;
+          }
+        } catch (error) {
+          // Failed to update quantity
+        }
+      }
     }
   }
   
   // Add missing gift products (only if not already in cart)
   for (const giftProduct of giftProducts) {
+    const variantId = normalizeVariantId(giftProduct.shopifyVariantId);
+    
+    // Skip if we already have this gift in cart
+    if (seenValidGifts.has(variantId)) {
+      continue;
+    }
+    
     const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
     
     if (!existingGift) {
       const added = await addGiftToCart(giftProduct, unlockedMilestone.id);
       if (added) {
         cartModified = true;
+        seenValidGifts.add(variantId);
       }
     }
   }

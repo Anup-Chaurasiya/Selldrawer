@@ -185,6 +185,21 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
     }
     
     const item = cart.items[cartItemIndex];
+    
+    // Check if this is a gift item - gift items cannot be manually modified
+    const isGift = item.properties && (
+      item.properties['_upsellity_gift'] === 'true' ||
+      item.properties['_gift'] === 'true' ||
+      item.properties['_gift'] === true
+    );
+    
+    if (isGift) {
+      showNotification('Gift items are automatically managed and cannot be modified', 'info');
+      await loadCartCallback();
+      renderCallback();
+      return;
+    }
+    
     // Use line number (1-based index) for the update request
     const lineNumber = cartItemIndex + 1;
     
@@ -271,6 +286,29 @@ export async function removeItem(itemKey, loadCartCallback, renderCallback) {
   }
 
   try {
+    // First, check if this is a gift item
+    const cartResponse = await fetch('/cart.js');
+    if (cartResponse.ok) {
+      const cart = await cartResponse.json();
+      const item = cart.items.find(i => i.key === itemKey);
+      
+      if (item) {
+        // Check if this is a gift item
+        const isGift = item.properties && (
+          item.properties['_upsellity_gift'] === 'true' ||
+          item.properties['_gift'] === 'true' ||
+          item.properties['_gift'] === true
+        );
+        
+        if (isGift) {
+          showNotification('Gift items are automatically managed and cannot be removed manually', 'info');
+          await loadCartCallback();
+          renderCallback();
+          return;
+        }
+      }
+    }
+    
     const response = await fetch('/cart/change.js', {
       method: 'POST',
       headers: {
