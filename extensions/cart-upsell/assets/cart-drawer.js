@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.4
- * Built: 2025-12-11T12:01:47.462Z
+ * Built: 2025-12-11T12:44:11.228Z
  */
 "use strict";
 (() => {
@@ -7887,32 +7887,331 @@
     const amount = cents / 100;
     return `\u20B9${Math.round(amount)}`;
   }
-  function showNotification(message, type = "info") {
-    const notification = document.createElement("div");
-    notification.className = `upsellity-notification upsellity-notification-${type}`;
-    notification.textContent = message;
-    notification.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: ${type === "success" ? "#28a745" : type === "error" ? "#dc3545" : "#007bff"};
-    color: white;
-    padding: 12px 20px;
-    border-radius: 4px;
-    font-weight: 600;
-    z-index: 10000;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    animation: slideIn 0.3s ease;
-  `;
-    document.body.appendChild(notification);
-    setTimeout(() => {
-      notification.style.animation = "slideOut 0.3s ease";
+  var toastContainer = null;
+  function initToastContainer() {
+    if (toastContainer)
+      return toastContainer;
+    toastContainer = document.createElement("div");
+    toastContainer.className = "upsellity-toast-container";
+    toastContainer.setAttribute("aria-live", "polite");
+    toastContainer.setAttribute("aria-atomic", "true");
+    if (!document.getElementById("upsellity-toast-styles")) {
+      const style = document.createElement("style");
+      style.id = "upsellity-toast-styles";
+      style.textContent = `
+      .upsellity-toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 100000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        pointer-events: none;
+        width: auto;
+        max-width: min(380px, calc(100vw - 40px));
+      }
+      
+      .upsellity-toast {
+        position: relative;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 10px;
+        padding: 14px 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 300px;
+        max-width: 100%;
+        pointer-events: auto;
+        overflow: hidden;
+        border-left: 4px solid;
+        animation: toastSlideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        transition: all 0.25s ease;
+        backdrop-filter: blur(12px);
+      }
+      
+      .upsellity-toast:hover {
+        transform: translateX(-4px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.12);
+      }
+      
+      .upsellity-toast-success {
+        border-left-color: #22c55e;
+        background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+      }
+      
+      .upsellity-toast-success:hover {
+        border-left-color: #16a34a;
+      }
+      
+      .upsellity-toast-error {
+        border-left-color: #f43f5e;
+        background: linear-gradient(135deg, #fff1f2 0%, #ffffff 100%);
+      }
+      
+      .upsellity-toast-error:hover {
+        border-left-color: #e11d48;
+      }
+      
+      .upsellity-toast-info {
+        border-left-color: #3b82f6;
+        background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+      }
+      
+      .upsellity-toast-info:hover {
+        border-left-color: #2563eb;
+      }
+      
+      .upsellity-toast-icon {
+        flex-shrink: 0;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      }
+      
+      .upsellity-toast-success .upsellity-toast-icon {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: white;
+      }
+      
+      .upsellity-toast-error .upsellity-toast-icon {
+        background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+        color: white;
+      }
+      
+      .upsellity-toast-info .upsellity-toast-icon {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+      }
+      
+      .upsellity-toast-content {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        min-width: 0;
+      }
+      
+      .upsellity-toast-message {
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.5;
+        color: #1e293b;
+        margin: 0;
+        word-wrap: break-word;
+      }
+      
+      .upsellity-toast-close {
+        flex-shrink: 0;
+        background: none;
+        border: none;
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        border-radius: 5px;
+        transition: all 0.2s ease;
+        opacity: 0.6;
+        margin-left: 4px;
+      }
+      
+      .upsellity-toast-close:hover {
+        opacity: 1;
+        background: rgba(0, 0, 0, 0.08);
+        color: #475569;
+        transform: rotate(90deg);
+      }
+      
+      .upsellity-toast-close::before {
+        content: '\xD7';
+        font-size: 22px;
+        line-height: 1;
+        font-weight: 300;
+      }
+      
+      .upsellity-toast-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 0 0 10px 10px;
+        overflow: hidden;
+      }
+      
+      .upsellity-toast-progress-bar {
+        height: 100%;
+        transition: width linear;
+        border-radius: 0 0 10px 10px;
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+      }
+      
+      .upsellity-toast-success .upsellity-toast-progress-bar {
+        background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+      }
+      
+      .upsellity-toast-error .upsellity-toast-progress-bar {
+        background: linear-gradient(90deg, #f43f5e 0%, #e11d48 100%);
+      }
+      
+      .upsellity-toast-info .upsellity-toast-progress-bar {
+        background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+      }
+      
+      @keyframes toastSlideInRight {
+        from {
+          opacity: 0;
+          transform: translateX(100%) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0) scale(1);
+        }
+      }
+      
+      @keyframes toastSlideOutRight {
+        from {
+          opacity: 1;
+          transform: translateX(0) scale(1);
+        }
+        to {
+          opacity: 0;
+          transform: translateX(100%) scale(0.95);
+        }
+      }
+      
+      .upsellity-toast.exiting {
+        animation: toastSlideOutRight 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+      }
+      
+      @media (max-width: 640px) {
+        .upsellity-toast-container {
+          right: 12px;
+          left: 12px;
+          max-width: none;
+          top: 12px;
+        }
+        
+        .upsellity-toast {
+          min-width: auto;
+          padding: 12px 14px;
+        }
+        
+        .upsellity-toast-message {
+          font-size: 12px;
+        }
+      }
+    `;
+      document.head.appendChild(style);
+    }
+    document.body.appendChild(toastContainer);
+    return toastContainer;
+  }
+  function getToastIcon(type) {
+    const icons = {
+      success: "\u2713",
+      error: "\u2715",
+      info: "i"
+    };
+    return icons[type] || icons.info;
+  }
+  function showNotification(message, type = "info", duration = 4e3) {
+    const container = initToastContainer();
+    const toast = document.createElement("div");
+    toast.className = `upsellity-toast upsellity-toast-${type}`;
+    toast.setAttribute("role", "alert");
+    const icon = document.createElement("div");
+    icon.className = "upsellity-toast-icon";
+    icon.textContent = getToastIcon(type);
+    icon.setAttribute("aria-hidden", "true");
+    const content = document.createElement("div");
+    content.className = "upsellity-toast-content";
+    const messageEl = document.createElement("p");
+    messageEl.className = "upsellity-toast-message";
+    messageEl.textContent = message;
+    content.appendChild(messageEl);
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "upsellity-toast-close";
+    closeBtn.setAttribute("aria-label", "Close notification");
+    closeBtn.setAttribute("type", "button");
+    const progressContainer = document.createElement("div");
+    progressContainer.className = "upsellity-toast-progress";
+    const progressBar = document.createElement("div");
+    progressBar.className = "upsellity-toast-progress-bar";
+    progressBar.style.width = "100%";
+    progressBar.style.transitionDuration = `${duration}ms`;
+    progressContainer.appendChild(progressBar);
+    toast.appendChild(icon);
+    toast.appendChild(content);
+    toast.appendChild(closeBtn);
+    toast.appendChild(progressContainer);
+    container.appendChild(toast);
+    requestAnimationFrame(() => {
+      toast.style.opacity = "1";
+    });
+    requestAnimationFrame(() => {
+      progressBar.style.width = "0%";
+    });
+    const removeToast = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      toast.classList.add("exiting");
       setTimeout(() => {
-        if (notification.parentNode) {
-          notification.parentNode.removeChild(notification);
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+        if (container.children.length === 0 && container.parentNode) {
+          container.parentNode.removeChild(container);
+          toastContainer = null;
         }
       }, 300);
-    }, 3e3);
+    };
+    closeBtn.addEventListener("click", () => {
+      isPaused = false;
+      removeToast();
+    });
+    let timeoutId = setTimeout(removeToast, duration);
+    let startTime = Date.now();
+    let remainingTime = duration;
+    let isPaused = false;
+    toast.addEventListener("mouseenter", () => {
+      if (isPaused)
+        return;
+      isPaused = true;
+      const elapsed = Date.now() - startTime;
+      remainingTime = duration - elapsed;
+      const currentWidth = progressBar.offsetWidth;
+      const containerWidth = progressContainer.offsetWidth;
+      const percentage = currentWidth / containerWidth * 100;
+      progressBar.style.width = `${percentage}%`;
+      progressBar.style.transitionDuration = "0ms";
+      clearTimeout(timeoutId);
+    });
+    toast.addEventListener("mouseleave", () => {
+      if (!isPaused)
+        return;
+      isPaused = false;
+      progressBar.style.transitionDuration = `${remainingTime}ms`;
+      requestAnimationFrame(() => {
+        progressBar.style.width = "0%";
+      });
+      startTime = Date.now();
+      timeoutId = setTimeout(removeToast, remainingTime);
+    });
+    return toast;
   }
 
   // extensions/cart-upsell/assets/modules/cart-operations.js
@@ -8028,63 +8327,74 @@
   }
   async function updateQuantity(itemKey, newQuantity, loadCartCallback, renderCallback) {
     if (newQuantity < 0) {
-      throw new Error("Quantity cannot be negative");
+      showNotification("Quantity cannot be negative", "error");
+      return;
     }
     const cartItem = document.querySelector(`[data-item-key="${itemKey}"]`);
     if (cartItem) {
       cartItem.classList.add("upsellity-loading");
     }
     try {
+      const cartResponse = await fetch("/cart.js");
+      if (!cartResponse.ok) {
+        throw new Error("Failed to fetch cart");
+      }
+      const cart = await cartResponse.json();
+      const cartItemIndex = cart.items.findIndex((item2) => item2.key === itemKey);
+      if (cartItemIndex === -1) {
+        await loadCartCallback();
+        renderCallback();
+        showNotification("Item not found in cart", "error");
+        return;
+      }
+      const item = cart.items[cartItemIndex];
+      const lineNumber = cartItemIndex + 1;
       const response = await fetch("/cart/change.js", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          id: itemKey,
+          line: lineNumber,
           quantity: newQuantity
         })
       });
       if (response.ok) {
         const result = await response.json();
+        if (result.items) {
+          const updatedItem = result.items.find((item2) => item2.key === itemKey);
+          if (!updatedItem && newQuantity > 0) {
+            await loadCartCallback();
+            renderCallback();
+            return;
+          }
+        }
         await loadCartCallback(result);
         renderCallback();
-        if (result.items) {
-          const updatedItem = result.items.find((item) => item.key === itemKey);
-          if (!updatedItem && newQuantity > 0) {
-            const errorMessage = "This item is no longer available and has been removed from your cart";
-            showNotification(errorMessage, "error");
-            throw new Error(errorMessage);
-          } else {
-            showNotification("Cart updated!", "success");
-          }
-        } else {
+        if (newQuantity > 0) {
           showNotification("Cart updated!", "success");
         }
       } else {
         const error = await response.json();
         console.error("Cart update error:", error);
         await loadCartCallback();
+        renderCallback();
         let errorMessage = error.description || error.message || "Failed to update cart";
         if (error.description && error.description.includes("sold out")) {
-          showNotification(error.description, "error");
           if (newQuantity !== 0) {
             errorMessage = "This product is out of stock";
-            showNotification(errorMessage, "error");
           }
+          showNotification(errorMessage, "error");
         } else {
           showNotification(errorMessage, "error");
         }
-        throw new Error(errorMessage);
+        return;
       }
     } catch (error) {
       console.error("Error updating quantity:", error);
-      if (error.message && (error.message.includes("no longer available") || error.message.includes("out of stock") || error.message.includes("Failed to update cart") || error.message.includes("negative"))) {
-        throw error;
-      }
-      showNotification("Failed to update cart", "error");
       await loadCartCallback();
-      throw new Error("Failed to update cart");
+      renderCallback();
+      showNotification("Failed to update cart", "error");
     } finally {
       if (cartItem) {
         cartItem.classList.remove("upsellity-loading");
@@ -11922,7 +12232,12 @@
       await addProductToCartByHandle(productHandle, variantId, quantity, this.loadCart.bind(this), properties);
     }
     async updateQuantity(itemKey, newQuantity) {
-      await updateQuantity(itemKey, newQuantity, this.loadCart.bind(this), this.render.bind(this));
+      try {
+        await updateQuantity(itemKey, newQuantity, this.loadCart.bind(this), this.render.bind(this));
+      } catch (error) {
+        await this.loadCart();
+        this.render();
+      }
     }
     async removeItem(itemKey) {
       await removeItem(itemKey, this.loadCart.bind(this), this.render.bind(this));

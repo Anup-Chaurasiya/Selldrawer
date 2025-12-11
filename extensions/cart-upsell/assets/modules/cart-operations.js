@@ -157,7 +157,8 @@ export async function addProductToCartByHandle(productHandle, variantId, quantit
  */
 export async function updateQuantity(itemKey, newQuantity, loadCartCallback, renderCallback) {
   if (newQuantity < 0) {
-    throw new Error('Quantity cannot be negative');
+    showNotification('Quantity cannot be negative', 'error');
+    return; // Return gracefully without throwing
   }
   
   const cartItem = document.querySelector(`[data-item-key="${itemKey}"]`);
@@ -166,13 +167,34 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
   }
 
   try {
+    // First, fetch current cart to find the item and get its line number or variant ID
+    const cartResponse = await fetch('/cart.js');
+    if (!cartResponse.ok) {
+      throw new Error('Failed to fetch cart');
+    }
+    const cart = await cartResponse.json();
+    
+    // Find the cart item by key
+    const cartItemIndex = cart.items.findIndex(item => item.key === itemKey);
+    if (cartItemIndex === -1) {
+      // Item not found in cart - might have been removed
+      await loadCartCallback();
+      renderCallback();
+      showNotification('Item not found in cart', 'error');
+      return;
+    }
+    
+    const item = cart.items[cartItemIndex];
+    // Use line number (1-based index) for the update request
+    const lineNumber = cartItemIndex + 1;
+    
     const response = await fetch('/cart/change.js', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        id: itemKey,
+        line: lineNumber,
         quantity: newQuantity
       })
     });
@@ -180,21 +202,23 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
     if (response.ok) {
       const result = await response.json();
       
-      // Update cart data and re-render
-      await loadCartCallback(result);
-      renderCallback();
-      
-      // Check if the item was actually updated or if it's out of stock
+      // Check if the item was actually updated or if it's out of stock BEFORE rendering
       if (result.items) {
         const updatedItem = result.items.find(item => item.key === itemKey);
         if (!updatedItem && newQuantity > 0) {
-          const errorMessage = 'This item is no longer available and has been removed from your cart';
-          showNotification(errorMessage, 'error');
-          throw new Error(errorMessage);
-        } else {
-          showNotification('Cart updated!', 'success');
+          // Item was removed (likely out of stock) - reload cart silently
+          await loadCartCallback();
+          renderCallback();
+          return; // Return gracefully without showing notification
         }
-      } else {
+      }
+      
+      // Item was successfully updated - update cart data and re-render
+      await loadCartCallback(result);
+      renderCallback();
+      
+      // Only show success if we're not removing the item (quantity 0)
+      if (newQuantity > 0) {
         showNotification('Cart updated!', 'success');
       }
     } else {
@@ -202,38 +226,34 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
       console.error('Cart update error:', error);
       
       await loadCartCallback();
+      renderCallback();
       
       let errorMessage = error.description || error.message || 'Failed to update cart';
       
       if (error.description && error.description.includes('sold out')) {
-        showNotification(error.description, 'error');
         if (newQuantity !== 0) {
           errorMessage = 'This product is out of stock';
-          showNotification(errorMessage, 'error');
         }
+        showNotification(errorMessage, 'error');
       } else {
         showNotification(errorMessage, 'error');
       }
       
-      throw new Error(errorMessage);
+      // Don't throw - handle gracefully to prevent uncaught promise rejection
+      return;
     }
   } catch (error) {
+    // Handle unexpected errors (network errors, JSON parsing errors, etc.)
     console.error('Error updating quantity:', error);
     
-    // If it's already an error we created, re-throw it
-    if (error.message && (
-      error.message.includes('no longer available') || 
-      error.message.includes('out of stock') ||
-      error.message.includes('Failed to update cart') ||
-      error.message.includes('negative')
-    )) {
-      throw error;
-    }
-    
-    // Otherwise, show notification and throw new error
-    showNotification('Failed to update cart', 'error');
+    // Reload cart to ensure UI is in sync
     await loadCartCallback();
-    throw new Error('Failed to update cart');
+    renderCallback();
+    
+    // Show generic error notification
+    showNotification('Failed to update cart', 'error');
+    
+    // Don't throw error - handle gracefully to prevent uncaught promise rejection
   } finally {
     if (cartItem) {
       cartItem.classList.remove('upsellity-loading');

@@ -625,7 +625,14 @@ export class UpsellityCartDrawer {
   }
 
   async updateQuantity(itemKey, newQuantity) {
-    await CartOps.updateQuantity(itemKey, newQuantity, this.loadCart.bind(this), this.render.bind(this));
+    try {
+      await CartOps.updateQuantity(itemKey, newQuantity, this.loadCart.bind(this), this.render.bind(this));
+    } catch (error) {
+      // Error is already handled in cart-operations.js with notifications
+      // Just ensure cart is reloaded and rendered
+      await this.loadCart();
+      this.render();
+    }
   }
 
   async removeItem(itemKey) {
