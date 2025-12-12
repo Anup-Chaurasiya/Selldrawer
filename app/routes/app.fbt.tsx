@@ -33,8 +33,15 @@ import type { FBTProduct } from "../components/shared/FBTProductCard";
 import { checkPlanAccess } from "../utils/planAccess.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session, admin } = await authenticate.admin(request);
+  const { billing, session, admin } = await authenticate.admin(request);
   const shop = session.shop;
+
+  // Check billing - if no active payment, return redirect URL
+  const { requireBilling } = await import("../utils/billing.server");
+  const billingRedirectUrl = await requireBilling(billing);
+  if (billingRedirectUrl) {
+    return json({ billingRedirectUrl });
+  }
 
   // Check plan access for FBT feature
   const planAccess = await checkPlanAccess(shop, 'fbt');
@@ -442,10 +449,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function FrequentlyBoughtTogether() {
-  const { fbtConfig, shopProducts, shopCollections } = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const actionData = useActionData<typeof action>();
+
+  // Check if we need to redirect for billing
+  if ('billingRedirectUrl' in data) {
+    if (typeof window !== 'undefined') {
+      window.top!.location.href = data.billingRedirectUrl;
+    }
+    return null;
+  }
+
+  const { fbtConfig, shopProducts, shopCollections } = data as Exclude<typeof data, { billingRedirectUrl: string }>;
 
   // Check which action is being submitted
   const formData = navigation.formData;

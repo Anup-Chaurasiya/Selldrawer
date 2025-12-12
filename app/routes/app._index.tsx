@@ -22,16 +22,20 @@ import { CheckIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { checkAppEmbedEnabled } from "../utils/appEmbed.server";
-import { BILLING_PLANS } from "../utils/billingPlans";
+import { requireBilling } from "../utils/billing.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing, session, admin } = await authenticate.admin(request);
   const shop = session.shop;
 
-  // Check if shop has active subscription
-  const subscription = await prisma.appSubscription.findUnique({
-    where: { shop },
-  });
+  // Check billing - if no active payment, return redirect URL
+  const billingRedirectUrl = await requireBilling(billing);
+  if (billingRedirectUrl) {
+    return json({ billingRedirectUrl });
+  }
+
+  // Get subscription details
+  const { appSubscriptions } = await billing.check();
 
   // Check if app embed is enabled
   const appEmbedEnabled = await checkAppEmbedEnabled(admin, session);
@@ -113,14 +117,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   aggregatedData.totalOrders = uniqueOrderIds.size;
 
-  // Get available plans from billing configuration
-  const plans = BILLING_PLANS;
+  // Get current active subscription details
+  const currentSubscription = appSubscriptions.length > 0 ? appSubscriptions[0] : null;
 
   return json({ 
-    subscription, 
-    hasActiveSubscription: !!subscription && subscription.status === "ACTIVE",
+    currentSubscription,
     shop,
-    plans: plans.filter(p => p.id !== 'trial'), // Don't show trial plan in selection
     appEmbedEnabled,
     shopDomain: process.env.SHOPIFY_SHOP_DOMAIN || 'admin.shopify.com',
     apiKey: process.env.SHOPIFY_API_KEY || '',
@@ -129,201 +131,56 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { billing, session } = await authenticate.admin(request);
-  const shop = session.shop;
-
-  const formData = await request.formData();
-  const planId = formData.get("planId") as string;
-
-
-  if (!planId) {
-    return json({ error: "Plan ID is required" }, { status: 400 });
-  }
-
-  try {
-    // Check if already has subscription
-    const existingSubscription = await prisma.appSubscription.findUnique({
-      where: { shop },
-    });
-
-    if (existingSubscription && existingSubscription.status === "ACTIVE") {
-      return redirect("/app/cart-drawer");
-    }
-
-    // Get the host parameter for proper embedding
-    const url = new URL(request.url);
-    const host = url.searchParams.get("host") || request.headers.get("shopify-app-host");
-    
-    // Create proper return URL that will redirect back to the embedded app
-    const appUrl = process.env.SHOPIFY_APP_URL;
-    const returnUrl = `${appUrl}/app/billing/callback?shop=${shop}&plan=${planId}${host ? `&host=${host}` : ''}`;
-    
-    
-    // Create a subscription charge
-    let confirmationUrl: string;
-    
-    try {
-      const billingResult = await billing.request({
-        plan: planId,
-        isTest: true, // Set to false in production
-        returnUrl,
-      });
-      
-      confirmationUrl = billingResult.confirmationUrl;
-    } catch (billingError: any) {
-      console.error("Billing request error:", billingError);
-      
-      // Handle 302 redirect response (normal for embedded apps)
-      if (billingError.status === 302 && billingError.headers) {
-        const location = billingError.headers.get?.('Location') || billingError.headers.get?.('location');
-        
-        if (location) {
-          // If it's an exit-iframe URL, extract the exitIframe parameter
-          if (location.includes('/auth/exit-iframe')) {
-            const exitIframeMatch = location.match(/exitIframe=([^&]+)/);
-            if (exitIframeMatch) {
-              confirmationUrl = decodeURIComponent(exitIframeMatch[1]);
-            } else {
-              // Use the full location URL as-is
-              confirmationUrl = `${appUrl}${location}`;
-            }
-          } else {
-            confirmationUrl = location;
-          }
-        } else {
-          throw new Error("No Location header found in 302 response");
-        }
-      }
-      // Shopify billing API may also return 401 with the confirmation URL in headers
-      else if (billingError.status === 401 && billingError.headers) {
-        const reauthorizeUrl = billingError.headers.get?.('X-Shopify-API-Request-Failure-Reauthorize-Url');
-        
-        if (reauthorizeUrl) {
-          confirmationUrl = reauthorizeUrl;
-        } else {
-          throw billingError;
-        }
-      } else {
-        throw billingError;
-      }
-    }
-
-      // Store pending subscription in database
-      const selectedPlan = BILLING_PLANS.find(p => p.id === planId);
-      await prisma.appSubscription.upsert({
-        where: { shop },
-        create: {
-          shop,
-          planId,
-          planName: selectedPlan?.name || planId,
-          status: "PENDING",
-          amount: selectedPlan?.monthlyPrice || 0,
-          currencyCode: "USD",
-          interval: "EVERY_30_DAYS",
-          trialDays: 14,
-          shopifyConfirmationUrl: confirmationUrl,
-        },
-        update: {
-          planId,
-          planName: selectedPlan?.name || planId,
-          status: "PENDING",
-          amount: selectedPlan?.monthlyPrice || 0,
-          shopifyConfirmationUrl: confirmationUrl,
-          updatedAt: new Date(),
-        },
-      });
-    
-    
-    // Return confirmation URL for frontend redirect
-    return json({ 
-      confirmationUrl,
-      requiresRedirect: true 
-    }, {
-      headers: {
-        'X-Shopify-API-Request-Failure-Reauthorize': '1',
-        'X-Shopify-API-Request-Failure-Reauthorize-Url': confirmationUrl,
-      }
-    });
-  } catch (error: any) {
-    console.error("Billing error:", error);
-    return json({ error: error.message || "Failed to process billing" }, { status: 500 });
-  }
+  // Redirect to billing page for plan selection
+  return redirect("/app/billing");
 };
 
 export default function Index() {
-  const { hasActiveSubscription, plans, appEmbedEnabled, shopDomain, apiKey, analytics } = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>();
+  const data = useLoaderData<typeof loader>();
   const navigate = useNavigate();
-  const navigation = useNavigation();
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
-  const shopify = useAppBridge();
 
-  const isSubmitting = navigation.state === "submitting";
-
-  // Check for billing success/error in URL
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const billingStatus = params.get("billing");
-    
-    if (billingStatus === "success") {
-      setShowSuccessBanner(true);
-      // Clean up URL
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, "", newUrl);
-      // Reload to get updated subscription status
-      window.location.reload();
-    } else if (billingStatus === "error") {
-      console.error("Billing error occurred");
-      shopify.toast.show("There was an error processing your subscription. Please try again.", {
-        isError: true,
-      });
-    } else if (billingStatus === "cancelled") {
-      shopify.toast.show("Subscription was cancelled. Please try again if you'd like to continue.", {
-        isError: false,
-      });
+  // Check if we need to redirect for billing
+  if ('billingRedirectUrl' in data) {
+    if (typeof window !== 'undefined') {
+      window.top!.location.href = data.billingRedirectUrl;
     }
-  }, [shopify]);
+    return null;
+  }
 
-  // Handle billing confirmation redirect
-  useEffect(() => {
-    if (actionData && 'requiresRedirect' in actionData && actionData.requiresRedirect) {
-      const data = actionData as { confirmationUrl?: string };
-      if (data.confirmationUrl) {
-        // Use window.top to break out of iframe and redirect to Shopify billing page
-        if (window.top) {
-          window.top.location.href = data.confirmationUrl;
-        } else {
-          window.location.href = data.confirmationUrl;
-        }
-      }
-    }
-  }, [actionData]);
+  const { currentSubscription, appEmbedEnabled, shopDomain, apiKey, analytics } = data as Exclude<typeof data, { billingRedirectUrl: string }>;
 
-  // If user has active subscription, show dashboard instead of pricing
-  if (hasActiveSubscription) {
-    const rows = Object.values(analytics.products).map((product: any) => [
-      product.id,
-      product.impressions,
-      product.clicks,
-      product.addToCarts,
-      product.revenue.toLocaleString('en-US', { style: 'currency', currency: 'USD' }),
-    ]);
+  // User has active subscription (loader redirects if not), show dashboard
+  const rows = Object.values(analytics.products).map((product: any) => [
+    product.id,
+    product.impressions,
+    product.clicks,
+    product.addToCarts,
+    product.revenue.toLocaleString('en-US', { style: 'currency', currency: 'USD' }),
+  ]);
 
-    return (
-      <Page>
-        <TitleBar title="Upsellity AI Dashboard" />
-        <BlockStack gap="500">
-          <Layout>
-            <Layout.Section>
-              <Card>
-                <BlockStack gap="400">
-                  <Text as="h2" variant="headingLg">
-                    Welcome to Upsellity AI 🎉
-                  </Text>
-                  <Text as="p" variant="bodyMd" tone="subdued">
-                    Your intelligent cart drawer is ready! Get started by customizing your cart features.
-                  </Text>
+  return (
+    <Page>
+      <TitleBar title="Upsellity AI Dashboard" />
+      <BlockStack gap="500">
+        <Layout>
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="400">
+                <InlineStack align="space-between" blockAlign="center">
+                  <BlockStack gap="200">
+                    <Text as="h2" variant="headingLg">
+                      Welcome to Upsellity AI 🎉
+                    </Text>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Your intelligent cart drawer is ready! Get started by customizing your cart features.
+                    </Text>
+                  </BlockStack>
+                  {currentSubscription && (
+                    <Badge tone="success">
+                      {currentSubscription.name || "Active Plan"}
+                    </Badge>
+                  )}
+                </InlineStack>
                   
                   {/* App Embed Status Banner */}
                   {!appEmbedEnabled && (
@@ -505,114 +362,4 @@ export default function Index() {
         </BlockStack>
       </Page>
     );
-  }
-
-  // Show pricing page if no active subscription
-  return (
-    <Page>
-      <BlockStack gap="500">
-        {/* Header */}
-        <Box paddingBlockStart="400">
-          <BlockStack gap="200" inlineAlign="center">
-            <Text as="h1" variant="heading2xl" alignment="center">
-              Welcome to Upsellity
-            </Text>
-          </BlockStack>
-        </Box>
-
-        {/* Info Banner */}
-        <Box paddingInline="400">
-          <Banner tone="info">
-            To get started, you must select a pricing plan. All plans include a 14-day free trial and are shown in USD. Uninstalling within the first 14 days avoids all charges.
-          </Banner>
-        </Box>
-
-        {/* Pricing Cards */}
-        <Layout>
-          {plans.map((plan) => (
-            <Layout.Section key={plan.id} variant="oneThird">
-              <Card>
-                <BlockStack gap="400">
-                  {/* Plan Header */}
-                  <InlineStack align="space-between" blockAlign="start">
-                    <BlockStack gap="100">
-                      <Text as="h2" variant="headingLg">
-                        {plan.name}
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        {plan.tagline}
-                      </Text>
-                    </BlockStack>
-                    {plan.isPopular && (
-                      <Badge tone="info">Most popular</Badge>
-                    )}
-                  </InlineStack>
-
-                  <Divider />
-
-                  {/* Pricing */}
-                  <BlockStack gap="200">
-                    <Text as="h3" variant="headingLg">
-                      ${plan.monthlyPrice}
-                      <Text as="span" variant="bodyMd" tone="subdued">
-                        /month
-                      </Text>
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      ${plan.annualPrice}/year
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {plan.orderCap}
-                    </Text>
-                  </BlockStack>
-
-                  <Divider />
-
-                  {/* Features */}
-                  <BlockStack gap="200">
-                    <Text as="h3" variant="headingMd">
-                      Features
-                    </Text>
-                    <BlockStack gap="200">
-                      {plan.features.slice(0, 6).map((feature, index) => (
-                        <InlineStack key={index} gap="200" blockAlign="start">
-                          <Box>
-                            <Icon source={CheckIcon} tone="success" />
-                          </Box>
-                          <Text as="p" variant="bodySm">
-                            {feature}
-                          </Text>
-                        </InlineStack>
-                      ))}
-                      {plan.features.length > 6 && (
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          +{plan.features.length - 6} more features
-                        </Text>
-                      )}
-                    </BlockStack>
-                  </BlockStack>
-
-                  <Box paddingBlockStart="400">
-                    <Form method="POST" onSubmit={() => setSelectedPlan(plan.id)}>
-                      <input type="hidden" name="planId" value={plan.id} />
-                      <Button
-                        variant={plan.isPopular ? "primary" : "secondary"}
-                        size="large"
-                        fullWidth
-                        loading={isSubmitting && selectedPlan === plan.id}
-                        disabled={isSubmitting && selectedPlan !== plan.id}
-                        submit
-                      >
-                        Start 14-day free trial
-                      </Button>
-                    </Form>
-                  </Box>
-                </BlockStack>
-              </Card>
-            </Layout.Section>
-          ))}
-        </Layout>
-      </BlockStack>
-    </Page>
-  );
 }

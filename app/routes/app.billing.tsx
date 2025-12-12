@@ -22,18 +22,86 @@ import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { CheckIcon, XIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { BILLING_PLANS, getPlanById } from "../utils/billingPlans";
+import { getPlanSelectionUrl } from "../utils/billing.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { billing, session, admin } = await authenticate.admin(request);
   const shop = session.shop;
   
   const url = new URL(request.url);
   const billingStatus = url.searchParams.get("billing");
 
-  const subscription = await prisma.appSubscription.findUnique({
-    where: { shop },
-  });
+  // Check active subscriptions from Shopify
+  const { hasActivePayment, appSubscriptions } = await billing.check();
+  
+  // Get the plan selection URL
+  const planSelectionUrl = getPlanSelectionUrl();
+
+  // Fetch available plans from Shopify
+  const graphqlQuery = `
+    query {
+      currentAppInstallation {
+        activeSubscriptions {
+          id
+          name
+          status
+          test
+          trialDays
+          currentPeriodEnd
+          lineItems {
+            plan {
+              pricingDetails {
+                ... on AppRecurringPricing {
+                  price {
+                    amount
+                    currencyCode
+                  }
+                  interval
+                }
+              }
+            }
+          }
+        }
+        allSubscriptions(first: 20) {
+          edges {
+            node {
+              id
+              name
+              status
+              test
+              trialDays
+              lineItems {
+                plan {
+                  pricingDetails {
+                    ... on AppRecurringPricing {
+                      price {
+                        amount
+                        currencyCode
+                      }
+                      interval
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  let availablePlans: any[] = [];
+  try {
+    const response = await admin.graphql(graphqlQuery);
+    const data = await response.json();
+    
+    // Extract available plans from Shopify
+    if (data?.data?.currentAppInstallation?.allSubscriptions?.edges) {
+      availablePlans = data.data.currentAppInstallation.allSubscriptions.edges.map((edge: any) => edge.node);
+    }
+  } catch (error) {
+    console.error("Error fetching plans from Shopify:", error);
+  }
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -46,98 +114,71 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
   });
 
+  const currentSubscription = appSubscriptions.length > 0 ? appSubscriptions[0] : null;
+
   return json({ 
-    subscription,
-    plans: BILLING_PLANS.filter(p => p.id !== 'trial'),
+    hasActivePayment,
+    currentSubscription,
+    availablePlans,
     orderCount,
     billingStatus,
+    planSelectionUrl,
   });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { billing, session } = await authenticate.admin(request);
+  const { billing, session, admin } = await authenticate.admin(request);
   const shop = session.shop;
 
   const formData = await request.formData();
   const actionType = formData.get("actionType") as string;
-  const planId = formData.get("planId") as string;
+  const planName = formData.get("planName") as string;
 
   try {
     if (actionType === "cancel") {
-      await prisma.appSubscription.update({
-        where: { shop },
-        data: {
-          status: "CANCELLED",
-          cancelledAt: new Date(),
-        },
-      });
+      // Cancel subscription via Shopify GraphQL
+      const { appSubscriptions } = await billing.check();
+      
+      if (appSubscriptions.length > 0) {
+        const subscriptionId = appSubscriptions[0].id;
+        
+        const mutation = `
+          mutation {
+            appSubscriptionCancel(id: "${subscriptionId}") {
+              appSubscription {
+                id
+                status
+              }
+              userErrors {
+                field
+                message
+              }
+            }
+          }
+        `;
+        
+        const response = await admin.graphql(mutation);
+        const data = await response.json();
+        
+        if (data?.data?.appSubscriptionCancel?.userErrors?.length > 0) {
+          return json({ error: data.data.appSubscriptionCancel.userErrors[0].message }, { status: 400 });
+        }
+      }
 
       return json({ success: true, message: "Subscription cancelled successfully" });
     }
 
     if (actionType === "subscribe" || actionType === "upgrade" || actionType === "downgrade") {
-      const plan = getPlanById(planId);
-      if (!plan) {
-        return json({ error: "Invalid plan" }, { status: 400 });
+      if (!planName) {
+        return json({ error: "Plan name is required" }, { status: 400 });
       }
 
-      const url = new URL(request.url);
-      const host = url.searchParams.get("host") || request.headers.get("shopify-app-host");
-      
-      const appUrl = process.env.SHOPIFY_APP_URL;
-      const returnUrl = `${appUrl}/app/billing/callback?shop=${shop}&plan=${planId}${host ? `&host=${host}` : ''}`;
-      
-      let confirmationUrl: string;
-      
-      try {
-        const billingResponse = await billing.request({
-          plan: planId as any,
-          isTest: true,
-          returnUrl,
-        });
-        
-        confirmationUrl = (billingResponse as any).confirmationUrl;
-      } catch (error: any) {
-        // Handle 401 response with confirmation URL in header
-        if (error.status === 401 && error.headers) {
-          const reauthorizeUrl = error.headers.get('X-Shopify-API-Request-Failure-Reauthorize-Url');
-          if (reauthorizeUrl) {
-            confirmationUrl = reauthorizeUrl;
-          } else {
-            throw error;
-          }
-        } else {
-          throw error;
-        }
-      }
-      
-      await prisma.appSubscription.upsert({
-        where: { shop },
-        create: {
-          shop,
-          planId,
-          planName: plan.name,
-          status: "PENDING",
-          amount: plan.monthlyPrice,
-          currencyCode: "USD",
-          interval: "EVERY_30_DAYS",
-          trialDays: 14,
-          shopifyConfirmationUrl: confirmationUrl,
-        },
-        update: {
-          planId,
-          planName: plan.name,
-          status: "PENDING",
-          amount: plan.monthlyPrice,
-          shopifyConfirmationUrl: confirmationUrl,
-          updatedAt: new Date(),
-        },
-      });
-
+      // Note: With managed billing, you'll need to redirect users to Shopify's billing page
+      // The actual plan creation happens in your Partner Dashboard
       return json({ 
-        confirmationUrl,
-        requiresRedirect: true 
-      });
+        error: "Please configure your billing plans in the Shopify Partner Dashboard. Managed billing requires plans to be set up there first.",
+        needsConfiguration: true
+      }, { status: 400 });
     }
 
     return json({ error: "Invalid action" }, { status: 400 });
@@ -148,28 +189,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Billing() {
-  const { subscription, plans, orderCount, billingStatus } = useLoaderData<typeof loader>();
+  const { hasActivePayment, currentSubscription, availablePlans, orderCount, billingStatus, planSelectionUrl } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const shopify = useAppBridge();
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  const [expandedPlans, setExpandedPlans] = useState<Set<string>>(new Set());
 
   const isSubmitting = navigation.state === "submitting";
-
-  const togglePlanFeatures = (planId: string) => {
-    setExpandedPlans(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(planId)) {
-        newSet.delete(planId);
-      } else {
-        newSet.add(planId);
-      }
-      return newSet;
-    });
-  };
 
   useEffect(() => {
     if (billingStatus === "success") {
@@ -182,16 +209,7 @@ export default function Billing() {
 
   useEffect(() => {
     if (actionData) {
-      if ('requiresRedirect' in actionData && actionData.requiresRedirect) {
-        const data = actionData as any;
-        if (data.confirmationUrl) {
-          if (window.top) {
-            window.top.location.href = data.confirmationUrl;
-          } else {
-            window.location.href = data.confirmationUrl;
-          }
-        }
-      } else if ('success' in actionData && actionData.success) {
+      if ('success' in actionData && actionData.success) {
         if ('message' in actionData) {
           shopify.toast.show((actionData as any).message || "Action completed successfully");
         }
@@ -201,17 +219,6 @@ export default function Billing() {
     }
   }, [actionData, shopify]);
 
-  const currentPlan = subscription ? getPlanById(subscription.planId) : null;
-  const isTrialActive = subscription?.trialEndsAt ? new Date(subscription.trialEndsAt) > new Date() : false;
-
-  const handlePlanSelect = (planId: string, actionType: string) => {
-    setSelectedPlanId(planId);
-    const formData = new FormData();
-    formData.append("planId", planId);
-    formData.append("actionType", actionType);
-    submit(formData, { method: "post" });
-  };
-
   const handleCancel = () => {
     const formData = new FormData();
     formData.append("actionType", "cancel");
@@ -219,85 +226,74 @@ export default function Billing() {
     setShowCancelModal(false);
   };
 
-  const orderLimit = currentPlan ? (currentPlan.orderCap.includes('<2000') ? 2000 : currentPlan.orderCap.includes('50') ? 50 : Infinity) : 0;
-  const orderPercentage = orderLimit !== Infinity ? (orderCount / orderLimit) * 100 : 0;
-
   return (
     <Page>
       <TitleBar title="Billing & Plans" />
       <BlockStack gap="500">
-        {subscription && currentPlan && (
+        {!hasActivePayment && (
+          <Banner tone="warning">
+            <BlockStack gap="200">
+              <Text as="p" variant="bodyMd">
+                You don't have an active subscription. Please subscribe to a plan to use Upsellity.
+              </Text>
+              <Text as="p" variant="bodySm" tone="subdued">
+                Click the button below to view and select a pricing plan.
+              </Text>
+              <Box paddingBlockStart="200">
+                <Button
+                  variant="primary"
+                  url={planSelectionUrl}
+                  external
+                >
+                  View Pricing Plans
+                </Button>
+              </Box>
+            </BlockStack>
+          </Banner>
+        )}
+
+        {hasActivePayment && currentSubscription && (
           <Layout>
             <Layout.Section>
               <Card>
                 <BlockStack gap="400">
                   <InlineStack align="space-between" blockAlign="center">
-                    <Text as="h2" variant="headingLg">Current Plan</Text>
-                    {subscription.status === "ACTIVE" ? (
-                      <Badge tone="success">Active</Badge>
-                    ) : subscription.status === "CANCELLED" ? (
-                      <Badge tone="critical">Cancelled</Badge>
-                    ) : (
-                      <Badge>Pending</Badge>
-                    )}
+                    <Text as="h2" variant="headingLg">Current Subscription</Text>
+                    <Badge tone="success">Active</Badge>
                   </InlineStack>
 
                   <Divider />
 
                   <Layout>
-                    <Layout.Section variant="oneThird">
+                    <Layout.Section variant="oneHalf">
                       <BlockStack gap="200">
                         <Text as="p" variant="bodyMd" tone="subdued">Plan</Text>
-                        <Text as="h3" variant="headingMd">{currentPlan.name}</Text>
-                        <Text as="p" variant="bodyMd" tone="subdued">{currentPlan.tagline}</Text>
+                        <Text as="h3" variant="headingMd">{currentSubscription.name || "Active Plan"}</Text>
+                        {currentSubscription.test && (
+                          <Badge tone="info">Test Mode</Badge>
+                        )}
                       </BlockStack>
                     </Layout.Section>
                     
-                    <Layout.Section variant="oneThird">
+                    <Layout.Section variant="oneHalf">
                       <BlockStack gap="200">
-                        <Text as="p" variant="bodyMd" tone="subdued">Price</Text>
-                        <Text as="h3" variant="headingMd">${currentPlan.monthlyPrice}/month</Text>
-                        <Text as="p" variant="bodySm" tone="subdued">${currentPlan.annualPrice}/year</Text>
-                      </BlockStack>
-                    </Layout.Section>
-
-                    <Layout.Section variant="oneThird">
-                      <BlockStack gap="200">
-                        <Text as="p" variant="bodyMd" tone="subdued">Order Usage</Text>
-                        <Text as="h3" variant="headingMd">
-                          {orderCount} / {orderLimit === Infinity ? '∞' : orderLimit}
-                        </Text>
-                        {orderLimit !== Infinity && (
-                          <Box paddingBlockStart="200">
-                            <ProgressBar 
-                              progress={Math.min(orderPercentage, 100)} 
-                            />
-                          </Box>
-                        )}
+                        <Text as="p" variant="bodyMd" tone="subdued">Order Usage This Month</Text>
+                        <Text as="h3" variant="headingMd">{orderCount}</Text>
                       </BlockStack>
                     </Layout.Section>
                   </Layout>
 
-                  {isTrialActive && subscription.trialEndsAt && (
+                  {currentSubscription.trialDays && (
                     <Banner tone="info">
-                      Your free trial ends on {new Date(subscription.trialEndsAt).toLocaleDateString()}. 
-                      You won't be charged until then.
+                      This subscription includes a {currentSubscription.trialDays}-day free trial.
                     </Banner>
                   )}
 
-                  {orderPercentage > 80 && orderLimit !== Infinity && (
-                    <Banner tone="warning">
-                      You're approaching your monthly order limit. Consider upgrading to avoid interruptions.
-                    </Banner>
-                  )}
-
-                  {subscription.status === "ACTIVE" && (
-                    <InlineStack align="start">
-                      <Button tone="critical" onClick={() => setShowCancelModal(true)}>
-                        Cancel Subscription
-                      </Button>
-                    </InlineStack>
-                  )}
+                  <InlineStack align="start">
+                    <Button tone="critical" onClick={() => setShowCancelModal(true)}>
+                      Cancel Subscription
+                    </Button>
+                  </InlineStack>
                 </BlockStack>
               </Card>
             </Layout.Section>
@@ -306,112 +302,64 @@ export default function Billing() {
 
         <Layout>
           <Layout.Section>
-            <BlockStack gap="300">
-              <Text as="h2" variant="headingLg">
-                {subscription ? "Change Your Plan" : "Choose a Plan"}
-              </Text>
-              <Text as="p" variant="bodyMd" tone="subdued">
-                All plans include a 14-day free trial. Cancel anytime.
-              </Text>
-            </BlockStack>
-          </Layout.Section>
-        </Layout>
-
-        <Layout>
-          {plans.map((plan) => {
-            const isCurrent = subscription?.planId === plan.id;
-            const canUpgrade = subscription && currentPlan && plan.monthlyPrice > currentPlan.monthlyPrice;
-            const canDowngrade = subscription && currentPlan && plan.monthlyPrice < currentPlan.monthlyPrice;
-            const isLoading = isSubmitting && selectedPlanId === plan.id;
-
-            return (
-              <Layout.Section key={plan.id} variant="oneThird">
-                <Card>
-                  <BlockStack gap="400">
-                    <InlineStack align="space-between" blockAlign="start">
-                      <BlockStack gap="100">
-                        <InlineStack gap="200" blockAlign="center">
-                          <Text as="h3" variant="headingMd">{plan.name}</Text>
-                          {plan.isPopular && <Badge tone="info">Popular</Badge>}
-                          {isCurrent && <Badge tone="success">Current</Badge>}
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">{plan.tagline}</Text>
-                      </BlockStack>
-                    </InlineStack>
-
-                    <Divider />
-
-                    <BlockStack gap="100">
-                      <Text as="h2" variant="heading2xl">
-                        ${plan.monthlyPrice}
-                        <Text as="span" variant="bodyLg" tone="subdued">/mo</Text>
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        or ${plan.annualPrice}/year (save ${(plan.monthlyPrice * 12) - plan.annualPrice})
-                      </Text>
-                      <Text as="p" variant="bodySm" tone="subdued" fontWeight="medium">
-                        {plan.orderCap}
-                      </Text>
-                    </BlockStack>
-
-                    <Divider />
-
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingLg">
+                  Available Plans
+                </Text>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  Billing plans are managed through your Shopify Partner Dashboard. To add or modify plans, go to your Partner Dashboard → Apps → Your App → Pricing.
+                </Text>
+                
+                {availablePlans.length === 0 ? (
+                  <Banner tone="info">
                     <BlockStack gap="200">
-                      <Text as="h4" variant="headingSm">Key Features</Text>
-                      <BlockStack gap="150">
-                        {(expandedPlans.has(plan.id) ? plan.features : plan.features.slice(0, 6)).map((feature, index) => (
-                          <InlineStack key={index} gap="200" blockAlign="center">
-                            <Box minWidth="20px">
-                              <Icon source={CheckIcon} tone="success" />
-                            </Box>
-                            <Text as="p" variant="bodySm">{feature}</Text>
-                          </InlineStack>
-                        ))}
-                        {plan.features.length > 6 && (
-                          <Button
-                            variant="plain"
-                            onClick={() => togglePlanFeatures(plan.id)}
-                          >
-                            {expandedPlans.has(plan.id) 
-                              ? "Show less" 
-                              : `+ ${plan.features.length - 6} more features`
-                            }
-                          </Button>
-                        )}
-                      </BlockStack>
-                    </BlockStack>
-
-                    <Box paddingBlockStart="200">
-                      {isCurrent ? (
-                        <Button size="large" fullWidth disabled>
-                          Current Plan
-                        </Button>
-                      ) : (
+                      <Text as="p" variant="bodyMd" fontWeight="semibold">
+                        No plans configured yet
+                      </Text>
+                      <Text as="p" variant="bodyMd">
+                        Set up your pricing plans in the Shopify Partner Dashboard to allow merchants to subscribe.
+                      </Text>
+                      <Box paddingBlockStart="200">
                         <Button
-                          variant={plan.isPopular ? "primary" : "secondary"}
-                          size="large"
-                          fullWidth
-                          loading={isLoading}
-                          disabled={isSubmitting && !isLoading}
-                          onClick={() => {
-                            const actionType = subscription 
-                              ? (canUpgrade ? "upgrade" : canDowngrade ? "downgrade" : "subscribe")
-                              : "subscribe";
-                            handlePlanSelect(plan.id, actionType);
-                          }}
+                          url="https://partners.shopify.com"
+                          target="_blank"
                         >
-                          {subscription 
-                            ? (canUpgrade ? "Upgrade" : canDowngrade ? "Downgrade" : "Switch Plan")
-                            : "Start Free Trial"
-                          }
+                          Go to Partner Dashboard
                         </Button>
-                      )}
-                    </Box>
+                      </Box>
+                    </BlockStack>
+                  </Banner>
+                ) : (
+                  <BlockStack gap="300">
+                    {availablePlans.map((plan: any, index: number) => (
+                      <Card key={plan.id || index}>
+                        <BlockStack gap="200">
+                          <InlineStack align="space-between" blockAlign="center">
+                            <Text as="h3" variant="headingMd">{plan.name || `Plan ${index + 1}`}</Text>
+                            <Badge tone={plan.status === "ACTIVE" ? "success" : "info"}>
+                              {plan.status || "Available"}
+                            </Badge>
+                          </InlineStack>
+                          {plan.lineItems && plan.lineItems.length > 0 && (
+                            <Text as="p" variant="bodyMd">
+                              {plan.lineItems[0].plan?.pricingDetails?.price?.amount} {plan.lineItems[0].plan?.pricingDetails?.price?.currencyCode || "USD"}
+                              {plan.lineItems[0].plan?.pricingDetails?.interval && ` / ${plan.lineItems[0].plan.pricingDetails.interval}`}
+                            </Text>
+                          )}
+                          {plan.trialDays && (
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              Includes {plan.trialDays}-day free trial
+                            </Text>
+                          )}
+                        </BlockStack>
+                      </Card>
+                    ))}
                   </BlockStack>
-                </Card>
-              </Layout.Section>
-            );
-          })}
+                )}
+              </BlockStack>
+            </Card>
+          </Layout.Section>
         </Layout>
       </BlockStack>
 
@@ -423,6 +371,7 @@ export default function Billing() {
           content: "Yes, Cancel",
           destructive: true,
           onAction: handleCancel,
+          loading: isSubmitting,
         }}
         secondaryActions={[
           {
