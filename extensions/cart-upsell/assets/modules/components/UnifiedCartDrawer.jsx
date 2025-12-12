@@ -70,7 +70,7 @@ export const UnifiedCartDrawer = ({
     return { beforeItems, afterItems };
   };
 
-  // Helper to calculate savings
+  // Helper to calculate savings (using Shopify cart data)
   const calculateSavings = () => {
     if (!config?.features?.savingsDisplay) return 0;
     
@@ -78,30 +78,11 @@ export const UnifiedCartDrawer = ({
       return sum + Math.max(0, (item.original_price - item.final_price)) * item.quantity;
     }, 0);
     
-    const discountSavings = appliedDiscount ? calculateEstimatedDiscount(appliedDiscount, cart) : 0;
+    // Use Shopify's total_discount from cart (in cents)
+    const discountSavings = cart.total_discount || 0;
     return Math.max(itemLevelSavings, discountSavings);
   };
 
-  const calculateEstimatedDiscount = (discount, cart) => {
-    if (!discount) return 0;
-    
-    if (discount.type === 'percentage') {
-      return (cart.total_price * discount.value) / 100;
-    } else if (discount.type === 'fixed_amount') {
-      return discount.value * 100; // Convert to cents
-    }
-    
-    return 0;
-  };
-
-  // Get checkout URL with discount
-  const getCheckoutUrl = () => {
-    let url = '/checkout';
-    if (appliedDiscount?.code) {
-      url += `?discount=${encodeURIComponent(appliedDiscount.code)}`;
-    }
-    return url;
-  };
 
   // Render a feature section
   const renderFeature = (featureId) => {
@@ -188,6 +169,7 @@ export const UnifiedCartDrawer = ({
         const savingsCfg = config?.features?.savingsDisplay;
         if (!savingsCfg) return null;
         
+        // Calculate savings using Shopify cart data
         const totalSavings = calculateSavings();
         if (totalSavings <= 0) return null;
         
@@ -308,7 +290,6 @@ export const UnifiedCartDrawer = ({
         <CartItems
           items={cart.items}
           productCompareAtPrices={productCompareAtPrices}
-          appliedDiscount={appliedDiscount}
           onUpdateQuantity={onUpdateQuantity}
           onRemoveItem={onRemoveItem}
           isPreview={false}
@@ -323,12 +304,12 @@ export const UnifiedCartDrawer = ({
         <CartTotals
           items={cart.items}
           totalPrice={cart.total_price}
-          appliedDiscount={appliedDiscount}
+          subtotalPrice={cart.subtotal_price}
+          totalDiscount={cart.total_discount || 0}
           config={config?.features?.cartTotals ? {
             showOriginalPrice: config.features.cartTotals.showOriginalPrice ?? true,
             showItemDiscounts: config.features.cartTotals.showItemDiscounts ?? true,
             showSubtotal: config.features.cartTotals.showSubtotal ?? true,
-            showCouponDiscount: config.features.cartTotals.showCouponDiscount ?? true,
             showTaxNotice: config.features.cartTotals.showTaxNotice ?? true,
             subtotalLabel: config.features.cartTotals.subtotalLabel || "Subtotal",
             totalLabel: config.features.cartTotals.totalLabel || "Total",

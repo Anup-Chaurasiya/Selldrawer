@@ -1,11 +1,12 @@
 /**
  * Discount and coupon management module
+ * Uses Shopify AJAX API for all discount operations
  */
 
-import { showNotification, formatMoney } from './utils.js';
+import { showNotification } from './utils.js';
 
 /**
- * Load available discounts from API
+ * Load available discounts from API (for display purposes only)
  */
 export async function loadAvailableDiscounts(appUrl, shop, config) {
   const couponField = config?.features?.couponCodeField;
@@ -35,27 +36,20 @@ export async function loadAvailableDiscounts(appUrl, shop, config) {
 }
 
 /**
- * Auto-apply best discount based on strategy
+ * Auto-apply best discount using Shopify API
  */
-export function autoApplyBestDiscount(availableDiscounts, cart, config) {
+export async function autoApplyBestDiscount(availableDiscounts, config, loadCartCallback) {
   if (!availableDiscounts || availableDiscounts.length === 0) {
     return null;
   }
 
   const couponField = config?.features?.couponCodeField;
-  const strategy = couponField?.autoApplyStrategy || 'best_value';
+  const strategy = couponField?.autoApplyStrategy || 'first_available';
 
   let bestDiscount = null;
 
-  if (strategy === 'best_value') {
-    let maxSavings = 0;
-    for (const discount of availableDiscounts) {
-      const savings = calculateDiscountSavings(discount, cart);
-      if (savings > maxSavings) {
-        maxSavings = savings;
-        bestDiscount = discount;
-      }
-    }
+  if (strategy === 'first_available') {
+    bestDiscount = availableDiscounts[0];
   } else if (strategy === 'highest_percentage') {
     for (const discount of availableDiscounts) {
       if (discount.type === 'percentage') {
@@ -64,76 +58,116 @@ export function autoApplyBestDiscount(availableDiscounts, cart, config) {
         }
       }
     }
-  } else if (strategy === 'first_available') {
+    // If no percentage discount found, use first available
+    if (!bestDiscount) {
+      bestDiscount = availableDiscounts[0];
+    }
+  } else {
+    // Default to first available
     bestDiscount = availableDiscounts[0];
   }
 
-  return bestDiscount;
+  if (bestDiscount) {
+    // Apply discount using Shopify API
+    await applyDiscountCode(bestDiscount.code, loadCartCallback);
+    return bestDiscount.code;
+  }
+
+  return null;
 }
 
 /**
- * Calculate discount savings amount
+ * Apply discount code using Shopify AJAX API
  */
-export function calculateDiscountSavings(discount, cart) {
-  if (!cart) return 0;
+export async function applyDiscountCode(code, loadCartCallback) {
+  if (!code || !code.trim()) {
+    showNotification('Please enter a coupon code', 'error');
+    return false;
+  }
 
-  const cartTotal = cart.total_price;
+  try {
+    const response = await fetch('/cart/update.js', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        discount: code.trim()
+      })
+    });
 
-  switch (discount.type) {
-    case 'percentage':
-      return Math.round((cartTotal * discount.value) / 100);
-    case 'fixed':
-      return Math.min(discount.value * 100, cartTotal);
-    case 'free_shipping':
-      return 10000; // ₹100 in cents
-    case 'bxgy':
-      return 5000; // ₹50 in cents
-    default:
-      return 0;
+    if (response.ok) {
+      const cart = await response.json();
+      
+      // Reload cart to get updated discount information
+      if (loadCartCallback) {
+        await loadCartCallback(cart);
+      }
+      
+      showNotification(`Coupon ${code} applied!`, 'success');
+      return true;
+    } else {
+      const error = await response.json();
+      const errorMessage = error.description || error.message || 'Invalid coupon code';
+      showNotification(errorMessage, 'error');
+      return false;
+    }
+  } catch (error) {
+    console.error('Upsellity: Error applying discount', error);
+    showNotification('Failed to apply coupon code', 'error');
+    return false;
+  }
+}
+
+/**
+ * Remove discount using Shopify AJAX API
+ */
+export async function removeDiscount(loadCartCallback) {
+  try {
+    const response = await fetch('/cart/update.js', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        discount: ''
+      })
+    });
+
+    if (response.ok) {
+      const cart = await response.json();
+      
+      // Call callback with updated cart (but don't trigger full loadCart which would auto-apply)
+      if (loadCartCallback) {
+        await loadCartCallback(cart);
+      }
+      
+      showNotification('Discount removed', 'info');
+      return true;
+    } else {
+      const error = await response.json();
+      console.error('Upsellity: Error removing discount', error);
+      showNotification(error.description || error.message || 'Failed to remove discount', 'error');
+      return false;
+    }
+  } catch (error) {
+    console.error('Upsellity: Error removing discount', error);
+    showNotification('Failed to remove discount', 'error');
+    return false;
   }
 }
 
 /**
  * Validate and apply coupon code (used with React component)
+ * Uses Shopify AJAX API directly
  */
-export async function validateAndApplyCoupon(appUrl, shop, config, couponCode, cart) {
-  if (!couponCode || !couponCode.trim()) {
-    showNotification('Please enter a coupon code', 'error');
-    return null;
-  }
-
-  const code = couponCode.trim().toUpperCase();
-
-  try {
-    const response = await fetch(`${appUrl}/api/validate-discount?shop=${shop}&code=${encodeURIComponent(code)}`);
-    const data = await response.json();
-
-    if (data.valid) {
-      const newDiscount = {
-        code: data.code,
-        title: data.title,
-        description: data.description || getDiscountDescription(data.type, data.value),
-        type: data.type,
-        value: data.value
-      };
-      
-      const estimatedDiscount = calculateEstimatedDiscount(newDiscount, cart);
-      showNotification(`Coupon ${data.code} applied! You're saving ${formatMoney(estimatedDiscount)}`, 'success');
-      
-      return newDiscount;
-    } else {
-      showNotification(data.error || 'Invalid coupon code', 'error');
-      return null;
-    }
-  } catch (error) {
-    console.error('Upsellity: Error validating coupon', error);
-    showNotification('Failed to validate coupon code', 'error');
-    return null;
-  }
+export async function validateAndApplyCoupon(appUrl, shop, config, couponCode, loadCartCallback) {
+  return await applyDiscountCode(couponCode, loadCartCallback);
 }
 
 /**
  * Apply coupon code (legacy function for non-React implementations)
+ * Uses Shopify AJAX API directly
  */
 export async function applyCoupon(appUrl, shop, config, appliedDiscount, renderCallback) {
   const couponInput = document.getElementById('upsellity-coupon-input');
@@ -145,50 +179,36 @@ export async function applyCoupon(appUrl, shop, config, appliedDiscount, renderC
     return null;
   }
 
-  const couponCode = couponInput.value.trim().toUpperCase();
+  const couponCode = couponInput.value.trim();
   if (!couponCode) {
     messageDiv.textContent = 'Please enter a coupon code';
     messageDiv.style.color = '#ef4444';
     return null;
   }
 
-  messageDiv.textContent = 'Validating coupon...';
+  messageDiv.textContent = 'Applying coupon...';
   messageDiv.style.color = '#6b7280';
   if (applyBtn) applyBtn.disabled = true;
 
   try {
-    const response = await fetch(`${appUrl}/api/validate-discount?shop=${shop}&code=${encodeURIComponent(couponCode)}`);
-    const data = await response.json();
+    const success = await applyDiscountCode(couponCode, async (cart) => {
+      renderCallback();
+    });
 
-    if (data.valid) {
-      const newDiscount = {
-        code: data.code,
-        title: data.title,
-        description: data.description || getDiscountDescription(data.type, data.value),
-        type: data.type,
-        value: data.value
-      };
-
+    if (success) {
       const couponField = config.features.couponCodeField;
       messageDiv.textContent = couponField.successMessage || 'Coupon applied successfully!';
       messageDiv.style.color = '#10b981';
-      
       couponInput.value = '';
-      
-      renderCallback();
-      
-      const estimatedDiscount = calculateEstimatedDiscount(newDiscount, null);
-      showNotification(`Coupon ${data.code} applied! You're saving ${formatMoney(estimatedDiscount)}`, 'success');
-      
-      return newDiscount;
+      return couponCode;
     } else {
       const couponField = config.features.couponCodeField;
-      messageDiv.textContent = data.error || couponField.errorMessage || 'Invalid coupon code';
+      messageDiv.textContent = couponField.errorMessage || 'Invalid coupon code';
       messageDiv.style.color = '#ef4444';
       return null;
     }
   } catch (error) {
-    console.error('Upsellity: Error validating coupon', error);
+    console.error('Upsellity: Error applying coupon', error);
     const couponField = config.features.couponCodeField;
     messageDiv.textContent = couponField.errorMessage || 'Invalid coupon code';
     messageDiv.style.color = '#ef4444';
@@ -199,53 +219,28 @@ export async function applyCoupon(appUrl, shop, config, appliedDiscount, renderC
 }
 
 /**
- * Get human-readable discount description
+ * Get discount information from Shopify cart object
  */
-export function getDiscountDescription(type, value) {
-  if (!type) return '';
-  
-  switch (type) {
-    case 'percentage':
-      return `${value}% off your order`;
-    case 'fixed':
-      return `₹${value} off your order`;
-    case 'free_shipping':
-      return 'Free shipping on your order';
-    case 'bxgy':
-      return 'Buy X Get Y discount';
-    default:
-      return 'Discount will be applied at checkout';
+export function getDiscountFromCart(cart) {
+  if (!cart || !cart.discount_codes || cart.discount_codes.length === 0) {
+    return null;
   }
-}
 
-/**
- * Calculate estimated discount amount
- */
-export function calculateEstimatedDiscount(appliedDiscount, cart) {
-  if (!appliedDiscount || !cart) return 0;
+  // Shopify returns discount_codes array with code and amount
+  const discountCode = cart.discount_codes[0];
   
-  const { type, value } = appliedDiscount;
-  
-  switch (type) {
-    case 'percentage':
-      return Math.round((cart.total_price * value) / 100);
-    case 'fixed':
-      return Math.min(value * 100, cart.total_price);
-    case 'free_shipping':
-      return 0;
-    case 'bxgy':
-      return 0;
-    default:
-      return 0;
-  }
+  return {
+    code: discountCode.code,
+    amount: cart.total_discount || 0 // Total discount amount in cents
+  };
 }
 
 /**
  * Get checkout URL with discount code
  */
-export function getCheckoutUrl(appliedDiscount) {
-  if (appliedDiscount) {
-    return `/checkout?discount=${encodeURIComponent(appliedDiscount.code)}`;
+export function getCheckoutUrl(discountCode) {
+  if (discountCode) {
+    return `/checkout?discount=${encodeURIComponent(discountCode)}`;
   }
   return '/checkout';
 }

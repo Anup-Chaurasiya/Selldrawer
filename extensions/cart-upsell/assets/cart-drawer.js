@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.4
- * Built: 2025-12-11T13:13:10.323Z
+ * Built: 2025-12-12T10:39:42.937Z
  */
 "use strict";
 (() => {
@@ -7883,10 +7883,6 @@
   var import_client = __toESM(require_client(), 1);
 
   // extensions/cart-upsell/assets/modules/utils.js
-  function formatMoney(cents) {
-    const amount = cents / 100;
-    return `\u20B9${Math.round(amount)}`;
-  }
   var toastContainer = null;
   function initToastContainer() {
     if (toastContainer)
@@ -8482,23 +8478,16 @@
       return [];
     }
   }
-  function autoApplyBestDiscount(availableDiscounts, cart, config) {
+  async function autoApplyBestDiscount(availableDiscounts, config, loadCartCallback) {
     var _a2;
     if (!availableDiscounts || availableDiscounts.length === 0) {
       return null;
     }
     const couponField = (_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.couponCodeField;
-    const strategy = (couponField == null ? void 0 : couponField.autoApplyStrategy) || "best_value";
+    const strategy = (couponField == null ? void 0 : couponField.autoApplyStrategy) || "first_available";
     let bestDiscount = null;
-    if (strategy === "best_value") {
-      let maxSavings = 0;
-      for (const discount of availableDiscounts) {
-        const savings = calculateDiscountSavings(discount, cart);
-        if (savings > maxSavings) {
-          maxSavings = savings;
-          bestDiscount = discount;
-        }
-      }
+    if (strategy === "first_available") {
+      bestDiscount = availableDiscounts[0];
     } else if (strategy === "highest_percentage") {
       for (const discount of availableDiscounts) {
         if (discount.type === "percentage") {
@@ -8507,57 +8496,84 @@
           }
         }
       }
-    } else if (strategy === "first_available") {
+      if (!bestDiscount) {
+        bestDiscount = availableDiscounts[0];
+      }
+    } else {
       bestDiscount = availableDiscounts[0];
     }
-    return bestDiscount;
-  }
-  function calculateDiscountSavings(discount, cart) {
-    if (!cart)
-      return 0;
-    const cartTotal = cart.total_price;
-    switch (discount.type) {
-      case "percentage":
-        return Math.round(cartTotal * discount.value / 100);
-      case "fixed":
-        return Math.min(discount.value * 100, cartTotal);
-      case "free_shipping":
-        return 1e4;
-      case "bxgy":
-        return 5e3;
-      default:
-        return 0;
+    if (bestDiscount) {
+      await applyDiscountCode(bestDiscount.code, loadCartCallback);
+      return bestDiscount.code;
     }
+    return null;
   }
-  async function validateAndApplyCoupon(appUrl, shop, config, couponCode, cart) {
-    if (!couponCode || !couponCode.trim()) {
+  async function applyDiscountCode(code, loadCartCallback) {
+    if (!code || !code.trim()) {
       showNotification("Please enter a coupon code", "error");
-      return null;
+      return false;
     }
-    const code = couponCode.trim().toUpperCase();
     try {
-      const response = await fetch(`${appUrl}/api/validate-discount?shop=${shop}&code=${encodeURIComponent(code)}`);
-      const data = await response.json();
-      if (data.valid) {
-        const newDiscount = {
-          code: data.code,
-          title: data.title,
-          description: data.description || getDiscountDescription(data.type, data.value),
-          type: data.type,
-          value: data.value
-        };
-        const estimatedDiscount = calculateEstimatedDiscount(newDiscount, cart);
-        showNotification(`Coupon ${data.code} applied! You're saving ${formatMoney(estimatedDiscount)}`, "success");
-        return newDiscount;
+      const response = await fetch("/cart/update.js", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          discount: code.trim()
+        })
+      });
+      if (response.ok) {
+        const cart = await response.json();
+        if (loadCartCallback) {
+          await loadCartCallback(cart);
+        }
+        showNotification(`Coupon ${code} applied!`, "success");
+        return true;
       } else {
-        showNotification(data.error || "Invalid coupon code", "error");
-        return null;
+        const error = await response.json();
+        const errorMessage = error.description || error.message || "Invalid coupon code";
+        showNotification(errorMessage, "error");
+        return false;
       }
     } catch (error) {
-      console.error("Upsellity: Error validating coupon", error);
-      showNotification("Failed to validate coupon code", "error");
-      return null;
+      console.error("Upsellity: Error applying discount", error);
+      showNotification("Failed to apply coupon code", "error");
+      return false;
     }
+  }
+  async function removeDiscount(loadCartCallback) {
+    try {
+      const response = await fetch("/cart/update.js", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          discount: ""
+        })
+      });
+      if (response.ok) {
+        const cart = await response.json();
+        if (loadCartCallback) {
+          await loadCartCallback(cart);
+        }
+        showNotification("Discount removed", "info");
+        return true;
+      } else {
+        const error = await response.json();
+        console.error("Upsellity: Error removing discount", error);
+        showNotification(error.description || error.message || "Failed to remove discount", "error");
+        return false;
+      }
+    } catch (error) {
+      console.error("Upsellity: Error removing discount", error);
+      showNotification("Failed to remove discount", "error");
+      return false;
+    }
+  }
+  async function validateAndApplyCoupon(appUrl, shop, config, couponCode, loadCartCallback) {
+    return await applyDiscountCode(couponCode, loadCartCallback);
   }
   async function applyCoupon(appUrl, shop, config, appliedDiscount, renderCallback) {
     const couponInput = document.getElementById("upsellity-coupon-input");
@@ -8567,43 +8583,34 @@
       console.error("Upsellity: Coupon elements not found");
       return null;
     }
-    const couponCode = couponInput.value.trim().toUpperCase();
+    const couponCode = couponInput.value.trim();
     if (!couponCode) {
       messageDiv.textContent = "Please enter a coupon code";
       messageDiv.style.color = "#ef4444";
       return null;
     }
-    messageDiv.textContent = "Validating coupon...";
+    messageDiv.textContent = "Applying coupon...";
     messageDiv.style.color = "#6b7280";
     if (applyBtn)
       applyBtn.disabled = true;
     try {
-      const response = await fetch(`${appUrl}/api/validate-discount?shop=${shop}&code=${encodeURIComponent(couponCode)}`);
-      const data = await response.json();
-      if (data.valid) {
-        const newDiscount = {
-          code: data.code,
-          title: data.title,
-          description: data.description || getDiscountDescription(data.type, data.value),
-          type: data.type,
-          value: data.value
-        };
+      const success = await applyDiscountCode(couponCode, async (cart) => {
+        renderCallback();
+      });
+      if (success) {
         const couponField = config.features.couponCodeField;
         messageDiv.textContent = couponField.successMessage || "Coupon applied successfully!";
         messageDiv.style.color = "#10b981";
         couponInput.value = "";
-        renderCallback();
-        const estimatedDiscount = calculateEstimatedDiscount(newDiscount, null);
-        showNotification(`Coupon ${data.code} applied! You're saving ${formatMoney(estimatedDiscount)}`, "success");
-        return newDiscount;
+        return couponCode;
       } else {
         const couponField = config.features.couponCodeField;
-        messageDiv.textContent = data.error || couponField.errorMessage || "Invalid coupon code";
+        messageDiv.textContent = couponField.errorMessage || "Invalid coupon code";
         messageDiv.style.color = "#ef4444";
         return null;
       }
     } catch (error) {
-      console.error("Upsellity: Error validating coupon", error);
+      console.error("Upsellity: Error applying coupon", error);
       const couponField = config.features.couponCodeField;
       messageDiv.textContent = couponField.errorMessage || "Invalid coupon code";
       messageDiv.style.color = "#ef4444";
@@ -8613,42 +8620,20 @@
         applyBtn.disabled = false;
     }
   }
-  function getDiscountDescription(type, value) {
-    if (!type)
-      return "";
-    switch (type) {
-      case "percentage":
-        return `${value}% off your order`;
-      case "fixed":
-        return `\u20B9${value} off your order`;
-      case "free_shipping":
-        return "Free shipping on your order";
-      case "bxgy":
-        return "Buy X Get Y discount";
-      default:
-        return "Discount will be applied at checkout";
+  function getDiscountFromCart(cart) {
+    if (!cart || !cart.discount_codes || cart.discount_codes.length === 0) {
+      return null;
     }
+    const discountCode = cart.discount_codes[0];
+    return {
+      code: discountCode.code,
+      amount: cart.total_discount || 0
+      // Total discount amount in cents
+    };
   }
-  function calculateEstimatedDiscount(appliedDiscount, cart) {
-    if (!appliedDiscount || !cart)
-      return 0;
-    const { type, value } = appliedDiscount;
-    switch (type) {
-      case "percentage":
-        return Math.round(cart.total_price * value / 100);
-      case "fixed":
-        return Math.min(value * 100, cart.total_price);
-      case "free_shipping":
-        return 0;
-      case "bxgy":
-        return 0;
-      default:
-        return 0;
-    }
-  }
-  function getCheckoutUrl(appliedDiscount) {
-    if (appliedDiscount) {
-      return `/checkout?discount=${encodeURIComponent(appliedDiscount.code)}`;
+  function getCheckoutUrl(discountCode) {
+    if (discountCode) {
+      return `/checkout?discount=${encodeURIComponent(discountCode)}`;
     }
     return "/checkout";
   }
@@ -9988,12 +9973,10 @@
   var CartItemRow = ({
     item,
     productCompareAtPrices,
-    appliedDiscount,
-    cartTotalPrice,
     onUpdateQuantity,
     onRemoveItem,
     isPreview,
-    formatMoney: formatMoney2,
+    formatMoney,
     calculateItemPrices
   }) => {
     var _a2;
@@ -10046,7 +10029,7 @@
         setInputValue(item.quantity.toString());
       }
     }, [item.quantity, isEditing]);
-    const prices = calculateItemPrices(item, cartTotalPrice);
+    const prices = calculateItemPrices(item);
     const imageUrl = ((_a2 = item.featured_image) == null ? void 0 : _a2.url) || item.image || "";
     const isGiftItem = item.properties && (item.properties["_upsellity_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
     return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
@@ -10098,7 +10081,7 @@
                   textDecoration: "line-through",
                   color: "#9ca3af",
                   fontSize: "13px"
-                }, children: formatMoney2(prices.itemSubtotal) }),
+                }, children: formatMoney(prices.itemSubtotal) }),
                 /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
                   fontWeight: "700",
                   fontSize: "16px",
@@ -10113,17 +10096,17 @@
                   fontWeight: "600"
                 }, children: "\u{1F381} GIFT" })
               ] }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-                prices.hasItemDiscount && !prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+                prices.hasItemDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
                     textDecoration: "line-through",
                     color: "#9ca3af",
                     fontSize: "13px"
-                  }, children: formatMoney2(prices.originalLinePrice) }),
+                  }, children: formatMoney(prices.originalLinePrice) }),
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
                     fontWeight: "700",
                     fontSize: "16px",
                     color: "#f59e0b"
-                  }, children: formatMoney2(prices.itemSubtotal) }),
+                  }, children: formatMoney(prices.itemSubtotal) }),
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { style: {
                     background: "#fef3c7",
                     color: "#92400e",
@@ -10136,23 +10119,11 @@
                     "% OFF"
                   ] })
                 ] }),
-                prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
-                    textDecoration: "line-through",
-                    color: "#9ca3af",
-                    fontSize: "13px"
-                  }, children: formatMoney2(prices.itemSubtotal) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
-                    fontWeight: "700",
-                    fontSize: "16px",
-                    color: "#059669"
-                  }, children: formatMoney2(prices.itemPriceWithCoupon) })
-                ] }),
-                !prices.hasItemDiscount && !prices.hasCouponDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                !prices.hasItemDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
                   fontWeight: "700",
                   fontSize: "16px",
                   color: "#111827"
-                }, children: formatMoney2(prices.itemSubtotal) })
+                }, children: formatMoney(prices.itemSubtotal) })
               ] }) }),
               error && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
                 fontSize: "11px",
@@ -10313,20 +10284,19 @@
   var CartItems = ({
     items,
     productCompareAtPrices,
-    appliedDiscount = null,
     onUpdateQuantity = () => {
     },
     onRemoveItem = () => {
     },
     isPreview = false
   }) => {
-    const formatMoney2 = (cents) => {
+    const formatMoney = (cents) => {
       const rupees = cents / 100;
       return `\u20B9${Math.round(rupees)}`;
     };
-    const calculateItemPrices = (item, cartTotalPrice2) => {
-      const linePrice = item.line_price || item.price * item.quantity;
-      const itemPrice = item.price || item.final_price || 0;
+    const calculateItemPrices = (item) => {
+      const linePrice = item.line_price || (item.final_price || item.price || 0) * item.quantity;
+      const itemPrice = item.final_price || item.price || 0;
       let originalLinePrice = null;
       if (item.original_line_price && item.original_line_price > linePrice) {
         originalLinePrice = item.original_line_price;
@@ -10338,49 +10308,33 @@
         }
       }
       if (!originalLinePrice && item.original_price) {
-        const originalItemPrice2 = item.original_price;
-        if (originalItemPrice2 > itemPrice) {
-          originalLinePrice = originalItemPrice2 * item.quantity;
+        const originalItemPrice = item.original_price;
+        if (originalItemPrice > itemPrice) {
+          originalLinePrice = originalItemPrice * item.quantity;
         }
       }
       if (!originalLinePrice || originalLinePrice <= linePrice) {
         originalLinePrice = linePrice;
       }
-      const originalItemPrice = originalLinePrice / item.quantity;
-      const hasItemDiscount = originalItemPrice > itemPrice && originalLinePrice > linePrice;
-      const itemDiscountAmount = hasItemDiscount ? originalLinePrice - linePrice : 0;
+      const hasItemDiscount = originalLinePrice > linePrice;
       const itemDiscountPercent = hasItemDiscount && originalLinePrice > 0 ? Math.round((originalLinePrice - linePrice) / originalLinePrice * 100) : 0;
       const itemSubtotal = linePrice;
-      let itemPriceWithCoupon = itemSubtotal;
-      if (appliedDiscount && appliedDiscount.type === "percentage") {
-        itemPriceWithCoupon = Math.round(itemSubtotal * (1 - appliedDiscount.value / 100));
-      } else if (appliedDiscount && appliedDiscount.type === "fixed") {
-        const itemProportion = itemSubtotal / cartTotalPrice2;
-        const itemCouponDiscount = Math.round(appliedDiscount.value * 100 * itemProportion);
-        itemPriceWithCoupon = Math.max(0, itemSubtotal - itemCouponDiscount);
-      }
-      const hasCouponDiscount = appliedDiscount && (appliedDiscount.type === "percentage" || appliedDiscount.type === "fixed");
       return {
         originalLinePrice,
         itemSubtotal,
-        itemPriceWithCoupon,
         hasItemDiscount,
-        hasCouponDiscount,
         itemDiscountPercent
       };
     };
-    const cartTotalPrice = items.reduce((sum, item) => sum + (item.line_price || item.price * item.quantity), 0);
     return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(import_jsx_runtime3.Fragment, { children: items.map((item) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
       CartItemRow,
       {
         item,
         productCompareAtPrices,
-        appliedDiscount,
-        cartTotalPrice,
         onUpdateQuantity,
         onRemoveItem,
         isPreview,
-        formatMoney: formatMoney2,
+        formatMoney,
         calculateItemPrices
       },
       item.key
@@ -10781,11 +10735,11 @@
     if (amount <= 0) {
       return null;
     }
-    const formatMoney2 = (cents) => {
+    const formatMoney = (cents) => {
       const rupees = Math.floor(cents / 100);
       return `\u20B9${rupees}`;
     };
-    const formattedMessage = message.replace("{amount}", formatMoney2(amount));
+    const formattedMessage = message.replace("{amount}", formatMoney(amount));
     return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: {
       backgroundColor,
       color: textColor,
@@ -10977,22 +10931,11 @@
           justifyContent: "center",
           flexShrink: 0
         }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 14, color: "white" }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { flex: 1 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
-            fontSize: "14px",
-            fontWeight: "600",
-            color: couponCodeColor || textColor,
-            marginBottom: "2px"
-          }, children: [
-            appliedDiscount.code,
-            " - ",
-            appliedDiscount.description
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-            fontSize: "12px",
-            color: borderColor
-          }, children: appliedDiscountText || (enableAutoApply ? "Best offer automatically applied" : "Applied") })
-        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { flex: 1 }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+          fontSize: "14px",
+          fontWeight: "600",
+          color: couponCodeColor || textColor
+        }, children: appliedDiscount.code }) }),
         /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
           "button",
           {
@@ -11089,10 +11032,9 @@
                   marginBottom: "2px"
                 }, children: [
                   discount.code,
-                  " - ",
-                  discount.description
+                  discount.description ? ` - ${discount.description}` : ""
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+                discount.title && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
                   fontSize: "12px",
                   color: "#6b7280"
                 }, children: discount.title })
@@ -11110,7 +11052,8 @@
   var CartTotals = ({
     items,
     totalPrice,
-    appliedDiscount = null,
+    subtotalPrice,
+    totalDiscount = 0,
     config = {},
     isPreview = false
   }) => {
@@ -11118,7 +11061,6 @@
       showOriginalPrice = true,
       showItemDiscounts = true,
       showSubtotal = true,
-      showCouponDiscount = true,
       showTaxNotice = true,
       subtotalLabel = "Subtotal",
       totalLabel = "Total",
@@ -11131,18 +11073,9 @@
       totalTextColor = "#111827",
       discountColor = "#f59e0b"
     } = config;
-    const formatMoney2 = (cents) => {
+    const formatMoney = (cents) => {
       const rupees = cents / 100;
       return `\u20B9${Math.round(rupees)}`;
-    };
-    const calculateEstimatedDiscount2 = (discount, total) => {
-      if (!discount)
-        return 0;
-      if (discount.type === "percentage") {
-        return Math.round(total * discount.value / 100);
-      } else {
-        return discount.value * 100;
-      }
     };
     const isGiftItem = (item) => {
       return item.properties && (item.properties["_upsellity_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
@@ -11153,20 +11086,25 @@
       const itemPrice = item.price || item.final_price || item.original_price || 0;
       return sum + itemPrice * item.quantity;
     }, 0);
-    const originalTotal = regularItems.reduce((sum, item) => {
-      return sum + item.original_price * item.quantity;
+    const sumOfRegularItems = regularItems.reduce((sum, item) => {
+      return sum + (item.line_price || (item.final_price || item.price || 0) * item.quantity);
     }, 0);
-    const subtotal = totalPrice;
+    const subtotal = subtotalPrice || sumOfRegularItems;
+    const originalTotal = regularItems.reduce((sum, item) => {
+      if (item.original_line_price) {
+        return sum + item.original_line_price;
+      }
+      return sum + (item.original_price || item.price || 0) * item.quantity;
+    }, 0);
     const itemLevelSavings = originalTotal - subtotal;
-    const couponDiscount = calculateEstimatedDiscount2(appliedDiscount, totalPrice);
-    const estimatedTotal = Math.max(0, subtotal - couponDiscount);
-    const totalSavings = itemLevelSavings + couponDiscount + giftSavings;
+    const totalSavings = itemLevelSavings + giftSavings;
+    const finalTotal = sumOfRegularItems;
     return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
       borderTop: `2px solid ${borderColor}`,
       paddingTop: "16px",
       backgroundColor
     }, children: [
-      showOriginalPrice && (itemLevelSavings > 0 || couponDiscount > 0) && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
+      showOriginalPrice && totalSavings > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
         fontSize: "15px",
         marginBottom: "10px",
         display: "flex",
@@ -11174,7 +11112,7 @@
         color: textColor
       }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: originalPriceLabel }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { textDecoration: "line-through" }, children: formatMoney2(originalTotal) })
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { textDecoration: "line-through" }, children: formatMoney(originalTotal) })
       ] }),
       showItemDiscounts && itemLevelSavings > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
         fontSize: "14px",
@@ -11196,7 +11134,7 @@
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { fontWeight: "600" }, children: [
           "-",
-          formatMoney2(itemLevelSavings)
+          formatMoney(itemLevelSavings)
         ] })
       ] }),
       giftSavings > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
@@ -11219,7 +11157,7 @@
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { fontWeight: "600" }, children: [
           "-",
-          formatMoney2(giftSavings)
+          formatMoney(giftSavings)
         ] })
       ] }),
       showSubtotal && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
@@ -11230,34 +11168,7 @@
         fontWeight: itemLevelSavings > 0 ? "600" : "normal"
       }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: textColor }, children: subtotalLabel }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: totalTextColor }, children: formatMoney2(subtotal) })
-      ] }),
-      showCouponDiscount && appliedDiscount && couponDiscount > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
-        fontSize: "15px",
-        marginBottom: "12px",
-        display: "flex",
-        justifyContent: "space-between",
-        color: "#059669"
-      }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { children: [
-            "Coupon (",
-            appliedDiscount.code,
-            ")"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: {
-            background: "#d1fae5",
-            color: "#065f46",
-            padding: "2px 6px",
-            borderRadius: "4px",
-            fontSize: "10px",
-            fontWeight: "600"
-          }, children: appliedDiscount.type === "percentage" ? `${appliedDiscount.value}%` : "FIXED" })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { fontWeight: "600" }, children: [
-          "-",
-          formatMoney2(couponDiscount)
-        ] })
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: totalTextColor }, children: formatMoney(subtotal) })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
         fontSize: "20px",
@@ -11268,7 +11179,7 @@
         color: totalTextColor
       }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: totalLabel }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: totalSavings > 0 ? "#059669" : totalTextColor }, children: formatMoney2(estimatedTotal) })
+        /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: { color: totalSavings > 0 ? "#059669" : totalTextColor }, children: formatMoney(finalTotal) })
       ] }),
       showTaxNotice && /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("div", { style: {
         fontSize: "12px",
@@ -11546,7 +11457,7 @@
     onFeatureImpression,
     onFeatureClick
   }) => {
-    var _a2, _b, _c, _d, _e, _f;
+    var _a2, _b, _c, _d, _e;
     import_react5.default.useEffect(() => {
       if (onImpression) {
         onImpression();
@@ -11577,28 +11488,11 @@
       const itemLevelSavings = cart.items.reduce((sum, item) => {
         return sum + Math.max(0, item.original_price - item.final_price) * item.quantity;
       }, 0);
-      const discountSavings = appliedDiscount ? calculateEstimatedDiscount2(appliedDiscount, cart) : 0;
+      const discountSavings = cart.total_discount || 0;
       return Math.max(itemLevelSavings, discountSavings);
     };
-    const calculateEstimatedDiscount2 = (discount, cart2) => {
-      if (!discount)
-        return 0;
-      if (discount.type === "percentage") {
-        return cart2.total_price * discount.value / 100;
-      } else if (discount.type === "fixed_amount") {
-        return discount.value * 100;
-      }
-      return 0;
-    };
-    const getCheckoutUrl2 = () => {
-      let url = "/checkout";
-      if (appliedDiscount == null ? void 0 : appliedDiscount.code) {
-        url += `?discount=${encodeURIComponent(appliedDiscount.code)}`;
-      }
-      return url;
-    };
     const renderFeature = (featureId) => {
-      var _a3, _b2, _c2, _d2, _e2, _f2, _g, _h, _i, _j, _k, _l, _m;
+      var _a3, _b2, _c2, _d2, _e2, _f, _g, _h, _i, _j, _k, _l, _m;
       switch (featureId) {
         case "free-shipping-bar": {
           const bar = (_a3 = config == null ? void 0 : config.features) == null ? void 0 : _a3.freeShippingProgressBar;
@@ -11665,7 +11559,7 @@
               layout: recommendations.layout || "carousel",
               maxProducts: recommendations.maxProducts || 4,
               showDiscount: (_e2 = recommendations.showDiscount) != null ? _e2 : true,
-              showDiscountBadge: (_f2 = recommendations.showDiscountBadge) != null ? _f2 : true,
+              showDiscountBadge: (_f = recommendations.showDiscountBadge) != null ? _f : true,
               showAddButton: (_g = recommendations.showAddButton) != null ? _g : true,
               onAddToCart: onAddProductToCart,
               onImpression: () => onFeatureImpression && onFeatureImpression("product_recommendations"),
@@ -11789,7 +11683,6 @@
         {
           items: cart.items,
           productCompareAtPrices,
-          appliedDiscount,
           onUpdateQuantity,
           onRemoveItem,
           isPreview: false
@@ -11801,13 +11694,13 @@
         {
           items: cart.items,
           totalPrice: cart.total_price,
-          appliedDiscount,
+          subtotalPrice: cart.subtotal_price,
+          totalDiscount: cart.total_discount || 0,
           config: ((_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.cartTotals) ? {
             showOriginalPrice: (_b = config.features.cartTotals.showOriginalPrice) != null ? _b : true,
             showItemDiscounts: (_c = config.features.cartTotals.showItemDiscounts) != null ? _c : true,
             showSubtotal: (_d = config.features.cartTotals.showSubtotal) != null ? _d : true,
-            showCouponDiscount: (_e = config.features.cartTotals.showCouponDiscount) != null ? _e : true,
-            showTaxNotice: (_f = config.features.cartTotals.showTaxNotice) != null ? _f : true,
+            showTaxNotice: (_e = config.features.cartTotals.showTaxNotice) != null ? _e : true,
             subtotalLabel: config.features.cartTotals.subtotalLabel || "Subtotal",
             totalLabel: config.features.cartTotals.totalLabel || "Total",
             taxNoticeText: config.features.cartTotals.taxNoticeText || "Taxes and shipping calculated at checkout",
@@ -11926,7 +11819,6 @@
       this.config = null;
       this.isOpen = false;
       this.cart = null;
-      this.appliedDiscount = null;
       this.availableDiscounts = [];
       this.showingAllOffers = false;
       this.productCompareAtPrices = {};
@@ -12055,8 +11947,8 @@
         const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
         this.productCompareAtPrices = productCompareAtPrices;
         this.availableDiscounts = availableDiscounts;
-        if (((_e = (_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.couponCodeField) == null ? void 0 : _e.enableAutoApply) && !this.appliedDiscount && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
-          this.appliedDiscount = autoApplyBestDiscount(this.availableDiscounts, this.cart, this.config);
+        if (((_e = (_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.couponCodeField) == null ? void 0 : _e.enableAutoApply) && !this.getDiscountFromCart() && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
+          await autoApplyBestDiscount(this.availableDiscounts, this.config, this.loadCart.bind(this));
         }
         if (!skipRender) {
           this.render();
@@ -12221,11 +12113,12 @@
       if (!this.reactRoot) {
         this.reactRoot = (0, import_client.createRoot)(inner);
       }
+      const appliedDiscount = this.getDiscountFromCart();
       this.reactRoot.render(
         import_react6.default.createElement(UnifiedCartDrawer, {
           config: this.config,
           cart: this.cart,
-          appliedDiscount: this.appliedDiscount,
+          appliedDiscount,
           availableDiscounts: this.availableDiscounts,
           productCompareAtPrices: this.productCompareAtPrices,
           showingAllOffers: this.showingAllOffers,
@@ -12297,8 +12190,8 @@
         const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
         this.productCompareAtPrices = productCompareAtPrices;
         this.availableDiscounts = availableDiscounts;
-        if (((_e = (_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.couponCodeField) == null ? void 0 : _e.enableAutoApply) && !this.appliedDiscount && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
-          this.appliedDiscount = autoApplyBestDiscount(this.availableDiscounts, this.cart, this.config);
+        if (((_e = (_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.couponCodeField) == null ? void 0 : _e.enableAutoApply) && !this.getDiscountFromCart() && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
+          await autoApplyBestDiscount(this.availableDiscounts, this.config, this.loadCart.bind(this));
         }
         this.render();
       } catch (error) {
@@ -12345,8 +12238,9 @@
           window.location.href = checkoutUrl;
           return;
         }
-        if (this.appliedDiscount && this.appliedDiscount.code) {
-          const checkoutUrl = getCheckoutUrl(this.appliedDiscount);
+        const appliedDiscount = this.getDiscountFromCart();
+        if (appliedDiscount && appliedDiscount.code) {
+          const checkoutUrl = getCheckoutUrl(appliedDiscount.code);
           window.location.href = checkoutUrl;
           return;
         }
@@ -12386,26 +12280,34 @@
     async removeItem(itemKey) {
       await removeItem(itemKey, this.loadCart.bind(this), this.render.bind(this));
     }
+    // Get discount from Shopify cart
+    getDiscountFromCart() {
+      return getDiscountFromCart(this.cart);
+    }
     // Discount management
     async applyCoupon() {
-      const newDiscount = await applyCoupon(this.appUrl, this.shop, this.config, this.appliedDiscount, this.render.bind(this));
-      if (newDiscount) {
-        this.appliedDiscount = newDiscount;
-      }
+      await applyCoupon(this.appUrl, this.shop, this.config, null, this.render.bind(this));
     }
     async applyCouponWithCode(code) {
-      const newDiscount = await validateAndApplyCoupon(this.appUrl, this.shop, this.config, code, this.cart);
-      if (newDiscount) {
-        this.appliedDiscount = newDiscount;
+      const success = await validateAndApplyCoupon(
+        this.appUrl,
+        this.shop,
+        this.config,
+        code,
+        this.loadCart.bind(this)
+      );
+      if (success) {
         clearDiscountRemoval();
-        this.render();
+        await this.loadCart();
       }
     }
-    removeDiscount() {
-      this.appliedDiscount = null;
+    async removeDiscount() {
       markDiscountRemoved();
-      this.render();
-      showNotification("Discount removed", "info");
+      const success = await removeDiscount(async (cart) => {
+        this.cart = cart;
+        this.render();
+        this.loadSecondaryData();
+      });
     }
     toggleAllOffers() {
       this.showingAllOffers = !this.showingAllOffers;
@@ -12424,16 +12326,17 @@
         console.error("Upsellity: Discount not found", discountCode);
         return;
       }
-      this.appliedDiscount = discount;
-      this.showingAllOffers = false;
-      clearDiscountRemoval();
-      this.render();
-      showNotification(`${discount.code} applied!`, "success");
+      const success = await applyDiscountCode(discountCode, this.loadCart.bind(this));
+      if (success) {
+        this.showingAllOffers = false;
+        clearDiscountRemoval();
+        await this.loadCart();
+      }
     }
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://prague-hispanic-maintained-hall.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://dakota-microphone-followed-width.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.4" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

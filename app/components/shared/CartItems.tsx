@@ -21,15 +21,9 @@ interface CartItem {
   properties?: Record<string, any>;
 }
 
-interface Discount {
-  type: 'percentage' | 'fixed';
-  value: number;
-}
-
 interface CartItemsProps {
   items: CartItem[];
   productCompareAtPrices: Record<string | number, number>;
-  appliedDiscount?: Discount | null;
   onUpdateQuantity?: (key: string, quantity: number) => void;
   onRemoveItem?: (key: string) => void;
   isPreview?: boolean;
@@ -39,18 +33,14 @@ interface CartItemsProps {
 const CartItemRow: React.FC<{
   item: CartItem;
   productCompareAtPrices: Record<string | number, number>;
-  appliedDiscount: Discount | null;
-  cartTotalPrice: number;
   onUpdateQuantity: (key: string, quantity: number) => void | Promise<void>;
   onRemoveItem: (key: string) => void;
   isPreview: boolean;
   formatMoney: (cents: number) => string;
-  calculateItemPrices: (item: CartItem, cartTotalPrice: number) => any;
+  calculateItemPrices: (item: CartItem) => any;
 }> = ({
   item,
   productCompareAtPrices,
-  appliedDiscount,
-  cartTotalPrice,
   onUpdateQuantity,
   onRemoveItem,
   isPreview,
@@ -121,7 +111,7 @@ const CartItemRow: React.FC<{
     }
   }, [item.quantity, isEditing]);
 
-  const prices = calculateItemPrices(item, cartTotalPrice);
+  const prices = calculateItemPrices(item);
   const imageUrl = item.featured_image?.url || item.image || '';
   
   // Check if this is a gift item
@@ -215,7 +205,7 @@ const CartItemRow: React.FC<{
               </>
             ) : (
               <>
-                {prices.hasItemDiscount && !prices.hasCouponDiscount && (
+                {prices.hasItemDiscount && (
                   <>
                     <span style={{
                       textDecoration: 'line-through',
@@ -244,26 +234,7 @@ const CartItemRow: React.FC<{
                   </>
                 )}
 
-                {prices.hasCouponDiscount && (
-                  <>
-                    <span style={{
-                      textDecoration: 'line-through',
-                      color: '#9ca3af',
-                      fontSize: '13px'
-                    }}>
-                      {formatMoney(prices.itemSubtotal)}
-                    </span>
-                    <span style={{
-                      fontWeight: '700',
-                      fontSize: '16px',
-                      color: '#059669'
-                    }}>
-                      {formatMoney(prices.itemPriceWithCoupon)}
-                    </span>
-                  </>
-                )}
-
-                {!prices.hasItemDiscount && !prices.hasCouponDiscount && (
+                {!prices.hasItemDiscount && (
                   <span style={{
                     fontWeight: '700',
                     fontSize: '16px',
@@ -441,7 +412,6 @@ const CartItemRow: React.FC<{
 export const CartItems: React.FC<CartItemsProps> = ({
   items,
   productCompareAtPrices,
-  appliedDiscount = null,
   onUpdateQuantity = () => {},
   onRemoveItem = () => {},
   isPreview = false
@@ -452,13 +422,16 @@ export const CartItems: React.FC<CartItemsProps> = ({
     return `₹${Math.round(rupees)}`;
   };
 
-  const calculateItemPrices = (item: CartItem, cartTotalPrice: number) => {
-    const linePrice = item.line_price || (item.price * item.quantity);
-    const itemPrice = item.price || item.final_price || 0;
+  // Calculate item prices using Shopify data directly
+  // Shopify already applies all discounts to line_price, so we just need to check for item-level discounts
+  const calculateItemPrices = (item: CartItem) => {
+    // Use Shopify's line_price (already includes all discounts including coupon codes)
+    const linePrice = item.line_price || ((item.final_price || item.price || 0) * item.quantity);
+    const itemPrice = item.final_price || item.price || 0;
     
     let originalLinePrice = null;
     
-    // Check for original line price
+    // Check for original line price from Shopify (before any discounts)
     if (item.original_line_price && item.original_line_price > linePrice) {
       originalLinePrice = item.original_line_price;
     }
@@ -479,43 +452,27 @@ export const CartItems: React.FC<CartItemsProps> = ({
       }
     }
     
-    // Default to line price
+    // Default to line price if no original found
     if (!originalLinePrice || originalLinePrice <= linePrice) {
       originalLinePrice = linePrice;
     }
     
-    const originalItemPrice = originalLinePrice / item.quantity;
-    const hasItemDiscount = originalItemPrice > itemPrice && originalLinePrice > linePrice;
-    const itemDiscountAmount = hasItemDiscount ? (originalLinePrice - linePrice) : 0;
+    // Check if there's an item-level discount (original price vs final price)
+    const hasItemDiscount = originalLinePrice > linePrice;
     const itemDiscountPercent = hasItemDiscount && originalLinePrice > 0 
       ? Math.round(((originalLinePrice - linePrice) / originalLinePrice) * 100) 
       : 0;
     
+    // Use Shopify's line_price directly (already includes all discounts)
     const itemSubtotal = linePrice;
-    let itemPriceWithCoupon = itemSubtotal;
-    
-    // Calculate coupon discount
-    if (appliedDiscount && appliedDiscount.type === 'percentage') {
-      itemPriceWithCoupon = Math.round(itemSubtotal * (1 - appliedDiscount.value / 100));
-    } else if (appliedDiscount && appliedDiscount.type === 'fixed') {
-      const itemProportion = itemSubtotal / cartTotalPrice;
-      const itemCouponDiscount = Math.round((appliedDiscount.value * 100) * itemProportion);
-      itemPriceWithCoupon = Math.max(0, itemSubtotal - itemCouponDiscount);
-    }
-    
-    const hasCouponDiscount = appliedDiscount && (appliedDiscount.type === 'percentage' || appliedDiscount.type === 'fixed');
     
     return {
       originalLinePrice,
       itemSubtotal,
-      itemPriceWithCoupon,
       hasItemDiscount,
-      hasCouponDiscount,
       itemDiscountPercent
     };
   };
-
-  const cartTotalPrice = items.reduce((sum, item) => sum + (item.line_price || (item.price * item.quantity)), 0);
 
   return (
     <>
@@ -524,8 +481,6 @@ export const CartItems: React.FC<CartItemsProps> = ({
           key={item.key}
           item={item}
           productCompareAtPrices={productCompareAtPrices}
-          appliedDiscount={appliedDiscount}
-          cartTotalPrice={cartTotalPrice}
           onUpdateQuantity={onUpdateQuantity}
           onRemoveItem={onRemoveItem}
           isPreview={isPreview}

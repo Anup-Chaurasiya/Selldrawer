@@ -6,7 +6,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { SavingsDisplay } from '../../../../../app/components/shared/SavingsDisplay.tsx';
-import { calculateEstimatedDiscount } from '../discount-manager.js';
 
 const CONTAINER_ID = 'upsellity-savings-display-root';
 
@@ -17,11 +16,12 @@ export function renderSavingsDisplay(config, cart, appliedDiscount, reactRoots =
 
   const savingsCfg = config.features.savingsDisplay;
   
-  // Calculate savings
+  // Calculate savings using Shopify cart data
   const itemLevelSavings = cart.items.reduce((sum, item) => {
     return sum + Math.max(0, (item.original_price - item.final_price)) * item.quantity;
   }, 0);
-  const discountSavings = appliedDiscount ? calculateEstimatedDiscount(appliedDiscount, cart) : 0;
+  // Use Shopify's total_discount (already calculated by Shopify)
+  const discountSavings = cart.total_discount || 0;
   const totalSavings = Math.max(itemLevelSavings, discountSavings);
 
   if (totalSavings <= 0) {

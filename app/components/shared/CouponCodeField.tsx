@@ -27,10 +27,9 @@ const XIcon = ({ size = 16, color = 'currentColor' }) => (
 
 interface Discount {
   code: string;
-  title: string;
-  description: string;
-  type: 'percentage' | 'fixed';
-  value: number;
+  amount?: number; // Discount amount in cents from Shopify cart
+  title?: string; // Optional, for display purposes
+  description?: string; // Optional, for display purposes
 }
 
 interface CouponCodeFieldProps {
@@ -175,16 +174,9 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
             <div style={{
               fontSize: '14px',
               fontWeight: '600',
-              color: couponCodeColor || textColor,
-              marginBottom: '2px'
+              color: couponCodeColor || textColor
             }}>
-              {appliedDiscount.code} - {appliedDiscount.description}
-            </div>
-            <div style={{
-              fontSize: '12px',
-              color: borderColor
-            }}>
-              {appliedDiscountText || (enableAutoApply ? 'Best offer automatically applied' : 'Applied')}
+              {appliedDiscount.code}
             </div>
           </div>
           <button
@@ -283,14 +275,16 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
                       color: '#111827',
                       marginBottom: '2px'
                     }}>
-                      {discount.code} - {discount.description}
+                      {discount.code}{discount.description ? ` - ${discount.description}` : ''}
                     </div>
-                    <div style={{
-                      fontSize: '12px',
-                      color: '#6b7280'
-                    }}>
-                      {discount.title}
-                    </div>
+                    {discount.title && (
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#6b7280'
+                      }}>
+                        {discount.title}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

@@ -11,20 +11,19 @@ interface CartItem {
   quantity: number;
   price?: number;
   line_price?: number;
+  original_line_price?: number;
   properties?: Record<string, any>;
 }
 
 interface Discount {
   code: string;
-  type: 'percentage' | 'fixed';
-  value: number;
+  amount?: number; // Discount amount in cents from Shopify cart
 }
 
 interface CartTotalsConfig {
   showOriginalPrice?: boolean;
   showItemDiscounts?: boolean;
   showSubtotal?: boolean;
-  showCouponDiscount?: boolean;
   showTaxNotice?: boolean;
   subtotalLabel?: string;
   totalLabel?: string;
@@ -40,8 +39,9 @@ interface CartTotalsConfig {
 
 interface CartTotalsProps {
   items: CartItem[];
-  totalPrice: number; // in cents
-  appliedDiscount?: Discount | null;
+  totalPrice: number; // Final total price in cents from Shopify (already includes all discounts)
+  subtotalPrice?: number; // Subtotal before discounts in cents from Shopify
+  totalDiscount?: number; // Total discount amount in cents from Shopify cart
   config?: CartTotalsConfig;
   isPreview?: boolean;
 }
@@ -49,7 +49,8 @@ interface CartTotalsProps {
 export const CartTotals: React.FC<CartTotalsProps> = ({
   items,
   totalPrice,
-  appliedDiscount = null,
+  subtotalPrice,
+  totalDiscount = 0,
   config = {},
   isPreview = false
 }) => {
@@ -58,7 +59,6 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
     showOriginalPrice = true,
     showItemDiscounts = true,
     showSubtotal = true,
-    showCouponDiscount = true,
     showTaxNotice = true,
     subtotalLabel = "Subtotal",
     totalLabel = "Total",
@@ -75,17 +75,6 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
   const formatMoney = (cents: number) => {
     const rupees = cents / 100;
     return `₹${Math.round(rupees)}`;
-  };
-
-  // Calculate estimated discount
-  const calculateEstimatedDiscount = (discount: Discount | null, total: number): number => {
-    if (!discount) return 0;
-    
-    if (discount.type === 'percentage') {
-      return Math.round((total * discount.value) / 100);
-    } else {
-      return discount.value * 100; // Convert to cents
-    }
   };
 
   // Helper to check if item is a gift
@@ -107,16 +96,33 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
     return sum + (itemPrice * item.quantity);
   }, 0);
 
-  // Calculate totals (excluding gifts)
-  const originalTotal = regularItems.reduce((sum, item) => {
-    return sum + (item.original_price * item.quantity);
+  // Calculate totals using Shopify data
+  // Sum of all regular items' line_price (Shopify already applies all discounts to line_price)
+  const sumOfRegularItems = regularItems.reduce((sum, item) => {
+    return sum + (item.line_price || (item.final_price || item.price || 0) * item.quantity);
   }, 0);
   
-  const subtotal = totalPrice;
+  // Subtotal: use cart.subtotal_price if available, otherwise sum of regular items
+  const subtotal = subtotalPrice || sumOfRegularItems;
+  
+  // Calculate original total (before any discounts)
+  const originalTotal = regularItems.reduce((sum, item) => {
+    // Use original_line_price if available, otherwise original_price
+    if (item.original_line_price) {
+      return sum + item.original_line_price;
+    }
+    return sum + ((item.original_price || item.price || 0) * item.quantity);
+  }, 0);
+  
+  // Item-level savings (from original price to subtotal)
   const itemLevelSavings = originalTotal - subtotal;
-  const couponDiscount = calculateEstimatedDiscount(appliedDiscount, totalPrice);
-  const estimatedTotal = Math.max(0, subtotal - couponDiscount);
-  const totalSavings = itemLevelSavings + couponDiscount + giftSavings;
+  
+  // Total savings (item discounts + gift savings)
+  const totalSavings = itemLevelSavings + giftSavings;
+  
+  // Total: sum of regular items' line_price (Shopify handles all discounts, excludes gift items)
+  // This is the actual total the customer pays for regular items
+  const finalTotal = sumOfRegularItems;
 
   return (
     <div style={{
@@ -125,7 +131,7 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
       backgroundColor: backgroundColor,
     }}>
       {/* Original Price (if there are savings) */}
-      {showOriginalPrice && (itemLevelSavings > 0 || couponDiscount > 0) && (
+      {showOriginalPrice && totalSavings > 0 && (
         <div style={{
           fontSize: '15px',
           marginBottom: '10px',
@@ -206,32 +212,6 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
         </div>
       )}
 
-      {/* Coupon Discount */}
-      {showCouponDiscount && appliedDiscount && couponDiscount > 0 && (
-        <div style={{
-          fontSize: '15px',
-          marginBottom: '12px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          color: '#059669'
-        }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>Coupon ({appliedDiscount.code})</span>
-            <span style={{
-              background: '#d1fae5',
-              color: '#065f46',
-              padding: '2px 6px',
-              borderRadius: '4px',
-              fontSize: '10px',
-              fontWeight: '600'
-            }}>
-              {appliedDiscount.type === 'percentage' ? `${appliedDiscount.value}%` : 'FIXED'}
-            </span>
-          </span>
-          <span style={{ fontWeight: '600' }}>-{formatMoney(couponDiscount)}</span>
-        </div>
-      )}
-
       {/* Total */}
       <div style={{
         fontSize: '20px',
@@ -243,7 +223,7 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
       }}>
         <span>{totalLabel}</span>
         <span style={{ color: totalSavings > 0 ? '#059669' : totalTextColor }}>
-          {formatMoney(estimatedTotal)}
+          {formatMoney(finalTotal)}
         </span>
       </div>
 

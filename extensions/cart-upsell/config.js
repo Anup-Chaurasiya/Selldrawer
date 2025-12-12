@@ -4,7 +4,7 @@
  */
 
 // App URL - Update this with your deployment URL
-export const APP_URL = 'https://prague-hispanic-maintained-hall.trycloudflare.com';
+export const APP_URL = 'https://dakota-microphone-followed-width.trycloudflare.com';
 
 // Version - Update this to force cache invalidation across all components
 export const VERSION = '1.0.4';

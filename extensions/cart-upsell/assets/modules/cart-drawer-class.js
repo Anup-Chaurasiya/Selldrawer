@@ -21,7 +21,6 @@ export class UpsellityCartDrawer {
     this.config = null;
     this.isOpen = false;
     this.cart = null;
-    this.appliedDiscount = null;
     this.availableDiscounts = [];
     this.showingAllOffers = false;
     this.productCompareAtPrices = {};
@@ -189,10 +188,10 @@ export class UpsellityCartDrawer {
       
       // Auto-apply best discount only if user hasn't removed it recently
       if (this.config?.features?.couponCodeField?.enableAutoApply && 
-          !this.appliedDiscount && 
+          !this.getDiscountFromCart() && 
           this.availableDiscounts.length > 0 &&
           !AutoApplyStorage.wasDiscountRemoved()) {
-        this.appliedDiscount = DiscountManager.autoApplyBestDiscount(this.availableDiscounts, this.cart, this.config);
+        await DiscountManager.autoApplyBestDiscount(this.availableDiscounts, this.config, this.loadCart.bind(this));
       }
       
       // Re-render after secondary data is loaded
@@ -418,12 +417,15 @@ export class UpsellityCartDrawer {
       this.reactRoot = createRoot(inner);
     }
     
+    // Get discount from Shopify cart
+    const appliedDiscount = this.getDiscountFromCart();
+    
     // Render the unified React component
     this.reactRoot.render(
       React.createElement(UnifiedCartDrawer, {
         config: this.config,
         cart: this.cart,
-        appliedDiscount: this.appliedDiscount,
+        appliedDiscount: appliedDiscount,
         availableDiscounts: this.availableDiscounts,
         productCompareAtPrices: this.productCompareAtPrices,
         showingAllOffers: this.showingAllOffers,
@@ -516,10 +518,10 @@ export class UpsellityCartDrawer {
       
       // Auto-apply best discount only if user hasn't removed it recently
       if (this.config?.features?.couponCodeField?.enableAutoApply && 
-          !this.appliedDiscount && 
+          !this.getDiscountFromCart() && 
           this.availableDiscounts.length > 0 &&
           !AutoApplyStorage.wasDiscountRemoved()) {
-        this.appliedDiscount = DiscountManager.autoApplyBestDiscount(this.availableDiscounts, this.cart, this.config);
+        await DiscountManager.autoApplyBestDiscount(this.availableDiscounts, this.config, this.loadCart.bind(this));
       }
       
       // Re-render with secondary data
@@ -586,8 +588,9 @@ export class UpsellityCartDrawer {
       }
       
       // Priority 2: Use manually applied discount (coupon code)
-      if (this.appliedDiscount && this.appliedDiscount.code) {
-        const checkoutUrl = DiscountManager.getCheckoutUrl(this.appliedDiscount);
+      const appliedDiscount = this.getDiscountFromCart();
+      if (appliedDiscount && appliedDiscount.code) {
+        const checkoutUrl = DiscountManager.getCheckoutUrl(appliedDiscount.code);
         window.location.href = checkoutUrl;
         return;
       }
@@ -639,32 +642,49 @@ export class UpsellityCartDrawer {
     await CartOps.removeItem(itemKey, this.loadCart.bind(this), this.render.bind(this));
   }
 
+  // Get discount from Shopify cart
+  getDiscountFromCart() {
+    return DiscountManager.getDiscountFromCart(this.cart);
+  }
+
   // Discount management
   async applyCoupon() {
-    const newDiscount = await DiscountManager.applyCoupon(this.appUrl, this.shop, this.config, this.appliedDiscount, this.render.bind(this));
-    if (newDiscount) {
-      this.appliedDiscount = newDiscount;
-    }
+    await DiscountManager.applyCoupon(this.appUrl, this.shop, this.config, null, this.render.bind(this));
   }
 
   async applyCouponWithCode(code) {
-    const newDiscount = await DiscountManager.validateAndApplyCoupon(this.appUrl, this.shop, this.config, code, this.cart);
-    if (newDiscount) {
-      this.appliedDiscount = newDiscount;
+    const success = await DiscountManager.validateAndApplyCoupon(
+      this.appUrl, 
+      this.shop, 
+      this.config, 
+      code, 
+      this.loadCart.bind(this)
+    );
+    
+    if (success) {
       // Clear removal preference when user manually applies a discount
       AutoApplyStorage.clearDiscountRemoval();
-      this.render();
+      await this.loadCart();
     }
   }
 
-  removeDiscount() {
-    this.appliedDiscount = null;
-    
-    // Mark that user removed the discount (prevents auto-apply for 15 minutes)
+  async removeDiscount() {
+    // Mark that user removed the discount FIRST (prevents auto-apply from re-triggering)
     AutoApplyStorage.markDiscountRemoved();
     
-    this.render();
-    showNotification('Discount removed', 'info');
+    const success = await DiscountManager.removeDiscount(async (cart) => {
+      // Update cart data immediately
+      this.cart = cart;
+      // Render immediately - this gives instant feedback
+      this.render();
+      
+      // Load secondary data in background (but auto-apply won't run because we marked it as removed)
+      // This ensures UI is updated immediately while data loads in background
+      this.loadSecondaryData();
+    });
+    
+    // Don't call loadCart() again - it would cause delay and is unnecessary
+    // The callback already updated the cart and rendered
   }
 
   toggleAllOffers() {
@@ -690,15 +710,16 @@ export class UpsellityCartDrawer {
       return;
     }
 
-    this.appliedDiscount = discount;
-    this.showingAllOffers = false;
+    const success = await DiscountManager.applyDiscountCode(discountCode, this.loadCart.bind(this));
     
-    // Clear removal preference when user manually switches to a discount
-    AutoApplyStorage.clearDiscountRemoval();
-    
-    this.render();
-    
-    showNotification(`${discount.code} applied!`, 'success');
+    if (success) {
+      this.showingAllOffers = false;
+      
+      // Clear removal preference when user manually switches to a discount
+      AutoApplyStorage.clearDiscountRemoval();
+      
+      await this.loadCart();
+    }
   }
 
 }
