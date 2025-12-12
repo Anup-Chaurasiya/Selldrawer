@@ -38,6 +38,7 @@ import {
 } from "../utils/featureOrder";
 import { checkAppEmbedEnabled } from "../utils/appEmbed.server";
 import { checkPlanAccess } from "../utils/planAccess.server";
+import { requireBilling } from "../utils/billing.server";
 import { PromotionalBannerCard } from "../components/shared/PromotionalBannerCard";
 import { ProductRecommendations } from "../components/shared/ProductRecommendations";
 import { FreeShippingBar } from "../components/shared/FreeShippingBar";
@@ -74,10 +75,16 @@ function PromotionalBannerPreview({
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session, admin } = await authenticate.admin(request);
+  const { billing, session, admin } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
   const error = url.searchParams.get("error");
+
+  // Check billing - if no active payment, return redirect URL
+  const billingRedirectUrl = await requireBilling(billing);
+  if (billingRedirectUrl) {
+    return json({ billingRedirectUrl });
+  }
 
   // Check plan access for cart drawer feature
   const planAccess = await checkPlanAccess(shop, 'cart_drawer');
@@ -792,9 +799,19 @@ function MiniCartDrawerPreview({
 }
 
 export default function CartDrawerIndex() {
-  const { cartDrawer, couponCodeField, appEmbedEnabled, shopDomain, error } = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const fetcher = useFetcher();
+
+  // Check if we need to redirect for billing
+  if ('billingRedirectUrl' in data) {
+    if (typeof window !== 'undefined') {
+      window.top!.location.href = data.billingRedirectUrl;
+    }
+    return null;
+  }
+
+  const { cartDrawer, couponCodeField, appEmbedEnabled, shopDomain, error } = data as Exclude<typeof data, { billingRedirectUrl: string }>;
 
   const [featureOrder, setFeatureOrder] = useState<string[]>(() =>
     normalizeFeatureOrder(cartDrawer.featureOrder)

@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.4
- * Built: 2025-12-12T10:39:43.009Z
+ * Built: 2025-12-12T13:33:02.236Z
  */
 "use strict";
 (() => {
@@ -8457,7 +8457,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
-  var APP_URL = true ? "https://dakota-microphone-followed-width.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;

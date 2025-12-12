@@ -3,7 +3,6 @@ import {
   ApiVersion,
   AppDistribution,
   shopifyApp,
-  BillingInterval,
 } from "@shopify/shopify-app-remix/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
@@ -17,78 +16,6 @@ const shopify = shopifyApp({
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
-  billing: {
-    trial: {
-      lineItems: [
-        {
-          amount: 0,
-          currencyCode: "USD",
-          interval: BillingInterval.Every30Days,
-        },
-      ],
-      trialDays: 14,
-    },
-    upsell_growth: {
-      lineItems: [
-        {
-          amount: 49.0,
-          currencyCode: "USD",
-          interval: BillingInterval.Every30Days,
-        },
-      ],
-      trialDays: 14,
-    },
-    upsell_pro: {
-      lineItems: [
-        {
-          amount: 89.0,
-          currencyCode: "USD",
-          interval: BillingInterval.Every30Days,
-        },
-      ],
-      trialDays: 14,
-    },
-    cart_growth: {
-      lineItems: [
-        {
-          amount: 78.0,
-          currencyCode: "USD",
-          interval: BillingInterval.Every30Days,
-        },
-      ],
-      trialDays: 14,
-    },
-    cart_pro: {
-      lineItems: [
-        {
-          amount: 141.0,
-          currencyCode: "USD",
-          interval: BillingInterval.Every30Days,
-        },
-      ],
-      trialDays: 14,
-    },
-    enterprise: {
-      lineItems: [
-        {
-          amount: 111.0,
-          currencyCode: "USD",
-          interval: BillingInterval.Every30Days,
-        },
-      ],
-      trialDays: 14,
-    },
-    enterprise_plus: {
-      lineItems: [
-        {
-          amount: 200.0,
-          currencyCode: "USD",
-          interval: BillingInterval.Every30Days,
-        },
-      ],
-      trialDays: 14,
-    },
-  },
   future: {
     unstable_newEmbeddedAuthStrategy: true,
     removeRest: true,
