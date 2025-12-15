@@ -498,6 +498,9 @@ export default function FreeGifts() {
     Object.entries(formState).forEach(([key, value]) => {
       formData.append(key, value.toString());
     });
+    
+    // Always set customerLimit to 1 (users can only choose one product)
+    formData.set("customerLimit", "1");
 
     formData.append("giftProducts", JSON.stringify(selectedGiftProducts));
     formData.append("targets", JSON.stringify(selectedTargets));
@@ -764,7 +767,9 @@ export default function FreeGifts() {
           content: editingFreeGift ? "Update" : "Add",
           onAction: handleSave,
           loading: isSubmitting,
-          disabled: !formState.name || !formState.triggerValue || selectedGiftProducts.length === 0 ||
+          disabled: !formState.name || 
+            ((formState.triggerType === "spend" || formState.triggerType === "quantity") && !formState.triggerValue) ||
+            selectedGiftProducts.length === 0 ||
             ((formState.triggerType === "products" || formState.triggerType === "collections") && selectedTargets.length === 0),
         }}
         secondaryActions={[
@@ -795,30 +800,20 @@ export default function FreeGifts() {
                   { label: "Specific Collections", value: "collections" },
                 ]}
                 value={formState.triggerType}
-                onChange={(value) => setFormState({ ...formState, triggerType: value })}
+                onChange={(value) => setFormState({ ...formState, triggerType: value, triggerValue: "" })}
               />
 
-              <TextField
-                label={formState.triggerType === "spend" ? "Minimum Amount (₹)" : "Minimum Quantity"}
-                type="number"
-                value={formState.triggerValue}
-                onChange={(value) => setFormState({ ...formState, triggerValue: value })}
-                placeholder={formState.triggerType === "spend" ? "999" : "3"}
-                autoComplete="off"
-                helpText={formState.triggerType === "spend" ? "Cart value required to unlock gifts" : "Total items required to unlock gifts"}
-              />
-
-              <TextField
-                label="Customer Can Choose"
-                type="number"
-                value={formState.customerLimit}
-                onChange={(value) => setFormState({ ...formState, customerLimit: value })}
-                placeholder="1"
-                autoComplete="off"
-                helpText="How many gifts customer can select (usually 1)"
-                min={1}
-                max={3}
-              />
+              {(formState.triggerType === "spend" || formState.triggerType === "quantity") && (
+                <TextField
+                  label={formState.triggerType === "spend" ? "Minimum Amount (₹)" : "Minimum Quantity"}
+                  type="number"
+                  value={formState.triggerValue}
+                  onChange={(value) => setFormState({ ...formState, triggerValue: value })}
+                  placeholder={formState.triggerType === "spend" ? "999" : "3"}
+                  autoComplete="off"
+                  helpText={formState.triggerType === "spend" ? "Cart value required to unlock gifts" : "Total items required to unlock gifts"}
+                />
+              )}
 
               {(formState.triggerType === "products" || formState.triggerType === "collections") && (
                 <BlockStack gap="400">
@@ -893,6 +888,11 @@ export default function FreeGifts() {
                 {selectedGiftProducts.length === 0 && (
                   <Banner tone="warning">
                     <p>Please select at least one gift product to continue.</p>
+                  </Banner>
+                )}
+                {selectedGiftProducts.length > 1 && (
+                  <Banner tone="info">
+                    <p>If you configure more than one gift product, customers will be able to choose only one gift product from the selected items.</p>
                   </Banner>
                 )}
                 <div style={{
