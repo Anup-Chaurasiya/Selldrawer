@@ -161,6 +161,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       milestonesEnabled: cartDrawer.milestonesEnabled,
       milestonesProgressBarColor: (cartDrawer as any).milestonesProgressBarColor || "#3b82f6",
       milestonesAllUnlockedMessage: (cartDrawer as any).milestonesAllUnlockedMessage || "🎉 Congratulations! All rewards unlocked!",
+      freeGiftsEnabled: cartDrawer.freeGiftsEnabled,
     };
 
     const response = json({

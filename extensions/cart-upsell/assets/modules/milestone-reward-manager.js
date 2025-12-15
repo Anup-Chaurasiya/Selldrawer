@@ -155,19 +155,12 @@ export async function addGiftToCart(giftProduct, milestoneId) {
     if (response.ok) {
       const result = await response.json();
       
-      // Wait a moment for Shopify to process
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Reduced wait time for better performance
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Trigger cart update events
       document.dispatchEvent(new CustomEvent('cart:updated', { detail: result }));
       document.dispatchEvent(new CustomEvent('cart:change', { detail: result }));
-      
-      // Force cart drawer refresh if it exists
-      if (window.upsellityDrawer && typeof window.upsellityDrawer.loadCart === 'function') {
-        setTimeout(() => {
-          window.upsellityDrawer.loadCart();
-        }, 300);
-      }
       
       return true;
     } else {
@@ -205,39 +198,12 @@ export async function removeGiftFromCart(itemKey) {
     if (response.ok) {
       const result = await response.json();
       
-      // Wait a moment for Shopify to process
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Reduced wait time for better performance
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Trigger multiple cart update events to ensure all systems refresh
+      // Trigger cart update events
       document.dispatchEvent(new CustomEvent('cart:updated', { detail: result }));
       document.dispatchEvent(new CustomEvent('cart:change', { detail: result }));
-      document.dispatchEvent(new CustomEvent('cart:refresh', { detail: result }));
-      
-      // Also trigger theme-specific events
-      if (window.Shopify && window.Shopify.theme) {
-        document.dispatchEvent(new CustomEvent('theme:cart:change', { detail: result }));
-      }
-      
-      // Try to refresh Shopify's native cart if available
-      if (window.Shopify && window.Shopify.onCartUpdate) {
-        window.Shopify.onCartUpdate(result);
-      }
-      
-      // Trigger section rendering if available (for themes using sections)
-      if (window.Shopify && window.Shopify.theme && window.Shopify.theme.cart) {
-        try {
-          window.Shopify.theme.cart.refresh();
-        } catch (e) {
-          // Theme cart refresh not available
-        }
-      }
-      
-      // Force cart drawer refresh if it exists
-      if (window.upsellityDrawer && typeof window.upsellityDrawer.loadCart === 'function') {
-        setTimeout(() => {
-          window.upsellityDrawer.loadCart();
-        }, 300);
-      }
       
       return true;
     } else {
@@ -394,18 +360,11 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
   
   // Reload cart if modified
   if (cartModified) {
-    // Wait for Shopify to process the changes
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // Reduced wait time for better performance
+    await new Promise(resolve => setTimeout(resolve, 300));
     
     if (loadCartCallback) {
       await loadCartCallback();
-    }
-    
-    // Force a final cart fetch to ensure everything is in sync
-    try {
-      await fetch('/cart.js').then(r => r.json());
-    } catch (e) {
-      // Error fetching final cart state
     }
   }
   

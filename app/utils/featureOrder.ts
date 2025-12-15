@@ -3,6 +3,7 @@ export const FEATURE_ORDER_SENTINEL = "__cart-items__";
 export const DEFAULT_FEATURE_ORDER = [
   "free-shipping-bar",
   "milestones",
+  "free-gifts",
   "promotional-banner",
   FEATURE_ORDER_SENTINEL,
   "product-recommendations",

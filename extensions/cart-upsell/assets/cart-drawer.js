@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.4
- * Built: 2025-12-12T13:33:02.198Z
+ * Built: 2025-12-15T12:53:29.550Z
  */
 "use strict";
 (() => {
@@ -8880,14 +8880,9 @@
       });
       if (response.ok) {
         const result = await response.json();
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 100));
         document.dispatchEvent(new CustomEvent("cart:updated", { detail: result }));
         document.dispatchEvent(new CustomEvent("cart:change", { detail: result }));
-        if (window.upsellityDrawer && typeof window.upsellityDrawer.loadCart === "function") {
-          setTimeout(() => {
-            window.upsellityDrawer.loadCart();
-          }, 300);
-        }
         return true;
       } else {
         return false;
@@ -8914,27 +8909,9 @@
       });
       if (response.ok) {
         const result = await response.json();
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 100));
         document.dispatchEvent(new CustomEvent("cart:updated", { detail: result }));
         document.dispatchEvent(new CustomEvent("cart:change", { detail: result }));
-        document.dispatchEvent(new CustomEvent("cart:refresh", { detail: result }));
-        if (window.Shopify && window.Shopify.theme) {
-          document.dispatchEvent(new CustomEvent("theme:cart:change", { detail: result }));
-        }
-        if (window.Shopify && window.Shopify.onCartUpdate) {
-          window.Shopify.onCartUpdate(result);
-        }
-        if (window.Shopify && window.Shopify.theme && window.Shopify.theme.cart) {
-          try {
-            window.Shopify.theme.cart.refresh();
-          } catch (e) {
-          }
-        }
-        if (window.upsellityDrawer && typeof window.upsellityDrawer.loadCart === "function") {
-          setTimeout(() => {
-            window.upsellityDrawer.loadCart();
-          }, 300);
-        }
         return true;
       } else {
         return false;
@@ -9035,13 +9012,9 @@
       }
     }
     if (cartModified) {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 300));
       if (loadCartCallback) {
         await loadCartCallback();
-      }
-      try {
-        await fetch("/cart.js").then((r) => r.json());
-      } catch (e) {
       }
     }
     return cartModified;
@@ -9118,6 +9091,200 @@
     const unlockedMilestone = evaluateMilestones(milestones, cart);
     const cartModified = await syncGiftProducts(unlockedMilestone, cart, loadCartCallback);
     return unlockedMilestone;
+  }
+
+  // extensions/cart-upsell/assets/modules/free-gift-manager.js
+  async function loadFreeGifts(appUrl, shop, cart, cartTotalExcludingGifts = null) {
+    try {
+      const cartTotal = cartTotalExcludingGifts !== null ? cartTotalExcludingGifts : cart.total_price / 100;
+      const cartItemsJson = JSON.stringify(cart.items);
+      console.log("Upsellity Free Gifts: Loading with cart total", cartTotal);
+      const timestamp = (/* @__PURE__ */ new Date()).getTime();
+      const response = await fetch(
+        `${appUrl}/api/free-gifts?shop=${shop}&cartTotal=${cartTotal}&cartItems=${encodeURIComponent(cartItemsJson)}&_t=${timestamp}`,
+        {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache"
+          }
+        }
+      );
+      const data = await response.json();
+      console.log("Upsellity Free Gifts: API Response", data);
+      if (data.freeGifts) {
+        console.log("Upsellity Free Gifts: Loaded", data.freeGifts.length, "offers");
+        return data.freeGifts;
+      }
+      return [];
+    } catch (error) {
+      console.error("Upsellity: Failed to load free gifts", error);
+      return [];
+    }
+  }
+  function convertFreeGiftToMilestone(freeGift) {
+    if (!freeGift)
+      return null;
+    return {
+      id: freeGift.id,
+      title: freeGift.name,
+      targetAmount: freeGift.triggerValue,
+      rewardType: "gift_wrapping",
+      rewardValue: null,
+      discountCode: freeGift.discountCode,
+      giftProducts: freeGift.giftProducts.map((gp) => ({
+        shopifyVariantId: gp.shopifyVariantId || gp.shopifyProductId,
+        title: gp.title,
+        price: gp.price,
+        compareAtPrice: gp.compareAtPrice,
+        imageUrl: gp.imageUrl,
+        handle: gp.handle
+      })),
+      qualified: freeGift.qualified
+    };
+  }
+  async function syncFreeGiftWithCart(freeGift, cart, loadCartCallback) {
+    var _a2, _b;
+    console.log("Upsellity Free Gifts: Syncing with cart", {
+      hasFreeGift: !!freeGift,
+      freeGiftId: freeGift == null ? void 0 : freeGift.id,
+      qualified: freeGift == null ? void 0 : freeGift.qualified,
+      giftCount: (_a2 = freeGift == null ? void 0 : freeGift.giftProducts) == null ? void 0 : _a2.length,
+      cartTotal: (cart == null ? void 0 : cart.total_price) / 100
+    });
+    if (!freeGift) {
+      console.log("Upsellity Free Gifts: No qualified gift, removing all gifts");
+      const allGifts2 = getAllGiftsInCart(cart);
+      let cartModified2 = false;
+      for (const giftItem of allGifts2) {
+        const removed = await removeGiftFromCart(giftItem.key);
+        if (removed) {
+          cartModified2 = true;
+        }
+      }
+      if (cartModified2 && loadCartCallback) {
+        await loadCartCallback();
+      }
+      return cartModified2;
+    }
+    const giftProducts = freeGift.giftProducts || [];
+    if (giftProducts.length === 1) {
+      console.log("Upsellity Free Gifts: Single gift, using auto-add logic");
+      const milestone = convertFreeGiftToMilestone(freeGift);
+      return await syncGiftProducts(milestone, cart, loadCartCallback);
+    }
+    console.log("Upsellity Free Gifts: Multiple gifts, user must choose", {
+      giftProductCount: giftProducts.length,
+      freeGiftId: freeGift.id,
+      freeGiftName: freeGift.name
+    });
+    const allGifts = getAllGiftsInCart(cart);
+    const validGiftVariantIds = new Set(
+      giftProducts.map((gp) => {
+        const variantId = gp.shopifyVariantId || gp.shopifyProductId;
+        return variantId == null ? void 0 : variantId.toString().replace("gid://shopify/ProductVariant/", "");
+      })
+    );
+    let cartModified = false;
+    for (const giftItem of allGifts) {
+      const itemVariantId = (_b = giftItem.variant_id || giftItem.id) == null ? void 0 : _b.toString();
+      const belongsToThisOffer = giftItem.properties && giftItem.properties["_upsellity_milestone_id"] === freeGift.id;
+      if (belongsToThisOffer && !validGiftVariantIds.has(itemVariantId)) {
+        console.log("Upsellity Free Gifts: Removing invalid gift from this offer", itemVariantId);
+        const removed = await removeGiftFromCart(giftItem.key);
+        if (removed) {
+          cartModified = true;
+        }
+      }
+    }
+    const selectedGift = allGifts.find((item) => {
+      var _a3;
+      const itemVariantId = (_a3 = item.variant_id || item.id) == null ? void 0 : _a3.toString();
+      const belongsToThisOffer = item.properties && item.properties["_upsellity_milestone_id"] === freeGift.id;
+      return belongsToThisOffer && validGiftVariantIds.has(itemVariantId);
+    });
+    if (selectedGift) {
+      console.log("Upsellity Free Gifts: User has already selected a gift");
+      for (const giftItem of allGifts) {
+        if (giftItem.key !== selectedGift.key) {
+          const belongsToThisOffer = giftItem.properties && giftItem.properties["_upsellity_milestone_id"] === freeGift.id;
+          if (belongsToThisOffer) {
+            console.log("Upsellity Free Gifts: Removing duplicate gift");
+            const removed = await removeGiftFromCart(giftItem.key);
+            if (removed) {
+              cartModified = true;
+            }
+          }
+        }
+      }
+    } else {
+      console.log("Upsellity Free Gifts: No gift selected yet, showing selection UI");
+    }
+    if (cartModified && loadCartCallback) {
+      await loadCartCallback();
+    }
+    return cartModified;
+  }
+  function getSelectedGiftFromCart(cart, freeGift) {
+    if (!cart || !cart.items || !freeGift)
+      return null;
+    const milestone = convertFreeGiftToMilestone(freeGift);
+    if (!milestone)
+      return null;
+    for (const giftProduct of milestone.giftProducts) {
+      const existingGift = findGiftInCart(
+        cart,
+        giftProduct.shopifyVariantId,
+        milestone.id
+      );
+      if (existingGift) {
+        const matchingGift = freeGift.giftProducts.find((gp) => {
+          const variantId = gp.shopifyVariantId || gp.shopifyProductId;
+          return variantId === giftProduct.shopifyVariantId;
+        });
+        return matchingGift ? matchingGift.id : null;
+      }
+    }
+    return null;
+  }
+  async function selectGift(variantId, freeGift, loadCartCallback) {
+    try {
+      console.log("Upsellity Free Gifts: User selecting gift", variantId);
+      const cartResponse = await fetch("/cart.js");
+      const cart = await cartResponse.json();
+      const milestone = convertFreeGiftToMilestone(freeGift);
+      if (!milestone)
+        return false;
+      const currentGifts = getAllGiftsInCart(cart).filter(
+        (item) => item.properties && item.properties["_upsellity_milestone_id"] === milestone.id
+      );
+      for (const giftItem of currentGifts) {
+        await removeGiftFromCart(giftItem.key);
+      }
+      const giftProduct = milestone.giftProducts.find((gp) => {
+        var _a2;
+        const normalizedGiftId = (_a2 = gp.shopifyVariantId) == null ? void 0 : _a2.toString().replace("gid://shopify/ProductVariant/", "");
+        const normalizedVariantId = variantId == null ? void 0 : variantId.toString().replace("gid://shopify/ProductVariant/", "");
+        return normalizedGiftId === normalizedVariantId;
+      });
+      if (!giftProduct) {
+        console.error("Gift product not found");
+        return false;
+      }
+      const added = await addGiftToCart(giftProduct, milestone.id);
+      if (added) {
+        await loadCartCallback();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Upsellity: Error selecting gift", error);
+      return false;
+    }
+  }
+  function getCheckoutUrlWithDiscount2(freeGift) {
+    const milestone = convertFreeGiftToMilestone(freeGift);
+    return getCheckoutUrlWithDiscount(milestone);
   }
 
   // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
@@ -11055,7 +11222,8 @@
     subtotalPrice,
     totalDiscount = 0,
     config = {},
-    isPreview = false
+    isPreview = false,
+    freeGiftVariantIds = []
   }) => {
     const {
       showOriginalPrice = true,
@@ -11078,6 +11246,11 @@
       return `\u20B9${Math.round(rupees)}`;
     };
     const isGiftItem = (item) => {
+      var _a2;
+      const variantId = (_a2 = item.variant_id) == null ? void 0 : _a2.toString();
+      if (variantId && freeGiftVariantIds.length > 0) {
+        return freeGiftVariantIds.some((giftId) => giftId.toString() === variantId);
+      }
       return item.properties && (item.properties["_upsellity_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
     };
     const giftItems = items.filter(isGiftItem);
@@ -11135,29 +11308,6 @@
         /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { fontWeight: "600" }, children: [
           "-",
           formatMoney(itemLevelSavings)
-        ] })
-      ] }),
-      giftSavings > 0 && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
-        fontSize: "14px",
-        marginBottom: "10px",
-        display: "flex",
-        justifyContent: "space-between",
-        color: "#059669"
-      }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "6px" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { children: "Free Gift" }),
-          /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("span", { style: {
-            background: "#dcfce7",
-            color: "#15803d",
-            padding: "2px 6px",
-            borderRadius: "4px",
-            fontSize: "10px",
-            fontWeight: "600"
-          }, children: "\u{1F381} GIFT" })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("span", { style: { fontWeight: "600" }, children: [
-          "-",
-          formatMoney(giftSavings)
         ] })
       ] }),
       showSubtotal && /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("div", { style: {
@@ -11436,14 +11586,186 @@
     ] });
   }
 
-  // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
+  // app/components/shared/FreeGiftSelector.tsx
   var import_jsx_runtime10 = __toESM(require_jsx_runtime(), 1);
+  function FreeGiftSelector({
+    freeGifts,
+    selectedGiftId,
+    onSelectGift,
+    isPreview = false
+  }) {
+    if (!freeGifts || freeGifts.length === 0) {
+      return null;
+    }
+    const freeGift = freeGifts[0];
+    if (!freeGift || !freeGift.qualified) {
+      return null;
+    }
+    const { giftProducts, customerLimit, name } = freeGift;
+    if (giftProducts.length === 1) {
+      return null;
+    }
+    const hasSelectedGift = giftProducts.some((p) => selectedGiftId === p.id);
+    return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: {
+      padding: "12px 14px",
+      backgroundColor: "#f0fdf4",
+      borderRadius: "8px",
+      border: "1px solid #86efac",
+      marginBottom: "12px"
+    }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: {
+        display: "flex",
+        alignItems: "center",
+        gap: "12px"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { style: { fontSize: "20px" }, children: "\u{1F381}" }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: { flex: 1 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: {
+            fontSize: "14px",
+            fontWeight: "600",
+            color: "#166534",
+            marginBottom: "2px"
+          }, children: name }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: {
+            fontSize: "12px",
+            color: "#15803d"
+          }, children: hasSelectedGift ? "Gift selected - FREE at checkout!" : `Choose ${customerLimit} free gift${customerLimit > 1 ? "s" : ""}` })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: {
+          padding: "6px 12px",
+          backgroundColor: "#16a34a",
+          color: "#ffffff",
+          borderRadius: "6px",
+          fontSize: "12px",
+          fontWeight: "600"
+        }, children: "FREE" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: {
+        display: "flex",
+        gap: "8px",
+        overflowX: "auto",
+        paddingBottom: "4px",
+        scrollbarWidth: "thin"
+      }, children: giftProducts.map((product) => {
+        const isSelected = selectedGiftId === product.id;
+        return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
+          "div",
+          {
+            onClick: () => {
+              if (!isPreview) {
+                onSelectGift(product.id, product.shopifyVariantId || product.shopifyProductId);
+              }
+            },
+            style: {
+              minWidth: "110px",
+              maxWidth: "110px",
+              border: isSelected ? "2px solid #16a34a" : "1px solid #d1d5db",
+              borderRadius: "8px",
+              padding: "8px",
+              backgroundColor: "#ffffff",
+              cursor: isPreview ? "default" : "pointer",
+              transition: "all 0.2s",
+              position: "relative",
+              boxShadow: isSelected ? "0 2px 8px rgba(22, 101, 52, 0.2)" : "none"
+            },
+            onMouseEnter: (e) => {
+              if (!isPreview) {
+                e.currentTarget.style.borderColor = "#16a34a";
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
+              }
+            },
+            onMouseLeave: (e) => {
+              if (!isPreview && !isSelected) {
+                e.currentTarget.style.borderColor = "#d1d5db";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "none";
+              } else if (isSelected) {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 2px 8px rgba(22, 101, 52, 0.2)";
+              }
+            },
+            children: [
+              isSelected && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: {
+                position: "absolute",
+                top: "4px",
+                right: "4px",
+                width: "18px",
+                height: "18px",
+                borderRadius: "50%",
+                backgroundColor: "#16a34a",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "10px",
+                fontWeight: "bold",
+                zIndex: 1,
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)"
+              }, children: "\u2713" }),
+              /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: {
+                width: "100%",
+                aspectRatio: "1",
+                backgroundColor: "#f9fafb",
+                borderRadius: "6px",
+                overflow: "hidden",
+                marginBottom: "6px"
+              }, children: product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+                "img",
+                {
+                  src: product.imageUrl,
+                  alt: product.title,
+                  style: {
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover"
+                  }
+                }
+              ) : /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: {
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "28px"
+              }, children: "\u{1F381}" }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: {
+                fontSize: "11px",
+                fontWeight: "600",
+                color: "#111827",
+                marginBottom: "4px",
+                lineHeight: "1.2",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                minHeight: "26px"
+              }, children: product.title }),
+              /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: {
+                fontSize: "10px",
+                color: "#16a34a",
+                fontWeight: "700",
+                textAlign: "center"
+              }, children: "FREE" })
+            ]
+          },
+          product.id
+        );
+      }) })
+    ] });
+  }
+
+  // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
+  var import_jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
   var UnifiedCartDrawer = ({
     config,
     cart,
     appliedDiscount,
     availableDiscounts,
     productCompareAtPrices,
+    freeGifts,
+    selectedGiftId,
     onClose,
     onCheckout,
     onAddProductToCart,
@@ -11453,6 +11775,7 @@
     onRemoveDiscount,
     onSwitchDiscount,
     onSlideCtaClick,
+    onSelectGift,
     onImpression,
     onFeatureImpression,
     onFeatureClick
@@ -11498,7 +11821,7 @@
           const bar = (_a3 = config == null ? void 0 : config.features) == null ? void 0 : _a3.freeShippingProgressBar;
           if (!bar)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             FreeShippingBar,
             {
               thresholdMode: bar.thresholdMode || "amount",
@@ -11523,7 +11846,7 @@
           const slides = banner.images || [];
           if (slides.length === 0)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             PromotionalBannerCard,
             {
               slides,
@@ -11551,7 +11874,7 @@
           const products = recommendations.products || [];
           if (products.length === 0)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             ProductRecommendations,
             {
               title: recommendations.title || "You may also like",
@@ -11575,7 +11898,7 @@
           const totalSavings = calculateSavings();
           if (totalSavings <= 0)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             SavingsDisplay,
             {
               message: savingsCfg.message || "You saved {amount}!",
@@ -11591,7 +11914,7 @@
           const msg = (_i = config == null ? void 0 : config.features) == null ? void 0 : _i.freeShippingMessage;
           if (!msg)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             FreeShippingMessage,
             {
               thresholdAmount: parseFloat(msg.thresholdAmount) || 0,
@@ -11611,7 +11934,7 @@
           const couponField = (_j = config == null ? void 0 : config.features) == null ? void 0 : _j.couponCodeField;
           if (!couponField)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             CouponCodeField,
             {
               id: "upsellity-coupon-field",
@@ -11639,7 +11962,7 @@
           if (!milestones || !milestones.length)
             return null;
           const cartTotalInRupees = cart.total_price / 100;
-          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
             MilestonesWidget,
             {
               milestones,
@@ -11650,13 +11973,26 @@
             }
           ) }, featureId);
         }
+        case "free-gifts": {
+          if (!freeGifts || freeGifts.length === 0)
+            return null;
+          return /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
+            FreeGiftSelector,
+            {
+              freeGifts,
+              selectedGiftId,
+              onSelectGift,
+              isPreview: false
+            }
+          ) }, featureId);
+        }
         default:
           return null;
       }
     };
     const { beforeItems, afterItems } = getFeatureOrder();
-    return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(import_jsx_runtime10.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(import_jsx_runtime11.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
         "button",
         {
           className: "upsellity-close-btn",
@@ -11665,7 +12001,7 @@
           children: "\xD7"
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
         "h2",
         {
           id: "upsellity-cart-header",
@@ -11678,7 +12014,7 @@
         }
       ),
       beforeItems.map(renderFeature),
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
         CartItems,
         {
           items: cart.items,
@@ -11689,13 +12025,14 @@
         }
       ) }),
       afterItems.map(renderFeature),
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
         CartTotals,
         {
           items: cart.items,
           totalPrice: cart.total_price,
           subtotalPrice: cart.subtotal_price,
           totalDiscount: cart.total_discount || 0,
+          freeGiftVariantIds: freeGifts && freeGifts.length > 0 ? freeGifts[0].giftProducts.map((gp) => gp.shopifyVariantId || gp.shopifyProductId) : [],
           config: ((_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.cartTotals) ? {
             showOriginalPrice: (_b = config.features.cartTotals.showOriginalPrice) != null ? _b : true,
             showItemDiscounts: (_c = config.features.cartTotals.showItemDiscounts) != null ? _c : true,
@@ -11715,7 +12052,7 @@
           isPreview: false
         }
       ) }),
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
         "button",
         {
           className: "upsellity-checkout-btn",
@@ -11723,7 +12060,7 @@
           children: "Checkout"
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { style: {
         textAlign: "center",
         fontSize: "12px",
         color: "#6b7280",
@@ -11733,15 +12070,15 @@
         justifyContent: "center",
         gap: "12px"
       }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "4px" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("rect", { x: "3", y: "11", width: "18", height: "11", rx: "2", ry: "2" }),
-            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("path", { d: "M7 11V7a5 5 0 0 1 10 0v4" })
+        /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "4px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("rect", { x: "3", y: "11", width: "18", height: "11", rx: "2", ry: "2" }),
+            /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("path", { d: "M7 11V7a5 5 0 0 1 10 0v4" })
           ] }),
           "Secure Checkout"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { children: "\u2022" }),
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { children: "Free Returns" })
+        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { children: "\u2022" }),
+        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { children: "Free Returns" })
       ] })
     ] });
   };
@@ -11827,6 +12164,8 @@
       this.unlockedMilestone = null;
       this.milestones = [];
       this.isSyncingGifts = false;
+      this.freeGifts = [];
+      this.selectedGiftId = null;
       this.init();
     }
     async init() {
@@ -11845,7 +12184,7 @@
       await this.loadCart();
     }
     async loadConfig() {
-      var _a2, _b;
+      var _a2, _b, _c, _d;
       try {
         Analytics.init(this.appUrl);
         const timestamp = (/* @__PURE__ */ new Date()).getTime();
@@ -11860,9 +12199,50 @@
         if ((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.milestonesEnabled) {
           await this.loadMilestones();
         }
+        if ((_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.freeGiftsEnabled) {
+          await this.loadFreeGifts();
+        }
       } catch (error) {
         console.error("Upsellity: Failed to load config", error);
         this.config = { enabled: false, features: {} };
+      }
+    }
+    async loadFreeGifts() {
+      try {
+        if (this.isSyncingGifts) {
+          console.log("Upsellity Free Gifts: Already syncing, skipping");
+          return;
+        }
+        const cartTotalExcludingGifts = calculateCartTotalExcludingGifts(this.cart);
+        console.log("Upsellity Free Gifts: Cart total check", {
+          totalWithGifts: this.cart.total_price / 100,
+          totalExcludingGifts: cartTotalExcludingGifts / 100
+        });
+        const freeGifts = await loadFreeGifts(
+          this.appUrl,
+          this.shop,
+          this.cart,
+          cartTotalExcludingGifts / 100
+          // Pass cart total in rupees, excluding gifts
+        );
+        this.freeGifts = freeGifts;
+        if (freeGifts.length > 0 && freeGifts[0].qualified) {
+          console.log("Upsellity Free Gifts: API returned gifts, syncing");
+          await syncFreeGiftWithCart(
+            freeGifts[0],
+            this.cart,
+            async () => {
+              const response = await fetch("/cart.js");
+              this.cart = await response.json();
+            }
+          );
+          this.selectedGiftId = getSelectedGiftFromCart(this.cart, freeGifts[0]);
+        } else {
+          console.log("Upsellity Free Gifts: No gifts from API, not syncing (milestone has priority)");
+          this.selectedGiftId = null;
+        }
+      } catch (error) {
+        console.error("Upsellity: Failed to load free gifts", error);
       }
     }
     async loadMilestones() {
@@ -11905,27 +12285,34 @@
     }
     async handleMilestoneRewards() {
       if (this.isSyncingGifts) {
+        console.log("Upsellity Milestones: Already syncing, skipping");
         return;
       }
       try {
         this.isSyncingGifts = true;
+        console.log("Upsellity Milestones: Starting sync");
         const previousMilestone = this.unlockedMilestone;
         this.unlockedMilestone = await handleMilestoneRewards(
           this.milestones,
           this.cart,
-          this.loadCart.bind(this)
+          async (cartData) => {
+            await this.loadCart(cartData, false, true);
+          }
         );
         if (this.unlockedMilestone && (!previousMilestone || previousMilestone.id !== this.unlockedMilestone.id)) {
           showMilestoneUnlockedNotification(this.unlockedMilestone);
         }
+        console.log("Upsellity Milestones: Sync complete");
       } catch (error) {
         console.error("Upsellity Milestones: Error handling rewards", error);
       } finally {
-        this.isSyncingGifts = false;
+        setTimeout(() => {
+          this.isSyncingGifts = false;
+        }, 1e3);
       }
     }
-    async loadCart(cartData = null, skipRender = false) {
-      var _a2, _b, _c, _d, _e;
+    async loadCart(cartData = null, skipRender = false, skipGiftSync = false) {
+      var _a2, _b, _c, _d, _e, _f, _g, _h, _i;
       try {
         if (cartData) {
           this.cart = cartData;
@@ -11941,13 +12328,26 @@
           loadAvailableDiscounts(this.appUrl, this.shop, this.config),
           loadShopifyRecommendations(this.cart, this.config)
         ];
-        if ((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.milestonesEnabled) {
-          promises.push(this.loadMilestones());
-        }
         const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
+        if (!skipGiftSync) {
+          if ((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.milestonesEnabled) {
+            await this.loadMilestones();
+          } else {
+            console.log("Upsellity: Milestones disabled, cleaning up milestone gifts");
+            const allGifts = getAllGiftsInCart(this.cart);
+            for (const giftItem of allGifts) {
+              await removeGiftFromCart(giftItem.key);
+            }
+            const response = await fetch("/cart.js");
+            this.cart = await response.json();
+          }
+          if ((_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.freeGiftsEnabled) {
+            await this.loadFreeGifts();
+          }
+        }
         this.productCompareAtPrices = productCompareAtPrices;
         this.availableDiscounts = availableDiscounts;
-        if (((_e = (_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.couponCodeField) == null ? void 0 : _e.enableAutoApply) && !this.getDiscountFromCart() && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
+        if (((_f = (_e = this.config) == null ? void 0 : _e.features) == null ? void 0 : _f.couponCodeField) && ((_i = (_h = (_g = this.config) == null ? void 0 : _g.features) == null ? void 0 : _h.couponCodeField) == null ? void 0 : _i.enableAutoApply) && !this.getDiscountFromCart() && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
           await autoApplyBestDiscount(this.availableDiscounts, this.config, this.loadCart.bind(this));
         }
         if (!skipRender) {
@@ -12098,6 +12498,7 @@
       }
     }
     render() {
+      var _a2, _b;
       if (!this.cart)
         return;
       const drawer = document.getElementById("upsellity-cart-drawer");
@@ -12113,6 +12514,11 @@
       if (!this.reactRoot) {
         this.reactRoot = (0, import_client.createRoot)(inner);
       }
+      console.log("Upsellity Cart Drawer Render:", {
+        freeGifts: this.freeGifts,
+        freeGiftsEnabled: (_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.freeGiftsEnabled,
+        selectedGiftId: this.selectedGiftId
+      });
       const appliedDiscount = this.getDiscountFromCart();
       this.reactRoot.render(
         import_react6.default.createElement(UnifiedCartDrawer, {
@@ -12123,6 +12529,8 @@
           productCompareAtPrices: this.productCompareAtPrices,
           showingAllOffers: this.showingAllOffers,
           unlockedMilestone: this.unlockedMilestone,
+          freeGifts: this.freeGifts,
+          selectedGiftId: this.selectedGiftId,
           onClose: () => this.close(),
           onCheckout: () => this.handleCheckout(),
           onAddProductToCart: (variantId) => this.addProductToCart(variantId, 1, { "_upsell_source": "cart_drawer_recommendation" }),
@@ -12132,6 +12540,7 @@
           onRemoveDiscount: () => this.removeDiscount(),
           onSwitchDiscount: (code) => this.switchDiscount(code),
           onSlideCtaClick: (url) => this.handleSlideCtaClick(url),
+          onSelectGift: (giftId, variantId) => this.handleSelectGift(giftId, variantId),
           onImpression: () => {
             Analytics.track({
               eventType: "impression",
@@ -12177,20 +12586,23 @@
       }
     }
     async loadSecondaryData() {
-      var _a2, _b, _c, _d, _e;
+      var _a2, _b, _c, _d, _e, _f, _g, _h, _i;
       try {
         const promises = [
           loadProductCompareAtPrices(this.cart),
           loadAvailableDiscounts(this.appUrl, this.shop, this.config),
           loadShopifyRecommendations(this.cart, this.config)
         ];
-        if ((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.milestonesEnabled) {
-          promises.push(this.loadMilestones());
-        }
         const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
         this.productCompareAtPrices = productCompareAtPrices;
         this.availableDiscounts = availableDiscounts;
-        if (((_e = (_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.couponCodeField) == null ? void 0 : _e.enableAutoApply) && !this.getDiscountFromCart() && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
+        if ((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.milestonesEnabled) {
+          await this.loadMilestones();
+        }
+        if ((_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.freeGiftsEnabled) {
+          await this.loadFreeGifts();
+        }
+        if (((_f = (_e = this.config) == null ? void 0 : _e.features) == null ? void 0 : _f.couponCodeField) && ((_i = (_h = (_g = this.config) == null ? void 0 : _g.features) == null ? void 0 : _h.couponCodeField) == null ? void 0 : _i.enableAutoApply) && !this.getDiscountFromCart() && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
           await autoApplyBestDiscount(this.availableDiscounts, this.config, this.loadCart.bind(this));
         }
         this.render();
@@ -12216,15 +12628,51 @@
         window.location.href = url;
       }
     }
-    // Handle checkout with milestone rewards
+    // Handle gift selection
+    async handleSelectGift(giftId, variantId) {
+      const freeGift = this.freeGifts && this.freeGifts.length > 0 ? this.freeGifts[0] : null;
+      if (!freeGift) {
+        console.error("Upsellity: No free gift available");
+        return;
+      }
+      const success = await selectGift(variantId, freeGift, async () => {
+        const response = await fetch("/cart.js");
+        this.cart = await response.json();
+        this.render();
+      });
+      if (success) {
+        this.selectedGiftId = giftId;
+        this.render();
+      }
+    }
+    // Handle checkout with milestone rewards and free gifts
     async handleCheckout() {
+      var _a2;
       try {
+        console.log("Upsellity: Starting checkout process", {
+          hasFreeGifts: this.freeGifts && this.freeGifts.length > 0,
+          hasUnlockedMilestone: !!this.unlockedMilestone,
+          cartTotal: ((_a2 = this.cart) == null ? void 0 : _a2.total_price) / 100
+        });
+        if (this.freeGifts && this.freeGifts.length > 0 && this.freeGifts[0].qualified) {
+          console.log("Upsellity: Free gift is qualified, checking discount code");
+          if (this.freeGifts[0].discountCode) {
+            console.log("Upsellity: Using free gift discount code", this.freeGifts[0].discountCode);
+            const checkoutUrl = getCheckoutUrlWithDiscount2(this.freeGifts[0]);
+            window.location.href = checkoutUrl;
+            return;
+          } else {
+            console.log("Upsellity: Free gift has no discount code, proceeding to normal checkout");
+          }
+        }
         if (this.unlockedMilestone && this.unlockedMilestone.discountCode) {
+          console.log("Upsellity: Using milestone discount", this.unlockedMilestone.discountCode);
           const validation = await validateMilestoneForCheckout(
             this.unlockedMilestone,
             this.cart
           );
           if (!validation.valid) {
+            console.log("Upsellity: Milestone validation failed", validation.message);
             showNotification(validation.message, "info");
             if (this.unlockedMilestone.rewardType === "gift_wrapping") {
               await this.handleMilestoneRewards();
@@ -12235,15 +12683,18 @@
             return;
           }
           const checkoutUrl = getCheckoutUrlWithDiscount(this.unlockedMilestone);
+          console.log("Upsellity: Redirecting to checkout with milestone discount", checkoutUrl);
           window.location.href = checkoutUrl;
           return;
         }
         const appliedDiscount = this.getDiscountFromCart();
         if (appliedDiscount && appliedDiscount.code) {
+          console.log("Upsellity: Using manually applied discount", appliedDiscount.code);
           const checkoutUrl = getCheckoutUrl(appliedDiscount.code);
           window.location.href = checkoutUrl;
           return;
         }
+        console.log("Upsellity: Proceeding to normal checkout");
         window.location.href = "/checkout";
       } catch (error) {
         console.error("Upsellity: Error during checkout", error);
@@ -12271,14 +12722,18 @@
     }
     async updateQuantity(itemKey, newQuantity) {
       try {
-        await updateQuantity(itemKey, newQuantity, this.loadCart.bind(this), this.render.bind(this));
+        await updateQuantity(itemKey, newQuantity, async (updatedCart) => {
+          await this.loadCart(updatedCart);
+        }, this.render.bind(this));
       } catch (error) {
         await this.loadCart();
         this.render();
       }
     }
     async removeItem(itemKey) {
-      await removeItem(itemKey, this.loadCart.bind(this), this.render.bind(this));
+      await removeItem(itemKey, async (updatedCart) => {
+        await this.loadCart(updatedCart);
+      }, this.render.bind(this));
     }
     // Get discount from Shopify cart
     getDiscountFromCart() {
@@ -12336,7 +12791,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://experiencing-fred-ladies-otherwise.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.4" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

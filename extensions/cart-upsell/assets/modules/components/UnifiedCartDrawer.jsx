@@ -13,6 +13,7 @@ import { FreeShippingMessage } from '../../../../../app/components/shared/FreeSh
 import { CouponCodeField } from '../../../../../app/components/shared/CouponCodeField.tsx';
 import { CartTotals } from '../../../../../app/components/shared/CartTotals.tsx';
 import { MilestonesWidget } from '../../../../../app/components/shared/MilestonesWidget.tsx';
+import { FreeGiftSelector } from '../../../../../app/components/shared/FreeGiftSelector.tsx';
 
 export const UnifiedCartDrawer = ({
   config,
@@ -20,6 +21,8 @@ export const UnifiedCartDrawer = ({
   appliedDiscount,
   availableDiscounts,
   productCompareAtPrices,
+  freeGifts,
+  selectedGiftId,
   onClose,
   onCheckout,
   onAddProductToCart,
@@ -29,6 +32,7 @@ export const UnifiedCartDrawer = ({
   onRemoveDiscount,
   onSwitchDiscount,
   onSlideCtaClick,
+  onSelectGift,
   onImpression,
   onFeatureImpression,
   onFeatureClick
@@ -258,6 +262,21 @@ export const UnifiedCartDrawer = ({
         );
       }
 
+      case 'free-gifts': {
+        if (!freeGifts || freeGifts.length === 0) return null;
+        
+        return (
+          <div key={featureId} style={{ marginBottom: '12px' }}>
+            <FreeGiftSelector
+              freeGifts={freeGifts}
+              selectedGiftId={selectedGiftId}
+              onSelectGift={onSelectGift}
+              isPreview={false}
+            />
+          </div>
+        );
+      }
+
       default:
         return null;
     }
@@ -306,6 +325,11 @@ export const UnifiedCartDrawer = ({
           totalPrice={cart.total_price}
           subtotalPrice={cart.subtotal_price}
           totalDiscount={cart.total_discount || 0}
+          freeGiftVariantIds={
+            freeGifts && freeGifts.length > 0 
+              ? freeGifts[0].giftProducts.map(gp => gp.shopifyVariantId || gp.shopifyProductId)
+              : []
+          }
           config={config?.features?.cartTotals ? {
             showOriginalPrice: config.features.cartTotals.showOriginalPrice ?? true,
             showItemDiscounts: config.features.cartTotals.showItemDiscounts ?? true,

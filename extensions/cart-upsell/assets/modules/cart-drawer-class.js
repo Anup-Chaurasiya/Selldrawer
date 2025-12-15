@@ -11,6 +11,7 @@ import * as DiscountManager from './discount-manager.js';
 import * as ProductLoader from './product-loader.js';
 import * as AutoApplyStorage from './auto-apply-storage.js';
 import * as MilestoneRewardManager from './milestone-reward-manager.js';
+import * as FreeGiftManager from './free-gift-manager.js';
 import { UnifiedCartDrawer } from './components/UnifiedCartDrawer.jsx';
 import { Analytics } from './analytics.js';
 
@@ -29,6 +30,8 @@ export class UpsellityCartDrawer {
     this.unlockedMilestone = null; // Currently unlocked milestone
     this.milestones = []; // All milestones from API
     this.isSyncingGifts = false; // Prevent concurrent gift syncing
+    this.freeGifts = []; // Free gift offers
+    this.selectedGiftId = null; // Currently selected gift
     
     this.init();
   }
@@ -70,9 +73,65 @@ export class UpsellityCartDrawer {
       if (this.config?.features?.milestonesEnabled) {
         await this.loadMilestones();
       }
+      
+      // Load free gifts if enabled
+      if (this.config?.features?.freeGiftsEnabled) {
+        await this.loadFreeGifts();
+      }
     } catch (error) {
       console.error('Upsellity: Failed to load config', error);
       this.config = { enabled: false, features: {} };
+    }
+  }
+
+  async loadFreeGifts() {
+    try {
+      // Prevent concurrent gift syncing to avoid infinite loops
+      if (this.isSyncingGifts) {
+        console.log('Upsellity Free Gifts: Already syncing, skipping');
+        return;
+      }
+      
+      // Calculate cart total EXCLUDING gift items to prevent circular dependency
+      // This ensures that if a gift was added earlier, it doesn't count towards the threshold
+      const cartTotalExcludingGifts = MilestoneRewardManager.calculateCartTotalExcludingGifts(this.cart);
+      console.log('Upsellity Free Gifts: Cart total check', {
+        totalWithGifts: this.cart.total_price / 100,
+        totalExcludingGifts: cartTotalExcludingGifts / 100
+      });
+      
+      // Load free gifts from API using cart total WITHOUT gifts
+      // Note: API will return empty array if milestone with gift reward is unlocked (priority system)
+      const freeGifts = await FreeGiftManager.loadFreeGifts(
+        this.appUrl, 
+        this.shop, 
+        this.cart,
+        cartTotalExcludingGifts / 100 // Pass cart total in rupees, excluding gifts
+      );
+      this.freeGifts = freeGifts;
+      
+      // Only sync if API returned free gifts (meaning they have priority over milestones)
+      if (freeGifts.length > 0 && freeGifts[0].qualified) {
+        console.log('Upsellity Free Gifts: API returned gifts, syncing');
+        await FreeGiftManager.syncFreeGiftWithCart(
+          freeGifts[0],
+          this.cart,
+          async () => {
+            const response = await fetch('/cart.js');
+            this.cart = await response.json();
+          }
+        );
+        
+        // Update selected gift ID
+        this.selectedGiftId = FreeGiftManager.getSelectedGiftFromCart(this.cart, freeGifts[0]);
+      } else {
+        console.log('Upsellity Free Gifts: No gifts from API, not syncing (milestone has priority)');
+        // API returned no gifts - this means milestone has priority
+        // Don't remove anything, let milestone handle it
+        this.selectedGiftId = null;
+      }
+    } catch (error) {
+      console.error('Upsellity: Failed to load free gifts', error);
     }
   }
 
@@ -128,32 +187,42 @@ export class UpsellityCartDrawer {
 
   async handleMilestoneRewards() {
     if (this.isSyncingGifts) {
+      console.log('Upsellity Milestones: Already syncing, skipping');
       return;
     }
     
     try {
       this.isSyncingGifts = true;
+      console.log('Upsellity Milestones: Starting sync');
       
       // Evaluate and handle milestone rewards
       const previousMilestone = this.unlockedMilestone;
       this.unlockedMilestone = await MilestoneRewardManager.handleMilestoneRewards(
         this.milestones,
         this.cart,
-        this.loadCart.bind(this)
+        async (cartData) => {
+          // Pass skipGiftSync=true to prevent infinite loop
+          await this.loadCart(cartData, false, true);
+        }
       );
       
       // Show notification if milestone was just unlocked
       if (this.unlockedMilestone && (!previousMilestone || previousMilestone.id !== this.unlockedMilestone.id)) {
         MilestoneRewardManager.showMilestoneUnlockedNotification(this.unlockedMilestone);
       }
+      
+      console.log('Upsellity Milestones: Sync complete');
     } catch (error) {
       console.error('Upsellity Milestones: Error handling rewards', error);
     } finally {
-      this.isSyncingGifts = false;
+      // Add a small delay before allowing next sync
+      setTimeout(() => {
+        this.isSyncingGifts = false;
+      }, 1000);
     }
   }
 
-  async loadCart(cartData = null, skipRender = false) {
+  async loadCart(cartData = null, skipRender = false, skipGiftSync = false) {
     try {
       // Load cart data first (required for rendering)
       if (cartData) {
@@ -176,18 +245,39 @@ export class UpsellityCartDrawer {
         ProductLoader.loadShopifyRecommendations(this.cart, this.config)
       ];
       
-      // Add milestones loading if enabled
-      if (this.config?.features?.milestonesEnabled) {
-        promises.push(this.loadMilestones());
-      }
-      
       const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
+      
+      // Load milestones and free gifts SEQUENTIALLY to handle priority correctly
+      // Skip if we're already syncing to prevent infinite loops
+      if (!skipGiftSync) {
+        if (this.config?.features?.milestonesEnabled) {
+          await this.loadMilestones();
+        } else {
+          // If milestones are disabled, remove any milestone gifts from cart
+          console.log('Upsellity: Milestones disabled, cleaning up milestone gifts');
+          const allGifts = MilestoneRewardManager.getAllGiftsInCart(this.cart);
+          for (const giftItem of allGifts) {
+            // Remove all gifts (they're either milestone or free gift gifts)
+            // Free gifts will be re-added by loadFreeGifts if qualified
+            await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
+          }
+          // Reload cart after cleanup
+          const response = await fetch('/cart.js');
+          this.cart = await response.json();
+        }
+        
+        if (this.config?.features?.freeGiftsEnabled) {
+          await this.loadFreeGifts();
+        }
+      }
       
       this.productCompareAtPrices = productCompareAtPrices;
       this.availableDiscounts = availableDiscounts;
       
       // Auto-apply best discount only if user hasn't removed it recently
-      if (this.config?.features?.couponCodeField?.enableAutoApply && 
+      // AND if coupon field is enabled (not null)
+      if (this.config?.features?.couponCodeField && 
+          this.config?.features?.couponCodeField?.enableAutoApply && 
           !this.getDiscountFromCart() && 
           this.availableDiscounts.length > 0 &&
           !AutoApplyStorage.wasDiscountRemoved()) {
@@ -417,6 +507,13 @@ export class UpsellityCartDrawer {
       this.reactRoot = createRoot(inner);
     }
     
+    // Debug logging
+    console.log('Upsellity Cart Drawer Render:', {
+      freeGifts: this.freeGifts,
+      freeGiftsEnabled: this.config?.features?.freeGiftsEnabled,
+      selectedGiftId: this.selectedGiftId
+    });
+    
     // Get discount from Shopify cart
     const appliedDiscount = this.getDiscountFromCart();
     
@@ -430,6 +527,8 @@ export class UpsellityCartDrawer {
         productCompareAtPrices: this.productCompareAtPrices,
         showingAllOffers: this.showingAllOffers,
         unlockedMilestone: this.unlockedMilestone,
+        freeGifts: this.freeGifts,
+        selectedGiftId: this.selectedGiftId,
         onClose: () => this.close(),
         onCheckout: () => this.handleCheckout(),
         onAddProductToCart: (variantId) => this.addProductToCart(variantId, 1, { '_upsell_source': 'cart_drawer_recommendation' }),
@@ -439,6 +538,7 @@ export class UpsellityCartDrawer {
         onRemoveDiscount: () => this.removeDiscount(),
         onSwitchDiscount: (code) => this.switchDiscount(code),
         onSlideCtaClick: (url) => this.handleSlideCtaClick(url),
+        onSelectGift: (giftId, variantId) => this.handleSelectGift(giftId, variantId),
         onImpression: () => {
           Analytics.track({
             eventType: 'impression',
@@ -506,18 +606,24 @@ export class UpsellityCartDrawer {
         ProductLoader.loadShopifyRecommendations(this.cart, this.config)
       ];
       
-      // Add milestones loading if enabled
-      if (this.config?.features?.milestonesEnabled) {
-        promises.push(this.loadMilestones());
-      }
-      
       const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
       
       this.productCompareAtPrices = productCompareAtPrices;
       this.availableDiscounts = availableDiscounts;
       
+      // Load milestones and free gifts SEQUENTIALLY to handle priority correctly
+      if (this.config?.features?.milestonesEnabled) {
+        await this.loadMilestones();
+      }
+      
+      if (this.config?.features?.freeGiftsEnabled) {
+        await this.loadFreeGifts();
+      }
+      
       // Auto-apply best discount only if user hasn't removed it recently
-      if (this.config?.features?.couponCodeField?.enableAutoApply && 
+      // AND if coupon field is enabled (not null)
+      if (this.config?.features?.couponCodeField && 
+          this.config?.features?.couponCodeField?.enableAutoApply && 
           !this.getDiscountFromCart() && 
           this.availableDiscounts.length > 0 &&
           !AutoApplyStorage.wasDiscountRemoved()) {
@@ -554,11 +660,60 @@ export class UpsellityCartDrawer {
     }
   }
 
-  // Handle checkout with milestone rewards
+  // Handle gift selection
+  async handleSelectGift(giftId, variantId) {
+    // Get the free gift object
+    const freeGift = this.freeGifts && this.freeGifts.length > 0 ? this.freeGifts[0] : null;
+    
+    if (!freeGift) {
+      console.error('Upsellity: No free gift available');
+      return;
+    }
+    
+    const success = await FreeGiftManager.selectGift(variantId, freeGift, async () => {
+      // Reload cart after adding gift
+      const response = await fetch('/cart.js');
+      this.cart = await response.json();
+      this.render();
+    });
+    
+    if (success) {
+      // Update selected gift ID after successful addition
+      this.selectedGiftId = giftId;
+      this.render();
+    }
+  }
+
+  // Handle checkout with milestone rewards and free gifts
   async handleCheckout() {
     try {
+      console.log('Upsellity: Starting checkout process', {
+        hasFreeGifts: this.freeGifts && this.freeGifts.length > 0,
+        hasUnlockedMilestone: !!this.unlockedMilestone,
+        cartTotal: this.cart?.total_price / 100
+      });
+      
+      // Check free gifts first - only if qualified
+      if (this.freeGifts && this.freeGifts.length > 0 && this.freeGifts[0].qualified) {
+        console.log('Upsellity: Free gift is qualified, checking discount code');
+        
+        // If free gift has discount code, use it for checkout
+        if (this.freeGifts[0].discountCode) {
+          console.log('Upsellity: Using free gift discount code', this.freeGifts[0].discountCode);
+          const checkoutUrl = FreeGiftManager.getCheckoutUrlWithDiscount(this.freeGifts[0]);
+          window.location.href = checkoutUrl;
+          return;
+        } else {
+          console.log('Upsellity: Free gift has no discount code, proceeding to normal checkout');
+          // Free gift is in cart but no discount code configured
+          // This is OK - the BXGY automatic discount will apply at checkout
+          // Continue to next priority
+        }
+      }
+      
       // Priority 1: Use milestone discount if available
       if (this.unlockedMilestone && this.unlockedMilestone.discountCode) {
+        console.log('Upsellity: Using milestone discount', this.unlockedMilestone.discountCode);
         // Validate milestone before checkout
         const validation = await MilestoneRewardManager.validateMilestoneForCheckout(
           this.unlockedMilestone,
@@ -566,6 +721,7 @@ export class UpsellityCartDrawer {
         );
         
         if (!validation.valid) {
+          console.log('Upsellity: Milestone validation failed', validation.message);
           showNotification(validation.message, 'info');
           
           // If gifts are missing, try to sync them
@@ -583,6 +739,7 @@ export class UpsellityCartDrawer {
         
         // Proceed to checkout with milestone discount
         const checkoutUrl = MilestoneRewardManager.getCheckoutUrlWithDiscount(this.unlockedMilestone);
+        console.log('Upsellity: Redirecting to checkout with milestone discount', checkoutUrl);
         window.location.href = checkoutUrl;
         return;
       }
@@ -590,12 +747,14 @@ export class UpsellityCartDrawer {
       // Priority 2: Use manually applied discount (coupon code)
       const appliedDiscount = this.getDiscountFromCart();
       if (appliedDiscount && appliedDiscount.code) {
+        console.log('Upsellity: Using manually applied discount', appliedDiscount.code);
         const checkoutUrl = DiscountManager.getCheckoutUrl(appliedDiscount.code);
         window.location.href = checkoutUrl;
         return;
       }
       
       // Priority 3: No discount, proceed to normal checkout
+      console.log('Upsellity: Proceeding to normal checkout');
       window.location.href = '/checkout';
     } catch (error) {
       console.error('Upsellity: Error during checkout', error);
@@ -629,7 +788,10 @@ export class UpsellityCartDrawer {
 
   async updateQuantity(itemKey, newQuantity) {
     try {
-      await CartOps.updateQuantity(itemKey, newQuantity, this.loadCart.bind(this), this.render.bind(this));
+      await CartOps.updateQuantity(itemKey, newQuantity, async (updatedCart) => {
+        // Update cart and reload free gifts to check qualification
+        await this.loadCart(updatedCart);
+      }, this.render.bind(this));
     } catch (error) {
       // Error is already handled in cart-operations.js with notifications
       // Just ensure cart is reloaded and rendered
@@ -639,7 +801,10 @@ export class UpsellityCartDrawer {
   }
 
   async removeItem(itemKey) {
-    await CartOps.removeItem(itemKey, this.loadCart.bind(this), this.render.bind(this));
+    await CartOps.removeItem(itemKey, async (updatedCart) => {
+      // Update cart and reload free gifts to check qualification
+      await this.loadCart(updatedCart);
+    }, this.render.bind(this));
   }
 
   // Get discount from Shopify cart

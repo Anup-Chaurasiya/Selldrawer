@@ -1,0 +1,300 @@
+/**
+ * Free Gift Manager Module
+ * SIMPLIFIED: Uses milestone reward manager for ALL gift logic
+ * Free gifts are just milestones with gift_wrapping reward type
+ */
+
+import * as MilestoneRewardManager from './milestone-reward-manager.js';
+
+/**
+ * Load free gifts from API
+ * @param {string} appUrl - App URL
+ * @param {string} shop - Shop domain
+ * @param {Object} cart - Cart object
+ * @param {number} cartTotalExcludingGifts - Cart total in rupees, excluding gift items (optional, will calculate if not provided)
+ */
+export async function loadFreeGifts(appUrl, shop, cart, cartTotalExcludingGifts = null) {
+  try {
+    // Use provided cart total (excluding gifts) or calculate from cart
+    const cartTotal = cartTotalExcludingGifts !== null 
+      ? cartTotalExcludingGifts 
+      : cart.total_price / 100;
+      
+    const cartItemsJson = JSON.stringify(cart.items);
+    
+    console.log('Upsellity Free Gifts: Loading with cart total', cartTotal);
+    
+    const timestamp = new Date().getTime();
+    const response = await fetch(
+      `${appUrl}/api/free-gifts?shop=${shop}&cartTotal=${cartTotal}&cartItems=${encodeURIComponent(cartItemsJson)}&_t=${timestamp}`,
+      {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      }
+    );
+    
+    const data = await response.json();
+    
+    console.log('Upsellity Free Gifts: API Response', data);
+    
+    if (data.freeGifts) {
+      console.log('Upsellity Free Gifts: Loaded', data.freeGifts.length, 'offers');
+      return data.freeGifts;
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Upsellity: Failed to load free gifts', error);
+    return [];
+  }
+}
+
+/**
+ * Convert free gift to milestone format for processing
+ */
+function convertFreeGiftToMilestone(freeGift) {
+  if (!freeGift) return null;
+  
+  return {
+    id: freeGift.id,
+    title: freeGift.name,
+    targetAmount: freeGift.triggerValue,
+    rewardType: 'gift_wrapping',
+    rewardValue: null,
+    discountCode: freeGift.discountCode,
+    giftProducts: freeGift.giftProducts.map(gp => ({
+      shopifyVariantId: gp.shopifyVariantId || gp.shopifyProductId,
+      title: gp.title,
+      price: gp.price,
+      compareAtPrice: gp.compareAtPrice,
+      imageUrl: gp.imageUrl,
+      handle: gp.handle
+    })),
+    qualified: freeGift.qualified
+  };
+}
+
+/**
+ * Sync free gifts with cart - CUSTOM LOGIC for free gifts
+ * Different from milestones: 
+ * - If 1 gift: auto-add (like milestones)
+ * - If 2+ gifts: user must choose, don't auto-add
+ */
+export async function syncFreeGiftWithCart(freeGift, cart, loadCartCallback) {
+  console.log('Upsellity Free Gifts: Syncing with cart', { 
+    hasFreeGift: !!freeGift, 
+    freeGiftId: freeGift?.id,
+    qualified: freeGift?.qualified,
+    giftCount: freeGift?.giftProducts?.length,
+    cartTotal: cart?.total_price / 100 
+  });
+  
+  // If no free gift, remove all free gift items from cart
+  if (!freeGift) {
+    console.log('Upsellity Free Gifts: No qualified gift, removing all gifts');
+    const allGifts = MilestoneRewardManager.getAllGiftsInCart(cart);
+    let cartModified = false;
+    
+    for (const giftItem of allGifts) {
+      // Only remove gifts that belong to free gift system (not milestone gifts)
+      // We can identify by checking if the milestone ID matches a free gift ID pattern
+      const removed = await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
+      if (removed) {
+        cartModified = true;
+      }
+    }
+    
+    if (cartModified && loadCartCallback) {
+      await loadCartCallback();
+    }
+    
+    return cartModified;
+  }
+  
+  const giftProducts = freeGift.giftProducts || [];
+  
+  // If only 1 gift product: auto-add (milestone behavior)
+  if (giftProducts.length === 1) {
+    console.log('Upsellity Free Gifts: Single gift, using auto-add logic');
+    const milestone = convertFreeGiftToMilestone(freeGift);
+    return await MilestoneRewardManager.syncGiftProducts(milestone, cart, loadCartCallback);
+  }
+  
+  // If 2+ gift products: user must choose, DON'T auto-add
+  console.log('Upsellity Free Gifts: Multiple gifts, user must choose', {
+    giftProductCount: giftProducts.length,
+    freeGiftId: freeGift.id,
+    freeGiftName: freeGift.name
+  });
+  
+  // Get all gifts in cart
+  const allGifts = MilestoneRewardManager.getAllGiftsInCart(cart);
+  const validGiftVariantIds = new Set(
+    giftProducts.map(gp => {
+      const variantId = gp.shopifyVariantId || gp.shopifyProductId;
+      return variantId?.toString().replace('gid://shopify/ProductVariant/', '');
+    })
+  );
+  
+  let cartModified = false;
+  
+  // Remove gifts that don't belong to this free gift offer
+  for (const giftItem of allGifts) {
+    const itemVariantId = (giftItem.variant_id || giftItem.id)?.toString();
+    const belongsToThisOffer = giftItem.properties && 
+      giftItem.properties['_upsellity_milestone_id'] === freeGift.id;
+    
+    // Remove if belongs to this offer but is not in the current gift product list
+    if (belongsToThisOffer && !validGiftVariantIds.has(itemVariantId)) {
+      console.log('Upsellity Free Gifts: Removing invalid gift from this offer', itemVariantId);
+      const removed = await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
+      if (removed) {
+        cartModified = true;
+      }
+    }
+  }
+  
+  // Check if user has already selected a gift
+  const selectedGift = allGifts.find(item => {
+    const itemVariantId = (item.variant_id || item.id)?.toString();
+    const belongsToThisOffer = item.properties && 
+      item.properties['_upsellity_milestone_id'] === freeGift.id;
+    return belongsToThisOffer && validGiftVariantIds.has(itemVariantId);
+  });
+  
+  if (selectedGift) {
+    console.log('Upsellity Free Gifts: User has already selected a gift');
+    // User has selected a gift, keep it
+    // Remove any other gifts from this offer (keep only the selected one)
+    for (const giftItem of allGifts) {
+      if (giftItem.key !== selectedGift.key) {
+        const belongsToThisOffer = giftItem.properties && 
+          giftItem.properties['_upsellity_milestone_id'] === freeGift.id;
+        if (belongsToThisOffer) {
+          console.log('Upsellity Free Gifts: Removing duplicate gift');
+          const removed = await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
+          if (removed) {
+            cartModified = true;
+          }
+        }
+      }
+    }
+  } else {
+    console.log('Upsellity Free Gifts: No gift selected yet, showing selection UI');
+    // No gift selected yet, user needs to choose
+    // Don't auto-add anything
+  }
+  
+  if (cartModified && loadCartCallback) {
+    await loadCartCallback();
+  }
+  
+  return cartModified;
+}
+
+/**
+ * Get selected gift from cart - USES MILESTONE LOGIC
+ */
+export function getSelectedGiftFromCart(cart, freeGift) {
+  if (!cart || !cart.items || !freeGift) return null;
+  
+  const milestone = convertFreeGiftToMilestone(freeGift);
+  if (!milestone) return null;
+  
+  // Use milestone logic to find gift
+  for (const giftProduct of milestone.giftProducts) {
+    const existingGift = MilestoneRewardManager.findGiftInCart(
+      cart, 
+      giftProduct.shopifyVariantId, 
+      milestone.id
+    );
+    
+    if (existingGift) {
+      // Find matching gift product ID
+      const matchingGift = freeGift.giftProducts.find(gp => {
+        const variantId = gp.shopifyVariantId || gp.shopifyProductId;
+        return variantId === giftProduct.shopifyVariantId;
+      });
+      
+      return matchingGift ? matchingGift.id : null;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * User selects a gift - USES MILESTONE LOGIC
+ */
+export async function selectGift(variantId, freeGift, loadCartCallback) {
+  try {
+    console.log('Upsellity Free Gifts: User selecting gift', variantId);
+    
+    // Get current cart
+    const cartResponse = await fetch('/cart.js');
+    const cart = await cartResponse.json();
+    
+    const milestone = convertFreeGiftToMilestone(freeGift);
+    if (!milestone) return false;
+    
+    // Remove all current gifts from this free gift offer
+    const currentGifts = MilestoneRewardManager.getAllGiftsInCart(cart).filter(item => 
+      item.properties && item.properties['_upsellity_milestone_id'] === milestone.id
+    );
+    
+    for (const giftItem of currentGifts) {
+      await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
+    }
+    
+    // Find the selected gift product
+    const giftProduct = milestone.giftProducts.find(gp => {
+      const normalizedGiftId = gp.shopifyVariantId?.toString().replace('gid://shopify/ProductVariant/', '');
+      const normalizedVariantId = variantId?.toString().replace('gid://shopify/ProductVariant/', '');
+      return normalizedGiftId === normalizedVariantId;
+    });
+    
+    if (!giftProduct) {
+      console.error('Gift product not found');
+      return false;
+    }
+    
+    // Add the selected gift using milestone logic
+    const added = await MilestoneRewardManager.addGiftToCart(giftProduct, milestone.id);
+    
+    if (added) {
+      await loadCartCallback();
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Upsellity: Error selecting gift', error);
+    return false;
+  }
+}
+
+/**
+ * Validate gift for checkout - USES MILESTONE LOGIC
+ */
+export function validateGiftForCheckout(freeGift, cart) {
+  const milestone = convertFreeGiftToMilestone(freeGift);
+  return MilestoneRewardManager.validateMilestoneForCheckout(milestone, cart);
+}
+
+/**
+ * Get checkout URL - USES MILESTONE LOGIC
+ */
+export function getCheckoutUrlWithDiscount(freeGift) {
+  const milestone = convertFreeGiftToMilestone(freeGift);
+  return MilestoneRewardManager.getCheckoutUrlWithDiscount(milestone);
+}
+
+/**
+ * Check if gift is in cart - USES MILESTONE LOGIC
+ */
+export function isGiftInCart(cart, variantId, freeGiftId) {
+  return MilestoneRewardManager.findGiftInCart(cart, variantId, freeGiftId);
+}

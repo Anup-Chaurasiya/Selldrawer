@@ -361,14 +361,16 @@ async function createBxgyAutomatic(
         value: {
           discountOnQuantity:{
             effect: {
-              percentage: 1
+              percentage: 1.0
             },
-            quantity: '1'
+            quantity: "1"
           }
         }
       },
       combinesWith: {
-        shippingDiscounts: true
+        shippingDiscounts: true,
+        orderDiscounts: true,
+        productDiscounts: true
       }
     }
   };

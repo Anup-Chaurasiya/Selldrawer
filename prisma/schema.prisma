@@ -73,6 +73,7 @@ model CartDrawer {
   milestonesEnabled              Boolean                   @default(false)
   milestonesProgressBarColor     String                    @default("#3b82f6")
   milestonesAllUnlockedMessage   String                    @default("🎉 Congratulations! All rewards unlocked!")
+  freeGiftsEnabled               Boolean                   @default(false)
   createdAt                      DateTime                  @default(now())
   updatedAt                      DateTime                  @updatedAt
   featureOrder                   String[]                  @default([])
@@ -84,6 +85,7 @@ model CartDrawer {
   savingsDisplays                SavingsDisplay[]
   cartTotals                     CartTotals[]
   milestones                     CartMilestone[]
+  freeGifts                      FreeGift[]
 
   @@index([shop])
 }
@@ -798,5 +800,57 @@ model BlockMilestoneGiftProduct {
 
   @@index([milestoneId])
   @@index([position])
+}
+
+model FreeGift {
+  id                String           @id @default(cuid())
+  shop              String
+  cartDrawerId      String
+  name              String
+  isActive          Boolean          @default(true)
+  triggerType       String           @default("spend") // spend, item-set, quantity, products, collections
+  triggerValue      Decimal          @default(0)
+  customerLimit     Int              @default(1) // How many gifts customer can choose
+  priority          Int              @default(0)
+  shopifyDiscountId String?
+  discountCode      String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  cartDrawer        CartDrawer       @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
+  giftProducts      FreeGiftProduct[]
+  targets           FreeGiftTarget[]
+
+  @@index([shop])
+  @@index([cartDrawerId])
+}
+
+model FreeGiftProduct {
+  id               String   @id @default(cuid())
+  freeGiftId       String
+  shopifyProductId String
+  shopifyVariantId String?
+  title            String
+  price            Decimal
+  compareAtPrice   Decimal?
+  imageUrl         String?
+  handle           String
+  position         Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  freeGift         FreeGift @relation(fields: [freeGiftId], references: [id], onDelete: Cascade)
+
+  @@index([freeGiftId])
+}
+
+model FreeGiftTarget {
+  id         String   @id @default(cuid())
+  freeGiftId String
+  shopifyId  String   // Product or Collection ID
+  type       String   // "product" or "collection"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  freeGift   FreeGift @relation(fields: [freeGiftId], references: [id], onDelete: Cascade)
+
+  @@index([freeGiftId])
 }
 

@@ -48,6 +48,7 @@ import { CouponCodeField } from "../components/shared/CouponCodeField";
 import { CartTotals } from "../components/shared/CartTotals";
 import { CartItems } from "../components/shared/CartItems";
 import { MilestonesWidget } from "../components/shared/MilestonesWidget";
+import { FreeGiftSelector } from "../components/shared/FreeGiftSelector";
 
 // Wrapper component for the preview with state management
 function PromotionalBannerPreview({ 
@@ -122,6 +123,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         },
         orderBy: { priority: 'asc' }
       },
+      freeGifts: {
+        where: { isActive: true },
+        include: {
+          giftProducts: {
+            orderBy: { position: 'asc' },
+          },
+          targets: true,
+        },
+        orderBy: { priority: 'asc' }
+      },
     },
   });
 
@@ -151,6 +162,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         cartTotals: true,
         milestones: {
           include: {
+            targets: true,
+          },
+          orderBy: { priority: 'asc' }
+        },
+        freeGifts: {
+          include: {
+            giftProducts: {
+              orderBy: { position: 'asc' },
+            },
             targets: true,
           },
           orderBy: { priority: 'asc' }
@@ -197,6 +217,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (cartDrawer.milestonesEnabled && cartDrawer.milestones.length === 0) {
     updateData.milestonesEnabled = false;
   }
+  
+  if (cartDrawer.freeGiftsEnabled && cartDrawer.freeGifts.length === 0) {
+    updateData.freeGiftsEnabled = false;
+  }
 
   if (Object.keys(updateData).length > 0) {
     cartDrawer = await prisma.cartDrawer.update({
@@ -225,6 +249,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         milestones: { 
           where: { isActive: true },
           include: {
+            targets: true,
+          },
+          orderBy: { priority: 'asc' }
+        },
+        freeGifts: {
+          where: { isActive: true },
+          include: {
+            giftProducts: {
+              orderBy: { position: 'asc' },
+            },
             targets: true,
           },
           orderBy: { priority: 'asc' }
@@ -291,6 +325,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               targets: true,
             }
           },
+          freeGifts: {
+            where: { isActive: true },
+            include: {
+              giftProducts: true,
+              targets: true,
+            }
+          },
         },
       });
 
@@ -347,6 +388,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       if (featureId === 'milestones' && cartDrawer.milestones.length === 0) {
         return redirect("/app/cart-drawer?error=milestones-not-configured");
       }
+      
+      if (featureId === 'free-gifts' && cartDrawer.freeGifts.length === 0) {
+        return redirect("/app/cart-drawer?error=free-gifts-not-configured");
+      }
     }
 
     // Map feature IDs to their corresponding database fields
@@ -359,6 +404,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       'free-shipping-message': { freeShippingMessageEnabled: enabled },
       'cart-totals': { cartTotalsEnabled: enabled },
       'milestones': { milestonesEnabled: enabled },
+      'free-gifts': { freeGiftsEnabled: enabled },
     };
 
     const updateData = featureFieldMap[featureId];
@@ -427,8 +473,8 @@ function MiniCartDrawerPreview({
             id: 1,
             title: "Premium Running Shoes",
             variant: "Size 8 / Navy Blue",
-            price: 2999.00,
-            originalPrice: 4999.00,
+            price: 50.00,
+            originalPrice: 50.00,
             quantity: 1,
             image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=80&h=80&fit=crop&crop=center",
           }
@@ -645,6 +691,36 @@ function MiniCartDrawerPreview({
               isPreview={true}
               progressBarColor={(cartDrawer as any).milestonesProgressBarColor || "#3b82f6"}
               allUnlockedMessage={(cartDrawer as any).milestonesAllUnlockedMessage}
+            />
+          )
+        );
+
+      case 'free-gifts':
+        return (
+          cartDrawer?.freeGiftsEnabled && cartDrawer.freeGifts && cartDrawer.freeGifts.length > 0 && (
+            <FreeGiftSelector
+              freeGifts={cartDrawer.freeGifts.map((fg: any) => ({
+                id: fg.id,
+                name: fg.name,
+                triggerType: fg.triggerType,
+                triggerValue: parseFloat(fg.triggerValue.toString()),
+                customerLimit: fg.customerLimit,
+                discountCode: fg.discountCode,
+                giftProducts: fg.giftProducts.map((p: any) => ({
+                  id: p.id,
+                  shopifyProductId: p.shopifyProductId,
+                  shopifyVariantId: p.shopifyVariantId,
+                  title: p.title,
+                  price: 0, // Free gifts are always price 0 (discount applies at checkout)
+                  compareAtPrice: p.compareAtPrice ? parseFloat(p.compareAtPrice.toString()) : parseFloat(p.price.toString()),
+                  imageUrl: p.imageUrl,
+                  handle: p.handle,
+                })),
+                qualified: true,
+              }))}
+              selectedGiftId={null}
+              onSelectGift={() => {}}
+              isPreview={true}
             />
           )
         );
@@ -909,6 +985,16 @@ export default function CartDrawerIndex() {
       count: cartDrawer.milestones.length,
       path: '/app/cart-drawer/milestones',
       isConfigured: cartDrawer.milestones.length > 0,
+    },
+    {
+      id: 'free-gifts',
+      title: 'Free Gifts',
+      description: 'Let customers choose free gifts on qualifying orders',
+      icon: GiftCardIcon,
+      enabled: cartDrawer.freeGiftsEnabled,
+      count: cartDrawer.freeGifts.length,
+      path: '/app/cart-drawer/free-gifts',
+      isConfigured: cartDrawer.freeGifts.length > 0,
     },
     {
       id: 'promotional-banner',

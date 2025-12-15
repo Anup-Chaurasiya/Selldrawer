@@ -44,6 +44,7 @@ interface CartTotalsProps {
   totalDiscount?: number; // Total discount amount in cents from Shopify cart
   config?: CartTotalsConfig;
   isPreview?: boolean;
+  freeGiftVariantIds?: string[]; // Array of variant IDs that are free gifts
 }
 
 export const CartTotals: React.FC<CartTotalsProps> = ({
@@ -52,7 +53,8 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
   subtotalPrice,
   totalDiscount = 0,
   config = {},
-  isPreview = false
+  isPreview = false,
+  freeGiftVariantIds = []
 }) => {
   // Default configuration
   const {
@@ -79,6 +81,13 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
 
   // Helper to check if item is a gift
   const isGiftItem = (item: CartItem) => {
+    // Check if item has variant_id that matches free gift variant IDs
+    const variantId = (item as any).variant_id?.toString();
+    if (variantId && freeGiftVariantIds.length > 0) {
+      return freeGiftVariantIds.some(giftId => giftId.toString() === variantId);
+    }
+    
+    // Fallback: check properties (for milestone gifts)
     return item.properties && (
       item.properties['_upsellity_gift'] === 'true' ||
       item.properties['_gift'] === 'true' ||
@@ -172,31 +181,7 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
         </div>
       )}
 
-      {/* Gift Savings */}
-      {giftSavings > 0 && (
-        <div style={{
-          fontSize: '14px',
-          marginBottom: '10px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          color: '#059669'
-        }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>Free Gift</span>
-            <span style={{
-              background: '#dcfce7',
-              color: '#15803d',
-              padding: '2px 6px',
-              borderRadius: '4px',
-              fontSize: '10px',
-              fontWeight: '600'
-            }}>
-              🎁 GIFT
-            </span>
-          </span>
-          <span style={{ fontWeight: '600' }}>-{formatMoney(giftSavings)}</span>
-        </div>
-      )}
+      
 
       {/* Subtotal */}
       {showSubtotal && (
