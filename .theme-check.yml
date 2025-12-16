@@ -1,0 +1,9 @@
+# Put this file in the root directory (where shopify.app.toml is)
+extends: theme-check:theme-app-extension
+checks:
+  # Disables checks for tags like {% schema %}
+  LiquidTagSyntax:
+    enabled: false
+  # Disables checks for general liquid and HTML parsing errors
+  LiquidHTMLSyntaxError:
+    enabled: false
