@@ -193,7 +193,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     try {
       const name = formData.get("name") as string;
       const triggerType = formData.get("triggerType") as string;
-      const triggerValue = parseFloat(formData.get("triggerValue") as string);
+      
+      // Parse trigger value for all trigger types
+      const triggerValueRaw = formData.get("triggerValue") as string;
+      const triggerValue = parseFloat(triggerValueRaw) || 0;
+      
       const customerLimit = parseInt(formData.get("customerLimit") as string);
 
       // Parse gift products
@@ -217,12 +221,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
 
       // Create Shopify discount automatically (using gift_wrapping type)
+      // Extract target IDs for products/collections trigger types
+      const targetIds = targets.map((t: any) => t.shopifyId);
+
       const discountResult = await createMilestoneDiscount(admin, {
         title: `Free Gift: ${name}`,
         rewardType: "gift_wrapping",
         rewardValue: null,
         giftProducts,
-        minimumSubtotal: triggerType === "spend" ? triggerValue : 0,
+        triggerType,
+        triggerValue,
+        targetIds: (triggerType === "products" || triggerType === "collections") ? targetIds : [],
       });
 
       if (!discountResult) {
@@ -294,7 +303,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const freeGiftId = formData.get("freeGiftId") as string;
     const name = formData.get("name") as string;
     const triggerType = formData.get("triggerType") as string;
-    const triggerValue = parseFloat(formData.get("triggerValue") as string);
+    
+    // Parse trigger value for all trigger types
+    const triggerValueRaw = formData.get("triggerValue") as string;
+    const triggerValue = parseFloat(triggerValueRaw) || 0;
+    
     const customerLimit = parseInt(formData.get("customerLimit") as string);
 
     // Get existing free gift to retrieve old discount ID
@@ -324,6 +337,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     // Update Shopify discount (delete old, create new)
+    // Extract target IDs for products/collections trigger types
+    const targetIds = targets.map((t: any) => t.shopifyId);
+
     const discountResult = await updateMilestoneDiscount(
       admin,
       existingFreeGift?.shopifyDiscountId || null,
@@ -332,7 +348,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         rewardType: "gift_wrapping",
         rewardValue: null,
         giftProducts,
-        minimumSubtotal: triggerType === "spend" ? triggerValue : 0,
+        triggerType,
+        triggerValue,
+        targetIds: (triggerType === "products" || triggerType === "collections") ? targetIds : [],
       }
     );
 
@@ -652,7 +670,7 @@ export default function FreeGifts() {
                     resourceName={{ singular: 'free gift', plural: 'free gifts' }}
                     items={cartDrawer.freeGifts}
                     renderItem={(freeGift) => {
-                      const { id, name, triggerType, triggerValue, customerLimit, isActive, giftProducts } = freeGift;
+                      const { id, name, triggerType, triggerValue, customerLimit, isActive, giftProducts, targets } = freeGift;
 
                       return (
                         <ResourceItem
@@ -676,7 +694,12 @@ export default function FreeGifts() {
                                     </Badge>
                                   </InlineStack>
                                   <Text as="p" variant="bodySm" tone="subdued">
-                                    Trigger: {getTriggerTypeLabel(triggerType)} ({triggerValue.toString()}) | 
+                                    Trigger: {getTriggerTypeLabel(triggerType)} 
+                                    {triggerType === "spend" && ` (₹${triggerValue.toString()})`}
+                                    {triggerType === "quantity" && ` (${triggerValue.toString()} items)`}
+                                    {triggerType === "products" && ` (${triggerValue.toString()} qty from ${targets?.length || 0} products)`}
+                                    {triggerType === "collections" && ` (${triggerValue.toString()} qty from ${targets?.length || 0} collections)`}
+                                    {' | '}
                                     Choose {customerLimit} gift{customerLimit > 1 ? 's' : ''} | 
                                     {giftProducts.length} product{giftProducts.length > 1 ? 's' : ''}
                                   </Text>
@@ -768,7 +791,7 @@ export default function FreeGifts() {
           onAction: handleSave,
           loading: isSubmitting,
           disabled: !formState.name || 
-            ((formState.triggerType === "spend" || formState.triggerType === "quantity") && !formState.triggerValue) ||
+            !formState.triggerValue ||
             selectedGiftProducts.length === 0 ||
             ((formState.triggerType === "products" || formState.triggerType === "collections") && selectedTargets.length === 0),
         }}
@@ -871,6 +894,18 @@ export default function FreeGifts() {
                       ))}
                     </div>
                   )}
+                  
+                  <TextField
+                    label="Required Quantity"
+                    type="number"
+                    value={formState.triggerValue}
+                    onChange={(value) => setFormState({ ...formState, triggerValue: value })}
+                    placeholder={formState.triggerType === "products" ? "2" : "3"}
+                    autoComplete="off"
+                    helpText={formState.triggerType === "products" 
+                      ? "Total quantity of selected products required in cart to unlock gifts" 
+                      : "Total quantity of items from selected collections required in cart to unlock gifts"}
+                  />
                 </BlockStack>
               )}
 

@@ -116,26 +116,40 @@ export async function loader({ request }: LoaderFunctionArgs) {
           return totalQuantity >= triggerValue;
           
         case "products":
-          // Check if specific products are in cart
+          // Check if cart has required quantity of specific products
           if (freeGift.targets.length === 0) return false;
           const targetProductIds = freeGift.targets
             .filter(t => t.type === "product")
             .map((t) => t.shopifyId);
-          return cartItems.some((item: any) => {
-            if (!item.product_id) return false;
+          
+          // Calculate total quantity of target products in cart
+          const targetProductQuantity = cartItems.reduce((sum, item: any) => {
+            if (!item.product_id) return sum;
             const productId = item.product_id.toString();
-            return (
-              targetProductIds.includes(productId) ||
-              targetProductIds.includes(`gid://shopify/Product/${productId}`)
+            const isTargetProduct = targetProductIds.some(targetId => 
+              productId === targetId ||
+              productId === targetId.replace('gid://shopify/Product/', '') ||
+              `gid://shopify/Product/${productId}` === targetId
             );
-          });
+            return isTargetProduct ? sum + (item.quantity || 0) : sum;
+          }, 0);
+          
+          // Check if quantity meets or exceeds trigger value
+          return targetProductQuantity >= triggerValue;
           
         case "collections":
-          // Check if products from specific collections are in cart
+          // Check if cart has required quantity from specific collections
           if (freeGift.targets.length === 0) return false;
-          // For collections, we'd need additional product data
-          // For now, return true if cart has items (merchant should configure properly)
-          return cartItems.length > 0;
+          const targetCollectionIds = freeGift.targets
+            .filter(t => t.type === "collection")
+            .map((t) => t.shopifyId);
+          
+          // For collections: Check if cart has at least triggerValue items
+          // Note: We can't verify exact collection membership without additional API calls
+          // The Shopify discount at checkout will do the final validation
+          // For now, we check if total cart quantity meets the requirement
+          const cartQuantity = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+          return cartQuantity >= triggerValue;
           
         default:
           return false;

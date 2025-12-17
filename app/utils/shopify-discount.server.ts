@@ -292,9 +292,31 @@ async function getOrCreateAllProductsCollection(
 }
 
 /**
- * Create an automatic BXGY discount (used for free-gift milestone)
+ * Convert a product id (possibly numeric or already gid) to GID form.
+ */
+function toProductGid(id: string): string | null {
+  if (!id) return null;
+  if (id.startsWith("gid://")) return id;
+  // If numeric or string id, wrap into Product GID
+  return `gid://shopify/Product/${id}`;
+}
+
+/**
+ * Convert a collection id (possibly numeric or already gid) to GID form.
+ */
+function toCollectionGid(id: string): string | null {
+  if (!id) return null;
+  if (id.startsWith("gid://")) return id;
+  // If numeric or string id, wrap into Collection GID
+  return `gid://shopify/Collection/${id}`;
+}
+
+/**
+ * Create an automatic BXGY discount (used for free-gift feature)
  * - giftVariantIds: array of variant IDs (string numeric or gid) that should be given as 100% off when threshold is met
- * - minimumSubtotal: threshold value
+ * - triggerType: "spend" | "quantity" | "products" | "collections"
+ * - triggerValue: threshold value (amount for spend, quantity for quantity, ignored for products/collections)
+ * - targetIds: array of product or collection IDs (for products/collections trigger types)
  *
  * Implements a "customerGets" where entitled items are the gift variants with 100% off.
  */
@@ -302,7 +324,9 @@ async function createBxgyAutomatic(
   admin: AdminApiContext,
   title: string,
   giftVariantIds: string[],
-  minimumSubtotal: number
+  triggerType: string,
+  triggerValue: number,
+  targetIds?: string[]
 ): Promise<CreateResult> {
   const mutation = `
     mutation discountAutomaticBxgyCreate($input: DiscountAutomaticBxgyInput!) {
@@ -328,12 +352,117 @@ async function createBxgyAutomatic(
     return null;
   }
 
-  // Get or create a collection with price > 0 condition to use in customerBuys
-  // This is required because "all: true" is not supported in customerBuys.items
-  const allProductsCollectionId = await getOrCreateAllProductsCollection(admin);
-  if (!allProductsCollectionId) {
-    console.error("createBxgyAutomatic: failed to get or create all products collection");
-    return null;
+  // Build customerBuys based on trigger type
+  let customerBuys: any;
+
+  switch (triggerType) {
+    case "spend": {
+      // Minimum spend: customer must spend a certain amount
+      // Use all products collection
+      const allProductsCollectionId = await getOrCreateAllProductsCollection(admin);
+      if (!allProductsCollectionId) {
+        console.error("createBxgyAutomatic: failed to get or create all products collection");
+        return null;
+      }
+
+      customerBuys = {
+        items: {
+          collections: {
+            add: [allProductsCollectionId]
+          }
+        },
+        value: {
+          amount: toAmountString(triggerValue)
+        }
+      };
+      break;
+    }
+
+    case "quantity": {
+      // Minimum quantity: customer must have a certain number of items
+      // Use all products collection
+      const allProductsCollectionId = await getOrCreateAllProductsCollection(admin);
+      if (!allProductsCollectionId) {
+        console.error("createBxgyAutomatic: failed to get or create all products collection");
+        return null;
+      }
+
+      customerBuys = {
+        items: {
+          collections: {
+            add: [allProductsCollectionId]
+          }
+        },
+        value: {
+          quantity: triggerValue.toString()
+        }
+      };
+      break;
+    }
+
+    case "products": {
+      // Specific products: customer must have configured quantity of specific products in cart
+      if (!targetIds || targetIds.length === 0) {
+        console.error("createBxgyAutomatic: products trigger type requires targetIds");
+        return null;
+      }
+
+      const formattedProductIds = targetIds
+        .map(id => toProductGid(id))
+        .filter((id): id is string => !!id);
+
+      if (formattedProductIds.length === 0) {
+        console.error("createBxgyAutomatic: no valid product IDs provided", targetIds);
+        return null;
+      }
+
+      customerBuys = {
+        items: {
+          products: {
+            productsToAdd: formattedProductIds
+          }
+        },
+        value: {
+          // Use configured quantity (triggerValue) for required items
+          quantity: triggerValue.toString()
+        }
+      };
+      break;
+    }
+
+    case "collections": {
+      // Specific collections: customer must have configured quantity from specific collections
+      if (!targetIds || targetIds.length === 0) {
+        console.error("createBxgyAutomatic: collections trigger type requires targetIds");
+        return null;
+      }
+
+      const formattedCollectionIds = targetIds
+        .map(id => toCollectionGid(id))
+        .filter((id): id is string => !!id);
+
+      if (formattedCollectionIds.length === 0) {
+        console.error("createBxgyAutomatic: no valid collection IDs provided", targetIds);
+        return null;
+      }
+
+      customerBuys = {
+        items: {
+          collections: {
+            add: formattedCollectionIds
+          }
+        },
+        value: {
+          // Use configured quantity (triggerValue) for required items from collections
+          quantity: triggerValue.toString()
+        }
+      };
+      break;
+    }
+
+    default:
+      console.error("createBxgyAutomatic: unknown trigger type:", triggerType);
+      return null;
   }
 
   // For BXGY automatic discounts, we can set customerGets to grant entitled product variants with 100% off.
@@ -342,16 +471,7 @@ async function createBxgyAutomatic(
     input: {
       title,
       startsAt: new Date().toISOString(),
-      customerBuys: {
-        items: {
-          collections: {
-            add: [allProductsCollectionId]
-          }
-        },
-        value: {
-          amount: toAmountString(minimumSubtotal)
-        }
-      },
+      customerBuys,
       customerGets: {
         items: {
           products: {
@@ -442,6 +562,9 @@ export async function deleteShopifyDiscount(
  * - rewardType: "free_shipping" | "discount_percentage" | "discount_fixed" | "gift_wrapping"
  * - rewardValue: for discount types (percentage -> number 5 = 5%; fixed -> amount)
  * - giftProducts: array of { shopifyVariantId?: string | null }
+ * - triggerType: "spend" | "quantity" | "products" | "collections" (for gift_wrapping)
+ * - triggerValue: threshold value (for gift_wrapping)
+ * - targetIds: array of product or collection IDs (for gift_wrapping with products/collections trigger)
  *
  * Returns { discountId, code } where code is empty string for automatic discounts.
  */
@@ -452,7 +575,10 @@ export async function createMilestoneDiscount(
     rewardType: string;
     rewardValue?: number | null;
     giftProducts?: Array<{ shopifyVariantId?: string | null }>;
-    minimumSubtotal?: number; // threshold, if not provided default to 0
+    minimumSubtotal?: number; // threshold, if not provided default to 0 (deprecated, use triggerValue)
+    triggerType?: string; // "spend" | "quantity" | "products" | "collections"
+    triggerValue?: number; // threshold value
+    targetIds?: string[]; // product or collection IDs for products/collections trigger
   }
 ): Promise<{ discountId: string; code: string } | null> {
   try {
@@ -489,7 +615,19 @@ export async function createMilestoneDiscount(
           return null;
         }
 
-        return await createBxgyAutomatic(admin, title, variantIds, minSubtotal);
+        // Determine trigger type and value
+        const triggerType = milestone.triggerType ?? "spend";
+        const triggerValue = milestone.triggerValue ?? minSubtotal;
+        const targetIds = milestone.targetIds ?? [];
+
+        return await createBxgyAutomatic(
+          admin, 
+          title, 
+          variantIds, 
+          triggerType, 
+          triggerValue, 
+          targetIds
+        );
 
       default:
         console.error("createMilestoneDiscount: unknown reward type:", milestone.rewardType);
@@ -515,6 +653,9 @@ export async function updateMilestoneDiscount(
     rewardValue?: number | null;
     giftProducts?: Array<{ shopifyVariantId?: string | null }>;
     minimumSubtotal?: number;
+    triggerType?: string;
+    triggerValue?: number;
+    targetIds?: string[];
   }
 ): Promise<{ discountId: string; code: string } | null> {
   try {
