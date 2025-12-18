@@ -14,6 +14,8 @@ const CART_DRAWER_VERSION = typeof __CART_DRAWER_VERSION__ !== 'undefined' ? __C
 // Initialize on page load
 function initializeCartDrawer() {
   if (typeof window !== 'undefined') {
+    // Make APP_URL available globally for React components
+    window.UPSELLITY_APP_URL = APP_URL;
     window.upsellityDrawer = new UpsellityCartDrawer(APP_URL);
     window.upsellityDrawer.version = CART_DRAWER_VERSION;
   }

@@ -568,33 +568,36 @@ model NudgeProduct {
 }
 
 model CartMilestone {
-  id                  String                 @id @default(cuid())
-  cartDrawerId        String
-  shop                String
-  isActive            Boolean                @default(true)
-  title               String
-  description         String?
-  targetAmount        Decimal
-  currency            String                 @default("INR")
-  rewardType          String
-  rewardValue         Decimal?
-  discountCode        String?
-  shopifyDiscountId   String?
-  targetType          String                 @default("store_wide")
-  priority            Int                    @default(0)
-  icon                String?
-  unlockedMessage     String?
-  inProgressMessage   String?
-  lockedMessage       String?
-  iconColor           String                 @default("#3b82f6")
-  titleColor          String                 @default("#1e40af")
-  amountColor         String                 @default("#3b82f6")
-  showProgressBar     Boolean                @default(true)
-  createdAt           DateTime               @default(now())
-  updatedAt           DateTime               @updatedAt
-  cartDrawer          CartDrawer                @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
-  targets             CartMilestoneTarget[]
-  giftProducts        CartMilestoneGiftProduct[]
+  id                      String                 @id @default(cuid())
+  cartDrawerId            String
+  shop                    String
+  isActive                Boolean                @default(true)
+  title                   String
+  description             String?
+  targetAmount            Decimal
+  currency                String                 @default("INR")
+  rewardType              String
+  rewardValue             Decimal?
+  discountCode            String?
+  shopifyDiscountId       String?
+  targetType              String                 @default("store_wide")
+  priority                Int                    @default(0)
+  icon                    String?
+  unlockedMessage         String?
+  inProgressMessage       String?
+  lockedMessage           String?
+  iconColor               String                 @default("#3b82f6")
+  titleColor              String                 @default("#1e40af")
+  amountColor             String                 @default("#3b82f6")
+  showProgressBar         Boolean                @default(true)
+  eligibleCollectionHandle String?
+  eligibleTag             String?
+  eligibleProductIds      String[]               @default([])
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  cartDrawer              CartDrawer                @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
+  targets                 CartMilestoneTarget[]
+  giftProducts            CartMilestoneGiftProduct[]
 
   @@index([cartDrawerId])
   @@index([shop, isActive])

@@ -59,7 +59,7 @@ async function createFreeShippingAutomatic(
   const variables = {
     input: {
       title,
-      startsAt: new Date().toISOString(),      
+      startsAt: new Date().toISOString(),
       // Minimum requirement so Shopify only activates when subtotal >= minimumSubtotal
       minimumRequirement: {
         subtotal: {
@@ -76,7 +76,7 @@ async function createFreeShippingAutomatic(
   try {
     const res = await admin.graphql(mutation, { variables });
     // Try to print readable body (if any)
-    
+
     const payloadData = await res.json();
     const payload = payloadData?.data?.discountAutomaticFreeShippingCreate ?? payloadData?.discountAutomaticFreeShippingCreate ?? null;
 
@@ -136,25 +136,25 @@ async function createBasicAutomatic(
   const customerGets =
     type === "percentage"
       ? {
-          items: {
-            all: true
-          },
-          value: {
-            percentage: value / 100.0 // Shopify expects decimal? using API examples, pass decimal here
-          },
-        }
+        items: {
+          all: true
+        },
+        value: {
+          percentage: value / 100.0 // Shopify expects decimal? using API examples, pass decimal here
+        },
+      }
       : {
-          items: {
-            all: true
-          },
-          value: {
-            // discountAmount needs string amount
-            discountAmount: {
-              amount: toAmountString(value),
-              appliesOnEachItem: false
-            }
-          },
-        };
+        items: {
+          all: true
+        },
+        value: {
+          // discountAmount needs string amount
+          discountAmount: {
+            amount: toAmountString(value),
+            appliesOnEachItem: false
+          }
+        },
+      };
 
   const variables = {
     input: {
@@ -479,7 +479,7 @@ async function createBxgyAutomatic(
           }
         },
         value: {
-          discountOnQuantity:{
+          discountOnQuantity: {
             effect: {
               percentage: 1.0
             },
@@ -506,7 +506,7 @@ async function createBxgyAutomatic(
     }
 
     if (payload.userErrors && payload.userErrors.length) {
-      console.error("createBxgyAutomatic userErrors:", JSON.stringify(payload.userErrors, null  , 2));
+      console.error("createBxgyAutomatic userErrors:", JSON.stringify(payload.userErrors, null, 2));
       return null;
     }
 
@@ -538,7 +538,8 @@ export async function deleteShopifyDiscount(
 
   try {
     const res = await admin.graphql(mutation, { variables: { id: discountId } });
-    const payload = res?.data?.discountAutomaticDelete ?? res?.discountAutomaticDelete ?? null;
+    const payloadData = await res.json();
+    const payload = payloadData?.data?.discountAutomaticDelete ?? payloadData?.discountAutomaticDelete ?? null;
 
     if (!payload) {
       console.error("deleteShopifyDiscount: invalid response", JSON.stringify(res, null, 2));
@@ -546,11 +547,21 @@ export async function deleteShopifyDiscount(
     }
 
     if (payload.userErrors && payload.userErrors.length) {
+      // Check if the error is "discount does not exist" - treat this as success
+      const doesNotExistError = payload.userErrors.some((err: any) =>
+        err.message && err.message.toLowerCase().includes("does not exist")
+      );
+
+      if (doesNotExistError) {
+        console.log("deleteShopifyDiscount: discount already deleted or does not exist, treating as success");
+        return true;
+      }
+
       console.error("deleteShopifyDiscount userErrors:", JSON.stringify(payload.userErrors, null, 2));
       return false;
     }
 
-    return !!payload.deletedDiscountId;
+    return !!payload.deletedAutomaticDiscountId;
   } catch (err) {
     console.error("Exception in deleteShopifyDiscount:", err);
     return false;
@@ -582,7 +593,9 @@ export async function createMilestoneDiscount(
   }
 ): Promise<{ discountId: string; code: string } | null> {
   try {
-    const title = `Milestone: ${milestone.title}`;
+    // Add timestamp to ensure unique title (avoid conflicts with existing discounts)
+    const timestamp = Date.now();
+    const title = `Milestone: ${milestone.title} (${timestamp})`;
     const minSubtotal = milestone.minimumSubtotal ?? 0;
 
     switch (milestone.rewardType) {
@@ -621,11 +634,11 @@ export async function createMilestoneDiscount(
         const targetIds = milestone.targetIds ?? [];
 
         return await createBxgyAutomatic(
-          admin, 
-          title, 
-          variantIds, 
-          triggerType, 
-          triggerValue, 
+          admin,
+          title,
+          variantIds,
+          triggerType,
+          triggerValue,
           targetIds
         );
 

@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Add Together v1.0.4
- * Built: 2025-12-17T14:22:07.076Z
+ * Built: 2025-12-18T14:25:52.784Z
  */
 "use strict";
 (() => {
@@ -8596,7 +8596,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/nudge-add-together-entry.js
-  var APP_URL = true ? "https://either-old-celebrities-cannon.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://sorted-congressional-interval-bios.trycloudflare.com" : "https://app.upsellity.com";
   var NudgeAddTogether = class {
     constructor() {
       this.shop = null;

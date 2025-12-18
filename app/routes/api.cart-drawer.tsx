@@ -35,7 +35,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     // Check plan access for cart drawer feature
     const planAccess = await checkPlanAccess(shop, 'cart_drawer');
-    
+
     if (!planAccess.hasAccess) {
       const response = json({ error: planAccess.reason, hasAccess: false }, { status: 403 });
       return cors(request, response);
@@ -169,6 +169,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       theme: cartDrawer.theme,
       primaryColor: cartDrawer.primaryColor,
       featureOrder: featureOrder ?? [],
+      shop, // Add shop domain for milestone upsell API calls
       features,
     }, {
       headers: {

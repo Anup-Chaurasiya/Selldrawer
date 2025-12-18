@@ -1,6 +1,6 @@
 /**
  * Upsellity Milestone Block v1.0.4
- * Built: 2025-12-17T14:22:07.159Z
+ * Built: 2025-12-18T14:25:52.849Z
  */
 "use strict";
 (() => {
@@ -7879,23 +7879,493 @@
   });
 
   // extensions/cart-upsell/assets/modules/milestone-block-entry.js
-  var import_react2 = __toESM(require_react(), 1);
+  var import_react4 = __toESM(require_react(), 1);
   var import_client = __toESM(require_client(), 1);
 
   // extensions/cart-upsell/assets/modules/components/MilestoneBlockWrapper.jsx
-  var import_react = __toESM(require_react(), 1);
+  var import_react3 = __toESM(require_react(), 1);
 
   // app/components/shared/MilestonesWidget.tsx
+  var import_react2 = __toESM(require_react(), 1);
+
+  // app/components/shared/MilestoneUpsellCarousel.tsx
+  var import_react = __toESM(require_react(), 1);
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
+  var MilestoneUpsellCarousel = ({
+    shop,
+    milestoneId,
+    remaining,
+    collectionHandle,
+    onAddToCart,
+    onClose,
+    isPreview = false
+  }) => {
+    const [products, setProducts] = (0, import_react.useState)([]);
+    const [loading, setLoading] = (0, import_react.useState)(true);
+    const [error, setError] = (0, import_react.useState)(null);
+    const [collectionUrl, setCollectionUrl] = (0, import_react.useState)(null);
+    const carouselRef = (0, import_react.useRef)(null);
+    (0, import_react.useEffect)(() => {
+      if (isPreview) {
+        setProducts([
+          {
+            id: "sample-1",
+            title: "Premium Product Sample",
+            handle: "sample-1",
+            featuredImage: { url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop", altText: "Sample" },
+            price: remaining + 100,
+            variantId: "sample-variant-1",
+            availableForSale: true
+          },
+          {
+            id: "sample-2",
+            title: "Featured Product Sample",
+            handle: "sample-2",
+            featuredImage: { url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop", altText: "Sample" },
+            price: remaining + 200,
+            variantId: "sample-variant-2",
+            availableForSale: true
+          }
+        ]);
+        setLoading(false);
+        return;
+      }
+      const fetchProducts = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          const params = new URLSearchParams({
+            shop,
+            milestoneId,
+            remaining: remaining.toString(),
+            _t: Date.now().toString()
+            // Cache buster
+          });
+          const apiUrl = typeof window !== "undefined" && window.UPSELLITY_APP_URL ? `${window.UPSELLITY_APP_URL}/api/milestone-products?${params}` : `/api/milestone-products?${params}`;
+          const response = await fetch(apiUrl);
+          if (!response.ok) {
+            throw new Error("Failed to fetch products");
+          }
+          const data = await response.json();
+          if (data.error) {
+            throw new Error(data.message || data.error);
+          }
+          setProducts(data.products || []);
+          setCollectionUrl(data.collectionUrl || null);
+          setLoading(false);
+        } catch (err) {
+          console.error("Error fetching milestone products:", err);
+          setError(err instanceof Error ? err.message : "Failed to load products");
+          setLoading(false);
+        }
+      };
+      fetchProducts();
+    }, [shop, milestoneId, remaining, isPreview]);
+    const handleRetry = () => {
+      setError(null);
+      setLoading(true);
+      window.location.reload();
+    };
+    if (loading) {
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+        padding: "24px",
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        borderRadius: "16px",
+        marginTop: "16px",
+        boxShadow: "0 10px 40px rgba(102, 126, 234, 0.3)"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { height: "24px", width: "200px", backgroundColor: "rgba(255,255,255,0.3)", borderRadius: "8px" } }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              onClick: onClose,
+              style: {
+                background: "rgba(255,255,255,0.2)",
+                border: "none",
+                borderRadius: "50%",
+                width: "32px",
+                height: "32px",
+                fontSize: "20px",
+                cursor: "pointer",
+                color: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              },
+              children: "\xD7"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", gap: "16px", overflowX: "auto" }, children: [1, 2, 3, 4].map((i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { minWidth: "180px", flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: "180px", height: "180px", backgroundColor: "rgba(255,255,255,0.2)", borderRadius: "12px", marginBottom: "12px", animation: "pulse 1.5s ease-in-out infinite" } }) }, i)) })
+      ] });
+    }
+    if (error) {
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+        padding: "24px",
+        background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+        borderRadius: "16px",
+        marginTop: "16px",
+        border: "2px solid rgba(255,255,255,0.3)",
+        backdropFilter: "blur(10px)"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h4", { style: { margin: 0, color: "white", fontSize: "16px", fontWeight: 600 }, children: [
+            "\u26A0\uFE0F ",
+            error
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              onClick: onClose,
+              style: {
+                background: "rgba(255,255,255,0.2)",
+                border: "none",
+                borderRadius: "50%",
+                width: "32px",
+                height: "32px",
+                fontSize: "20px",
+                cursor: "pointer",
+                color: "white"
+              },
+              children: "\xD7"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          "button",
+          {
+            onClick: handleRetry,
+            style: {
+              padding: "12px 24px",
+              background: "white",
+              color: "#f5576c",
+              border: "none",
+              borderRadius: "10px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: 600,
+              boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+              transition: "transform 0.2s"
+            },
+            onMouseEnter: (e) => e.currentTarget.style.transform = "scale(1.05)",
+            onMouseLeave: (e) => e.currentTarget.style.transform = "scale(1)",
+            children: "\u{1F504} Retry"
+          }
+        )
+      ] });
+    }
+    if (products.length === 0) {
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+        padding: "32px",
+        background: "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
+        borderRadius: "16px",
+        marginTop: "16px",
+        textAlign: "center"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          "button",
+          {
+            onClick: onClose,
+            style: {
+              background: "rgba(0,0,0,0.1)",
+              border: "none",
+              borderRadius: "50%",
+              width: "32px",
+              height: "32px",
+              fontSize: "20px",
+              cursor: "pointer",
+              color: "#333"
+            },
+            children: "\xD7"
+          }
+        ) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { margin: 0, color: "#555", fontSize: "15px", fontWeight: 500 }, children: "\u{1F50D} No eligible items found" })
+      ] });
+    }
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+      padding: "28px",
+      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      borderRadius: "20px",
+      marginTop: "16px",
+      boxShadow: "0 20px 60px rgba(102, 126, 234, 0.4)",
+      position: "relative",
+      overflow: "hidden"
+    }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+        position: "absolute",
+        top: 0,
+        right: 0,
+        width: "400px",
+        height: "400px",
+        background: "radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)",
+        pointerEvents: "none"
+      } }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", position: "relative", zIndex: 1 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { style: {
+            margin: "0 0 6px 0",
+            fontSize: "20px",
+            fontWeight: 700,
+            color: "white",
+            textShadow: "0 2px 10px rgba(0,0,0,0.2)",
+            letterSpacing: "-0.5px"
+          }, children: "\u2728 Unlock Your Reward" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { margin: 0, fontSize: "13px", color: "rgba(255,255,255,0.9)", fontWeight: 500 }, children: "Add any of these items to your cart" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          "button",
+          {
+            onClick: onClose,
+            style: {
+              background: "rgba(255,255,255,0.25)",
+              backdropFilter: "blur(10px)",
+              border: "none",
+              borderRadius: "50%",
+              width: "40px",
+              height: "40px",
+              fontSize: "22px",
+              cursor: "pointer",
+              color: "white",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all 0.3s",
+              boxShadow: "0 4px 15px rgba(0,0,0,0.1)"
+            },
+            onMouseEnter: (e) => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.35)";
+              e.currentTarget.style.transform = "rotate(90deg) scale(1.1)";
+            },
+            onMouseLeave: (e) => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.25)";
+              e.currentTarget.style.transform = "rotate(0deg) scale(1)";
+            },
+            "aria-label": "Close",
+            children: "\xD7"
+          }
+        )
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        "div",
+        {
+          ref: carouselRef,
+          style: {
+            display: "flex",
+            gap: "20px",
+            overflowX: "auto",
+            scrollSnapType: "x mandatory",
+            scrollBehavior: "smooth",
+            paddingBottom: "12px",
+            marginBottom: "20px",
+            WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "thin",
+            scrollbarColor: "rgba(255,255,255,0.3) transparent",
+            position: "relative",
+            zIndex: 1
+          },
+          role: "list",
+          "aria-label": "Product recommendations",
+          children: products.map((product, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            "div",
+            {
+              style: {
+                minWidth: "200px",
+                maxWidth: "200px",
+                flexShrink: 0,
+                scrollSnapAlign: "start",
+                background: "white",
+                borderRadius: "16px",
+                padding: "16px",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                cursor: "pointer",
+                animation: `slideIn 0.4s ease-out ${index * 0.1}s both`
+              },
+              role: "listitem",
+              onMouseEnter: (e) => {
+                e.currentTarget.style.transform = "translateY(-8px) scale(1.02)";
+                e.currentTarget.style.boxShadow = "0 16px 48px rgba(0,0,0,0.25)";
+              },
+              onMouseLeave: (e) => {
+                e.currentTarget.style.transform = "translateY(0) scale(1)";
+                e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,0.15)";
+              },
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { position: "relative", marginBottom: "14px", overflow: "hidden", borderRadius: "12px" }, children: [
+                  product.featuredImage ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    "img",
+                    {
+                      src: product.featuredImage.url,
+                      alt: product.featuredImage.altText || product.title,
+                      style: {
+                        width: "100%",
+                        height: "168px",
+                        objectFit: "cover",
+                        borderRadius: "12px",
+                        transition: "transform 0.4s"
+                      },
+                      loading: "lazy",
+                      onMouseEnter: (e) => e.currentTarget.style.transform = "scale(1.1)",
+                      onMouseLeave: (e) => e.currentTarget.style.transform = "scale(1)"
+                    }
+                  ) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                    width: "100%",
+                    height: "168px",
+                    background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+                    borderRadius: "12px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#a0aec0",
+                    fontSize: "13px",
+                    fontWeight: 500
+                  }, children: "No image" }),
+                  !product.availableForSale && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                    position: "absolute",
+                    top: "8px",
+                    right: "8px",
+                    background: "rgba(239, 68, 68, 0.95)",
+                    color: "white",
+                    padding: "4px 10px",
+                    borderRadius: "20px",
+                    fontSize: "11px",
+                    fontWeight: 600
+                  }, children: "Out of Stock" })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h4", { style: {
+                  margin: "0 0 8px 0",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: "#1a202c",
+                  lineHeight: "1.4",
+                  height: "40px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical"
+                }, children: product.title }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { style: {
+                  margin: "0 0 14px 0",
+                  fontSize: "18px",
+                  fontWeight: 700,
+                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text"
+                }, children: [
+                  "\u20B9",
+                  product.price.toFixed(2)
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "button",
+                  {
+                    onClick: () => onAddToCart(product.handle, 1),
+                    disabled: !product.availableForSale,
+                    style: {
+                      width: "100%",
+                      padding: "12px",
+                      background: product.availableForSale ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : "linear-gradient(135deg, #cbd5e0 0%, #a0aec0 100%)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "10px",
+                      cursor: product.availableForSale ? "pointer" : "not-allowed",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      transition: "all 0.3s",
+                      boxShadow: product.availableForSale ? "0 4px 15px rgba(102, 126, 234, 0.4)" : "none",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px"
+                    },
+                    onMouseEnter: (e) => {
+                      if (product.availableForSale) {
+                        e.currentTarget.style.transform = "scale(1.05)";
+                        e.currentTarget.style.boxShadow = "0 6px 20px rgba(102, 126, 234, 0.5)";
+                      }
+                    },
+                    onMouseLeave: (e) => {
+                      if (product.availableForSale) {
+                        e.currentTarget.style.transform = "scale(1)";
+                        e.currentTarget.style.boxShadow = "0 4px 15px rgba(102, 126, 234, 0.4)";
+                      }
+                    },
+                    children: product.availableForSale ? "\u{1F6D2} Add to Cart" : "Unavailable"
+                  }
+                )
+              ]
+            },
+            product.id
+          ))
+        }
+      ),
+      collectionUrl && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        "a",
+        {
+          href: collectionUrl,
+          style: {
+            display: "block",
+            textAlign: "center",
+            padding: "16px",
+            background: "rgba(255,255,255,0.95)",
+            backdropFilter: "blur(10px)",
+            color: "#667eea",
+            border: "2px solid rgba(255,255,255,0.3)",
+            borderRadius: "14px",
+            textDecoration: "none",
+            fontSize: "15px",
+            fontWeight: 600,
+            transition: "all 0.3s",
+            boxShadow: "0 8px 20px rgba(0,0,0,0.1)",
+            position: "relative",
+            zIndex: 1
+          },
+          onMouseEnter: (e) => {
+            e.currentTarget.style.background = "white";
+            e.currentTarget.style.transform = "scale(1.02)";
+            e.currentTarget.style.boxShadow = "0 12px 30px rgba(0,0,0,0.15)";
+          },
+          onMouseLeave: (e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.95)";
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.1)";
+          },
+          children: "\u{1F440} View All Products \u2192"
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("style", { children: `
+                @keyframes slideIn {
+                    from {
+                        opacity: 0;
+                        transform: translateX(30px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                }
+                @keyframes pulse {
+                    0%, 100% { opacity: 0.3; }
+                    50% { opacity: 0.5; }
+                }
+            ` })
+    ] });
+  };
+
+  // app/components/shared/MilestonesWidget.tsx
+  var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
   function MilestonesWidget({
     milestones,
     cartTotal = 0,
     isPreview = false,
     layout = "vertical",
     progressBarColor,
-    allUnlockedMessage
+    allUnlockedMessage,
+    shop,
+    onAddToCart
   }) {
     var _a2, _b;
+    const [openUpsellMilestoneId, setOpenUpsellMilestoneId] = (0, import_react2.useState)(null);
     if (!milestones || milestones.length === 0) {
       return null;
     }
@@ -7964,27 +8434,27 @@
       return `linear-gradient(90deg, ${color} 0%, ${color} 100%)`;
     };
     const progressBarGradient = getGradient(finalProgressBarColor);
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
       padding: "12px 14px",
       backgroundColor: "#ffffff",
       borderRadius: "10px",
       border: "1px solid #e5e7eb"
     }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
         marginBottom: "16px",
         textAlign: "center"
-      }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+      }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
         fontSize: "13px",
         fontWeight: "600",
         color: allUnlocked ? "#059669" : "#1f2937"
       }, children: displayMessage }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
         position: "relative",
         paddingTop: sortedMilestones.length === 1 ? "40px" : sortedMilestones.length === 2 ? "36px" : "32px",
         paddingBottom: "32px",
         width: "100%"
       }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
           position: "absolute",
           left: 0,
           top: "50%",
@@ -7994,7 +8464,7 @@
           borderRadius: "10px",
           width: `${lastMilestonePosition}%`,
           zIndex: 0
-        }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "div",
           {
             style: {
@@ -8018,7 +8488,10 @@
           const position = getPosition(milestone.targetAmount);
           const isUnlocked = milestone.status === "unlocked";
           const isInProgress = milestone.status === "in_progress";
-          return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+          const hasEligibilityConfig = Boolean(
+            milestone.eligibleCollectionHandle || milestone.eligibleProductIds && milestone.eligibleProductIds.length > 0 || milestone.eligibleTag
+          );
+          return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
             "div",
             {
               style: {
@@ -8029,7 +8502,7 @@
                 zIndex: 10
               },
               children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                   "div",
                   {
                     style: {
@@ -8042,7 +8515,7 @@
                       width: "max-content",
                       maxWidth: sortedMilestones.length === 1 ? "200px" : sortedMilestones.length === 2 ? "140px" : "100px"
                     },
-                    children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                    children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
                       fontSize: "11px",
                       fontWeight: "600",
                       color: milestone.titleColor || "#1e40af",
@@ -8054,9 +8527,17 @@
                     }, children: milestone.title })
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "div",
                   {
+                    onClick: () => {
+                      if (!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart) {
+                        const firstLockedMilestone = sortedMilestones.find((m) => m.status !== "unlocked");
+                        if (firstLockedMilestone && firstLockedMilestone.id === milestone.id) {
+                          setOpenUpsellMilestoneId(openUpsellMilestoneId === milestone.id ? null : milestone.id);
+                        }
+                      }
+                    },
                     style: {
                       width: "36px",
                       height: "36px",
@@ -8070,12 +8551,26 @@
                       transition: "all 0.3s ease",
                       boxShadow: isUnlocked || isInProgress ? "0 2px 8px rgba(0, 0, 0, 0.15)" : "none",
                       position: "relative",
-                      opacity: isUnlocked ? 1 : isInProgress ? 0.9 : 0.5
+                      opacity: isUnlocked ? 1 : isInProgress ? 0.9 : 0.5,
+                      cursor: !isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart ? "pointer" : "default",
+                      transform: !isUnlocked && milestone.canShowUpsell && hasEligibilityConfig ? "scale(1)" : void 0
                     },
-                    title: `${milestone.title} - \u20B9${milestone.targetAmount}`,
+                    onMouseEnter: (e) => {
+                      if (!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart) {
+                        e.currentTarget.style.transform = "scale(1.1)";
+                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2)";
+                      }
+                    },
+                    onMouseLeave: (e) => {
+                      if (!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig) {
+                        e.currentTarget.style.transform = "scale(1)";
+                        e.currentTarget.style.boxShadow = isInProgress ? "0 2px 8px rgba(0, 0, 0, 0.15)" : "none";
+                      }
+                    },
+                    title: !isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart ? "View items to unlock this reward" : `${milestone.title} - \u20B9${milestone.targetAmount}`,
                     children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: milestone.icon || "\u{1F381}" }),
-                      isUnlocked && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { children: milestone.icon || "\u{1F381}" }),
+                      isUnlocked && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                         "div",
                         {
                           style: {
@@ -8100,7 +8595,7 @@
                     ]
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                   "div",
                   {
                     style: {
@@ -8112,7 +8607,7 @@
                       textAlign: "center",
                       whiteSpace: "nowrap"
                     },
-                    children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+                    children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
                       fontSize: "10px",
                       fontWeight: "600",
                       color: milestone.amountColor || "#3b82f6"
@@ -8127,12 +8622,30 @@
             milestone.id
           );
         })
-      ] })
+      ] }),
+      openUpsellMilestoneId && shop && onAddToCart && (() => {
+        const openedMilestone = sortedMilestones.find((m) => m.id === openUpsellMilestoneId);
+        if (!openedMilestone || openedMilestone.status === "unlocked") {
+          return null;
+        }
+        return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          MilestoneUpsellCarousel,
+          {
+            shop,
+            milestoneId: openedMilestone.id,
+            remaining: openedMilestone.remaining,
+            collectionHandle: openedMilestone.eligibleCollectionHandle,
+            onAddToCart,
+            onClose: () => setOpenUpsellMilestoneId(null),
+            isPreview
+          }
+        );
+      })()
     ] });
   }
 
   // extensions/cart-upsell/assets/modules/components/MilestoneBlockWrapper.jsx
-  var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
   var MilestoneBlockWrapper = ({
     milestones,
     cartTotal,
@@ -8141,12 +8654,12 @@
     isPreview = false,
     onImpression
   }) => {
-    import_react.default.useEffect(() => {
+    import_react3.default.useEffect(() => {
       if (onImpression && !isPreview) {
         onImpression();
       }
     }, [onImpression, isPreview]);
-    return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "upsellity-milestone-block", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "upsellity-milestone-block", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
       MilestonesWidget,
       {
         milestones,
@@ -8809,8 +9322,8 @@
   }
 
   // extensions/cart-upsell/assets/modules/milestone-block-entry.js
-  var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://either-old-celebrities-cannon.trycloudflare.com" : "https://app.upsellity.com";
+  var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
+  var APP_URL = true ? "https://sorted-congressional-interval-bios.trycloudflare.com" : "https://app.upsellity.com";
   function initMilestoneBlocks() {
     const containers = document.querySelectorAll(".upsellity-milestone-container");
     if (containers.length === 0) {
@@ -8912,7 +9425,7 @@
           const root = (0, import_client.createRoot)(container);
           const renderMilestones = (milestones, total) => {
             root.render(
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
                 MilestoneBlockWrapper,
                 {
                   milestones,

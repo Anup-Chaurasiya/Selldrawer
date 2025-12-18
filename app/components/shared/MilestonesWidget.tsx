@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { MilestoneUpsellCarousel } from './MilestoneUpsellCarousel';
 
 interface Milestone {
   id: string;
@@ -16,6 +17,11 @@ interface Milestone {
   iconColor: string;
   titleColor: string;
   amountColor: string;
+  // Product eligibility for upsell
+  eligibleCollectionHandle?: string | null;
+  eligibleTag?: string | null;
+  eligibleProductIds?: string[];
+  canShowUpsell?: boolean;
 }
 
 interface MilestonesWidgetProps {
@@ -25,6 +31,8 @@ interface MilestonesWidgetProps {
   layout?: 'vertical' | 'compact';
   progressBarColor?: string;
   allUnlockedMessage?: string;
+  shop?: string;
+  onAddToCart?: (variantId: string, quantity: number) => void;
 }
 
 export function MilestonesWidget({
@@ -34,96 +42,100 @@ export function MilestonesWidget({
   layout = 'vertical',
   progressBarColor,
   allUnlockedMessage,
+  shop,
+  onAddToCart,
 }: MilestonesWidgetProps) {
+  const [openUpsellMilestoneId, setOpenUpsellMilestoneId] = useState<string | null>(null);
+
   if (!milestones || milestones.length === 0) {
     return null;
   }
 
   // Sort milestones by target amount
   const sortedMilestones = [...milestones].sort((a, b) => a.targetAmount - b.targetAmount);
-  
+
   // Get the maximum target amount for calculating positions
   const maxTarget = sortedMilestones[sortedMilestones.length - 1]?.targetAmount || 100;
   const minTarget = sortedMilestones[0]?.targetAmount || 0;
-  
+
   // Calculate positions with consistent spacing
   const getPosition = (targetAmount: number) => {
     const index = sortedMilestones.findIndex(m => m.targetAmount === targetAmount);
-    
+
     // For single milestone, always place at 50%
     if (sortedMilestones.length === 1) {
       return 50;
     }
-    
+
     // For 2 milestones, place at 25% and 75%
     if (sortedMilestones.length === 2) {
       return index === 0 ? 25 : 75;
     }
-    
+
     // For 3 milestones, place at 20%, 50%, and 80%
     if (sortedMilestones.length === 3) {
       return [20, 50, 80][index];
     }
-    
+
     // Fallback for more than 3 (shouldn't happen but just in case)
     const spacing = 80 / (sortedMilestones.length - 1);
     return 10 + (index * spacing);
   };
-  
+
   // Calculate current progress percentage
   // Find which milestone segment we're in
   const getCurrentProgressPercent = () => {
     if (sortedMilestones.length === 0) return 0;
-    
+
     // If cart total is less than first milestone
     if (cartTotal < sortedMilestones[0].targetAmount) {
       const firstPosition = getPosition(sortedMilestones[0].targetAmount);
       const progress = (cartTotal / sortedMilestones[0].targetAmount) * firstPosition;
       return Math.min(progress, firstPosition);
     }
-    
+
     // Find the segment we're in
     for (let i = 0; i < sortedMilestones.length - 1; i++) {
       const currentMilestone = sortedMilestones[i];
       const nextMilestone = sortedMilestones[i + 1];
-      
+
       if (cartTotal >= currentMilestone.targetAmount && cartTotal < nextMilestone.targetAmount) {
         const currentPos = getPosition(currentMilestone.targetAmount);
         const nextPos = getPosition(nextMilestone.targetAmount);
-        const segmentProgress = (cartTotal - currentMilestone.targetAmount) / 
-                               (nextMilestone.targetAmount - currentMilestone.targetAmount);
+        const segmentProgress = (cartTotal - currentMilestone.targetAmount) /
+          (nextMilestone.targetAmount - currentMilestone.targetAmount);
         return currentPos + (segmentProgress * (nextPos - currentPos));
       }
     }
-    
+
     // If we've passed all milestones, stop at the last one
     const lastMilestone = sortedMilestones[sortedMilestones.length - 1];
     return getPosition(lastMilestone.targetAmount);
   };
-  
+
   const currentProgressPercent = getCurrentProgressPercent();
-  
+
   // Get the last milestone position to cap the progress bar
   const lastMilestone = sortedMilestones[sortedMilestones.length - 1];
   const lastMilestonePosition = getPosition(lastMilestone.targetAmount);
-  
+
   // Cap progress to never exceed the last milestone position
   const cappedProgressPercent = Math.min(currentProgressPercent, lastMilestonePosition);
-  
+
   // Find the next milestone to show in the message
   const nextMilestone = sortedMilestones.find(m => m.status !== 'unlocked');
   const allUnlocked = sortedMilestones.every(m => m.status === 'unlocked');
-  
+
   // If only one milestone and it's unlocked, show its message instead of "all unlocked"
-  const displayMessage = allUnlocked 
-    ? (sortedMilestones.length === 1 
-        ? sortedMilestones[0].message 
-        : (allUnlockedMessage || '🎉 Congratulations! All rewards unlocked!'))
+  const displayMessage = allUnlocked
+    ? (sortedMilestones.length === 1
+      ? sortedMilestones[0].message
+      : (allUnlockedMessage || '🎉 Congratulations! All rewards unlocked!'))
     : nextMilestone?.message || '';
 
   // Use the provided progress bar color or fallback to default
   const finalProgressBarColor = progressBarColor || '#3b82f6';
-  
+
   // Create a gradient from the color (darker shade for gradient effect)
   const hexToRgb = (hex: string) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -214,6 +226,13 @@ export function MilestonesWidget({
           const isUnlocked = milestone.status === 'unlocked';
           const isInProgress = milestone.status === 'in_progress';
 
+          // Check if milestone has eligibility config for upsell
+          const hasEligibilityConfig = Boolean(
+            milestone.eligibleCollectionHandle ||
+            (milestone.eligibleProductIds && milestone.eligibleProductIds.length > 0) ||
+            milestone.eligibleTag
+          );
+
           return (
             <div
               key={milestone.id}
@@ -225,104 +244,152 @@ export function MilestonesWidget({
                 zIndex: 10,
               }}
             >
-                {/* Milestone Title - Above (Close to Icon, Always Horizontal) */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: '100%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    marginBottom: '6px',
-                    textAlign: 'center',
-                    width: 'max-content',
-                    maxWidth: sortedMilestones.length === 1 ? '200px' : sortedMilestones.length === 2 ? '140px' : '100px',
-                  }}
-                >
-                  <div style={{
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: milestone.titleColor || '#1e40af',
-                    whiteSpace: 'normal',
-                    lineHeight: '1.3',
-                    display: 'block',
-                    wordBreak: 'break-word',
-                    hyphens: 'auto',
-                  }}>
-                    {milestone.title}
-                  </div>
-                </div>
-
-                {/* Milestone Icon/Circle */}
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '50%',
-                    backgroundColor: milestone.iconColor || '#3b82f6',
-                    border: `3px solid ${milestone.iconColor || '#3b82f6'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '16px',
-                    transition: 'all 0.3s ease',
-                    boxShadow: isUnlocked || isInProgress ? '0 2px 8px rgba(0, 0, 0, 0.15)' : 'none',
-                    position: 'relative',
-                    opacity: isUnlocked ? 1 : isInProgress ? 0.9 : 0.5,
-                  }}
-                  title={`${milestone.title} - ₹${milestone.targetAmount}`}
-                >
-                  <span>{milestone.icon || '🎁'}</span>
-                  {isUnlocked && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        right: '-4px',
-                        bottom: '-4px',
-                        width: '16px',
-                        height: '16px',
-                        borderRadius: '50%',
-                        backgroundColor: '#10b981',
-                        border: '2px solid #ffffff',
-                        color: '#ffffff',
-                        fontSize: '10px',
-                        fontWeight: 'bold',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      ✓
-                    </div>
-                  )}
-                </div>
-
-                {/* Milestone Amount - Below */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    marginTop: '8px',
-                    textAlign: 'center',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <div style={{
-                    fontSize: '10px',
-                    fontWeight: '600',
-                    color: milestone.amountColor || '#3b82f6',
-                  }}>
-                    ₹{milestone.targetAmount.toFixed(0)}
-                  </div>
+              {/* Milestone Title - Above (Close to Icon, Always Horizontal) */}
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  marginBottom: '6px',
+                  textAlign: 'center',
+                  width: 'max-content',
+                  maxWidth: sortedMilestones.length === 1 ? '200px' : sortedMilestones.length === 2 ? '140px' : '100px',
+                }}
+              >
+                <div style={{
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  color: milestone.titleColor || '#1e40af',
+                  whiteSpace: 'normal',
+                  lineHeight: '1.3',
+                  display: 'block',
+                  wordBreak: 'break-word',
+                  hyphens: 'auto',
+                }}>
+                  {milestone.title}
                 </div>
               </div>
-            );
-          })}
+
+              {/* Milestone Icon/Circle */}
+              <div
+                onClick={() => {
+                  // Only allow click on locked/in-progress milestones with eligibility config
+                  if (!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart) {
+                    // Find first locked milestone
+                    const firstLockedMilestone = sortedMilestones.find(m => m.status !== 'unlocked');
+                    // Only show upsell for the first locked milestone
+                    if (firstLockedMilestone && firstLockedMilestone.id === milestone.id) {
+                      setOpenUpsellMilestoneId(openUpsellMilestoneId === milestone.id ? null : milestone.id);
+                    }
+                  }
+                }}
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  backgroundColor: milestone.iconColor || '#3b82f6',
+                  border: `3px solid ${milestone.iconColor || '#3b82f6'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '16px',
+                  transition: 'all 0.3s ease',
+                  boxShadow: isUnlocked || isInProgress ? '0 2px 8px rgba(0, 0, 0, 0.15)' : 'none',
+                  position: 'relative',
+                  opacity: isUnlocked ? 1 : isInProgress ? 0.9 : 0.5,
+                  cursor: (!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart) ? 'pointer' : 'default',
+                  transform: (!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig) ? 'scale(1)' : undefined,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart) {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig) {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = isInProgress ? '0 2px 8px rgba(0, 0, 0, 0.15)' : 'none';
+                  }
+                }}
+                title={
+                  !isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart
+                    ? 'View items to unlock this reward'
+                    : `${milestone.title} - ₹${milestone.targetAmount}`
+                }
+              >
+                <span>{milestone.icon || '🎁'}</span>
+                {isUnlocked && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      right: '-4px',
+                      bottom: '-4px',
+                      width: '16px',
+                      height: '16px',
+                      borderRadius: '50%',
+                      backgroundColor: '#10b981',
+                      border: '2px solid #ffffff',
+                      color: '#ffffff',
+                      fontSize: '10px',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    ✓
+                  </div>
+                )}
+              </div>
+
+              {/* Milestone Amount - Below */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  marginTop: '8px',
+                  textAlign: 'center',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <div style={{
+                  fontSize: '10px',
+                  fontWeight: '600',
+                  color: milestone.amountColor || '#3b82f6',
+                }}>
+                  ₹{milestone.targetAmount.toFixed(0)}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
+
+      {/* Upsell Carousel - Show for opened milestone */}
+      {openUpsellMilestoneId && shop && onAddToCart && (() => {
+        const openedMilestone = sortedMilestones.find(m => m.id === openUpsellMilestoneId);
+        if (!openedMilestone || openedMilestone.status === 'unlocked') {
+          return null;
+        }
+
+        return (
+          <MilestoneUpsellCarousel
+            shop={shop}
+            milestoneId={openedMilestone.id}
+            remaining={openedMilestone.remaining}
+            collectionHandle={openedMilestone.eligibleCollectionHandle}
+            onAddToCart={onAddToCart}
+            onClose={() => setOpenUpsellMilestoneId(null)}
+            isPreview={isPreview}
+          />
+        );
+      })()}
     </div>
   );
 }
 
 export default MilestonesWidget;
-

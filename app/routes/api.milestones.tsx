@@ -108,10 +108,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
         status === "unlocked"
           ? milestone.unlockedMessage?.replace("{reward}", rewardText) || `🎉 You've unlocked ${rewardText}!`
           : status === "in_progress"
-          ? milestone.inProgressMessage
+            ? milestone.inProgressMessage
               ?.replace("{remaining}", remainingFormatted)
               .replace("{reward}", rewardText) || `Only ${remainingFormatted} away from ${rewardText}!`
-          : milestone.lockedMessage
+            : milestone.lockedMessage
               ?.replace("{remaining}", remainingFormatted)
               .replace("{reward}", rewardText) || `Add ${remainingFormatted} to unlock ${rewardText}`;
 
@@ -133,6 +133,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
         titleColor: milestone.titleColor,
         amountColor: milestone.amountColor,
         giftProducts: (milestone as any).giftProducts || [],
+        // Product eligibility for upsell
+        eligibleCollectionHandle: (milestone as any).eligibleCollectionHandle || null,
+        eligibleTag: (milestone as any).eligibleTag || null,
+        eligibleProductIds: (milestone as any).eligibleProductIds || [],
+        canShowUpsell: status === "locked" || status === "in_progress",
       };
     });
 

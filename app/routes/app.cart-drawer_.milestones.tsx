@@ -21,6 +21,8 @@ import {
   Divider,
   EmptyState,
   Checkbox,
+  ChoiceList,
+  Icon,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { DeleteIcon, PlusIcon } from "@shopify/polaris-icons";
@@ -218,11 +220,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       let giftProducts: any[] = [];
       if (rewardType === "gift_wrapping") {
         const giftProductsJson = formData.get("giftProducts") as string;
-        
+
         if (giftProductsJson) {
           giftProducts = JSON.parse(giftProductsJson);
         }
-        
+
         // Validate that at least one gift product is selected
         if (giftProducts.length === 0) {
           return json({ error: "Please select at least one gift product" }, { status: 400 });
@@ -256,6 +258,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
       const priority = (highestPriority?.priority || 0) + 1;
 
+      // Parse eligibility fields
+      const eligibleCollectionHandle = formData.get("eligibleCollectionHandle") as string | null;
+      const eligibleTag = formData.get("eligibleTag") as string | null;
+      const eligibleProductIdsJson = formData.get("eligibleProductIds") as string | null;
+      let eligibleProductIds: string[] = [];
+      if (eligibleProductIdsJson) {
+        try {
+          eligibleProductIds = JSON.parse(eligibleProductIdsJson);
+        } catch (e) {
+          console.error("Failed to parse eligibleProductIds:", e);
+        }
+      }
+
       const milestone = await prisma.cartMilestone.create({
         data: {
           cartDrawerId: cartDrawer.id,
@@ -275,6 +290,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           iconColor,
           titleColor,
           amountColor,
+          eligibleCollectionHandle,
+          eligibleTag,
+          eligibleProductIds,
         } as any
       });
 
@@ -330,11 +348,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     let giftProducts: any[] = [];
     if (rewardType === "gift_wrapping") {
       const giftProductsJson = formData.get("giftProducts") as string;
-      
+
       if (giftProductsJson) {
         giftProducts = JSON.parse(giftProductsJson);
       }
-      
+
       // Validate that at least one gift product is selected
       if (giftProducts.length === 0) {
         return json({ error: "Please select at least one gift product" }, { status: 400 });
@@ -363,6 +381,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ error: "Failed to update Shopify discount. Please check your configuration and try again." }, { status: 500 });
     }
 
+    // Parse eligibility fields
+    const eligibleCollectionHandle = formData.get("eligibleCollectionHandle") as string | null;
+    const eligibleTag = formData.get("eligibleTag") as string | null;
+    const eligibleProductIdsJson = formData.get("eligibleProductIds") as string | null;
+    let eligibleProductIds: string[] = [];
+    if (eligibleProductIdsJson) {
+      try {
+        eligibleProductIds = JSON.parse(eligibleProductIdsJson);
+      } catch (e) {
+        console.error("Failed to parse eligibleProductIds:", e);
+      }
+    }
+
     await prisma.cartMilestone.update({
       where: { id: milestoneId },
       data: {
@@ -380,6 +411,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         iconColor,
         titleColor,
         amountColor,
+        eligibleCollectionHandle,
+        eligibleTag,
+        eligibleProductIds,
       } as any
     });
 
@@ -412,7 +446,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "delete-milestone") {
     const milestoneId = formData.get("milestoneId") as string;
-    
+
     // Get milestone to retrieve discount ID
     const milestone = await prisma.cartMilestone.findUnique({
       where: { id: milestoneId },
@@ -428,7 +462,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await prisma.cartMilestone.delete({
       where: { id: milestoneId }
     });
-    
+
     return json({ success: true });
   }
 
@@ -445,14 +479,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "reorder-milestones") {
     const orderJson = formData.get("order") as string;
     const order = JSON.parse(orderJson);
-    
+
     for (let i = 0; i < order.length; i++) {
       await prisma.cartMilestone.update({
         where: { id: order[i] },
         data: { priority: i }
       });
     }
-    
+
     return json({ success: true });
   }
 
@@ -477,16 +511,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "save-global-settings") {
     const progressBarColor = formData.get("progressBarColor") as string;
     const allUnlockedMessage = formData.get("allUnlockedMessage") as string;
-    
+
     await prisma.cartDrawer.update({
       where: { id: cartDrawer.id },
-      data: { 
+      data: {
         milestonesProgressBarColor: progressBarColor,
         milestonesAllUnlockedMessage: allUnlockedMessage,
         milestonesEnabled: true, // Auto-enable when saving
       } as any
     });
-    
+
     return redirect("/app/cart-drawer");
   }
 
@@ -529,6 +563,13 @@ export default function CartMilestones() {
   const [showGiftProductModal, setShowGiftProductModal] = useState(false);
   const [editingGiftProductIndex, setEditingGiftProductIndex] = useState<number | null>(null);
 
+  // Product eligibility state for upsell
+  const [eligibilitySource, setEligibilitySource] = useState<'none' | 'collection' | 'products' | 'tag'>('none');
+  const [eligibleCollectionHandle, setEligibleCollectionHandle] = useState<string>('');
+  const [eligibleProductIds, setEligibleProductIds] = useState<string[]>([]);
+  const [eligibleTag, setEligibleTag] = useState<string>('');
+  const [showEligibilityProductModal, setShowEligibilityProductModal] = useState(false);
+
   // Global settings state
   const [globalSettings, setGlobalSettings] = useState(() => ({
     progressBarColor: (cartDrawer as any)?.milestonesProgressBarColor || "#3b82f6",
@@ -555,6 +596,24 @@ export default function CartMilestones() {
       setSelectedTargets(milestone.targets || []);
       setSelectedGiftProducts(milestone.giftProducts || []);
       setLivePreviewMilestone(initialState);
+
+      // Set eligibility fields
+      const hasCollection = Boolean((milestone as any).eligibleCollectionHandle);
+      const hasProducts = Boolean((milestone as any).eligibleProductIds?.length > 0);
+      const hasTag = Boolean((milestone as any).eligibleTag);
+
+      if (hasCollection) {
+        setEligibilitySource('collection');
+        setEligibleCollectionHandle((milestone as any).eligibleCollectionHandle);
+      } else if (hasProducts) {
+        setEligibilitySource('products');
+        setEligibleProductIds((milestone as any).eligibleProductIds);
+      } else if (hasTag) {
+        setEligibilitySource('tag');
+        setEligibleTag((milestone as any).eligibleTag);
+      } else {
+        setEligibilitySource('none');
+      }
     } else {
       setEditingMilestone(null);
       const initialState = {
@@ -574,6 +633,12 @@ export default function CartMilestones() {
       setSelectedTargets([]);
       setSelectedGiftProducts([]);
       setLivePreviewMilestone(initialState);
+
+      // Reset eligibility fields
+      setEligibilitySource('none');
+      setEligibleCollectionHandle('');
+      setEligibleProductIds([]);
+      setEligibleTag('');
     }
     setShowMilestoneModal(true);
   }, []);
@@ -590,7 +655,7 @@ export default function CartMilestones() {
   const handleSaveMilestone = useCallback(() => {
     const formData = new FormData();
     formData.append("intent", editingMilestone ? "update-milestone" : "add-milestone");
-    
+
     if (editingMilestone) {
       formData.append("milestoneId", editingMilestone.id);
     }
@@ -603,9 +668,18 @@ export default function CartMilestones() {
       formData.append("giftProducts", JSON.stringify(selectedGiftProducts));
     }
 
+    // Add product eligibility fields based on selected source
+    if (eligibilitySource === 'collection' && eligibleCollectionHandle) {
+      formData.append("eligibleCollectionHandle", eligibleCollectionHandle);
+    } else if (eligibilitySource === 'products' && eligibleProductIds.length > 0) {
+      formData.append("eligibleProductIds", JSON.stringify(eligibleProductIds));
+    } else if (eligibilitySource === 'tag' && eligibleTag) {
+      formData.append("eligibleTag", eligibleTag);
+    }
+
     submit(formData, { method: "post" });
     setShowMilestoneModal(false);
-  }, [formState, selectedTargets, selectedGiftProducts, editingMilestone, submit]);
+  }, [formState, selectedTargets, selectedGiftProducts, editingMilestone, eligibilitySource, eligibleCollectionHandle, eligibleProductIds, eligibleTag, submit]);
 
   const handleDeleteMilestone = useCallback((milestoneId: string) => {
     if (confirm("Are you sure you want to delete this milestone?")) {
@@ -652,21 +726,21 @@ export default function CartMilestones() {
     if (showMilestoneModal && livePreviewMilestone && livePreviewMilestone.title && livePreviewMilestone.targetAmount) {
       const sampleCartTotal = 6000;
       const targetAmount = parseFloat(livePreviewMilestone.targetAmount) || 0;
-      
+
       if (targetAmount > 0) {
         const progress = Math.min((sampleCartTotal / targetAmount) * 100, 100);
         const remaining = Math.max(targetAmount - sampleCartTotal, 0);
         const status: 'unlocked' | 'in_progress' | 'locked' = sampleCartTotal >= targetAmount ? 'unlocked' : sampleCartTotal > 0 ? 'in_progress' : 'locked';
-        
+
         const rewardText = livePreviewMilestone.title;
         const remainingFormatted = `₹${remaining.toFixed(2)}`;
-        
+
         const message =
           status === 'unlocked'
             ? livePreviewMilestone.unlockedMessage?.replace('{reward}', rewardText) || `🎉 You've unlocked ${rewardText}!`
             : status === 'in_progress'
-            ? livePreviewMilestone.inProgressMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Only ${remainingFormatted} away from ${rewardText}!`
-            : `Add ${remainingFormatted} to unlock ${rewardText}`;
+              ? livePreviewMilestone.inProgressMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Only ${remainingFormatted} away from ${rewardText}!`
+              : `Add ${remainingFormatted} to unlock ${rewardText}`;
 
         return [{
           id: 'live-preview',
@@ -686,27 +760,27 @@ export default function CartMilestones() {
         }];
       }
     }
-    
+
     if (cartDrawer.milestones && cartDrawer.milestones.length > 0) {
       // Use actual milestones for preview - only show active ones
       const sampleCartTotal = 6000; // Sample cart value for preview
       const activeMilestones = cartDrawer.milestones.filter((m: any) => m.isActive);
-      
+
       return activeMilestones.map((m: any) => {
         const targetAmount = parseFloat(m.targetAmount.toString());
         const progress = Math.min((sampleCartTotal / targetAmount) * 100, 100);
         const remaining = Math.max(targetAmount - sampleCartTotal, 0);
         const status: 'unlocked' | 'in_progress' | 'locked' = sampleCartTotal >= targetAmount ? 'unlocked' : sampleCartTotal > 0 ? 'in_progress' : 'locked';
-        
+
         const rewardText = m.title;
         const remainingFormatted = `₹${remaining.toFixed(2)}`;
-        
+
         const message =
           status === 'unlocked'
             ? m.unlockedMessage?.replace('{reward}', rewardText) || `🎉 You've unlocked ${rewardText}!`
             : status === 'in_progress'
-            ? m.inProgressMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Only ${remainingFormatted} away from ${rewardText}!`
-            : `Add ${remainingFormatted} to unlock ${rewardText}`;
+              ? m.inProgressMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Only ${remainingFormatted} away from ${rewardText}!`
+              : `Add ${remainingFormatted} to unlock ${rewardText}`;
 
         return {
           id: m.id,
@@ -726,7 +800,7 @@ export default function CartMilestones() {
         };
       });
     }
-    
+
     // Default sample milestones (when no milestones configured)
     return [
       {
@@ -810,7 +884,7 @@ export default function CartMilestones() {
               <p>
                 {hasReachedMaxMilestones ? (
                   <>
-                    <strong>Maximum milestones reached!</strong> You can configure up to 3 milestones. 
+                    <strong>Maximum milestones reached!</strong> You can configure up to 3 milestones.
                     Delete an existing milestone to add a new one.
                   </>
                 ) : (
@@ -879,7 +953,7 @@ export default function CartMilestones() {
                         <ResourceItem
                           id={id}
                           accessibilityLabel={`View details for ${title}`}
-                          onClick={() => {}}
+                          onClick={() => { }}
                         >
                           <BlockStack gap="300">
                             <BlockStack gap="200">
@@ -990,7 +1064,7 @@ export default function CartMilestones() {
                 border: '1px solid #bfdbfe'
               }}>
                 <Text as="p" variant="bodySm">
-                  <strong>💡 Preview Tip:</strong> {cartDrawer.milestones && cartDrawer.milestones.length > 0 
+                  <strong>💡 Preview Tip:</strong> {cartDrawer.milestones && cartDrawer.milestones.length > 0
                     ? 'Showing your configured milestones with a sample cart value of ₹6,000. Add or edit milestones to see changes.'
                     : 'Configure milestones to see how they will appear in your cart drawer.'}
                 </Text>
@@ -1013,7 +1087,7 @@ export default function CartMilestones() {
           content: editingMilestone ? "Update" : "Add",
           onAction: handleSaveMilestone,
           loading: isSubmitting,
-          disabled: !formState.title || !formState.targetAmount || 
+          disabled: !formState.title || !formState.targetAmount ||
             (formState.rewardType === "gift_wrapping" && selectedGiftProducts.length === 0) ||
             ((formState.rewardType === "discount_percentage" || formState.rewardType === "discount_fixed") && !formState.rewardValue),
         }}
@@ -1148,8 +1222,8 @@ export default function CartMilestones() {
                                 }}
                               />
                               <Text as="p" variant="bodySm" fontWeight="medium" alignment="center">
-                                {giftProduct.title.length > 20 
-                                  ? giftProduct.title.substring(0, 20) + '...' 
+                                {giftProduct.title.length > 20
+                                  ? giftProduct.title.substring(0, 20) + '...'
                                   : giftProduct.title}
                               </Text>
                               <div style={{ marginTop: '8px' }}>
@@ -1261,7 +1335,172 @@ export default function CartMilestones() {
                 {...({ type: "color" } as any)}
                 helpText="Color of the target amount text"
               />
+
+              <Divider />
+
+              <Text as="h3" variant="headingMd">
+                Product Recommendations (Upsell)
+              </Text>
+
+              <Banner tone="info">
+                <p>Configure which products customers can view to help them reach this milestone. When customers click the locked milestone badge, they'll see a carousel of recommended products.</p>
+              </Banner>
+
+              <ChoiceList
+                title="Eligibility Source"
+                choices={[
+                  { label: 'None (No product recommendations)', value: 'none' },
+                  { label: 'Collection', value: 'collection' },
+                  { label: 'Specific Products', value: 'products' },
+                  { label: 'Product Tag', value: 'tag' },
+                ]}
+                selected={[eligibilitySource]}
+                onChange={(selected: string[]) => {
+                  setEligibilitySource(selected[0] as any);
+                  // Reset other fields when changing source
+                  if (selected[0] !== 'collection') setEligibleCollectionHandle('');
+                  if (selected[0] !== 'products') setEligibleProductIds([]);
+                  if (selected[0] !== 'tag') setEligibleTag('');
+                }}
+              />
+
+              {eligibilitySource === 'collection' && (
+                <Select
+                  label="Select Collection"
+                  options={[
+                    { label: 'Select a collection...', value: '' },
+                    ...shopCollections.map((col: any) => ({
+                      label: col.title,
+                      value: col.handle,
+                    })),
+                  ]}
+                  value={eligibleCollectionHandle}
+                  onChange={setEligibleCollectionHandle}
+                  helpText="Products from this collection will be recommended"
+                />
+              )}
+
+              {eligibilitySource === 'products' && (
+                <BlockStack gap="200">
+                  <Button
+                    onClick={() => setShowEligibilityProductModal(true)}
+                    variant="secondary"
+                  >
+                    {eligibleProductIds.length > 0
+                      ? `${eligibleProductIds.length} product(s) selected`
+                      : 'Select products'}
+                  </Button>
+                  {eligibleProductIds.length > 0 && (
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {eligibleProductIds.length} product(s) will be recommended
+                    </Text>
+                  )}
+                </BlockStack>
+              )}
+
+              {eligibilitySource === 'tag' && (
+                <TextField
+                  label="Product Tag"
+                  value={eligibleTag}
+                  onChange={setEligibleTag}
+                  placeholder="e.g., upsell, premium, featured"
+                  autoComplete="off"
+                  helpText="Products with this tag will be recommended"
+                />
+              )}
+
+              {eligibilitySource !== 'none' && (
+                <Banner tone="warning">
+                  <p><strong>Priority:</strong> If multiple sources are configured, only the highest priority will be used: Collection → Specific Products → Tag</p>
+                </Banner>
+              )}
             </FormLayout>
+          </BlockStack>
+        </Modal.Section>
+      </Modal>
+
+      {/* Eligibility Product Selection Modal */}
+      <Modal
+        open={showEligibilityProductModal}
+        onClose={() => setShowEligibilityProductModal(false)}
+        title="Select Eligible Products"
+        primaryAction={{
+          content: "Done",
+          onAction: () => setShowEligibilityProductModal(false),
+        }}
+      >
+        <Modal.Section>
+          <BlockStack gap="400">
+            <TextField
+              label="Search products"
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search by product name..."
+              autoComplete="off"
+              clearButton
+              onClearButtonClick={() => setSearchQuery('')}
+            />
+
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <BlockStack gap="200">
+                {shopProducts
+                  .filter((product: any) =>
+                    product.title.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  .map((product: any) => {
+                    const productId = product.id.replace('gid://shopify/Product/', '');
+                    const isSelected = eligibleProductIds.includes(productId);
+
+                    return (
+                      <div
+                        key={product.id}
+                        style={{
+                          padding: '12px',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
+                        }}
+                        onClick={() => {
+                          if (isSelected) {
+                            setEligibleProductIds(eligibleProductIds.filter(id => id !== productId));
+                          } else {
+                            setEligibleProductIds([...eligibleProductIds, productId]);
+                          }
+                        }}
+                      >
+                        <InlineStack gap="300" align="start">
+                          <Checkbox
+                            label=""
+                            checked={isSelected}
+                            onChange={() => { }}
+                          />
+                          {product.featuredImage && (
+                            <img
+                              src={product.featuredImage.url}
+                              alt={product.title}
+                              style={{
+                                width: '50px',
+                                height: '50px',
+                                objectFit: 'cover',
+                                borderRadius: '6px',
+                              }}
+                            />
+                          )}
+                          <div style={{ flex: 1 }}>
+                            <Text as="p" variant="bodyMd" fontWeight="medium">
+                              {product.title}
+                            </Text>
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              ₹{product.variants?.[0]?.price || '0'}
+                            </Text>
+                          </div>
+                        </InlineStack>
+                      </div>
+                    );
+                  })}
+              </BlockStack>
+            </div>
           </BlockStack>
         </Modal.Section>
       </Modal>
@@ -1312,13 +1551,13 @@ export default function CartMilestones() {
                               imageUrl: product.images?.[0]?.src || null,
                               handle: product.handle,
                             };
-                            
+
                             if (editingGiftProductIndex < newGiftProducts.length) {
                               newGiftProducts[editingGiftProductIndex] = productData;
                             } else {
                               newGiftProducts.push(productData);
                             }
-                            
+
                             // Limit to 3 products
                             setSelectedGiftProducts(newGiftProducts.slice(0, 3));
                             setShowGiftProductModal(false);

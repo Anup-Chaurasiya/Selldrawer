@@ -37,7 +37,7 @@ export const UnifiedCartDrawer = ({
   onFeatureImpression,
   onFeatureClick
 }) => {
-  
+
   React.useEffect(() => {
     if (onImpression) {
       onImpression();
@@ -47,7 +47,7 @@ export const UnifiedCartDrawer = ({
   // Helper to calculate feature order
   const getFeatureOrder = () => {
     const featureOrder = config?.featureOrder || [];
-    
+
     // Handle case where featureOrder might be a string (legacy) or array (new format)
     let orderArray = [];
     if (typeof featureOrder === 'string') {
@@ -57,31 +57,31 @@ export const UnifiedCartDrawer = ({
       // New array format
       orderArray = featureOrder;
     }
-    
+
     // Find the cart items separator (could be 'cart-items' or '__cart-items__')
-    const cartItemsIndex = orderArray.findIndex(item => 
+    const cartItemsIndex = orderArray.findIndex(item =>
       item === 'cart-items' || item === '__cart-items__'
     );
-    
+
     if (cartItemsIndex === -1) {
       // No cart items separator found, return all as beforeItems
       return { beforeItems: orderArray, afterItems: [] };
     }
-    
+
     const beforeItems = orderArray.slice(0, cartItemsIndex);
     const afterItems = orderArray.slice(cartItemsIndex + 1);
-    
+
     return { beforeItems, afterItems };
   };
 
   // Helper to calculate savings (using Shopify cart data)
   const calculateSavings = () => {
     if (!config?.features?.savingsDisplay) return 0;
-    
+
     const itemLevelSavings = cart.items.reduce((sum, item) => {
       return sum + Math.max(0, (item.original_price - item.final_price)) * item.quantity;
     }, 0);
-    
+
     // Use Shopify's total_discount from cart (in cents)
     const discountSavings = cart.total_discount || 0;
     return Math.max(itemLevelSavings, discountSavings);
@@ -94,7 +94,7 @@ export const UnifiedCartDrawer = ({
       case 'free-shipping-bar': {
         const bar = config?.features?.freeShippingProgressBar;
         if (!bar) return null;
-        
+
         return (
           <div key={featureId} style={{ marginBottom: '12px' }}>
             <FreeShippingBar
@@ -118,10 +118,10 @@ export const UnifiedCartDrawer = ({
       case 'promotional-banner': {
         const banner = config?.features?.promotionalBanner;
         if (!banner) return null;
-        
+
         const slides = banner.images || [];
         if (slides.length === 0) return null;
-        
+
         return (
           <div key={featureId} style={{ marginBottom: '12px' }}>
             <PromotionalBannerCard
@@ -146,10 +146,10 @@ export const UnifiedCartDrawer = ({
       case 'product-recommendations': {
         const recommendations = config?.features?.productRecommendations;
         if (!recommendations) return null;
-        
+
         const products = recommendations.products || [];
         if (products.length === 0) return null;
-        
+
         return (
           <div key={featureId} style={{ marginBottom: '12px' }}>
             <ProductRecommendations
@@ -172,11 +172,11 @@ export const UnifiedCartDrawer = ({
       case 'savings-display': {
         const savingsCfg = config?.features?.savingsDisplay;
         if (!savingsCfg) return null;
-        
+
         // Calculate savings using Shopify cart data
         const totalSavings = calculateSavings();
         if (totalSavings <= 0) return null;
-        
+
         return (
           <div key={featureId} style={{ marginBottom: '12px' }}>
             <SavingsDisplay
@@ -194,7 +194,7 @@ export const UnifiedCartDrawer = ({
       case 'free-shipping-message': {
         const msg = config?.features?.freeShippingMessage;
         if (!msg) return null;
-        
+
         return (
           <div key={featureId} style={{ marginBottom: '12px' }}>
             <FreeShippingMessage
@@ -216,7 +216,7 @@ export const UnifiedCartDrawer = ({
       case 'coupon-code': {
         const couponField = config?.features?.couponCodeField;
         if (!couponField) return null;
-        
+
         return (
           <div key={featureId} style={{ marginBottom: '12px' }}>
             <CouponCodeField
@@ -245,10 +245,13 @@ export const UnifiedCartDrawer = ({
       case 'milestones': {
         const milestones = config?.features?.milestones;
         if (!milestones || !milestones.length) return null;
-        
+
         // Milestones are already calculated by the API, just use them directly
         const cartTotalInRupees = cart.total_price / 100; // Convert cents to rupees
-        
+
+        // Extract shop domain from config or window location
+        const shopDomain = config?.shop || window.Shopify?.shop || window.location.hostname;
+
         return (
           <div key={featureId} style={{ marginBottom: '12px' }}>
             <MilestonesWidget
@@ -257,6 +260,8 @@ export const UnifiedCartDrawer = ({
               isPreview={false}
               progressBarColor={config?.features?.milestonesProgressBarColor}
               allUnlockedMessage={config?.features?.milestonesAllUnlockedMessage}
+              shop={shopDomain}
+              onAddToCart={onAddProductToCart}
             />
           </div>
         );
@@ -264,7 +269,7 @@ export const UnifiedCartDrawer = ({
 
       case 'free-gifts': {
         if (!freeGifts || freeGifts.length === 0) return null;
-        
+
         return (
           <div key={featureId} style={{ marginBottom: '12px' }}>
             <FreeGiftSelector
@@ -286,16 +291,16 @@ export const UnifiedCartDrawer = ({
 
   return (
     <>
-      <button 
-        className="upsellity-close-btn" 
+      <button
+        className="upsellity-close-btn"
         onClick={onClose}
         style={{ background: 'none', border: 'none', cursor: 'pointer' }}
       >
         ×
       </button>
-      
-      <h2 
-        id="upsellity-cart-header" 
+
+      <h2
+        id="upsellity-cart-header"
         style={{ fontSize: '20px', fontWeight: 600, marginBottom: '20px' }}
       >
         Your Cart ({cart.item_count} items)
@@ -326,7 +331,7 @@ export const UnifiedCartDrawer = ({
           subtotalPrice={cart.subtotal_price}
           totalDiscount={cart.total_discount || 0}
           freeGiftVariantIds={
-            freeGifts && freeGifts.length > 0 
+            freeGifts && freeGifts.length > 0
               ? freeGifts[0].giftProducts.map(gp => gp.shopifyVariantId || gp.shopifyProductId)
               : []
           }
@@ -351,23 +356,23 @@ export const UnifiedCartDrawer = ({
       </div>
 
       {/* Checkout button */}
-      <button 
-        className="upsellity-checkout-btn" 
+      <button
+        className="upsellity-checkout-btn"
         onClick={onCheckout}
       >
         Checkout
       </button>
 
       {/* Footer */}
-      <div style={{ 
-        textAlign: 'center', 
-        fontSize: '12px', 
-        color: '#6b7280', 
-        marginTop: '8px', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        gap: '12px' 
+      <div style={{
+        textAlign: 'center',
+        fontSize: '12px',
+        color: '#6b7280',
+        marginTop: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '12px'
       }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
