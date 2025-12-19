@@ -6,6 +6,7 @@ import {
     fetchProductsByCollection,
     fetchProductsByHandles,
     fetchProductsByTag,
+    fetchAllProducts,
     filterProducts,
     rankProductsByPriceDifference,
 } from "../utils/storefrontApi.server";
@@ -59,7 +60,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         if (!milestone.isActive) return cors(request, json({ error: "Milestone is not active" }, { status: 403 }));
         if (milestone.shop !== shop) return cors(request, json({ error: "Shop mismatch" }, { status: 403 }));
 
-        // Determine eligibility source (priority: collection > productIds > tag)
+        // Determine eligibility source (priority: collection > productIds > tag > all products)
         let products: any[] = [];
         let collectionUrl: string | null = null;
         let eligibilitySource: string | null = null;
@@ -77,6 +78,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
             // Priority 3: Tag
             eligibilitySource = "tag";
             products = await fetchProductsByTag(shop, milestone.eligibleTag);
+        } else {
+            // Priority 4: All Products (no specific eligibility configured)
+            eligibilitySource = "all_products";
+            products = await fetchAllProducts(shop);
         }
 
         if (!products.length) {
@@ -84,7 +89,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
                 products: [],
                 collectionUrl: null,
                 totalCount: 0,
-                message: "No product eligibility configured for this milestone",
+                message: "No products available",
             }));
         }
 

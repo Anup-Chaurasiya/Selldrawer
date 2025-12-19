@@ -7,8 +7,8 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { MilestoneBlockWrapper } from './components/MilestoneBlockWrapper.jsx';
 import { Analytics } from './analytics.js';
-import { 
-  handleMilestoneRewards, 
+import {
+  handleMilestoneRewards,
   getCheckoutUrlWithDiscount,
   evaluateMilestones,
   showMilestoneUnlockedNotification
@@ -18,15 +18,15 @@ import {
 const APP_URL = typeof __APP_URL__ !== 'undefined' ? __APP_URL__ : 'https://app.upsellity.com';
 
 // Version info
-const VERSION = typeof __MILESTONE_BLOCK_VERSION__ !== 'undefined' 
-  ? __MILESTONE_BLOCK_VERSION__ 
+const VERSION = typeof __MILESTONE_BLOCK_VERSION__ !== 'undefined'
+  ? __MILESTONE_BLOCK_VERSION__
   : '1.0.0';
 
 // Initialize milestone blocks
 function initMilestoneBlocks() {
   // Find all milestone block containers
   const containers = document.querySelectorAll('.upsellity-milestone-container');
-  
+
   if (containers.length === 0) {
     return;
   }
@@ -92,7 +92,7 @@ function initMilestoneBlocks() {
     // Function to replace placeholders in messages
     const replacePlaceholders = (message, milestone, remaining) => {
       if (!message) return '';
-      
+
       return message
         .replace(/{remaining}/g, `₹${remaining.toFixed(0)}`)
         .replace(/{reward}/g, milestone.title)
@@ -106,13 +106,13 @@ function initMilestoneBlocks() {
         const targetAmount = milestone.targetAmount;
         const progress = Math.min((cartTotal / targetAmount) * 100, 100);
         const remaining = Math.max(targetAmount - cartTotal, 0);
-        
+
         let status = 'locked';
         let message = '';
-        
+
         if (cartTotal >= targetAmount) {
           status = 'unlocked';
-          message = milestone.unlockedMessage 
+          message = milestone.unlockedMessage
             ? replacePlaceholders(milestone.unlockedMessage, milestone, remaining)
             : `🎉 ${milestone.title} unlocked!`;
         } else if (cartTotal > 0) {
@@ -126,7 +126,7 @@ function initMilestoneBlocks() {
             ? replacePlaceholders(milestone.lockedMessage, milestone, remaining)
             : `Spend ₹${targetAmount.toFixed(0)} to unlock ${milestone.title}`;
         }
-        
+
         return {
           ...milestone,
           status,
@@ -142,12 +142,12 @@ function initMilestoneBlocks() {
       try {
         // Fetch milestone data
         const apiUrl = `${APP_URL}/api/milestone-block?shop=${encodeURIComponent(shop)}`;
-        
+
         const response = await fetch(apiUrl);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
 
         // Clear loading state
@@ -167,7 +167,7 @@ function initMilestoneBlocks() {
 
         // Create React root and render
         const root = createRoot(container);
-        
+
         const renderMilestones = (milestones, total) => {
           root.render(
             <MilestoneBlockWrapper
@@ -175,6 +175,7 @@ function initMilestoneBlocks() {
               cartTotal={total}
               progressBarColor={data.progressBarColor}
               allUnlockedMessage={data.allUnlockedMessage}
+              shop={shop}
               isPreview={false}
               onImpression={() => {
                 Analytics.track({
@@ -225,15 +226,15 @@ function initMilestoneBlocks() {
               async () => {
                 // Wait longer for cart to update
                 await new Promise(resolve => setTimeout(resolve, 1000));
-                
+
                 // Refresh UI after reward sync (skip further reward sync to avoid loop)
                 await handleCartUpdate(true);
               }
             );
 
             // Show notification if a new milestone was unlocked
-            if (newUnlockedMilestone && 
-                (!lastUnlockedMilestone || newUnlockedMilestone.id !== lastUnlockedMilestone.id)) {
+            if (newUnlockedMilestone &&
+              (!lastUnlockedMilestone || newUnlockedMilestone.id !== lastUnlockedMilestone.id)) {
               showMilestoneUnlockedNotification(newUnlockedMilestone);
             }
 
@@ -280,7 +281,7 @@ function initMilestoneBlocks() {
 
           const cart = await fetchCart();
           const currentTotal = cart.total_price / 100;
-          
+
           if (Math.abs(currentTotal - lastCartTotal) > 0.01) { // Check for meaningful change
             lastCartTotal = currentTotal;
             await handleCartUpdate();
@@ -294,7 +295,7 @@ function initMilestoneBlocks() {
             button.addEventListener('click', async (e) => {
               const cart = await fetchCart();
               const unlockedMilestone = evaluateMilestones(data.milestones, cart);
-              
+
               if (unlockedMilestone && unlockedMilestone.discountCode) {
                 e.preventDefault();
                 const checkoutUrl = getCheckoutUrlWithDiscount(unlockedMilestone);
@@ -306,7 +307,7 @@ function initMilestoneBlocks() {
 
         // Override checkout buttons after a delay to ensure they're loaded
         setTimeout(overrideCheckoutButtons, 1000);
-        
+
         // Re-override when cart drawer opens
         document.addEventListener('cart:opened', () => {
           setTimeout(overrideCheckoutButtons, 500);
@@ -351,7 +352,7 @@ if (typeof MutationObserver !== 'undefined') {
       mutation.addedNodes.forEach((node) => {
         if (node.nodeType === 1) { // Element node
           if (node.classList?.contains('upsellity-milestone-container') ||
-              node.querySelector?.('.upsellity-milestone-container')) {
+            node.querySelector?.('.upsellity-milestone-container')) {
             shouldInit = true;
           }
         }

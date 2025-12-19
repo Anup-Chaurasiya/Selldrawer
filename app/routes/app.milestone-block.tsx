@@ -20,6 +20,7 @@ import {
   Badge,
   Divider,
   EmptyState,
+  ChoiceList,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { DeleteIcon } from "@shopify/polaris-icons";
@@ -211,17 +212,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const showProgressBar = formData.get("showProgressBar") === "true";
       const iconColor = formData.get("iconColor") as string;
       const titleColor = formData.get("titleColor") as string;
-      const amountColor = formData.get("amountColor") as string;
+      const unlockButtonColor = formData.get("unlockButtonColor") as string;
 
       // Parse gift products first (needed for discount creation)
       let giftProducts: any[] = [];
       if (rewardType === "gift_wrapping") {
         const giftProductsJson = formData.get("giftProducts") as string;
-        
+
         if (giftProductsJson) {
           giftProducts = JSON.parse(giftProductsJson);
         }
-        
+
         // Validate that at least one gift product is selected
         if (giftProducts.length === 0) {
           return json({ error: "Please select at least one gift product" }, { status: 400 });
@@ -255,6 +256,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
       const priority = (highestPriority?.priority || 0) + 1;
 
+      // Parse eligibility fields
+      const eligibleCollectionHandle = formData.get("eligibleCollectionHandle") as string | null;
+      const eligibleTag = formData.get("eligibleTag") as string | null;
+      const eligibleProductIdsJson = formData.get("eligibleProductIds") as string | null;
+      let eligibleProductIds: string[] = [];
+      if (eligibleProductIdsJson) {
+        try {
+          eligibleProductIds = JSON.parse(eligibleProductIdsJson);
+        } catch (e) {
+          console.error("Failed to parse eligibleProductIds:", e);
+        }
+      }
+
       const milestone = await prisma.blockMilestone.create({
         data: {
           milestoneBlockId: milestoneBlock.id,
@@ -273,7 +287,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           showProgressBar,
           iconColor,
           titleColor,
-          amountColor,
+          unlockButtonColor,
+          eligibleCollectionHandle,
+          eligibleTag,
+          eligibleProductIds,
+          upsellHeaderText: formData.get("upsellHeaderText") as string || "Unlock Your Reward",
+          viewAllLinkText: formData.get("viewAllLinkText") as string || "View All",
+          unlockButtonText: formData.get("unlockButtonText") as string || "Unlock Reward",
         } as any
       });
 
@@ -317,7 +337,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const showProgressBar = formData.get("showProgressBar") === "true";
     const iconColor = formData.get("iconColor") as string;
     const titleColor = formData.get("titleColor") as string;
-    const amountColor = formData.get("amountColor") as string;
+    const unlockButtonColor = formData.get("unlockButtonColor") as string;
 
     // Get existing milestone to retrieve old discount ID
     const existingMilestone = await prisma.blockMilestone.findUnique({
@@ -329,11 +349,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     let giftProducts: any[] = [];
     if (rewardType === "gift_wrapping") {
       const giftProductsJson = formData.get("giftProducts") as string;
-      
+
       if (giftProductsJson) {
         giftProducts = JSON.parse(giftProductsJson);
       }
-      
+
       // Validate that at least one gift product is selected
       if (giftProducts.length === 0) {
         return json({ error: "Please select at least one gift product" }, { status: 400 });
@@ -362,6 +382,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ error: "Failed to update Shopify discount. Please check your configuration and try again." }, { status: 500 });
     }
 
+    // Parse eligibility fields
+    const eligibleCollectionHandle = formData.get("eligibleCollectionHandle") as string | null;
+    const eligibleTag = formData.get("eligibleTag") as string | null;
+    const eligibleProductIdsJson = formData.get("eligibleProductIds") as string | null;
+    let eligibleProductIds: string[] = [];
+    if (eligibleProductIdsJson) {
+      try {
+        eligibleProductIds = JSON.parse(eligibleProductIdsJson);
+      } catch (e) {
+        console.error("Failed to parse eligibleProductIds:", e);
+      }
+    }
+
     await prisma.blockMilestone.update({
       where: { id: milestoneId },
       data: {
@@ -378,7 +411,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         showProgressBar,
         iconColor,
         titleColor,
-        amountColor,
+        unlockButtonColor,
+        eligibleCollectionHandle,
+        eligibleTag,
+        eligibleProductIds,
+        upsellHeaderText: formData.get("upsellHeaderText") as string || "Unlock Your Reward",
+        viewAllLinkText: formData.get("viewAllLinkText") as string || "View All",
+        unlockButtonText: formData.get("unlockButtonText") as string || "Unlock Reward",
       } as any
     });
 
@@ -411,7 +450,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "delete-milestone") {
     const milestoneId = formData.get("milestoneId") as string;
-    
+
     // Get milestone to retrieve discount ID
     const milestone = await prisma.blockMilestone.findUnique({
       where: { id: milestoneId },
@@ -427,7 +466,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await prisma.blockMilestone.delete({
       where: { id: milestoneId }
     });
-    
+
     return json({ success: true });
   }
 
@@ -444,14 +483,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "reorder-milestones") {
     const orderJson = formData.get("order") as string;
     const order = JSON.parse(orderJson);
-    
+
     for (let i = 0; i < order.length; i++) {
       await prisma.blockMilestone.update({
         where: { id: order[i] },
         data: { priority: i }
       });
     }
-    
+
     return json({ success: true });
   }
 
@@ -476,16 +515,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "save-global-settings") {
     const progressBarColor = formData.get("progressBarColor") as string;
     const allUnlockedMessage = formData.get("allUnlockedMessage") as string;
-    
+
     await prisma.milestoneBlock.update({
       where: { id: milestoneBlock.id },
-      data: { 
+      data: {
         milestonesProgressBarColor: progressBarColor,
         milestonesAllUnlockedMessage: allUnlockedMessage,
         isActive: true, // Auto-enable when saving
       } as any
     });
-    
+
     return redirect("/app");
   }
 
@@ -517,7 +556,10 @@ export default function MilestoneBlockPage() {
     showProgressBar: true,
     iconColor: "#3b82f6",
     titleColor: "#1e40af",
-    amountColor: "#3b82f6",
+    unlockButtonColor: "#3b82f6",
+    upsellHeaderText: "Unlock Your Reward",
+    viewAllLinkText: "View All",
+    unlockButtonText: "Unlock Reward",
   });
 
   const [selectedTargets, setSelectedTargets] = useState<any[]>([]);
@@ -527,6 +569,13 @@ export default function MilestoneBlockPage() {
   const [selectedGiftProducts, setSelectedGiftProducts] = useState<any[]>([]);
   const [showGiftProductModal, setShowGiftProductModal] = useState(false);
   const [editingGiftProductIndex, setEditingGiftProductIndex] = useState<number | null>(null);
+
+  // Product eligibility state for upsell
+  const [eligibilitySource, setEligibilitySource] = useState<'none' | 'collection' | 'products' | 'all_products'>('none');
+  const [eligibleCollectionHandle, setEligibleCollectionHandle] = useState<string>('');
+  const [eligibleProductIds, setEligibleProductIds] = useState<string[]>([]);
+  const [eligibleTag, setEligibleTag] = useState<string>('');
+  const [showEligibilityProductModal, setShowEligibilityProductModal] = useState(false);
 
   // Global settings state
   const [globalSettings, setGlobalSettings] = useState(() => ({
@@ -548,12 +597,34 @@ export default function MilestoneBlockPage() {
         showProgressBar: milestone.showProgressBar,
         iconColor: milestone.iconColor || "#3b82f6",
         titleColor: milestone.titleColor || "#1e40af",
-        amountColor: milestone.amountColor || "#3b82f6",
+        unlockButtonColor: milestone.unlockButtonColor || "#3b82f6",
+        upsellHeaderText: (milestone as any).upsellHeaderText || "Unlock Your Reward",
+        viewAllLinkText: (milestone as any).viewAllLinkText || "View All",
+        unlockButtonText: (milestone as any).unlockButtonText || "Unlock Reward",
       };
       setFormState(initialState);
       setSelectedTargets(milestone.targets || []);
       setSelectedGiftProducts(milestone.giftProducts || []);
       setLivePreviewMilestone(initialState);
+
+      // Set eligibility fields
+      const hasCollection = Boolean((milestone as any).eligibleCollectionHandle);
+      const hasProducts = Boolean((milestone as any).eligibleProductIds?.length > 0);
+      const hasTag = Boolean((milestone as any).eligibleTag);
+
+      if (hasCollection) {
+        setEligibilitySource('collection');
+        setEligibleCollectionHandle((milestone as any).eligibleCollectionHandle);
+      } else if (hasProducts) {
+        setEligibilitySource('products');
+        setEligibleProductIds((milestone as any).eligibleProductIds);
+      } else if (hasTag) {
+        // Legacy support for tag - treat as all_products
+        setEligibilitySource('all_products');
+        setEligibleTag((milestone as any).eligibleTag);
+      } else {
+        setEligibilitySource('none');
+      }
     } else {
       setEditingMilestone(null);
       const initialState = {
@@ -567,12 +638,21 @@ export default function MilestoneBlockPage() {
         showProgressBar: true,
         iconColor: "#3b82f6",
         titleColor: "#1e40af",
-        amountColor: "#3b82f6",
+        unlockButtonColor: "#3b82f6",
+        upsellHeaderText: "Unlock Your Reward",
+        viewAllLinkText: "View All",
+        unlockButtonText: "Unlock Reward",
       };
       setFormState(initialState);
       setSelectedTargets([]);
       setSelectedGiftProducts([]);
       setLivePreviewMilestone(initialState);
+
+      // Reset eligibility fields
+      setEligibilitySource('none');
+      setEligibleCollectionHandle('');
+      setEligibleProductIds([]);
+      setEligibleTag('');
     }
     setShowMilestoneModal(true);
   }, []);
@@ -589,7 +669,7 @@ export default function MilestoneBlockPage() {
   const handleSaveMilestone = useCallback(() => {
     const formData = new FormData();
     formData.append("intent", editingMilestone ? "update-milestone" : "add-milestone");
-    
+
     if (editingMilestone) {
       formData.append("milestoneId", editingMilestone.id);
     }
@@ -602,9 +682,17 @@ export default function MilestoneBlockPage() {
       formData.append("giftProducts", JSON.stringify(selectedGiftProducts));
     }
 
+    // Add product eligibility fields based on selected source
+    if (eligibilitySource === 'collection' && eligibleCollectionHandle) {
+      formData.append("eligibleCollectionHandle", eligibleCollectionHandle);
+    } else if (eligibilitySource === 'products' && eligibleProductIds.length > 0) {
+      formData.append("eligibleProductIds", JSON.stringify(eligibleProductIds));
+    }
+    // For 'all_products', no specific eligibility data needed
+
     submit(formData, { method: "post" });
     setShowMilestoneModal(false);
-  }, [formState, selectedTargets, selectedGiftProducts, editingMilestone, submit]);
+  }, [formState, selectedTargets, selectedGiftProducts, editingMilestone, eligibilitySource, eligibleCollectionHandle, eligibleProductIds, eligibleTag, submit]);
 
   const handleDeleteMilestone = useCallback((milestoneId: string) => {
     if (confirm("Are you sure you want to delete this milestone?")) {
@@ -651,21 +739,21 @@ export default function MilestoneBlockPage() {
     if (showMilestoneModal && livePreviewMilestone && livePreviewMilestone.title && livePreviewMilestone.targetAmount) {
       const sampleCartTotal = 6000;
       const targetAmount = parseFloat(livePreviewMilestone.targetAmount) || 0;
-      
+
       if (targetAmount > 0) {
         const progress = Math.min((sampleCartTotal / targetAmount) * 100, 100);
         const remaining = Math.max(targetAmount - sampleCartTotal, 0);
         const status: 'unlocked' | 'in_progress' | 'locked' = sampleCartTotal >= targetAmount ? 'unlocked' : sampleCartTotal > 0 ? 'in_progress' : 'locked';
-        
+
         const rewardText = livePreviewMilestone.title;
         const remainingFormatted = `₹${remaining.toFixed(2)}`;
-        
+
         const message =
           status === 'unlocked'
             ? livePreviewMilestone.unlockedMessage?.replace('{reward}', rewardText) || `🎉 You've unlocked ${rewardText}!`
             : status === 'in_progress'
-            ? livePreviewMilestone.inProgressMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Only ${remainingFormatted} away from ${rewardText}!`
-            : `Add ${remainingFormatted} to unlock ${rewardText}`;
+              ? livePreviewMilestone.inProgressMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Only ${remainingFormatted} away from ${rewardText}!`
+              : `Add ${remainingFormatted} to unlock ${rewardText}`;
 
         return [{
           id: 'live-preview',
@@ -681,31 +769,31 @@ export default function MilestoneBlockPage() {
           showProgressBar: livePreviewMilestone.showProgressBar,
           iconColor: livePreviewMilestone.iconColor || "#3b82f6",
           titleColor: livePreviewMilestone.titleColor || "#1e40af",
-          amountColor: livePreviewMilestone.amountColor || "#3b82f6",
+          unlockButtonColor: livePreviewMilestone.unlockButtonColor || "#3b82f6",
         }];
       }
     }
-    
+
     if (milestoneBlock.milestones && milestoneBlock.milestones.length > 0) {
       // Use actual milestones for preview - only show active ones
       const sampleCartTotal = 6000; // Sample cart value for preview
       const activeMilestones = milestoneBlock.milestones.filter((m: any) => m.isActive);
-      
+
       return activeMilestones.map((m: any) => {
         const targetAmount = parseFloat(m.targetAmount.toString());
         const progress = Math.min((sampleCartTotal / targetAmount) * 100, 100);
         const remaining = Math.max(targetAmount - sampleCartTotal, 0);
         const status: 'unlocked' | 'in_progress' | 'locked' = sampleCartTotal >= targetAmount ? 'unlocked' : sampleCartTotal > 0 ? 'in_progress' : 'locked';
-        
+
         const rewardText = m.title;
         const remainingFormatted = `₹${remaining.toFixed(2)}`;
-        
+
         const message =
           status === 'unlocked'
             ? m.unlockedMessage?.replace('{reward}', rewardText) || `🎉 You've unlocked ${rewardText}!`
             : status === 'in_progress'
-            ? m.inProgressMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Only ${remainingFormatted} away from ${rewardText}!`
-            : `Add ${remainingFormatted} to unlock ${rewardText}`;
+              ? m.inProgressMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Only ${remainingFormatted} away from ${rewardText}!`
+              : `Add ${remainingFormatted} to unlock ${rewardText}`;
 
         return {
           id: m.id,
@@ -721,11 +809,11 @@ export default function MilestoneBlockPage() {
           showProgressBar: m.showProgressBar,
           iconColor: m.iconColor,
           titleColor: m.titleColor,
-          amountColor: m.amountColor,
+          unlockButtonColor: m.unlockButtonColor,
         };
       });
     }
-    
+
     // Default sample milestones (when no milestones configured)
     return [
       {
@@ -742,7 +830,7 @@ export default function MilestoneBlockPage() {
         showProgressBar: true,
         iconColor: '#3b82f6',
         titleColor: '#1e40af',
-        amountColor: '#3b82f6',
+        unlockButtonColor: '#3b82f6',
       },
       {
         id: 'sample-2',
@@ -758,7 +846,7 @@ export default function MilestoneBlockPage() {
         showProgressBar: true,
         iconColor: '#3b82f6',
         titleColor: '#1e40af',
-        amountColor: '#3b82f6',
+        unlockButtonColor: '#3b82f6',
       },
       {
         id: 'sample-3',
@@ -774,7 +862,7 @@ export default function MilestoneBlockPage() {
         showProgressBar: true,
         iconColor: '#3b82f6',
         titleColor: '#1e40af',
-        amountColor: '#3b82f6',
+        unlockButtonColor: '#3b82f6',
       },
     ];
   };
@@ -809,7 +897,7 @@ export default function MilestoneBlockPage() {
               <p>
                 {hasReachedMaxMilestones ? (
                   <>
-                    <strong>Maximum milestones reached!</strong> You can configure up to 3 milestones. 
+                    <strong>Maximum milestones reached!</strong> You can configure up to 3 milestones.
                     Delete an existing milestone to add a new one.
                   </>
                 ) : (
@@ -879,7 +967,7 @@ export default function MilestoneBlockPage() {
                         <ResourceItem
                           id={id}
                           accessibilityLabel={`View details for ${title}`}
-                          onClick={() => {}}
+                          onClick={() => { }}
                         >
                           <BlockStack gap="300">
                             <BlockStack gap="200">
@@ -990,7 +1078,7 @@ export default function MilestoneBlockPage() {
                 border: '1px solid #bfdbfe'
               }}>
                 <Text as="p" variant="bodySm">
-                  <strong>💡 Preview Tip:</strong> {milestoneBlock.milestones && milestoneBlock.milestones.length > 0 
+                  <strong>💡 Preview Tip:</strong> {milestoneBlock.milestones && milestoneBlock.milestones.length > 0
                     ? 'Showing your configured milestones with a sample cart value of ₹6,000. Add or edit milestones to see changes.'
                     : 'Configure milestones to see how they will appear on your theme.'}
                 </Text>
@@ -1013,7 +1101,7 @@ export default function MilestoneBlockPage() {
           content: editingMilestone ? "Update" : "Add",
           onAction: handleSaveMilestone,
           loading: isSubmitting,
-          disabled: !formState.title || !formState.targetAmount || 
+          disabled: !formState.title || !formState.targetAmount ||
             (formState.rewardType === "gift_wrapping" && selectedGiftProducts.length === 0) ||
             ((formState.rewardType === "discount_percentage" || formState.rewardType === "discount_fixed") && !formState.rewardValue),
         }}
@@ -1148,8 +1236,8 @@ export default function MilestoneBlockPage() {
                                 }}
                               />
                               <Text as="p" variant="bodySm" fontWeight="medium" alignment="center">
-                                {giftProduct.title.length > 20 
-                                  ? giftProduct.title.substring(0, 20) + '...' 
+                                {giftProduct.title.length > 20
+                                  ? giftProduct.title.substring(0, 20) + '...'
                                   : giftProduct.title}
                               </Text>
                               <div style={{ marginTop: '8px' }}>
@@ -1254,14 +1342,200 @@ export default function MilestoneBlockPage() {
               </InlineStack>
 
               <TextField
-                label="Amount Color"
-                value={formState.amountColor}
-                onChange={(value) => updateFormState({ amountColor: value })}
+                label="Unlock Button Color"
+                value={formState.unlockButtonColor}
+                onChange={(value) => updateFormState({ unlockButtonColor: value })}
                 autoComplete="off"
                 {...({ type: "color" } as any)}
-                helpText="Color of the target amount text"
+                helpText="Color of the unlock button"
+              />
+
+              <Divider />
+
+              <Text as="h3" variant="headingMd">
+                Product Recommendations (Upsell)
+              </Text>
+
+              <Banner tone="info">
+                <p>Configure which products customers can view to help them reach this milestone. When customers click the locked milestone badge, they'll see a carousel of recommended products.</p>
+              </Banner>
+
+              <ChoiceList
+                title="Eligibility Source"
+                choices={[
+                  { label: 'None (No product recommendations)', value: 'none' },
+                  { label: 'Collection', value: 'collection' },
+                  { label: 'Specific Products', value: 'products' },
+                  { label: 'All Products', value: 'all_products' },
+                ]}
+                selected={[eligibilitySource]}
+                onChange={(selected: string[]) => {
+                  setEligibilitySource(selected[0] as any);
+                  // Reset other fields when changing source
+                  if (selected[0] !== 'collection') setEligibleCollectionHandle('');
+                  if (selected[0] !== 'products') setEligibleProductIds([]);
+                  setEligibleTag(''); // Always reset tag as it's no longer used
+                }}
+              />
+
+              {eligibilitySource === 'collection' && (
+                <Select
+                  label="Select Collection"
+                  options={[
+                    { label: 'Select a collection...', value: '' },
+                    ...shopCollections.map((col: any) => ({
+                      label: col.title,
+                      value: col.handle,
+                    })),
+                  ]}
+                  value={eligibleCollectionHandle}
+                  onChange={setEligibleCollectionHandle}
+                  helpText="Products from this collection will be recommended"
+                />
+              )}
+
+              {eligibilitySource === 'products' && (
+                <BlockStack gap="200">
+                  <Button
+                    onClick={() => setShowEligibilityProductModal(true)}
+                    variant="secondary"
+                  >
+                    {eligibleProductIds.length > 0
+                      ? `${eligibleProductIds.length} product(s) selected`
+                      : 'Select products'}
+                  </Button>
+                  {eligibleProductIds.length > 0 && (
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {eligibleProductIds.length} product(s) will be recommended
+                    </Text>
+                  )}
+                </BlockStack>
+              )}
+
+
+              {eligibilitySource !== 'none' && eligibilitySource !== 'all_products' && (
+                <Banner tone="warning">
+                  <p><strong>Priority:</strong> If multiple sources are configured, only the highest priority will be used: Collection → Specific Products</p>
+                </Banner>
+              )}
+
+              <Divider />
+
+              <Text as="h3" variant="headingMd">
+                Upsell Text Customization
+              </Text>
+
+              <TextField
+                label="Upsell Header Text"
+                value={formState.upsellHeaderText}
+                onChange={(value) => updateFormState({ upsellHeaderText: value })}
+                placeholder="Unlock Your Reward"
+                autoComplete="off"
+                helpText="Header text shown in the product recommendations carousel"
+              />
+
+              <TextField
+                label="View All Link Text"
+                value={formState.viewAllLinkText}
+                onChange={(value) => updateFormState({ viewAllLinkText: value })}
+                placeholder="View All"
+                autoComplete="off"
+                helpText="Text for the 'View All' link in the recommendations carousel"
+              />
+
+              <TextField
+                label="Unlock Button Text"
+                value={formState.unlockButtonText}
+                onChange={(value) => updateFormState({ unlockButtonText: value })}
+                placeholder="Unlock Reward"
+                autoComplete="off"
+                helpText="Text displayed on the button below the milestone price"
               />
             </FormLayout>
+          </BlockStack>
+        </Modal.Section>
+      </Modal>
+
+      {/* Eligibility Product Selection Modal */}
+      <Modal
+        open={showEligibilityProductModal}
+        onClose={() => setShowEligibilityProductModal(false)}
+        title="Select Eligible Products"
+        primaryAction={{
+          content: "Done",
+          onAction: () => setShowEligibilityProductModal(false),
+        }}
+      >
+        <Modal.Section>
+          <BlockStack gap="400">
+            <TextField
+              label="Search products"
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search by product name..."
+              autoComplete="off"
+              clearButton
+              onClearButtonClick={() => setSearchQuery('')}
+            />
+
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <BlockStack gap="200">
+                {shopProducts
+                  .filter((product: any) =>
+                    product.title.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  .map((product: any) => {
+                    const productId = product.handle;
+                    const isSelected = eligibleProductIds.includes(productId);
+
+                    return (
+                      <div
+                        key={product.id}
+                        style={{
+                          padding: '12px',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
+                        }}
+                        onClick={() => {
+                          if (isSelected) {
+                            setEligibleProductIds(eligibleProductIds.filter(id => id !== productId));
+                          } else {
+                            setEligibleProductIds([...eligibleProductIds, productId]);
+                          }
+                        }}
+                      >
+                        <InlineStack gap="300" align="start">
+                          {product.images?.[0]?.src && (
+                            <img
+                              src={product.images[0].src}
+                              alt={product.title}
+                              style={{
+                                width: '50px',
+                                height: '50px',
+                                objectFit: 'cover',
+                                borderRadius: '6px',
+                              }}
+                            />
+                          )}
+                          <div style={{ flex: 1 }}>
+                            <Text as="p" variant="bodyMd" fontWeight="medium">
+                              {product.title}
+                            </Text>
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              ₹{product.variants?.[0]?.price || '0'}
+                            </Text>
+                            {isSelected && (
+                              <Badge tone="success">Selected</Badge>
+                            )}
+                          </div>
+                        </InlineStack>
+                      </div>
+                    );
+                  })}
+              </BlockStack>
+            </div>
           </BlockStack>
         </Modal.Section>
       </Modal>
@@ -1312,13 +1586,13 @@ export default function MilestoneBlockPage() {
                               imageUrl: product.images?.[0]?.src || null,
                               handle: product.handle,
                             };
-                            
+
                             if (editingGiftProductIndex < newGiftProducts.length) {
                               newGiftProducts[editingGiftProductIndex] = productData;
                             } else {
                               newGiftProducts.push(productData);
                             }
-                            
+
                             // Limit to 3 products
                             setSelectedGiftProducts(newGiftProducts.slice(0, 3));
                             setShowGiftProductModal(false);

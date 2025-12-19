@@ -214,7 +214,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const showProgressBar = formData.get("showProgressBar") === "true";
       const iconColor = formData.get("iconColor") as string;
       const titleColor = formData.get("titleColor") as string;
-      const amountColor = formData.get("amountColor") as string;
+      const unlockButtonColor = formData.get("unlockButtonColor") as string;
 
       // Parse gift products first (needed for discount creation)
       let giftProducts: any[] = [];
@@ -289,12 +289,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           showProgressBar,
           iconColor,
           titleColor,
-          amountColor,
+          unlockButtonColor,
           eligibleCollectionHandle,
           eligibleTag,
           eligibleProductIds,
           upsellHeaderText: formData.get("upsellHeaderText") as string || "Unlock Your Reward",
           viewAllLinkText: formData.get("viewAllLinkText") as string || "View All",
+          unlockButtonText: formData.get("unlockButtonText") as string || "Unlock Reward",
         } as any
       });
 
@@ -338,7 +339,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const showProgressBar = formData.get("showProgressBar") === "true";
     const iconColor = formData.get("iconColor") as string;
     const titleColor = formData.get("titleColor") as string;
-    const amountColor = formData.get("amountColor") as string;
+    const unlockButtonColor = formData.get("unlockButtonColor") as string;
 
     // Get existing milestone to retrieve old discount ID
     const existingMilestone = await prisma.cartMilestone.findUnique({
@@ -412,12 +413,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         showProgressBar,
         iconColor,
         titleColor,
-        amountColor,
+        unlockButtonColor,
         eligibleCollectionHandle,
         eligibleTag,
         eligibleProductIds,
         upsellHeaderText: formData.get("upsellHeaderText") as string || "Unlock Your Reward",
         viewAllLinkText: formData.get("viewAllLinkText") as string || "View All",
+        unlockButtonText: formData.get("unlockButtonText") as string || "Unlock Reward",
       } as any
     });
 
@@ -556,9 +558,10 @@ export default function CartMilestones() {
     showProgressBar: true,
     iconColor: "#3b82f6",
     titleColor: "#1e40af",
-    amountColor: "#3b82f6",
+    unlockButtonColor: "#3b82f6",
     upsellHeaderText: "Unlock Your Reward",
     viewAllLinkText: "View All",
+    unlockButtonText: "Unlock Reward",
   });
 
   const [selectedTargets, setSelectedTargets] = useState<any[]>([]);
@@ -570,7 +573,7 @@ export default function CartMilestones() {
   const [editingGiftProductIndex, setEditingGiftProductIndex] = useState<number | null>(null);
 
   // Product eligibility state for upsell
-  const [eligibilitySource, setEligibilitySource] = useState<'none' | 'collection' | 'products' | 'tag'>('none');
+  const [eligibilitySource, setEligibilitySource] = useState<'none' | 'collection' | 'products' | 'all_products'>('none');
   const [eligibleCollectionHandle, setEligibleCollectionHandle] = useState<string>('');
   const [eligibleProductIds, setEligibleProductIds] = useState<string[]>([]);
   const [eligibleTag, setEligibleTag] = useState<string>('');
@@ -596,9 +599,10 @@ export default function CartMilestones() {
         showProgressBar: milestone.showProgressBar,
         iconColor: milestone.iconColor || "#3b82f6",
         titleColor: milestone.titleColor || "#1e40af",
-        amountColor: milestone.amountColor || "#3b82f6",
+        unlockButtonColor: milestone.unlockButtonColor || "#3b82f6",
         upsellHeaderText: (milestone as any).upsellHeaderText || "Unlock Your Reward",
         viewAllLinkText: (milestone as any).viewAllLinkText || "View All",
+        unlockButtonText: (milestone as any).unlockButtonText || "Unlock Reward",
       };
       setFormState(initialState);
       setSelectedTargets(milestone.targets || []);
@@ -617,7 +621,8 @@ export default function CartMilestones() {
         setEligibilitySource('products');
         setEligibleProductIds((milestone as any).eligibleProductIds);
       } else if (hasTag) {
-        setEligibilitySource('tag');
+        // Legacy support for tag - treat as all_products
+        setEligibilitySource('all_products');
         setEligibleTag((milestone as any).eligibleTag);
       } else {
         setEligibilitySource('none');
@@ -635,9 +640,10 @@ export default function CartMilestones() {
         showProgressBar: true,
         iconColor: "#3b82f6",
         titleColor: "#1e40af",
-        amountColor: "#3b82f6",
+        unlockButtonColor: "#3b82f6",
         upsellHeaderText: "Unlock Your Reward",
         viewAllLinkText: "View All",
+        unlockButtonText: "Unlock Reward",
       };
       setFormState(initialState);
       setSelectedTargets([]);
@@ -683,9 +689,8 @@ export default function CartMilestones() {
       formData.append("eligibleCollectionHandle", eligibleCollectionHandle);
     } else if (eligibilitySource === 'products' && eligibleProductIds.length > 0) {
       formData.append("eligibleProductIds", JSON.stringify(eligibleProductIds));
-    } else if (eligibilitySource === 'tag' && eligibleTag) {
-      formData.append("eligibleTag", eligibleTag);
     }
+    // For 'all_products', no specific eligibility data needed
 
     submit(formData, { method: "post" });
     setShowMilestoneModal(false);
@@ -766,7 +771,7 @@ export default function CartMilestones() {
           showProgressBar: livePreviewMilestone.showProgressBar,
           iconColor: livePreviewMilestone.iconColor || "#3b82f6",
           titleColor: livePreviewMilestone.titleColor || "#1e40af",
-          amountColor: livePreviewMilestone.amountColor || "#3b82f6",
+          unlockButtonColor: livePreviewMilestone.unlockButtonColor || "#3b82f6",
         }];
       }
     }
@@ -806,7 +811,7 @@ export default function CartMilestones() {
           showProgressBar: m.showProgressBar,
           iconColor: m.iconColor,
           titleColor: m.titleColor,
-          amountColor: m.amountColor,
+          unlockButtonColor: m.unlockButtonColor,
         };
       });
     }
@@ -827,7 +832,7 @@ export default function CartMilestones() {
         showProgressBar: true,
         iconColor: '#3b82f6',
         titleColor: '#1e40af',
-        amountColor: '#3b82f6',
+        unlockButtonColor: '#3b82f6',
       },
       {
         id: 'sample-2',
@@ -843,7 +848,7 @@ export default function CartMilestones() {
         showProgressBar: true,
         iconColor: '#3b82f6',
         titleColor: '#1e40af',
-        amountColor: '#3b82f6',
+        unlockButtonColor: '#3b82f6',
       },
       {
         id: 'sample-3',
@@ -859,7 +864,7 @@ export default function CartMilestones() {
         showProgressBar: true,
         iconColor: '#3b82f6',
         titleColor: '#1e40af',
-        amountColor: '#3b82f6',
+        unlockButtonColor: '#3b82f6',
       },
     ];
   };
@@ -1338,12 +1343,12 @@ export default function CartMilestones() {
               </InlineStack>
 
               <TextField
-                label="Amount Color"
-                value={formState.amountColor}
-                onChange={(value) => updateFormState({ amountColor: value })}
+                label="Unlock Button Color"
+                value={formState.unlockButtonColor}
+                onChange={(value) => updateFormState({ unlockButtonColor: value })}
                 autoComplete="off"
                 {...({ type: "color" } as any)}
-                helpText="Color of the target amount text"
+                helpText="Color of the unlock button"
               />
 
               <Divider />
@@ -1362,7 +1367,7 @@ export default function CartMilestones() {
                   { label: 'None (No product recommendations)', value: 'none' },
                   { label: 'Collection', value: 'collection' },
                   { label: 'Specific Products', value: 'products' },
-                  { label: 'Product Tag', value: 'tag' },
+                  { label: 'All Products', value: 'all_products' },
                 ]}
                 selected={[eligibilitySource]}
                 onChange={(selected: string[]) => {
@@ -1370,7 +1375,7 @@ export default function CartMilestones() {
                   // Reset other fields when changing source
                   if (selected[0] !== 'collection') setEligibleCollectionHandle('');
                   if (selected[0] !== 'products') setEligibleProductIds([]);
-                  if (selected[0] !== 'tag') setEligibleTag('');
+                  setEligibleTag(''); // Always reset tag as it's no longer used
                 }}
               />
 
@@ -1408,20 +1413,10 @@ export default function CartMilestones() {
                 </BlockStack>
               )}
 
-              {eligibilitySource === 'tag' && (
-                <TextField
-                  label="Product Tag"
-                  value={eligibleTag}
-                  onChange={setEligibleTag}
-                  placeholder="e.g., upsell, premium, featured"
-                  autoComplete="off"
-                  helpText="Products with this tag will be recommended"
-                />
-              )}
 
-              {eligibilitySource !== 'none' && (
+              {eligibilitySource !== 'none' && eligibilitySource !== 'all_products' && (
                 <Banner tone="warning">
-                  <p><strong>Priority:</strong> If multiple sources are configured, only the highest priority will be used: Collection → Specific Products → Tag</p>
+                  <p><strong>Priority:</strong> If multiple sources are configured, only the highest priority will be used: Collection → Specific Products</p>
                 </Banner>
               )}
 
@@ -1447,6 +1442,15 @@ export default function CartMilestones() {
                 placeholder="View All"
                 autoComplete="off"
                 helpText="Text for the 'View All' link in the recommendations carousel"
+              />
+
+              <TextField
+                label="Unlock Button Text"
+                value={formState.unlockButtonText}
+                onChange={(value) => updateFormState({ unlockButtonText: value })}
+                placeholder="Unlock Reward"
+                autoComplete="off"
+                helpText="Text displayed on the button below the milestone price"
               />
             </FormLayout>
           </BlockStack>

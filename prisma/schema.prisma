@@ -588,13 +588,14 @@ model CartMilestone {
   lockedMessage           String?
   iconColor               String                 @default("#3b82f6")
   titleColor              String                 @default("#1e40af")
-  amountColor             String                 @default("#3b82f6")
+  unlockButtonColor       String                 @default("#3b82f6")
   showProgressBar         Boolean                @default(true)
   eligibleCollectionHandle String?
   eligibleTag             String?
   eligibleProductIds      String[]               @default([])
   upsellHeaderText        String?                @default("Unlock Your Reward")
   viewAllLinkText         String?                @default("View All")
+  unlockButtonText        String?                @default("Unlock Reward")
   createdAt               DateTime               @default(now())
   updatedAt               DateTime               @updatedAt
   cartDrawer              CartDrawer                @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
@@ -743,33 +744,39 @@ model MilestoneBlock {
 }
 
 model BlockMilestone {
-  id                String                      @id @default(cuid())
-  milestoneBlockId  String
-  shop              String
-  isActive          Boolean                     @default(true)
-  title             String
-  description       String?
-  targetAmount      Decimal
-  currency          String                      @default("INR")
-  rewardType        String
-  rewardValue       Decimal?
-  discountCode      String?
-  shopifyDiscountId String?
-  targetType        String                      @default("store_wide")
-  priority          Int                         @default(0)
-  icon              String?
-  unlockedMessage   String?
-  inProgressMessage String?
-  lockedMessage     String?
-  iconColor         String                      @default("#3b82f6")
-  titleColor        String                      @default("#1e40af")
-  amountColor       String                      @default("#3b82f6")
-  showProgressBar   Boolean                     @default(true)
-  createdAt         DateTime                    @default(now())
-  updatedAt         DateTime                    @updatedAt
-  milestoneBlock    MilestoneBlock              @relation(fields: [milestoneBlockId], references: [id], onDelete: Cascade)
-  targets           BlockMilestoneTarget[]
-  giftProducts      BlockMilestoneGiftProduct[]
+  id                       String                      @id @default(cuid())
+  milestoneBlockId         String
+  shop                     String
+  isActive                 Boolean                     @default(true)
+  title                    String
+  description              String?
+  targetAmount             Decimal
+  currency                 String                      @default("INR")
+  rewardType               String
+  rewardValue              Decimal?
+  discountCode             String?
+  shopifyDiscountId        String?
+  targetType               String                      @default("store_wide")
+  priority                 Int                         @default(0)
+  icon                     String?
+  unlockedMessage          String?
+  inProgressMessage        String?
+  lockedMessage            String?
+  iconColor                String                      @default("#3b82f6")
+  titleColor               String                      @default("#1e40af")
+  unlockButtonColor        String                      @default("#3b82f6")
+  showProgressBar          Boolean                     @default(true)
+  eligibleCollectionHandle String?
+  eligibleTag              String?
+  eligibleProductIds       String[]                    @default([])
+  upsellHeaderText         String?                     @default("Unlock Your Reward")
+  viewAllLinkText          String?                     @default("View All")
+  unlockButtonText         String?                     @default("Unlock Reward")
+  createdAt                DateTime                    @default(now())
+  updatedAt                DateTime                    @updatedAt
+  milestoneBlock           MilestoneBlock              @relation(fields: [milestoneBlockId], references: [id], onDelete: Cascade)
+  targets                  BlockMilestoneTarget[]
+  giftProducts             BlockMilestoneGiftProduct[]
 
   @@index([milestoneBlockId])
   @@index([shop, isActive])

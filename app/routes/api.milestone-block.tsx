@@ -78,8 +78,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       lockedMessage: milestone.lockedMessage,
       iconColor: milestone.iconColor,
       titleColor: milestone.titleColor,
-      amountColor: milestone.amountColor,
+      unlockButtonColor: milestone.unlockButtonColor,
       showProgressBar: milestone.showProgressBar,
+      // Eligibility fields for upsell products
+      eligibleCollectionHandle: milestone.eligibleCollectionHandle,
+      eligibleTag: milestone.eligibleTag,
+      eligibleProductIds: milestone.eligibleProductIds,
+      upsellHeaderText: milestone.upsellHeaderText,
+      viewAllLinkText: milestone.viewAllLinkText,
+      unlockButtonText: milestone.unlockButtonText,
+      canShowUpsell: Boolean(
+        milestone.eligibleCollectionHandle ||
+        (milestone.eligibleProductIds && milestone.eligibleProductIds.length > 0) ||
+        milestone.eligibleTag
+      ),
       targets: milestone.targets || [],
       giftProducts: (milestone.giftProducts || []).map((product: any) => ({
         id: product.id,

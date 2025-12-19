@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.5
- * Built: 2025-12-19T08:33:23.805Z
+ * Built: 2025-12-19T13:06:28.453Z
  */
 "use strict";
 (() => {
@@ -11355,7 +11355,9 @@
     onClose,
     isPreview = false,
     upsellHeaderText = "Unlock Your Reward",
-    viewAllLinkText = "View All"
+    viewAllLinkText = "View All",
+    source = "cart-drawer"
+    // Default to cart-drawer for backward compatibility
   }) => {
     const [products, setProducts] = (0, import_react5.useState)([]);
     const [loading, setLoading] = (0, import_react5.useState)(true);
@@ -11400,7 +11402,8 @@
             _t: Date.now().toString()
             // Cache buster
           });
-          const apiUrl = typeof window !== "undefined" && window.UPSELLITY_APP_URL ? `${window.UPSELLITY_APP_URL}/api/milestone-products?${params}` : `/api/milestone-products?${params}`;
+          const apiEndpoint = source === "milestone-block" ? "/api/milestone-block-products" : "/api/milestone-products";
+          const apiUrl = typeof window !== "undefined" && window.UPSELLITY_APP_URL ? `${window.UPSELLITY_APP_URL}${apiEndpoint}?${params}` : `${apiEndpoint}?${params}`;
           const response = await fetch(apiUrl);
           if (!response.ok) {
             throw new Error("Failed to fetch products");
@@ -11832,7 +11835,9 @@
     progressBarColor,
     allUnlockedMessage,
     shop,
-    onAddToCart
+    onAddToCart,
+    source = "cart-drawer"
+    // Default to cart-drawer for backward compatibility
   }) {
     var _a2, _b;
     const [openUpsellMilestoneId, setOpenUpsellMilestoneId] = (0, import_react6.useState)(null);
@@ -11977,7 +11982,8 @@
           const isUnlocked = milestone.status === "unlocked";
           const isInProgress = milestone.status === "in_progress";
           const hasEligibilityConfig = Boolean(
-            milestone.eligibleCollectionHandle || milestone.eligibleProductIds && milestone.eligibleProductIds.length > 0 || milestone.eligibleTag
+            milestone.canShowUpsell && (milestone.eligibleCollectionHandle || milestone.eligibleProductIds && milestone.eligibleProductIds.length > 0 || milestone.eligibleTag || // If canShowUpsell is true but no specific eligibility, it's "All Products"
+            !milestone.eligibleCollectionHandle && (!milestone.eligibleProductIds || milestone.eligibleProductIds.length === 0) && !milestone.eligibleTag)
           );
           return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
             "div",
@@ -12018,14 +12024,6 @@
                 /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
                   "div",
                   {
-                    onClick: () => {
-                      if (!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart) {
-                        const firstLockedMilestone = sortedMilestones.find((m) => m.status !== "unlocked");
-                        if (firstLockedMilestone && firstLockedMilestone.id === milestone.id) {
-                          setOpenUpsellMilestoneId(openUpsellMilestoneId === milestone.id ? null : milestone.id);
-                        }
-                      }
-                    },
                     style: {
                       width: "36px",
                       height: "36px",
@@ -12040,22 +12038,9 @@
                       boxShadow: isUnlocked || isInProgress ? "0 2px 8px rgba(0, 0, 0, 0.15)" : "none",
                       position: "relative",
                       opacity: isUnlocked ? 1 : isInProgress ? 0.9 : 0.5,
-                      cursor: !isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart ? "pointer" : "default",
-                      transform: !isUnlocked && milestone.canShowUpsell && hasEligibilityConfig ? "scale(1)" : void 0
+                      cursor: "default"
                     },
-                    onMouseEnter: (e) => {
-                      if (!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart) {
-                        e.currentTarget.style.transform = "scale(1.1)";
-                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2)";
-                      }
-                    },
-                    onMouseLeave: (e) => {
-                      if (!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig) {
-                        e.currentTarget.style.transform = "scale(1)";
-                        e.currentTarget.style.boxShadow = isInProgress ? "0 2px 8px rgba(0, 0, 0, 0.15)" : "none";
-                      }
-                    },
-                    title: !isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart ? "View items to unlock this reward" : `${milestone.title} - \u20B9${milestone.targetAmount}`,
+                    title: `${milestone.title} - \u20B9${milestone.targetAmount}`,
                     children: [
                       /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { children: milestone.icon || "\u{1F381}" }),
                       isUnlocked && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
@@ -12095,14 +12080,49 @@
                       textAlign: "center",
                       whiteSpace: "nowrap"
                     },
-                    children: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: {
-                      fontSize: "10px",
-                      fontWeight: "600",
-                      color: milestone.amountColor || "#3b82f6"
-                    }, children: [
-                      "\u20B9",
-                      milestone.targetAmount.toFixed(0)
-                    ] })
+                    children: !isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart && (() => {
+                      const firstLockedMilestone = sortedMilestones.find((m) => m.status !== "unlocked");
+                      return firstLockedMilestone && firstLockedMilestone.id === milestone.id;
+                    })() && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+                      "button",
+                      {
+                        onClick: () => {
+                          setOpenUpsellMilestoneId(openUpsellMilestoneId === milestone.id ? null : milestone.id);
+                        },
+                        style: {
+                          marginTop: "4px",
+                          padding: "6px 14px",
+                          fontSize: "10px",
+                          fontWeight: "600",
+                          color: "#ffffff",
+                          backgroundColor: milestone.unlockButtonColor || "#3b82f6",
+                          border: "none",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.12)",
+                          whiteSpace: "nowrap",
+                          letterSpacing: "0.3px"
+                        },
+                        onMouseEnter: (e) => {
+                          const rgb = hexToRgb2(milestone.unlockButtonColor || "#3b82f6");
+                          if (rgb) {
+                            const darkerR = Math.max(0, rgb.r - 30);
+                            const darkerG = Math.max(0, rgb.g - 30);
+                            const darkerB = Math.max(0, rgb.b - 30);
+                            e.currentTarget.style.backgroundColor = `rgb(${darkerR}, ${darkerG}, ${darkerB})`;
+                          }
+                          e.currentTarget.style.transform = "translateY(-1px)";
+                          e.currentTarget.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.18)";
+                        },
+                        onMouseLeave: (e) => {
+                          e.currentTarget.style.backgroundColor = milestone.unlockButtonColor || "#3b82f6";
+                          e.currentTarget.style.transform = "translateY(0)";
+                          e.currentTarget.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.12)";
+                        },
+                        children: milestone.unlockButtonText || "Unlock Reward"
+                      }
+                    )
                   }
                 )
               ]
@@ -12127,7 +12147,8 @@
             onClose: () => setOpenUpsellMilestoneId(null),
             isPreview,
             upsellHeaderText: openedMilestone.upsellHeaderText,
-            viewAllLinkText: openedMilestone.viewAllLinkText
+            viewAllLinkText: openedMilestone.viewAllLinkText,
+            source
           }
         );
       })()
@@ -13342,7 +13363,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://gerald-meetup-gear-advancement.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://connectors-smithsonian-producer-versus.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.5" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

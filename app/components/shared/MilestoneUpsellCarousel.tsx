@@ -28,6 +28,7 @@ export interface MilestoneUpsellCarouselProps {
     isPreview?: boolean;
     upsellHeaderText?: string;
     viewAllLinkText?: string;
+    source?: 'cart-drawer' | 'milestone-block'; // NEW prop to differentiate source
 }
 
 export const MilestoneUpsellCarousel: React.FC<MilestoneUpsellCarouselProps> = ({
@@ -40,6 +41,7 @@ export const MilestoneUpsellCarousel: React.FC<MilestoneUpsellCarouselProps> = (
     isPreview = false,
     upsellHeaderText = "Unlock Your Reward",
     viewAllLinkText = "View All",
+    source = 'cart-drawer', // Default to cart-drawer for backward compatibility
 }) => {
     const [products, setProducts] = useState<MilestoneUpsellProduct[]>([]);
     const [loading, setLoading] = useState(true);
@@ -90,10 +92,15 @@ export const MilestoneUpsellCarousel: React.FC<MilestoneUpsellCarouselProps> = (
                     _t: Date.now().toString(), // Cache buster
                 });
 
+                // Determine API endpoint based on source
+                const apiEndpoint = source === 'milestone-block'
+                    ? '/api/milestone-block-products'
+                    : '/api/milestone-products';
+
                 // Use absolute URL when running in cart drawer
                 const apiUrl = typeof window !== 'undefined' && (window as any).UPSELLITY_APP_URL
-                    ? `${(window as any).UPSELLITY_APP_URL}/api/milestone-products?${params}`
-                    : `/api/milestone-products?${params}`;
+                    ? `${(window as any).UPSELLITY_APP_URL}${apiEndpoint}?${params}`
+                    : `${apiEndpoint}?${params}`;
 
                 const response = await fetch(apiUrl);
 

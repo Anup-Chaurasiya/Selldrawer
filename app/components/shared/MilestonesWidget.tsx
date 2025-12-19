@@ -16,7 +16,7 @@ interface Milestone {
   showProgressBar: boolean;
   iconColor: string;
   titleColor: string;
-  amountColor: string;
+  unlockButtonColor: string;
   // Product eligibility for upsell
   eligibleCollectionHandle?: string | null;
   eligibleTag?: string | null;
@@ -25,6 +25,7 @@ interface Milestone {
   // Upsell text customization
   upsellHeaderText?: string;
   viewAllLinkText?: string;
+  unlockButtonText?: string;
 }
 
 interface MilestonesWidgetProps {
@@ -36,6 +37,7 @@ interface MilestonesWidgetProps {
   allUnlockedMessage?: string;
   shop?: string;
   onAddToCart?: (variantId: string, quantity: number) => void;
+  source?: 'cart-drawer' | 'milestone-block'; // NEW prop to specify source
 }
 
 export function MilestonesWidget({
@@ -47,6 +49,7 @@ export function MilestonesWidget({
   allUnlockedMessage,
   shop,
   onAddToCart,
+  source = 'cart-drawer', // Default to cart-drawer for backward compatibility
 }: MilestonesWidgetProps) {
   const [openUpsellMilestoneId, setOpenUpsellMilestoneId] = useState<string | null>(null);
 
@@ -255,10 +258,16 @@ export function MilestonesWidget({
           const isInProgress = milestone.status === 'in_progress';
 
           // Check if milestone has eligibility config for upsell
+          // For "All Products", all specific fields are empty but canShowUpsell is true
           const hasEligibilityConfig = Boolean(
-            milestone.eligibleCollectionHandle ||
-            (milestone.eligibleProductIds && milestone.eligibleProductIds.length > 0) ||
-            milestone.eligibleTag
+            milestone.canShowUpsell &&
+            (milestone.eligibleCollectionHandle ||
+              (milestone.eligibleProductIds && milestone.eligibleProductIds.length > 0) ||
+              milestone.eligibleTag ||
+              // If canShowUpsell is true but no specific eligibility, it's "All Products"
+              (!milestone.eligibleCollectionHandle &&
+                (!milestone.eligibleProductIds || milestone.eligibleProductIds.length === 0) &&
+                !milestone.eligibleTag))
           );
 
           return (
@@ -301,17 +310,6 @@ export function MilestonesWidget({
 
               {/* Milestone Icon/Circle */}
               <div
-                onClick={() => {
-                  // Only allow click on locked/in-progress milestones with eligibility config
-                  if (!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart) {
-                    // Find first locked milestone
-                    const firstLockedMilestone = sortedMilestones.find(m => m.status !== 'unlocked');
-                    // Only show upsell for the first locked milestone
-                    if (firstLockedMilestone && firstLockedMilestone.id === milestone.id) {
-                      setOpenUpsellMilestoneId(openUpsellMilestoneId === milestone.id ? null : milestone.id);
-                    }
-                  }
-                }}
                 style={{
                   width: '36px',
                   height: '36px',
@@ -326,26 +324,9 @@ export function MilestonesWidget({
                   boxShadow: isUnlocked || isInProgress ? '0 2px 8px rgba(0, 0, 0, 0.15)' : 'none',
                   position: 'relative',
                   opacity: isUnlocked ? 1 : isInProgress ? 0.9 : 0.5,
-                  cursor: (!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart) ? 'pointer' : 'default',
-                  transform: (!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig) ? 'scale(1)' : undefined,
+                  cursor: 'default',
                 }}
-                onMouseEnter={(e) => {
-                  if (!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart) {
-                    e.currentTarget.style.transform = 'scale(1.1)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig) {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = isInProgress ? '0 2px 8px rgba(0, 0, 0, 0.15)' : 'none';
-                  }
-                }}
-                title={
-                  !isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart
-                    ? 'View items to unlock this reward'
-                    : `${milestone.title} - ₹${milestone.targetAmount}`
-                }
+                title={`${milestone.title} - ₹${milestone.targetAmount}`}
               >
                 <span>{milestone.icon || '🎁'}</span>
                 {isUnlocked && (
@@ -384,13 +365,51 @@ export function MilestonesWidget({
                   whiteSpace: 'nowrap',
                 }}
               >
-                <div style={{
-                  fontSize: '10px',
-                  fontWeight: '600',
-                  color: milestone.amountColor || '#3b82f6',
-                }}>
-                  ₹{milestone.targetAmount.toFixed(0)}
-                </div>
+                {/* Unlock Button - Below Milestone */}
+                {!isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart && (() => {
+                  // Only show for the first locked milestone
+                  const firstLockedMilestone = sortedMilestones.find(m => m.status !== 'unlocked');
+                  return firstLockedMilestone && firstLockedMilestone.id === milestone.id;
+                })() && (
+                    <button
+                      onClick={() => {
+                        setOpenUpsellMilestoneId(openUpsellMilestoneId === milestone.id ? null : milestone.id);
+                      }}
+                      style={{
+                        marginTop: '4px',
+                        padding: '6px 14px',
+                        fontSize: '10px',
+                        fontWeight: '600',
+                        color: '#ffffff',
+                        backgroundColor: milestone.unlockButtonColor || '#3b82f6',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.12)',
+                        whiteSpace: 'nowrap',
+                        letterSpacing: '0.3px',
+                      }}
+                      onMouseEnter={(e) => {
+                        const rgb = hexToRgb(milestone.unlockButtonColor || '#3b82f6');
+                        if (rgb) {
+                          const darkerR = Math.max(0, rgb.r - 30);
+                          const darkerG = Math.max(0, rgb.g - 30);
+                          const darkerB = Math.max(0, rgb.b - 30);
+                          e.currentTarget.style.backgroundColor = `rgb(${darkerR}, ${darkerG}, ${darkerB})`;
+                        }
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.18)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = milestone.unlockButtonColor || '#3b82f6';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.12)';
+                      }}
+                    >
+                      {milestone.unlockButtonText || 'Unlock Reward'}
+                    </button>
+                  )}
               </div>
             </div>
           );
@@ -415,6 +434,7 @@ export function MilestonesWidget({
             isPreview={isPreview}
             upsellHeaderText={openedMilestone.upsellHeaderText}
             viewAllLinkText={openedMilestone.viewAllLinkText}
+            source={source}
           />
         );
       })()}

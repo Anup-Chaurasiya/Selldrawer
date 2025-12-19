@@ -131,7 +131,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         showProgressBar: milestone.showProgressBar,
         iconColor: milestone.iconColor,
         titleColor: milestone.titleColor,
-        amountColor: milestone.amountColor,
+        unlockButtonColor: milestone.unlockButtonColor,
         giftProducts: (milestone as any).giftProducts || [],
         // Product eligibility for upsell
         eligibleCollectionHandle: (milestone as any).eligibleCollectionHandle || null,
@@ -141,6 +141,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         // Upsell text customization
         upsellHeaderText: (milestone as any).upsellHeaderText || "Unlock Your Reward",
         viewAllLinkText: (milestone as any).viewAllLinkText || "View All",
+        unlockButtonText: (milestone as any).unlockButtonText || "Unlock Reward",
       };
     });
 
