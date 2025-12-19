@@ -293,6 +293,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           eligibleCollectionHandle,
           eligibleTag,
           eligibleProductIds,
+          upsellHeaderText: formData.get("upsellHeaderText") as string || "Unlock Your Reward",
+          viewAllLinkText: formData.get("viewAllLinkText") as string || "View All",
         } as any
       });
 
@@ -414,6 +416,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         eligibleCollectionHandle,
         eligibleTag,
         eligibleProductIds,
+        upsellHeaderText: formData.get("upsellHeaderText") as string || "Unlock Your Reward",
+        viewAllLinkText: formData.get("viewAllLinkText") as string || "View All",
       } as any
     });
 
@@ -553,6 +557,8 @@ export default function CartMilestones() {
     iconColor: "#3b82f6",
     titleColor: "#1e40af",
     amountColor: "#3b82f6",
+    upsellHeaderText: "Unlock Your Reward",
+    viewAllLinkText: "View All",
   });
 
   const [selectedTargets, setSelectedTargets] = useState<any[]>([]);
@@ -591,6 +597,8 @@ export default function CartMilestones() {
         iconColor: milestone.iconColor || "#3b82f6",
         titleColor: milestone.titleColor || "#1e40af",
         amountColor: milestone.amountColor || "#3b82f6",
+        upsellHeaderText: (milestone as any).upsellHeaderText || "Unlock Your Reward",
+        viewAllLinkText: (milestone as any).viewAllLinkText || "View All",
       };
       setFormState(initialState);
       setSelectedTargets(milestone.targets || []);
@@ -628,6 +636,8 @@ export default function CartMilestones() {
         iconColor: "#3b82f6",
         titleColor: "#1e40af",
         amountColor: "#3b82f6",
+        upsellHeaderText: "Unlock Your Reward",
+        viewAllLinkText: "View All",
       };
       setFormState(initialState);
       setSelectedTargets([]);
@@ -1414,6 +1424,30 @@ export default function CartMilestones() {
                   <p><strong>Priority:</strong> If multiple sources are configured, only the highest priority will be used: Collection → Specific Products → Tag</p>
                 </Banner>
               )}
+
+              <Divider />
+
+              <Text as="h3" variant="headingMd">
+                Upsell Text Customization
+              </Text>
+
+              <TextField
+                label="Upsell Header Text"
+                value={formState.upsellHeaderText}
+                onChange={(value) => updateFormState({ upsellHeaderText: value })}
+                placeholder="Unlock Your Reward"
+                autoComplete="off"
+                helpText="Header text shown in the product recommendations carousel"
+              />
+
+              <TextField
+                label="View All Link Text"
+                value={formState.viewAllLinkText}
+                onChange={(value) => updateFormState({ viewAllLinkText: value })}
+                placeholder="View All"
+                autoComplete="off"
+                helpText="Text for the 'View All' link in the recommendations carousel"
+              />
             </FormLayout>
           </BlockStack>
         </Modal.Section>

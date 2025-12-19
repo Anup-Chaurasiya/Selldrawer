@@ -4,8 +4,8 @@
  */
 
 // App URL - Update this with your deployment URL
-export const APP_URL = 'https://sorted-congressional-interval-bios.trycloudflare.com';
+export const APP_URL = 'https://gerald-meetup-gear-advancement.trycloudflare.com';
 
 // Version - Update this to force cache invalidation across all components
-export const VERSION = '1.0.4';
+export const VERSION = '1.0.5';
 

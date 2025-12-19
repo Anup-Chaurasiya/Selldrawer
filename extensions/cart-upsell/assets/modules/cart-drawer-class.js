@@ -32,7 +32,7 @@ export class UpsellityCartDrawer {
     this.isSyncingGifts = false; // Prevent concurrent gift syncing
     this.freeGifts = []; // Free gift offers
     this.selectedGiftId = null; // Currently selected gift
-    
+
     this.init();
   }
 
@@ -68,12 +68,12 @@ export class UpsellityCartDrawer {
         }
       });
       this.config = await response.json();
-      
+
       // Load milestones if enabled
       if (this.config?.features?.milestonesEnabled) {
         await this.loadMilestones();
       }
-      
+
       // Load free gifts if enabled
       if (this.config?.features?.freeGiftsEnabled) {
         await this.loadFreeGifts();
@@ -91,7 +91,7 @@ export class UpsellityCartDrawer {
         console.log('Upsellity Free Gifts: Already syncing, skipping');
         return;
       }
-      
+
       // Calculate cart total EXCLUDING gift items to prevent circular dependency
       // This ensures that if a gift was added earlier, it doesn't count towards the threshold
       const cartTotalExcludingGifts = MilestoneRewardManager.calculateCartTotalExcludingGifts(this.cart);
@@ -99,17 +99,17 @@ export class UpsellityCartDrawer {
         totalWithGifts: this.cart.total_price / 100,
         totalExcludingGifts: cartTotalExcludingGifts / 100
       });
-      
+
       // Load free gifts from API using cart total WITHOUT gifts
       // Note: API will return empty array if milestone with gift reward is unlocked (priority system)
       const freeGifts = await FreeGiftManager.loadFreeGifts(
-        this.appUrl, 
-        this.shop, 
+        this.appUrl,
+        this.shop,
         this.cart,
         cartTotalExcludingGifts / 100 // Pass cart total in rupees, excluding gifts
       );
       this.freeGifts = freeGifts;
-      
+
       // Only sync if API returned free gifts (meaning they have priority over milestones)
       if (freeGifts.length > 0 && freeGifts[0].qualified) {
         console.log('Upsellity Free Gifts: API returned gifts, syncing');
@@ -121,7 +121,7 @@ export class UpsellityCartDrawer {
             this.cart = await response.json();
           }
         );
-        
+
         // Update selected gift ID
         this.selectedGiftId = FreeGiftManager.getSelectedGiftFromCart(this.cart, freeGifts[0]);
       } else {
@@ -142,7 +142,7 @@ export class UpsellityCartDrawer {
 
       const cartTotal = this.cart ? this.cart.total_price / 100 : 0; // Convert cents to rupees
       const cartItemsJson = this.cart ? JSON.stringify(this.cart.items) : '[]';
-      
+
       const timestamp = new Date().getTime();
       const response = await fetch(
         `${appUrl}/api/milestones?shop=${this.shop}&cartTotal=${cartTotal}&cartItems=${encodeURIComponent(cartItemsJson)}&_t=${timestamp}`,
@@ -154,28 +154,28 @@ export class UpsellityCartDrawer {
           }
         }
       );
-      
+
       const data = await response.json();
-      
+
       if (data.milestones) {
         // Store milestones for reward evaluation
         this.milestones = data.milestones;
-        
+
         // Store milestones in config for rendering
         if (!this.config.features) {
           this.config.features = {};
         }
         this.config.features.milestones = data.milestones;
-        
+
         // Handle milestone rewards (evaluate and sync gifts)
         await this.handleMilestoneRewards();
       }
-      
+
       // Store progress bar color if provided (always update, even if milestones is empty)
       if (data.progressBarColor) {
         this.config.features.milestonesProgressBarColor = data.progressBarColor;
       }
-      
+
       // Store all unlocked message if provided (always update, even if milestones is empty)
       if (data.allUnlockedMessage) {
         this.config.features.milestonesAllUnlockedMessage = data.allUnlockedMessage;
@@ -190,11 +190,11 @@ export class UpsellityCartDrawer {
       console.log('Upsellity Milestones: Already syncing, skipping');
       return;
     }
-    
+
     try {
       this.isSyncingGifts = true;
       console.log('Upsellity Milestones: Starting sync');
-      
+
       // Evaluate and handle milestone rewards
       const previousMilestone = this.unlockedMilestone;
       this.unlockedMilestone = await MilestoneRewardManager.handleMilestoneRewards(
@@ -205,12 +205,12 @@ export class UpsellityCartDrawer {
           await this.loadCart(cartData, false, true);
         }
       );
-      
+
       // Show notification if milestone was just unlocked
       if (this.unlockedMilestone && (!previousMilestone || previousMilestone.id !== this.unlockedMilestone.id)) {
         MilestoneRewardManager.showMilestoneUnlockedNotification(this.unlockedMilestone);
       }
-      
+
       console.log('Upsellity Milestones: Sync complete');
     } catch (error) {
       console.error('Upsellity Milestones: Error handling rewards', error);
@@ -231,22 +231,22 @@ export class UpsellityCartDrawer {
         const response = await fetch('/cart.js');
         this.cart = await response.json();
       }
-      
+
       // Render immediately if we're not skipping render
       // This ensures drawer opens as soon as we have cart + config
       if (!skipRender) {
         this.render();
       }
-      
+
       // Load all secondary data in parallel (can complete after drawer is open)
       const promises = [
         ProductLoader.loadProductCompareAtPrices(this.cart),
         DiscountManager.loadAvailableDiscounts(this.appUrl, this.shop, this.config),
         ProductLoader.loadShopifyRecommendations(this.cart, this.config)
       ];
-      
+
       const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
-      
+
       // Load milestones and free gifts SEQUENTIALLY to handle priority correctly
       // Skip if we're already syncing to prevent infinite loops
       if (!skipGiftSync) {
@@ -265,25 +265,25 @@ export class UpsellityCartDrawer {
           const response = await fetch('/cart.js');
           this.cart = await response.json();
         }
-        
+
         if (this.config?.features?.freeGiftsEnabled) {
           await this.loadFreeGifts();
         }
       }
-      
+
       this.productCompareAtPrices = productCompareAtPrices;
       this.availableDiscounts = availableDiscounts;
-      
+
       // Auto-apply best discount only if user hasn't removed it recently
       // AND if coupon field is enabled (not null)
-      if (this.config?.features?.couponCodeField && 
-          this.config?.features?.couponCodeField?.enableAutoApply && 
-          !this.getDiscountFromCart() && 
-          this.availableDiscounts.length > 0 &&
-          !AutoApplyStorage.wasDiscountRemoved()) {
+      if (this.config?.features?.couponCodeField &&
+        this.config?.features?.couponCodeField?.enableAutoApply &&
+        !this.getDiscountFromCart() &&
+        this.availableDiscounts.length > 0 &&
+        !AutoApplyStorage.wasDiscountRemoved()) {
         await DiscountManager.autoApplyBestDiscount(this.availableDiscounts, this.config, this.loadCart.bind(this));
       }
-      
+
       // Re-render after secondary data is loaded
       if (!skipRender) {
         this.render();
@@ -304,42 +304,42 @@ export class UpsellityCartDrawer {
   interceptAddToCart() {
     // Track if we're already handling an add to cart to prevent double-opening
     let isHandlingAddToCart = false;
-    
+
     // Intercept form submissions
     document.addEventListener('submit', async (e) => {
       const form = e.target;
       const action = form.getAttribute('action');
-      
+
       // Match various cart/add action formats
       if (action && (action === '/cart/add' || action.endsWith('/cart/add') || action.includes('/cart/add'))) {
         e.preventDefault();
         e.stopPropagation();
-        
+
         if (isHandlingAddToCart) return;
         isHandlingAddToCart = true;
-        
+
         const formData = new FormData(form);
-        
+
         try {
           const response = await fetch('/cart/add.js', {
             method: 'POST',
             body: formData,
           });
-          
+
           if (response.ok) {
             // Ensure config is loaded, then load cart and open
             if (!this.config) {
               await this.loadConfig();
             }
-            
+
             // Load fresh cart data
             const cartResponse = await fetch('/cart.js');
             this.cart = await cartResponse.json();
-            
+
             // Mark that cart was just updated and open drawer
             this.cartJustUpdated = true;
             await this.open();
-            
+
             // Load secondary data in background
             this.loadSecondaryData();
           } else {
@@ -360,44 +360,44 @@ export class UpsellityCartDrawer {
     window.fetch = async (...args) => {
       const url = typeof args[0] === 'string' ? args[0] : args[0]?.url;
       const isCartAdd = url && (url.includes('/cart/add.js') || url.includes('/cart/add'));
-      
+
       // Call original fetch
       const response = await originalFetch(...args);
-      
+
       // Only open drawer if this is a cart add and we're not already handling it
       if (isCartAdd && !isHandlingAddToCart) {
         isHandlingAddToCart = true;
-        
+
         // Clone response so the original caller can still use it
         const clonedResponse = response.clone();
-        
-         try {
-           if (clonedResponse.ok) {
-             // Ensure config is loaded, then load cart and open
-             if (!this.config) {
-               await this.loadConfig();
-             }
-             
-             // Load fresh cart data
-             const cartResponse = await fetch('/cart.js');
-             this.cart = await cartResponse.json();
-             
-             // Mark that cart was just updated and open drawer
-             this.cartJustUpdated = true;
-             await this.open();
-             
-             // Load secondary data in background
-             this.loadSecondaryData();
-           }
-         } catch (error) {
-           console.error('Upsellity: Error handling cart add', error);
-         } finally {
-           setTimeout(() => {
-             isHandlingAddToCart = false;
-           }, 500);
-         }
+
+        try {
+          if (clonedResponse.ok) {
+            // Ensure config is loaded, then load cart and open
+            if (!this.config) {
+              await this.loadConfig();
+            }
+
+            // Load fresh cart data
+            const cartResponse = await fetch('/cart.js');
+            this.cart = await cartResponse.json();
+
+            // Mark that cart was just updated and open drawer
+            this.cartJustUpdated = true;
+            await this.open();
+
+            // Load secondary data in background
+            this.loadSecondaryData();
+          }
+        } catch (error) {
+          console.error('Upsellity: Error handling cart add', error);
+        } finally {
+          setTimeout(() => {
+            isHandlingAddToCart = false;
+          }, 500);
+        }
       }
-      
+
       return response;
     };
   }
@@ -437,13 +437,13 @@ export class UpsellityCartDrawer {
         <div class="upsellity-drawer-inner"></div>
       </div>
     `;
-    
+
     document.body.appendChild(drawer);
-    
+
     // Get references to drawer elements
     const overlay = drawer.querySelector('.upsellity-drawer-overlay');
     const drawerContent = drawer.querySelector('.upsellity-drawer-content');
-    
+
     // Click handler for the main drawer container
     // This catches clicks anywhere in the drawer area
     drawer.addEventListener('click', (e) => {
@@ -452,7 +452,7 @@ export class UpsellityCartDrawer {
         this.close();
       }
     });
-    
+
     // Click handler for overlay - closes drawer when clicking on the dark background
     if (overlay) {
       overlay.addEventListener('click', (e) => {
@@ -462,7 +462,7 @@ export class UpsellityCartDrawer {
         }
       });
     }
-    
+
     // Prevent clicks inside drawer content from bubbling up and closing the drawer
     if (drawerContent) {
       drawerContent.addEventListener('click', (e) => {
@@ -470,14 +470,14 @@ export class UpsellityCartDrawer {
         e.stopPropagation();
       });
     }
-    
+
     // Close drawer on Escape key press
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.isOpen) {
         this.close();
       }
     });
-    
+
     this.loadStyles();
   }
 
@@ -495,28 +495,28 @@ export class UpsellityCartDrawer {
       console.error('Upsellity: Drawer element not found');
       return;
     }
-    
+
     const inner = drawer.querySelector('.upsellity-drawer-inner');
     if (!inner) {
       console.error('Upsellity: Drawer inner element not found');
       return;
     }
-    
+
     // Create or reuse React root
     if (!this.reactRoot) {
       this.reactRoot = createRoot(inner);
     }
-    
+
     // Debug logging
     console.log('Upsellity Cart Drawer Render:', {
       freeGifts: this.freeGifts,
       freeGiftsEnabled: this.config?.features?.freeGiftsEnabled,
       selectedGiftId: this.selectedGiftId
     });
-    
+
     // Get discount from Shopify cart
     const appliedDiscount = this.getDiscountFromCart();
-    
+
     // Render the unified React component
     this.reactRoot.render(
       React.createElement(UnifiedCartDrawer, {
@@ -567,12 +567,12 @@ export class UpsellityCartDrawer {
 
   async open() {
     const drawer = document.getElementById('upsellity-cart-drawer');
-    
+
     // If cart was just updated (add to cart), render and open immediately
     if (this.cartJustUpdated) {
       this.cartJustUpdated = false;
       this.render();
-      
+
       // Open drawer immediately (don't lock body scroll - allow page scrolling)
       drawer.classList.add('open');
       this.isOpen = true;
@@ -585,18 +585,18 @@ export class UpsellityCartDrawer {
           this.cart = cart;
         })
       ]);
-      
+
       // Render and open drawer immediately after config + cart are loaded
       this.render();
       // Don't lock body scroll - allow page scrolling
       drawer.classList.add('open');
       this.isOpen = true;
-      
+
       // Load secondary data in background (will re-render when done)
       this.loadSecondaryData();
     }
   }
-  
+
   async loadSecondaryData() {
     try {
       // Load all secondary data in parallel
@@ -605,31 +605,31 @@ export class UpsellityCartDrawer {
         DiscountManager.loadAvailableDiscounts(this.appUrl, this.shop, this.config),
         ProductLoader.loadShopifyRecommendations(this.cart, this.config)
       ];
-      
+
       const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
-      
+
       this.productCompareAtPrices = productCompareAtPrices;
       this.availableDiscounts = availableDiscounts;
-      
+
       // Load milestones and free gifts SEQUENTIALLY to handle priority correctly
       if (this.config?.features?.milestonesEnabled) {
         await this.loadMilestones();
       }
-      
+
       if (this.config?.features?.freeGiftsEnabled) {
         await this.loadFreeGifts();
       }
-      
+
       // Auto-apply best discount only if user hasn't removed it recently
       // AND if coupon field is enabled (not null)
-      if (this.config?.features?.couponCodeField && 
-          this.config?.features?.couponCodeField?.enableAutoApply && 
-          !this.getDiscountFromCart() && 
-          this.availableDiscounts.length > 0 &&
-          !AutoApplyStorage.wasDiscountRemoved()) {
+      if (this.config?.features?.couponCodeField &&
+        this.config?.features?.couponCodeField?.enableAutoApply &&
+        !this.getDiscountFromCart() &&
+        this.availableDiscounts.length > 0 &&
+        !AutoApplyStorage.wasDiscountRemoved()) {
         await DiscountManager.autoApplyBestDiscount(this.availableDiscounts, this.config, this.loadCart.bind(this));
       }
-      
+
       // Re-render with secondary data
       this.render();
     } catch (error) {
@@ -641,7 +641,7 @@ export class UpsellityCartDrawer {
     const drawer = document.getElementById('upsellity-cart-drawer');
     drawer.classList.remove('open');
     this.isOpen = false;
-    
+
     // Clean up React root when closing
     if (this.reactRoot) {
       try {
@@ -664,19 +664,19 @@ export class UpsellityCartDrawer {
   async handleSelectGift(giftId, variantId) {
     // Get the free gift object
     const freeGift = this.freeGifts && this.freeGifts.length > 0 ? this.freeGifts[0] : null;
-    
+
     if (!freeGift) {
       console.error('Upsellity: No free gift available');
       return;
     }
-    
+
     const success = await FreeGiftManager.selectGift(variantId, freeGift, async () => {
       // Reload cart after adding gift
       const response = await fetch('/cart.js');
       this.cart = await response.json();
       this.render();
     });
-    
+
     if (success) {
       // Update selected gift ID after successful addition
       this.selectedGiftId = giftId;
@@ -692,11 +692,11 @@ export class UpsellityCartDrawer {
         hasUnlockedMilestone: !!this.unlockedMilestone,
         cartTotal: this.cart?.total_price / 100
       });
-      
+
       // Check free gifts first - only if qualified
       if (this.freeGifts && this.freeGifts.length > 0 && this.freeGifts[0].qualified) {
         console.log('Upsellity: Free gift is qualified, checking discount code');
-        
+
         // If free gift has discount code, use it for checkout
         if (this.freeGifts[0].discountCode) {
           console.log('Upsellity: Using free gift discount code', this.freeGifts[0].discountCode);
@@ -710,7 +710,7 @@ export class UpsellityCartDrawer {
           // Continue to next priority
         }
       }
-      
+
       // Priority 1: Use milestone discount if available
       if (this.unlockedMilestone && this.unlockedMilestone.discountCode) {
         console.log('Upsellity: Using milestone discount', this.unlockedMilestone.discountCode);
@@ -719,31 +719,31 @@ export class UpsellityCartDrawer {
           this.unlockedMilestone,
           this.cart
         );
-        
+
         if (!validation.valid) {
           console.log('Upsellity: Milestone validation failed', validation.message);
           showNotification(validation.message, 'info');
-          
+
           // If gifts are missing, try to sync them
           if (this.unlockedMilestone.rewardType === 'gift_wrapping') {
             await this.handleMilestoneRewards();
-            
+
             // Wait a bit and try again
             setTimeout(() => {
               this.handleCheckout();
             }, 500);
           }
-          
+
           return;
         }
-        
+
         // Proceed to checkout with milestone discount
         const checkoutUrl = MilestoneRewardManager.getCheckoutUrlWithDiscount(this.unlockedMilestone);
         console.log('Upsellity: Redirecting to checkout with milestone discount', checkoutUrl);
         window.location.href = checkoutUrl;
         return;
       }
-      
+
       // Priority 2: Use manually applied discount (coupon code)
       const appliedDiscount = this.getDiscountFromCart();
       if (appliedDiscount && appliedDiscount.code) {
@@ -752,14 +752,14 @@ export class UpsellityCartDrawer {
         window.location.href = checkoutUrl;
         return;
       }
-      
+
       // Priority 3: No discount, proceed to normal checkout
       console.log('Upsellity: Proceeding to normal checkout');
       window.location.href = '/checkout';
     } catch (error) {
       console.error('Upsellity: Error during checkout', error);
       showNotification('An error occurred. Proceeding to checkout...', 'error');
-      
+
       // Fallback to normal checkout
       setTimeout(() => {
         window.location.href = '/checkout';
@@ -770,7 +770,7 @@ export class UpsellityCartDrawer {
   // Cart operations
   async addProductToCart(variantId, quantity = 1, properties = {}) {
     await CartOps.addProductToCart(variantId, quantity, this.loadCart.bind(this), properties);
-    
+
     // Track add to cart if coming from upsell
     if (properties._upsell_source) {
       Analytics.track({
@@ -819,13 +819,13 @@ export class UpsellityCartDrawer {
 
   async applyCouponWithCode(code) {
     const success = await DiscountManager.validateAndApplyCoupon(
-      this.appUrl, 
-      this.shop, 
-      this.config, 
-      code, 
+      this.appUrl,
+      this.shop,
+      this.config,
+      code,
       this.loadCart.bind(this)
     );
-    
+
     if (success) {
       // Clear removal preference when user manually applies a discount
       AutoApplyStorage.clearDiscountRemoval();
@@ -836,32 +836,32 @@ export class UpsellityCartDrawer {
   async removeDiscount() {
     // Mark that user removed the discount FIRST (prevents auto-apply from re-triggering)
     AutoApplyStorage.markDiscountRemoved();
-    
+
     const success = await DiscountManager.removeDiscount(async (cart) => {
       // Update cart data immediately
       this.cart = cart;
       // Render immediately - this gives instant feedback
       this.render();
-      
+
       // Load secondary data in background (but auto-apply won't run because we marked it as removed)
       // This ensures UI is updated immediately while data loads in background
       this.loadSecondaryData();
     });
-    
+
     // Don't call loadCart() again - it would cause delay and is unnecessary
     // The callback already updated the cart and rendered
   }
 
   toggleAllOffers() {
     this.showingAllOffers = !this.showingAllOffers;
-    
+
     const dropdown = document.getElementById('upsellity-all-offers-dropdown');
     const arrow = document.getElementById('upsellity-offers-arrow');
-    
+
     if (dropdown) {
       dropdown.style.display = this.showingAllOffers ? 'block' : 'none';
     }
-    
+
     if (arrow) {
       arrow.textContent = this.showingAllOffers ? '▲' : '▼';
     }
@@ -869,20 +869,20 @@ export class UpsellityCartDrawer {
 
   async switchDiscount(discountCode) {
     const discount = this.availableDiscounts.find(d => d.code === discountCode);
-    
+
     if (!discount) {
       console.error('Upsellity: Discount not found', discountCode);
       return;
     }
 
     const success = await DiscountManager.applyDiscountCode(discountCode, this.loadCart.bind(this));
-    
+
     if (success) {
       this.showingAllOffers = false;
-      
+
       // Clear removal preference when user manually switches to a discount
       AutoApplyStorage.clearDiscountRemoval();
-      
+
       await this.loadCart();
     }
   }

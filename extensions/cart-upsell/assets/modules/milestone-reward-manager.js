@@ -23,20 +23,20 @@ export function evaluateMilestones(milestones, cart) {
 
   // Calculate cart total excluding gift items
   const cartTotalExcludingGifts = calculateCartTotalExcludingGifts(cart);
-  
+
   // Convert cents to rupees for comparison
   const cartTotalInRupees = cartTotalExcludingGifts / 100;
-  
+
   // Find all unlocked milestones
   const unlockedMilestones = milestones.filter(milestone => {
     return cartTotalInRupees >= milestone.targetAmount;
   });
-  
+
   // Return the highest unlocked milestone (highest targetAmount)
   if (unlockedMilestones.length === 0) {
     return null;
   }
-  
+
   // Sort by targetAmount descending and return the highest
   const sortedUnlocked = [...unlockedMilestones].sort((a, b) => b.targetAmount - a.targetAmount);
   return sortedUnlocked[0];
@@ -51,9 +51,9 @@ export function calculateCartTotalExcludingGifts(cart) {
   if (!cart || !cart.items) {
     return 0;
   }
-  
+
   let total = 0;
-  
+
   for (const item of cart.items) {
     // Check if item has gift property
     const isGift = item.properties && (
@@ -61,12 +61,12 @@ export function calculateCartTotalExcludingGifts(cart) {
       item.properties['_gift'] === 'true' ||
       item.properties['_gift'] === true
     );
-    
+
     if (!isGift) {
       total += item.final_line_price || item.line_price || (item.price * item.quantity);
     }
   }
-  
+
   return total;
 }
 
@@ -81,10 +81,10 @@ export function findGiftInCart(cart, variantId, milestoneId) {
   if (!cart || !cart.items || !variantId) {
     return null;
   }
-  
+
   // Normalize variant ID (remove gid:// prefix if present)
   const normalizedVariantId = normalizeVariantId(variantId);
-  
+
   return cart.items.find(item => {
     const itemVariantId = normalizeVariantId(item.variant_id || item.id);
     const isGift = item.properties && (
@@ -92,7 +92,7 @@ export function findGiftInCart(cart, variantId, milestoneId) {
       item.properties['_gift'] === 'true' ||
       item.properties['_gift'] === true
     );
-    
+
     // Match by variant ID and gift property
     // Optionally match milestone ID if provided
     if (isGift && itemVariantId === normalizedVariantId) {
@@ -101,7 +101,7 @@ export function findGiftInCart(cart, variantId, milestoneId) {
       }
       return true;
     }
-    
+
     return false;
   });
 }
@@ -115,7 +115,7 @@ export function getAllGiftsInCart(cart) {
   if (!cart || !cart.items) {
     return [];
   }
-  
+
   return cart.items.filter(item => {
     return item.properties && (
       item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE ||
@@ -135,10 +135,10 @@ export async function addGiftToCart(giftProduct, milestoneId) {
   if (!giftProduct || !giftProduct.shopifyVariantId) {
     return false;
   }
-  
+
   try {
     const variantId = normalizeVariantId(giftProduct.shopifyVariantId);
-    
+
     // Prepare form data
     const formData = new FormData();
     formData.append('id', variantId);
@@ -146,22 +146,22 @@ export async function addGiftToCart(giftProduct, milestoneId) {
     formData.append(`properties[${GIFT_PROPERTY_KEY}]`, GIFT_PROPERTY_VALUE);
     formData.append(`properties[${GIFT_MILESTONE_ID_KEY}]`, milestoneId);
     formData.append('properties[_gift_title]', giftProduct.title || 'Free Gift');
-    
+
     const response = await fetch('/cart/add.js', {
       method: 'POST',
       body: formData
     });
-    
+
     if (response.ok) {
       const result = await response.json();
-      
+
       // Reduced wait time for better performance
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       // Trigger cart update events
       document.dispatchEvent(new CustomEvent('cart:updated', { detail: result }));
       document.dispatchEvent(new CustomEvent('cart:change', { detail: result }));
-      
+
       return true;
     } else {
       return false;
@@ -180,7 +180,7 @@ export async function removeGiftFromCart(itemKey) {
   if (!itemKey) {
     return false;
   }
-  
+
   try {
     // Use cart/update.js instead of cart/change.js for better compatibility
     const response = await fetch('/cart/update.js', {
@@ -194,17 +194,17 @@ export async function removeGiftFromCart(itemKey) {
         }
       })
     });
-    
+
     if (response.ok) {
       const result = await response.json();
-      
+
       // Reduced wait time for better performance
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       // Trigger cart update events
       document.dispatchEvent(new CustomEvent('cart:updated', { detail: result }));
       document.dispatchEvent(new CustomEvent('cart:change', { detail: result }));
-      
+
       return true;
     } else {
       return false;
@@ -223,10 +223,10 @@ export async function removeGiftFromCart(itemKey) {
  */
 export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback) {
   let cartModified = false;
-  
+
   // Get all current gifts in cart
   const currentGifts = getAllGiftsInCart(cart);
-  
+
   // If no milestone is unlocked, remove all gifts
   if (!unlockedMilestone) {
     for (const giftItem of currentGifts) {
@@ -235,14 +235,14 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
         cartModified = true;
       }
     }
-    
+
     if (cartModified && loadCartCallback) {
       await loadCartCallback();
     }
-    
+
     return cartModified;
   }
-  
+
   // If milestone is unlocked but not a gift reward, remove all gifts
   if (unlockedMilestone.rewardType !== 'gift_wrapping') {
     for (const giftItem of currentGifts) {
@@ -251,17 +251,17 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
         cartModified = true;
       }
     }
-    
+
     if (cartModified && loadCartCallback) {
       await loadCartCallback();
     }
-    
+
     return cartModified;
   }
-  
+
   // Milestone is unlocked and is a gift reward
   const giftProducts = unlockedMilestone.giftProducts || [];
-  
+
   // If no gift products configured, remove all gifts
   if (giftProducts.length === 0) {
     for (const giftItem of currentGifts) {
@@ -270,40 +270,40 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
         cartModified = true;
       }
     }
-    
+
     if (cartModified && loadCartCallback) {
       await loadCartCallback();
     }
-    
+
     return cartModified;
   }
-  
+
   // Create a set of valid gift variant IDs for this milestone
   // This ensures that if the admin changes the gift product, old gifts are removed
   const validGiftVariantIds = new Set(
     giftProducts.map(gp => normalizeVariantId(gp.shopifyVariantId))
   );
-  
+
   // Track which valid gifts we've already seen to prevent duplicates
   const seenValidGifts = new Set();
-  
+
   // Remove gifts that don't belong to this milestone OR don't match configured products OR are duplicates
   for (const giftItem of currentGifts) {
     const itemVariantId = normalizeVariantId(giftItem.variant_id || giftItem.id);
-    const belongsToThisMilestone = giftItem.properties && 
+    const belongsToThisMilestone = giftItem.properties &&
       giftItem.properties[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
-    
+
     const isValidGift = belongsToThisMilestone && validGiftVariantIds.has(itemVariantId);
     const isDuplicate = seenValidGifts.has(itemVariantId);
-    
+
     // Remove if:
     // 1. Doesn't belong to this milestone, OR
     // 2. Belongs to this milestone but variant is not in the configured gift products, OR
     // 3. Is a duplicate (we already have this gift in cart)
-    const shouldRemove = !belongsToThisMilestone || 
+    const shouldRemove = !belongsToThisMilestone ||
       (belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId)) ||
       isDuplicate;
-    
+
     if (shouldRemove) {
       const removed = await removeGiftFromCart(giftItem.key);
       if (removed) {
@@ -312,7 +312,7 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
     } else if (isValidGift) {
       // Mark this gift as seen
       seenValidGifts.add(itemVariantId);
-      
+
       // Ensure quantity is exactly 1 for gift items
       if (giftItem.quantity !== 1) {
         try {
@@ -327,7 +327,7 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
               quantity: 1
             })
           });
-          
+
           if (response.ok) {
             cartModified = true;
           }
@@ -337,18 +337,18 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
       }
     }
   }
-  
+
   // Add missing gift products (only if not already in cart)
   for (const giftProduct of giftProducts) {
     const variantId = normalizeVariantId(giftProduct.shopifyVariantId);
-    
+
     // Skip if we already have this gift in cart
     if (seenValidGifts.has(variantId)) {
       continue;
     }
-    
+
     const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
-    
+
     if (!existingGift) {
       const added = await addGiftToCart(giftProduct, unlockedMilestone.id);
       if (added) {
@@ -357,17 +357,17 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
       }
     }
   }
-  
+
   // Reload cart if modified
   if (cartModified) {
     // Reduced wait time for better performance
     await new Promise(resolve => setTimeout(resolve, 300));
-    
+
     if (loadCartCallback) {
       await loadCartCallback();
     }
   }
-  
+
   return cartModified;
 }
 
@@ -380,7 +380,7 @@ export function getCheckoutUrlWithDiscount(unlockedMilestone) {
   if (!unlockedMilestone || !unlockedMilestone.discountCode) {
     return '/checkout';
   }
-  
+
   return `/checkout?discount=${encodeURIComponent(unlockedMilestone.discountCode)}`;
 }
 
@@ -396,22 +396,22 @@ export async function validateMilestoneForCheckout(unlockedMilestone, cart) {
   if (!unlockedMilestone) {
     return { valid: true, message: '' };
   }
-  
+
   // Check if discount code is configured
   if (!unlockedMilestone.discountCode) {
-    return { 
-      valid: false, 
-      message: 'Milestone reward is not properly configured. Please contact support.' 
+    return {
+      valid: false,
+      message: 'Milestone reward is not properly configured. Please contact support.'
     };
   }
-  
+
   // If it's a gift reward, ensure gift is in cart
   if (unlockedMilestone.rewardType === 'gift_wrapping') {
     const giftProducts = unlockedMilestone.giftProducts || [];
-    
+
     if (giftProducts.length > 0) {
       let allGiftsPresent = true;
-      
+
       for (const giftProduct of giftProducts) {
         const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
         if (!existingGift) {
@@ -419,7 +419,7 @@ export async function validateMilestoneForCheckout(unlockedMilestone, cart) {
           break;
         }
       }
-      
+
       if (!allGiftsPresent) {
         return {
           valid: false,
@@ -428,7 +428,7 @@ export async function validateMilestoneForCheckout(unlockedMilestone, cart) {
       }
     }
   }
-  
+
   return { valid: true, message: '' };
 }
 
@@ -439,14 +439,14 @@ export async function validateMilestoneForCheckout(unlockedMilestone, cart) {
  */
 function normalizeVariantId(variantId) {
   if (!variantId) return '';
-  
+
   const idString = String(variantId);
-  
+
   // Remove gid://shopify/ProductVariant/ prefix if present
   if (idString.includes('gid://shopify/ProductVariant/')) {
     return idString.replace('gid://shopify/ProductVariant/', '');
   }
-  
+
   return idString;
 }
 
@@ -456,7 +456,7 @@ function normalizeVariantId(variantId) {
  */
 export function showMilestoneUnlockedNotification(milestone) {
   if (!milestone) return;
-  
+
   const rewardText = getRewardDescription(milestone);
   showNotification(`🎉 Milestone Unlocked: ${milestone.title}! ${rewardText}`, 'success');
 }
@@ -468,7 +468,7 @@ export function showMilestoneUnlockedNotification(milestone) {
  */
 function getRewardDescription(milestone) {
   if (!milestone) return '';
-  
+
   switch (milestone.rewardType) {
     case 'free_shipping':
       return 'Free shipping will be applied at checkout!';
@@ -494,10 +494,10 @@ function getRewardDescription(milestone) {
 export async function handleMilestoneRewards(milestones, cart, loadCartCallback) {
   // Evaluate which milestone is unlocked
   const unlockedMilestone = evaluateMilestones(milestones, cart);
-  
+
   // Sync gift products based on unlocked milestone
   const cartModified = await syncGiftProducts(unlockedMilestone, cart, loadCartCallback);
-  
+
   return unlockedMilestone;
 }
 

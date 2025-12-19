@@ -138,6 +138,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
         eligibleTag: (milestone as any).eligibleTag || null,
         eligibleProductIds: (milestone as any).eligibleProductIds || [],
         canShowUpsell: status === "locked" || status === "in_progress",
+        // Upsell text customization
+        upsellHeaderText: (milestone as any).upsellHeaderText || "Unlock Your Reward",
+        viewAllLinkText: (milestone as any).viewAllLinkText || "View All",
       };
     });
 

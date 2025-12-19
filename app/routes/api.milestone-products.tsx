@@ -50,6 +50,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
                 eligibleCollectionHandle: true,
                 eligibleTag: true,
                 eligibleProductIds: true,
+                upsellHeaderText: true,
+                viewAllLinkText: true,
             },
         });
 

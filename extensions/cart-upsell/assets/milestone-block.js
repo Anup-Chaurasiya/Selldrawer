@@ -1,6 +1,6 @@
 /**
- * Upsellity Milestone Block v1.0.4
- * Built: 2025-12-18T14:25:52.849Z
+ * Upsellity Milestone Block v1.0.5
+ * Built: 2025-12-19T08:33:23.791Z
  */
 "use strict";
 (() => {
@@ -7898,12 +7898,16 @@
     collectionHandle,
     onAddToCart,
     onClose,
-    isPreview = false
+    isPreview = false,
+    upsellHeaderText = "Unlock Your Reward",
+    viewAllLinkText = "View All"
   }) => {
     const [products, setProducts] = (0, import_react.useState)([]);
     const [loading, setLoading] = (0, import_react.useState)(true);
     const [error, setError] = (0, import_react.useState)(null);
     const [collectionUrl, setCollectionUrl] = (0, import_react.useState)(null);
+    const [showLeftArrow, setShowLeftArrow] = (0, import_react.useState)(false);
+    const [showRightArrow, setShowRightArrow] = (0, import_react.useState)(false);
     const carouselRef = (0, import_react.useRef)(null);
     (0, import_react.useEffect)(() => {
       if (isPreview) {
@@ -7961,6 +7965,28 @@
       };
       fetchProducts();
     }, [shop, milestoneId, remaining, isPreview]);
+    const checkScroll = () => {
+      if (carouselRef.current) {
+        const { scrollLeft: scrollLeft2, scrollWidth, clientWidth } = carouselRef.current;
+        setShowLeftArrow(scrollLeft2 > 0);
+        setShowRightArrow(scrollLeft2 < scrollWidth - clientWidth - 10);
+      }
+    };
+    (0, import_react.useEffect)(() => {
+      if (products.length > 0) {
+        setTimeout(checkScroll, 100);
+      }
+    }, [products]);
+    const scrollLeft = () => {
+      if (carouselRef.current) {
+        carouselRef.current.scrollBy({ left: -120, behavior: "smooth" });
+      }
+    };
+    const scrollRight = () => {
+      if (carouselRef.current) {
+        carouselRef.current.scrollBy({ left: 120, behavior: "smooth" });
+      }
+    };
     const handleRetry = () => {
       setError(null);
       setLoading(true);
@@ -7968,50 +7994,46 @@
     };
     if (loading) {
       return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-        padding: "24px",
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        borderRadius: "16px",
-        marginTop: "16px",
-        boxShadow: "0 10px 40px rgba(102, 126, 234, 0.3)"
+        padding: "8px",
+        backgroundColor: "#ffffff",
+        borderRadius: "6px",
+        marginTop: "8px",
+        border: "1px solid #e5e7eb"
       }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { height: "24px", width: "200px", backgroundColor: "rgba(255,255,255,0.3)", borderRadius: "8px" } }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { height: "14px", width: "120px", backgroundColor: "#f3f4f6", borderRadius: "4px" } }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             "button",
             {
               onClick: onClose,
               style: {
-                background: "rgba(255,255,255,0.2)",
+                background: "transparent",
                 border: "none",
-                borderRadius: "50%",
-                width: "32px",
-                height: "32px",
-                fontSize: "20px",
+                width: "20px",
+                height: "20px",
+                fontSize: "16px",
                 cursor: "pointer",
-                color: "white",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
+                color: "#6b7280",
+                padding: 0
               },
               children: "\xD7"
             }
           )
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", gap: "16px", overflowX: "auto" }, children: [1, 2, 3, 4].map((i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { minWidth: "180px", flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: "180px", height: "180px", backgroundColor: "rgba(255,255,255,0.2)", borderRadius: "12px", marginBottom: "12px", animation: "pulse 1.5s ease-in-out infinite" } }) }, i)) })
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", gap: "6px", overflowX: "auto" }, children: [1, 2, 3, 4].map((i) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { minWidth: "100px", flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: "100px", height: "100px", backgroundColor: "#f9fafb", borderRadius: "4px", marginBottom: "4px" } }) }, i)) })
       ] });
     }
     if (error) {
       return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-        padding: "24px",
-        background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-        borderRadius: "16px",
-        marginTop: "16px",
-        border: "2px solid rgba(255,255,255,0.3)",
-        backdropFilter: "blur(10px)"
+        padding: "12px",
+        backgroundColor: "#ffffff",
+        borderRadius: "6px",
+        marginTop: "8px",
+        border: "1px solid #e5e7eb"
       }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h4", { style: { margin: 0, color: "white", fontSize: "16px", fontWeight: 600 }, children: [
-            "\u26A0\uFE0F ",
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { margin: 0, color: "#6b7280", fontSize: "11px", fontWeight: 500 }, children: [
+            "Error: ",
             error
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
@@ -8019,14 +8041,14 @@
             {
               onClick: onClose,
               style: {
-                background: "rgba(255,255,255,0.2)",
+                background: "transparent",
                 border: "none",
-                borderRadius: "50%",
-                width: "32px",
-                height: "32px",
-                fontSize: "20px",
+                width: "20px",
+                height: "20px",
+                fontSize: "16px",
                 cursor: "pointer",
-                color: "white"
+                color: "#6b7280",
+                padding: 0
               },
               children: "\xD7"
             }
@@ -8037,316 +8059,309 @@
           {
             onClick: handleRetry,
             style: {
-              padding: "12px 24px",
-              background: "white",
-              color: "#f5576c",
-              border: "none",
-              borderRadius: "10px",
+              padding: "6px 12px",
+              background: "#ffffff",
+              color: "#111827",
+              border: "1px solid #e5e7eb",
+              borderRadius: "4px",
               cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: 600,
-              boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
-              transition: "transform 0.2s"
+              fontSize: "10px",
+              fontWeight: 500
             },
-            onMouseEnter: (e) => e.currentTarget.style.transform = "scale(1.05)",
-            onMouseLeave: (e) => e.currentTarget.style.transform = "scale(1)",
-            children: "\u{1F504} Retry"
+            children: "Retry"
           }
         )
       ] });
     }
     if (products.length === 0) {
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-        padding: "32px",
-        background: "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
-        borderRadius: "16px",
-        marginTop: "16px",
-        textAlign: "center"
-      }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          "button",
-          {
-            onClick: onClose,
-            style: {
-              background: "rgba(0,0,0,0.1)",
-              border: "none",
-              borderRadius: "50%",
-              width: "32px",
-              height: "32px",
-              fontSize: "20px",
-              cursor: "pointer",
-              color: "#333"
-            },
-            children: "\xD7"
-          }
-        ) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { margin: 0, color: "#555", fontSize: "15px", fontWeight: 500 }, children: "\u{1F50D} No eligible items found" })
-      ] });
+      return null;
     }
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-      padding: "28px",
-      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-      borderRadius: "20px",
-      marginTop: "16px",
-      boxShadow: "0 20px 60px rgba(102, 126, 234, 0.4)",
-      position: "relative",
-      overflow: "hidden"
+      padding: "8px",
+      backgroundColor: "#ffffff",
+      borderRadius: "6px",
+      marginTop: "8px",
+      border: "1px solid #e5e7eb"
     }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-        position: "absolute",
-        top: 0,
-        right: 0,
-        width: "400px",
-        height: "400px",
-        background: "radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)",
-        pointerEvents: "none"
-      } }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", position: "relative", zIndex: 1 }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { style: {
-            margin: "0 0 6px 0",
-            fontSize: "20px",
-            fontWeight: 700,
-            color: "white",
-            textShadow: "0 2px 10px rgba(0,0,0,0.2)",
-            letterSpacing: "-0.5px"
-          }, children: "\u2728 Unlock Your Reward" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { style: { margin: 0, fontSize: "13px", color: "rgba(255,255,255,0.9)", fontWeight: 500 }, children: "Add any of these items to your cart" })
-        ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h4", { style: {
+          margin: 0,
+          fontSize: "11px",
+          fontWeight: 600,
+          color: "#111827",
+          letterSpacing: "-0.01em"
+        }, children: upsellHeaderText }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
           "button",
           {
             onClick: onClose,
             style: {
-              background: "rgba(255,255,255,0.25)",
-              backdropFilter: "blur(10px)",
+              background: "transparent",
               border: "none",
-              borderRadius: "50%",
-              width: "40px",
-              height: "40px",
-              fontSize: "22px",
+              width: "20px",
+              height: "20px",
+              fontSize: "16px",
               cursor: "pointer",
-              color: "white",
+              color: "#6b7280",
+              padding: 0,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              transition: "all 0.3s",
-              boxShadow: "0 4px 15px rgba(0,0,0,0.1)"
-            },
-            onMouseEnter: (e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.35)";
-              e.currentTarget.style.transform = "rotate(90deg) scale(1.1)";
-            },
-            onMouseLeave: (e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.25)";
-              e.currentTarget.style.transform = "rotate(0deg) scale(1)";
+              justifyContent: "center"
             },
             "aria-label": "Close",
             children: "\xD7"
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        "div",
-        {
-          ref: carouselRef,
-          style: {
-            display: "flex",
-            gap: "20px",
-            overflowX: "auto",
-            scrollSnapType: "x mandatory",
-            scrollBehavior: "smooth",
-            paddingBottom: "12px",
-            marginBottom: "20px",
-            WebkitOverflowScrolling: "touch",
-            scrollbarWidth: "thin",
-            scrollbarColor: "rgba(255,255,255,0.3) transparent",
-            position: "relative",
-            zIndex: 1
-          },
-          role: "list",
-          "aria-label": "Product recommendations",
-          children: products.map((product, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "div",
-            {
-              style: {
-                minWidth: "200px",
-                maxWidth: "200px",
-                flexShrink: 0,
-                scrollSnapAlign: "start",
-                background: "white",
-                borderRadius: "16px",
-                padding: "16px",
-                boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
-                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                cursor: "pointer",
-                animation: `slideIn 0.4s ease-out ${index * 0.1}s both`
-              },
-              role: "listitem",
-              onMouseEnter: (e) => {
-                e.currentTarget.style.transform = "translateY(-8px) scale(1.02)";
-                e.currentTarget.style.boxShadow = "0 16px 48px rgba(0,0,0,0.25)";
-              },
-              onMouseLeave: (e) => {
-                e.currentTarget.style.transform = "translateY(0) scale(1)";
-                e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,0.15)";
-              },
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { position: "relative", marginBottom: "14px", overflow: "hidden", borderRadius: "12px" }, children: [
-                  product.featuredImage ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                    "img",
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { position: "relative" }, children: [
+        showLeftArrow && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          "button",
+          {
+            onClick: scrollLeft,
+            style: {
+              position: "absolute",
+              left: "-8px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              zIndex: 10,
+              width: "24px",
+              height: "24px",
+              borderRadius: "50%",
+              backgroundColor: "#ffffff",
+              border: "1px solid #d1d5db",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+              fontSize: "14px",
+              color: "#374151",
+              padding: 0
+            },
+            onMouseEnter: (e) => {
+              e.currentTarget.style.backgroundColor = "#f9fafb";
+              e.currentTarget.style.borderColor = "#9ca3af";
+            },
+            onMouseLeave: (e) => {
+              e.currentTarget.style.backgroundColor = "#ffffff";
+              e.currentTarget.style.borderColor = "#d1d5db";
+            },
+            "aria-label": "Scroll left",
+            children: "\u2039"
+          }
+        ),
+        showRightArrow && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          "button",
+          {
+            onClick: scrollRight,
+            style: {
+              position: "absolute",
+              right: "-8px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              zIndex: 10,
+              width: "24px",
+              height: "24px",
+              borderRadius: "50%",
+              backgroundColor: "#ffffff",
+              border: "1px solid #d1d5db",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+              fontSize: "14px",
+              color: "#374151",
+              padding: 0
+            },
+            onMouseEnter: (e) => {
+              e.currentTarget.style.backgroundColor = "#f9fafb";
+              e.currentTarget.style.borderColor = "#9ca3af";
+            },
+            onMouseLeave: (e) => {
+              e.currentTarget.style.backgroundColor = "#ffffff";
+              e.currentTarget.style.borderColor = "#d1d5db";
+            },
+            "aria-label": "Scroll right",
+            children: "\u203A"
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          "div",
+          {
+            ref: carouselRef,
+            onScroll: checkScroll,
+            style: {
+              display: "flex",
+              gap: "6px",
+              overflowX: "auto",
+              scrollSnapType: "x mandatory",
+              scrollBehavior: "smooth",
+              paddingBottom: "4px",
+              WebkitOverflowScrolling: "touch",
+              scrollbarWidth: "none",
+              msOverflowStyle: "none"
+            },
+            role: "list",
+            "aria-label": "Product recommendations",
+            children: products.map((product) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "div",
+              {
+                style: {
+                  minWidth: "100px",
+                  maxWidth: "100px",
+                  flexShrink: 0,
+                  scrollSnapAlign: "start",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "4px",
+                  padding: "6px",
+                  backgroundColor: "#ffffff",
+                  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                  cursor: "pointer"
+                },
+                role: "listitem",
+                onMouseEnter: (e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.1)";
+                  e.currentTarget.style.borderColor = "#d1d5db";
+                },
+                onMouseLeave: (e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.05)";
+                  e.currentTarget.style.borderColor = "#e5e7eb";
+                },
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { position: "relative", marginBottom: "4px", overflow: "hidden", borderRadius: "4px" }, children: [
+                    product.featuredImage ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                      "img",
+                      {
+                        src: product.featuredImage.url,
+                        alt: product.featuredImage.altText || product.title,
+                        style: {
+                          width: "100%",
+                          height: "88px",
+                          objectFit: "cover",
+                          borderRadius: "4px",
+                          display: "block"
+                        },
+                        loading: "lazy"
+                      }
+                    ) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                      width: "100%",
+                      height: "88px",
+                      background: "#f3f4f6",
+                      borderRadius: "4px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#9ca3af",
+                      fontSize: "20px"
+                    }, children: "\u{1F4E6}" }),
+                    !product.availableForSale && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                      position: "absolute",
+                      top: "3px",
+                      right: "3px",
+                      background: "#ef4444",
+                      color: "white",
+                      padding: "2px 4px",
+                      borderRadius: "3px",
+                      fontSize: "7px",
+                      fontWeight: 600
+                    }, children: "Out" })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                    fontSize: "9px",
+                    fontWeight: 500,
+                    marginBottom: "2px",
+                    lineHeight: "1.2",
+                    color: "#111827",
+                    minHeight: "22px",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    letterSpacing: "-0.01em"
+                  }, children: product.title }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+                    marginBottom: "4px",
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    color: "#111827",
+                    letterSpacing: "-0.01em"
+                  }, children: [
+                    "\u20B9",
+                    Math.round(product.price)
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    "button",
                     {
-                      src: product.featuredImage.url,
-                      alt: product.featuredImage.altText || product.title,
+                      onClick: () => onAddToCart(product.handle, 1),
+                      disabled: !product.availableForSale,
                       style: {
                         width: "100%",
-                        height: "168px",
-                        objectFit: "cover",
-                        borderRadius: "12px",
-                        transition: "transform 0.4s"
+                        padding: "4px 6px",
+                        background: product.availableForSale ? "#111827" : "#e5e7eb",
+                        color: product.availableForSale ? "white" : "#9ca3af",
+                        border: "none",
+                        borderRadius: "3px",
+                        cursor: product.availableForSale ? "pointer" : "not-allowed",
+                        fontSize: "8px",
+                        fontWeight: 600,
+                        transition: "all 0.2s",
+                        letterSpacing: "0.2px"
                       },
-                      loading: "lazy",
-                      onMouseEnter: (e) => e.currentTarget.style.transform = "scale(1.1)",
-                      onMouseLeave: (e) => e.currentTarget.style.transform = "scale(1)"
+                      onMouseEnter: (e) => {
+                        if (product.availableForSale) {
+                          e.currentTarget.style.background = "#1f2937";
+                        }
+                      },
+                      onMouseLeave: (e) => {
+                        if (product.availableForSale) {
+                          e.currentTarget.style.background = "#111827";
+                        }
+                      },
+                      children: product.availableForSale ? "ADD" : "N/A"
                     }
-                  ) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-                    width: "100%",
-                    height: "168px",
-                    background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-                    borderRadius: "12px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#a0aec0",
-                    fontSize: "13px",
-                    fontWeight: 500
-                  }, children: "No image" }),
-                  !product.availableForSale && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-                    position: "absolute",
-                    top: "8px",
-                    right: "8px",
-                    background: "rgba(239, 68, 68, 0.95)",
-                    color: "white",
-                    padding: "4px 10px",
-                    borderRadius: "20px",
-                    fontSize: "11px",
-                    fontWeight: 600
-                  }, children: "Out of Stock" })
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h4", { style: {
-                  margin: "0 0 8px 0",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  color: "#1a202c",
-                  lineHeight: "1.4",
-                  height: "40px",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical"
-                }, children: product.title }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { style: {
-                  margin: "0 0 14px 0",
-                  fontSize: "18px",
-                  fontWeight: 700,
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text"
-                }, children: [
-                  "\u20B9",
-                  product.price.toFixed(2)
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                  "button",
-                  {
-                    onClick: () => onAddToCart(product.handle, 1),
-                    disabled: !product.availableForSale,
-                    style: {
-                      width: "100%",
-                      padding: "12px",
-                      background: product.availableForSale ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : "linear-gradient(135deg, #cbd5e0 0%, #a0aec0 100%)",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "10px",
-                      cursor: product.availableForSale ? "pointer" : "not-allowed",
-                      fontSize: "13px",
-                      fontWeight: 600,
-                      transition: "all 0.3s",
-                      boxShadow: product.availableForSale ? "0 4px 15px rgba(102, 126, 234, 0.4)" : "none",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px"
-                    },
-                    onMouseEnter: (e) => {
-                      if (product.availableForSale) {
-                        e.currentTarget.style.transform = "scale(1.05)";
-                        e.currentTarget.style.boxShadow = "0 6px 20px rgba(102, 126, 234, 0.5)";
-                      }
-                    },
-                    onMouseLeave: (e) => {
-                      if (product.availableForSale) {
-                        e.currentTarget.style.transform = "scale(1)";
-                        e.currentTarget.style.boxShadow = "0 4px 15px rgba(102, 126, 234, 0.4)";
-                      }
-                    },
-                    children: product.availableForSale ? "\u{1F6D2} Add to Cart" : "Unavailable"
-                  }
-                )
-              ]
-            },
-            product.id
-          ))
-        }
-      ),
-      collectionUrl && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  )
+                ]
+              },
+              product.id
+            ))
+          }
+        )
+      ] }),
+      collectionUrl && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
         "a",
         {
           href: collectionUrl,
           style: {
             display: "block",
             textAlign: "center",
-            padding: "16px",
-            background: "rgba(255,255,255,0.95)",
-            backdropFilter: "blur(10px)",
-            color: "#667eea",
-            border: "2px solid rgba(255,255,255,0.3)",
-            borderRadius: "14px",
+            padding: "6px",
+            marginTop: "6px",
+            color: "#6b7280",
             textDecoration: "none",
-            fontSize: "15px",
-            fontWeight: 600,
-            transition: "all 0.3s",
-            boxShadow: "0 8px 20px rgba(0,0,0,0.1)",
-            position: "relative",
-            zIndex: 1
+            fontSize: "9px",
+            fontWeight: 500,
+            transition: "color 0.2s"
           },
           onMouseEnter: (e) => {
-            e.currentTarget.style.background = "white";
-            e.currentTarget.style.transform = "scale(1.02)";
-            e.currentTarget.style.boxShadow = "0 12px 30px rgba(0,0,0,0.15)";
+            e.currentTarget.style.color = "#111827";
           },
           onMouseLeave: (e) => {
-            e.currentTarget.style.background = "rgba(255,255,255,0.95)";
-            e.currentTarget.style.transform = "scale(1)";
-            e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.1)";
+            e.currentTarget.style.color = "#6b7280";
           },
-          children: "\u{1F440} View All Products \u2192"
+          children: [
+            viewAllLinkText,
+            " \u2192"
+          ]
         }
       ),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("style", { children: `
-                @keyframes slideIn {
-                    from {
-                        opacity: 0;
-                        transform: translateX(30px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateX(0);
-                    }
-                }
-                @keyframes pulse {
-                    0%, 100% { opacity: 0.3; }
-                    50% { opacity: 0.5; }
+                div[role="list"]::-webkit-scrollbar {
+                    display: none;
                 }
             ` })
     ] });
@@ -8369,7 +8384,25 @@
     if (!milestones || milestones.length === 0) {
       return null;
     }
-    const sortedMilestones = [...milestones].sort((a, b) => a.targetAmount - b.targetAmount);
+    const milestonesWithFreshStatus = milestones.map((milestone) => {
+      const targetAmount = milestone.targetAmount;
+      let status;
+      if (cartTotal >= targetAmount) {
+        status = "unlocked";
+      } else if (cartTotal > 0) {
+        status = "in_progress";
+      } else {
+        status = "locked";
+      }
+      const progress = Math.min(cartTotal / targetAmount * 100, 100);
+      const remaining = Math.max(targetAmount - cartTotal, 0);
+      return __spreadProps(__spreadValues({}, milestone), {
+        status,
+        progress,
+        remaining
+      });
+    });
+    const sortedMilestones = [...milestonesWithFreshStatus].sort((a, b) => a.targetAmount - b.targetAmount);
     const maxTarget = ((_a2 = sortedMilestones[sortedMilestones.length - 1]) == null ? void 0 : _a2.targetAmount) || 100;
     const minTarget = ((_b = sortedMilestones[0]) == null ? void 0 : _b.targetAmount) || 0;
     const getPosition = (targetAmount) => {
@@ -8637,7 +8670,9 @@
             collectionHandle: openedMilestone.eligibleCollectionHandle,
             onAddToCart,
             onClose: () => setOpenUpsellMilestoneId(null),
-            isPreview
+            isPreview,
+            upsellHeaderText: openedMilestone.upsellHeaderText,
+            viewAllLinkText: openedMilestone.viewAllLinkText
           }
         );
       })()
@@ -9323,7 +9358,7 @@
 
   // extensions/cart-upsell/assets/modules/milestone-block-entry.js
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://sorted-congressional-interval-bios.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://gerald-meetup-gear-advancement.trycloudflare.com" : "https://app.upsellity.com";
   function initMilestoneBlocks() {
     const containers = document.querySelectorAll(".upsellity-milestone-container");
     if (containers.length === 0) {

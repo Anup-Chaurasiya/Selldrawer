@@ -22,6 +22,9 @@ interface Milestone {
   eligibleTag?: string | null;
   eligibleProductIds?: string[];
   canShowUpsell?: boolean;
+  // Upsell text customization
+  upsellHeaderText?: string;
+  viewAllLinkText?: string;
 }
 
 interface MilestonesWidgetProps {
@@ -51,8 +54,33 @@ export function MilestonesWidget({
     return null;
   }
 
+  // Recalculate milestone status based on current cart total
+  // This ensures we always display fresh data regardless of API response
+  const milestonesWithFreshStatus = milestones.map(milestone => {
+    const targetAmount = milestone.targetAmount;
+    let status: 'unlocked' | 'in_progress' | 'locked';
+
+    if (cartTotal >= targetAmount) {
+      status = 'unlocked';
+    } else if (cartTotal > 0) {
+      status = 'in_progress';
+    } else {
+      status = 'locked';
+    }
+
+    const progress = Math.min((cartTotal / targetAmount) * 100, 100);
+    const remaining = Math.max(targetAmount - cartTotal, 0);
+
+    return {
+      ...milestone,
+      status,
+      progress,
+      remaining,
+    };
+  });
+
   // Sort milestones by target amount
-  const sortedMilestones = [...milestones].sort((a, b) => a.targetAmount - b.targetAmount);
+  const sortedMilestones = [...milestonesWithFreshStatus].sort((a, b) => a.targetAmount - b.targetAmount);
 
   // Get the maximum target amount for calculating positions
   const maxTarget = sortedMilestones[sortedMilestones.length - 1]?.targetAmount || 100;
@@ -385,6 +413,8 @@ export function MilestonesWidget({
             onAddToCart={onAddToCart}
             onClose={() => setOpenUpsellMilestoneId(null)}
             isPreview={isPreview}
+            upsellHeaderText={openedMilestone.upsellHeaderText}
+            viewAllLinkText={openedMilestone.viewAllLinkText}
           />
         );
       })()}

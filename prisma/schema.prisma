@@ -593,6 +593,8 @@ model CartMilestone {
   eligibleCollectionHandle String?
   eligibleTag             String?
   eligibleProductIds      String[]               @default([])
+  upsellHeaderText        String?                @default("Unlock Your Reward")
+  viewAllLinkText         String?                @default("View All")
   createdAt               DateTime               @default(now())
   updatedAt               DateTime               @updatedAt
   cartDrawer              CartDrawer                @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)

@@ -26,6 +26,8 @@ export interface MilestoneUpsellCarouselProps {
     onAddToCart: (variantId: string, quantity: number) => void;
     onClose: () => void;
     isPreview?: boolean;
+    upsellHeaderText?: string;
+    viewAllLinkText?: string;
 }
 
 export const MilestoneUpsellCarousel: React.FC<MilestoneUpsellCarouselProps> = ({
@@ -36,11 +38,15 @@ export const MilestoneUpsellCarousel: React.FC<MilestoneUpsellCarouselProps> = (
     onAddToCart,
     onClose,
     isPreview = false,
+    upsellHeaderText = "Unlock Your Reward",
+    viewAllLinkText = "View All",
 }) => {
     const [products, setProducts] = useState<MilestoneUpsellProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [collectionUrl, setCollectionUrl] = useState<string | null>(null);
+    const [showLeftArrow, setShowLeftArrow] = useState(false);
+    const [showRightArrow, setShowRightArrow] = useState(false);
     const carouselRef = useRef<HTMLDivElement>(null);
 
     // Fetch products from API
@@ -114,6 +120,35 @@ export const MilestoneUpsellCarousel: React.FC<MilestoneUpsellCarouselProps> = (
         fetchProducts();
     }, [shop, milestoneId, remaining, isPreview]);
 
+    // Check scroll position to show/hide arrows
+    const checkScroll = () => {
+        if (carouselRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
+            setShowLeftArrow(scrollLeft > 0);
+            setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+        }
+    };
+
+    // Update arrows when products load
+    useEffect(() => {
+        if (products.length > 0) {
+            setTimeout(checkScroll, 100);
+        }
+    }, [products]);
+
+    // Scroll handlers
+    const scrollLeft = () => {
+        if (carouselRef.current) {
+            carouselRef.current.scrollBy({ left: -120, behavior: 'smooth' });
+        }
+    };
+
+    const scrollRight = () => {
+        if (carouselRef.current) {
+            carouselRef.current.scrollBy({ left: 120, behavior: 'smooth' });
+        }
+    };
+
     // Handle retry
     const handleRetry = () => {
         setError(null);
@@ -121,41 +156,38 @@ export const MilestoneUpsellCarousel: React.FC<MilestoneUpsellCarouselProps> = (
         window.location.reload();
     };
 
-    // Loading state with professional skeleton
+    // Loading state - compact and minimal
     if (loading) {
         return (
             <div style={{
-                padding: '24px',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                borderRadius: '16px',
-                marginTop: '16px',
-                boxShadow: '0 10px 40px rgba(102, 126, 234, 0.3)',
+                padding: '8px',
+                backgroundColor: '#ffffff',
+                borderRadius: '6px',
+                marginTop: '8px',
+                border: '1px solid #e5e7eb',
             }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <div style={{ height: '24px', width: '200px', backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: '8px' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ height: '14px', width: '120px', backgroundColor: '#f3f4f6', borderRadius: '4px' }} />
                     <button
                         onClick={onClose}
                         style={{
-                            background: 'rgba(255,255,255,0.2)',
+                            background: 'transparent',
                             border: 'none',
-                            borderRadius: '50%',
-                            width: '32px',
-                            height: '32px',
-                            fontSize: '20px',
+                            width: '20px',
+                            height: '20px',
+                            fontSize: '16px',
                             cursor: 'pointer',
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                            color: '#6b7280',
+                            padding: 0,
                         }}
                     >
                         ×
                     </button>
                 </div>
-                <div style={{ display: 'flex', gap: '16px', overflowX: 'auto' }}>
+                <div style={{ display: 'flex', gap: '6px', overflowX: 'auto' }}>
                     {[1, 2, 3, 4].map((i) => (
-                        <div key={i} style={{ minWidth: '180px', flexShrink: 0 }}>
-                            <div style={{ width: '180px', height: '180px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '12px', marginBottom: '12px', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                        <div key={i} style={{ minWidth: '100px', flexShrink: 0 }}>
+                            <div style={{ width: '100px', height: '100px', backgroundColor: '#f9fafb', borderRadius: '4px', marginBottom: '4px' }} />
                         </div>
                     ))}
                 </div>
@@ -163,30 +195,29 @@ export const MilestoneUpsellCarousel: React.FC<MilestoneUpsellCarouselProps> = (
         );
     }
 
-    // Error state
+    // Error state - compact
     if (error) {
         return (
             <div style={{
-                padding: '24px',
-                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                borderRadius: '16px',
-                marginTop: '16px',
-                border: '2px solid rgba(255,255,255,0.3)',
-                backdropFilter: 'blur(10px)',
+                padding: '12px',
+                backgroundColor: '#ffffff',
+                borderRadius: '6px',
+                marginTop: '8px',
+                border: '1px solid #e5e7eb',
             }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <h4 style={{ margin: 0, color: 'white', fontSize: '16px', fontWeight: 600 }}>⚠️ {error}</h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ margin: 0, color: '#6b7280', fontSize: '11px', fontWeight: 500 }}>Error: {error}</span>
                     <button
                         onClick={onClose}
                         style={{
-                            background: 'rgba(255,255,255,0.2)',
+                            background: 'transparent',
                             border: 'none',
-                            borderRadius: '50%',
-                            width: '32px',
-                            height: '32px',
-                            fontSize: '20px',
+                            width: '20px',
+                            height: '20px',
+                            fontSize: '16px',
                             cursor: 'pointer',
-                            color: 'white',
+                            color: '#6b7280',
+                            padding: 0,
                         }}
                     >
                         ×
@@ -195,124 +226,61 @@ export const MilestoneUpsellCarousel: React.FC<MilestoneUpsellCarouselProps> = (
                 <button
                     onClick={handleRetry}
                     style={{
-                        padding: '12px 24px',
-                        background: 'white',
-                        color: '#f5576c',
-                        border: 'none',
-                        borderRadius: '10px',
+                        padding: '6px 12px',
+                        background: '#ffffff',
+                        color: '#111827',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '4px',
                         cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-                        transition: 'transform 0.2s',
+                        fontSize: '10px',
+                        fontWeight: 500,
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                 >
-                    🔄 Retry
+                    Retry
                 </button>
             </div>
         );
     }
 
-    // Empty state
+    // Empty state - compact
     if (products.length === 0) {
-        return (
-            <div style={{
-                padding: '32px',
-                background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-                borderRadius: '16px',
-                marginTop: '16px',
-                textAlign: 'center',
-            }}>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
-                    <button
-                        onClick={onClose}
-                        style={{
-                            background: 'rgba(0,0,0,0.1)',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '32px',
-                            height: '32px',
-                            fontSize: '20px',
-                            cursor: 'pointer',
-                            color: '#333',
-                        }}
-                    >
-                        ×
-                    </button>
-                </div>
-                <p style={{ margin: 0, color: '#555', fontSize: '15px', fontWeight: 500 }}>
-                    🔍 No eligible items found
-                </p>
-            </div>
-        );
+        return null;
     }
 
-    // Premium Product Carousel
+    // Ultra-compact Product Carousel
     return (
         <div style={{
-            padding: '28px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            borderRadius: '20px',
-            marginTop: '16px',
-            boxShadow: '0 20px 60px rgba(102, 126, 234, 0.4)',
-            position: 'relative',
-            overflow: 'hidden',
+            padding: '8px',
+            backgroundColor: '#ffffff',
+            borderRadius: '6px',
+            marginTop: '8px',
+            border: '1px solid #e5e7eb',
         }}>
-            {/* Decorative gradient overlay */}
-            <div style={{
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                width: '400px',
-                height: '400px',
-                background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
-                pointerEvents: 'none',
-            }} />
-
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', position: 'relative', zIndex: 1 }}>
-                <div>
-                    <h3 style={{
-                        margin: '0 0 6px 0',
-                        fontSize: '20px',
-                        fontWeight: 700,
-                        color: 'white',
-                        textShadow: '0 2px 10px rgba(0,0,0,0.2)',
-                        letterSpacing: '-0.5px',
-                    }}>
-                        ✨ Unlock Your Reward
-                    </h3>
-                    <p style={{ margin: 0, fontSize: '13px', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>
-                        Add any of these items to your cart
-                    </p>
-                </div>
+            {/* Header - minimal */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <h4 style={{
+                    margin: 0,
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#111827',
+                    letterSpacing: '-0.01em',
+                }}>
+                    {upsellHeaderText}
+                </h4>
                 <button
                     onClick={onClose}
                     style={{
-                        background: 'rgba(255,255,255,0.25)',
-                        backdropFilter: 'blur(10px)',
+                        background: 'transparent',
                         border: 'none',
-                        borderRadius: '50%',
-                        width: '40px',
-                        height: '40px',
-                        fontSize: '22px',
+                        width: '20px',
+                        height: '20px',
+                        fontSize: '16px',
                         cursor: 'pointer',
-                        color: 'white',
+                        color: '#6b7280',
+                        padding: 0,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        transition: 'all 0.3s',
-                        boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.35)';
-                        e.currentTarget.style.transform = 'rotate(90deg) scale(1.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.25)';
-                        e.currentTarget.style.transform = 'rotate(0deg) scale(1)';
                     }}
                     aria-label="Close"
                 >
@@ -320,174 +288,243 @@ export const MilestoneUpsellCarousel: React.FC<MilestoneUpsellCarouselProps> = (
                 </button>
             </div>
 
-            {/* Carousel */}
-            <div
-                ref={carouselRef}
-                style={{
-                    display: 'flex',
-                    gap: '20px',
-                    overflowX: 'auto',
-                    scrollSnapType: 'x mandatory',
-                    scrollBehavior: 'smooth',
-                    paddingBottom: '12px',
-                    marginBottom: '20px',
-                    WebkitOverflowScrolling: 'touch',
-                    scrollbarWidth: 'thin',
-                    scrollbarColor: 'rgba(255,255,255,0.3) transparent',
-                    position: 'relative',
-                    zIndex: 1,
-                }}
-                role="list"
-                aria-label="Product recommendations"
-            >
-                {products.map((product, index) => (
-                    <div
-                        key={product.id}
+            {/* Carousel Container with Arrows */}
+            <div style={{ position: 'relative' }}>
+                {/* Left Arrow */}
+                {showLeftArrow && (
+                    <button
+                        onClick={scrollLeft}
                         style={{
-                            minWidth: '200px',
-                            maxWidth: '200px',
-                            flexShrink: 0,
-                            scrollSnapAlign: 'start',
-                            background: 'white',
-                            borderRadius: '16px',
-                            padding: '16px',
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            position: 'absolute',
+                            left: '-8px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            zIndex: 10,
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #d1d5db',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             cursor: 'pointer',
-                            animation: `slideIn 0.4s ease-out ${index * 0.1}s both`,
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                            fontSize: '14px',
+                            color: '#374151',
+                            padding: 0,
                         }}
-                        role="listitem"
                         onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
-                            e.currentTarget.style.boxShadow = '0 16px 48px rgba(0,0,0,0.25)';
+                            e.currentTarget.style.backgroundColor = '#f9fafb';
+                            e.currentTarget.style.borderColor = '#9ca3af';
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                            e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.15)';
+                            e.currentTarget.style.backgroundColor = '#ffffff';
+                            e.currentTarget.style.borderColor = '#d1d5db';
                         }}
+                        aria-label="Scroll left"
                     >
-                        {/* Product Image */}
-                        <div style={{ position: 'relative', marginBottom: '14px', overflow: 'hidden', borderRadius: '12px' }}>
-                            {product.featuredImage ? (
-                                <img
-                                    src={product.featuredImage.url}
-                                    alt={product.featuredImage.altText || product.title}
-                                    style={{
-                                        width: '100%',
-                                        height: '168px',
-                                        objectFit: 'cover',
-                                        borderRadius: '12px',
-                                        transition: 'transform 0.4s',
-                                    }}
-                                    loading="lazy"
-                                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                />
-                            ) : (
-                                <div style={{
-                                    width: '100%',
-                                    height: '168px',
-                                    background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-                                    borderRadius: '12px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: '#a0aec0',
-                                    fontSize: '13px',
-                                    fontWeight: 500,
-                                }}>
-                                    No image
-                                </div>
-                            )}
-                            {!product.availableForSale && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '8px',
-                                    right: '8px',
-                                    background: 'rgba(239, 68, 68, 0.95)',
-                                    color: 'white',
-                                    padding: '4px 10px',
-                                    borderRadius: '20px',
-                                    fontSize: '11px',
-                                    fontWeight: 600,
-                                }}>
-                                    Out of Stock
-                                </div>
-                            )}
-                        </div>
+                        ‹
+                    </button>
+                )}
 
-                        {/* Product Title */}
-                        < h4 style={{
-                            margin: '0 0 8px 0',
+                {/* Right Arrow */}
+                {showRightArrow && (
+                    <button
+                        onClick={scrollRight}
+                        style={{
+                            position: 'absolute',
+                            right: '-8px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            zIndex: 10,
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #d1d5db',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
                             fontSize: '14px',
-                            fontWeight: 600,
-                            color: '#1a202c',
-                            lineHeight: '1.4',
-                            height: '40px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                        }}>
-                            {product.title}
-                        </h4>
+                            color: '#374151',
+                            padding: 0,
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f9fafb';
+                            e.currentTarget.style.borderColor = '#9ca3af';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#ffffff';
+                            e.currentTarget.style.borderColor = '#d1d5db';
+                        }}
+                        aria-label="Scroll right"
+                    >
+                        ›
+                    </button>
+                )}
 
-                        {/* Product Price */}
-                        <p style={{
-                            margin: '0 0 14px 0',
-                            fontSize: '18px',
-                            fontWeight: 700,
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            backgroundClip: 'text',
-                        }}>
-                            ₹{product.price.toFixed(2)}
-                        </p>
-
-                        {/* Add to Cart Button */}
-                        <button
-                            onClick={() => onAddToCart(product.handle, 1)}
-                            disabled={!product.availableForSale}
+                {/* Carousel - ultra-compact */}
+                <div
+                    ref={carouselRef}
+                    onScroll={checkScroll}
+                    style={{
+                        display: 'flex',
+                        gap: '6px',
+                        overflowX: 'auto',
+                        scrollSnapType: 'x mandatory',
+                        scrollBehavior: 'smooth',
+                        paddingBottom: '4px',
+                        WebkitOverflowScrolling: 'touch',
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none',
+                    }}
+                    role="list"
+                    aria-label="Product recommendations"
+                >
+                    {products.map((product) => (
+                        <div
+                            key={product.id}
                             style={{
-                                width: '100%',
-                                padding: '12px',
-                                background: product.availableForSale
-                                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                                    : 'linear-gradient(135deg, #cbd5e0 0%, #a0aec0 100%)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '10px',
-                                cursor: product.availableForSale ? 'pointer' : 'not-allowed',
-                                fontSize: '13px',
-                                fontWeight: 600,
-                                transition: 'all 0.3s',
-                                boxShadow: product.availableForSale ? '0 4px 15px rgba(102, 126, 234, 0.4)' : 'none',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.5px',
+                                minWidth: '100px',
+                                maxWidth: '100px',
+                                flexShrink: 0,
+                                scrollSnapAlign: 'start',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '4px',
+                                padding: '6px',
+                                backgroundColor: '#ffffff',
+                                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                cursor: 'pointer',
                             }}
+                            role="listitem"
                             onMouseEnter={(e) => {
-                                if (product.availableForSale) {
-                                    e.currentTarget.style.transform = 'scale(1.05)';
-                                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.5)';
-                                }
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
+                                e.currentTarget.style.borderColor = '#d1d5db';
                             }}
                             onMouseLeave={(e) => {
-                                if (product.availableForSale) {
-                                    e.currentTarget.style.transform = 'scale(1)';
-                                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
-                                }
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+                                e.currentTarget.style.borderColor = '#e5e7eb';
                             }}
                         >
-                            {product.availableForSale ? '🛒 Add to Cart' : 'Unavailable'}
-                        </button>
-                    </div>
-                ))
-                }
-            </div >
+                            {/* Product Image */}
+                            <div style={{ position: 'relative', marginBottom: '4px', overflow: 'hidden', borderRadius: '4px' }}>
+                                {product.featuredImage ? (
+                                    <img
+                                        src={product.featuredImage.url}
+                                        alt={product.featuredImage.altText || product.title}
+                                        style={{
+                                            width: '100%',
+                                            height: '88px',
+                                            objectFit: 'cover',
+                                            borderRadius: '4px',
+                                            display: 'block',
+                                        }}
+                                        loading="lazy"
+                                    />
+                                ) : (
+                                    <div style={{
+                                        width: '100%',
+                                        height: '88px',
+                                        background: '#f3f4f6',
+                                        borderRadius: '4px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: '#9ca3af',
+                                        fontSize: '20px',
+                                    }}>
+                                        📦
+                                    </div>
+                                )}
+                                {!product.availableForSale && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '3px',
+                                        right: '3px',
+                                        background: '#ef4444',
+                                        color: 'white',
+                                        padding: '2px 4px',
+                                        borderRadius: '3px',
+                                        fontSize: '7px',
+                                        fontWeight: 600,
+                                    }}>
+                                        Out
+                                    </div>
+                                )}
+                            </div>
 
-            {/* Show All Button */}
+                            {/* Product Title */}
+                            <div style={{
+                                fontSize: '9px',
+                                fontWeight: 500,
+                                marginBottom: '2px',
+                                lineHeight: '1.2',
+                                color: '#111827',
+                                minHeight: '22px',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                letterSpacing: '-0.01em',
+                            }}>
+                                {product.title}
+                            </div>
+
+                            {/* Product Price */}
+                            <div style={{
+                                marginBottom: '4px',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                color: '#111827',
+                                letterSpacing: '-0.01em',
+                            }}>
+                                ₹{Math.round(product.price)}
+                            </div>
+
+                            {/* Add to Cart Button */}
+                            <button
+                                onClick={() => onAddToCart(product.handle, 1)}
+                                disabled={!product.availableForSale}
+                                style={{
+                                    width: '100%',
+                                    padding: '4px 6px',
+                                    background: product.availableForSale ? '#111827' : '#e5e7eb',
+                                    color: product.availableForSale ? 'white' : '#9ca3af',
+                                    border: 'none',
+                                    borderRadius: '3px',
+                                    cursor: product.availableForSale ? 'pointer' : 'not-allowed',
+                                    fontSize: '8px',
+                                    fontWeight: 600,
+                                    transition: 'all 0.2s',
+                                    letterSpacing: '0.2px',
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (product.availableForSale) {
+                                        e.currentTarget.style.background = '#1f2937';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (product.availableForSale) {
+                                        e.currentTarget.style.background = '#111827';
+                                    }
+                                }}
+                            >
+                                {product.availableForSale ? 'ADD' : 'N/A'}
+                            </button>
+                        </div>
+                    ))
+                    }
+                </div>
+            </div>
+
+            {/* Show All Link - minimal */}
             {
                 collectionUrl && (
                     <a
@@ -495,53 +532,32 @@ export const MilestoneUpsellCarousel: React.FC<MilestoneUpsellCarouselProps> = (
                         style={{
                             display: 'block',
                             textAlign: 'center',
-                            padding: '16px',
-                            background: 'rgba(255,255,255,0.95)',
-                            backdropFilter: 'blur(10px)',
-                            color: '#667eea',
-                            border: '2px solid rgba(255,255,255,0.3)',
-                            borderRadius: '14px',
+                            padding: '6px',
+                            marginTop: '6px',
+                            color: '#6b7280',
                             textDecoration: 'none',
-                            fontSize: '15px',
-                            fontWeight: 600,
-                            transition: 'all 0.3s',
-                            boxShadow: '0 8px 20px rgba(0,0,0,0.1)',
-                            position: 'relative',
-                            zIndex: 1,
+                            fontSize: '9px',
+                            fontWeight: 500,
+                            transition: 'color 0.2s',
                         }}
                         onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'white';
-                            e.currentTarget.style.transform = 'scale(1.02)';
-                            e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.15)';
+                            e.currentTarget.style.color = '#111827';
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'rgba(255,255,255,0.95)';
-                            e.currentTarget.style.transform = 'scale(1)';
-                            e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.1)';
+                            e.currentTarget.style.color = '#6b7280';
                         }}
                     >
-                        👀 View All Products →
+                        {viewAllLinkText} →
                     </a>
                 )
             }
 
-            {/* Keyframe animations */}
+            {/* Hide scrollbar */}
             <style>{`
-                @keyframes slideIn {
-                    from {
-                        opacity: 0;
-                        transform: translateX(30px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateX(0);
-                    }
-                }
-                @keyframes pulse {
-                    0%, 100% { opacity: 0.3; }
-                    50% { opacity: 0.5; }
+                div[role="list"]::-webkit-scrollbar {
+                    display: none;
                 }
             `}</style>
-        </div >
+        </div>
     );
 };
