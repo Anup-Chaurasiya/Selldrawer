@@ -181,21 +181,75 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "toggle-milestone-block-status") {
     let milestoneBlock = await prisma.milestoneBlock.findUnique({
-      where: { shop }
+      where: { shop },
+      include: {
+        milestones: {
+          include: {
+            giftProducts: true, // Need gift products for recreation
+          }
+        }
+      }
     });
 
     if (!milestoneBlock) {
       milestoneBlock = await prisma.milestoneBlock.create({
-        data: { shop, isActive: true }
+        data: { shop, isActive: true },
+        include: { milestones: { include: { giftProducts: true } } }
       });
     }
 
     const isActive = formData.get("isActive") === "true";
 
+    // Update block status
     await prisma.milestoneBlock.update({
       where: { id: milestoneBlock.id },
       data: { isActive }
     });
+
+    if (isActive) {
+      // ENABLE BLOCK: Create discounts for all ACTIVE individual milestones
+      // We only create if they don't already have one (though realistically they shouldn't if block was disabled correctly)
+      for (const milestone of milestoneBlock.milestones) {
+        if (milestone.isActive) {
+          // Check if it already has a discount (it shouldn't if we cleaned up properly on disable)
+          if (!milestone.shopifyDiscountId) {
+            const discountResult = await createMilestoneDiscount(admin, {
+              title: milestone.title,
+              rewardType: milestone.rewardType,
+              rewardValue: milestone.rewardValue ? parseFloat(milestone.rewardValue.toString()) : null,
+              giftProducts: milestone.giftProducts,
+              minimumSubtotal: parseFloat(milestone.targetAmount.toString()),
+              triggerType: "spend", // Defaults
+              triggerValue: parseFloat(milestone.targetAmount.toString()),
+            });
+
+            if (discountResult) {
+              await prisma.blockMilestone.update({
+                where: { id: milestone.id },
+                data: {
+                  discountCode: discountResult.code,
+                  shopifyDiscountId: discountResult.discountId
+                }
+              });
+            }
+          }
+        }
+      }
+    } else {
+      // DISABLE BLOCK: Delete ALL discounts associated with this block's milestones
+      for (const milestone of milestoneBlock.milestones) {
+        if (milestone.shopifyDiscountId) {
+          await deleteShopifyDiscount(admin, milestone.shopifyDiscountId);
+          await prisma.blockMilestone.update({
+            where: { id: milestone.id },
+            data: {
+              discountCode: null,
+              shopifyDiscountId: null
+            }
+          });
+        }
+      }
+    }
 
     return json({ success: true, isActive });
   }
@@ -234,6 +288,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const iconColor = formData.get("iconColor") as string;
       const titleColor = formData.get("titleColor") as string;
       const unlockButtonColor = formData.get("unlockButtonColor") as string;
+      const unlockButtonText = formData.get("unlockButtonText") as string || "Unlock Reward";
 
       // Parse gift products first (needed for discount creation)
       let giftProducts: any[] = [];
@@ -255,17 +310,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return json({ error: "Please enter a discount value" }, { status: 400 });
       }
 
-      // Create Shopify discount automatically
-      const discountResult = await createMilestoneDiscount(admin, {
-        title,
-        rewardType,
-        rewardValue,
-        giftProducts,
-        minimumSubtotal: targetAmount, // Pass targetAmount as minimumSubtotal threshold
-      });
+      // Only create Shopify discount if the BLOCK is active
+      // (If block is inactive, we save the milestone but don't create discount yet)
+      let discountCode: string | null = null;
+      let shopifyDiscountId: string | null = null;
 
-      if (!discountResult) {
-        return json({ error: "Failed to create Shopify discount. Please check your configuration and try again." }, { status: 500 });
+      if (milestoneBlock.isActive) {
+        const discountResult = await createMilestoneDiscount(admin, {
+          title,
+          rewardType,
+          rewardValue,
+          giftProducts,
+          minimumSubtotal: targetAmount, // Pass targetAmount as minimumSubtotal threshold
+        });
+
+        if (!discountResult) {
+          // If creation fails but block is active, we should probably warn or fail. 
+          // For now, fail to be safe.
+          return json({ error: "Failed to create Shopify discount. Please check your configuration and try again." }, { status: 500 });
+        }
+        discountCode = discountResult.code;
+        shopifyDiscountId = discountResult.discountId;
       }
 
       // Get the highest priority and add 1
@@ -298,8 +363,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           targetAmount,
           rewardType,
           rewardValue,
-          discountCode: discountResult.code,
-          shopifyDiscountId: discountResult.discountId,
+          discountCode,
+          shopifyDiscountId,
           targetType,
           priority,
           icon,
@@ -314,7 +379,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           eligibleProductIds,
           upsellHeaderText: formData.get("upsellHeaderText") as string || "Unlock Your Reward",
           viewAllLinkText: formData.get("viewAllLinkText") as string || "View All",
-          unlockButtonText: formData.get("unlockButtonText") as string || "Unlock Reward",
+          unlockButtonText,
+          // Newly created milestones are active by default
+          isActive: true
         } as any
       });
 
@@ -363,8 +430,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Get existing milestone to retrieve old discount ID
     const existingMilestone = await prisma.blockMilestone.findUnique({
       where: { id: milestoneId },
-      select: { shopifyDiscountId: true } as any
-    }) as { shopifyDiscountId: string | null } | null;
+      select: { shopifyDiscountId: true, isActive: true } as any
+    });
 
     // Parse gift products first (needed for discount creation)
     let giftProducts: any[] = [];
@@ -386,21 +453,45 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ error: "Please enter a discount value" }, { status: 400 });
     }
 
-    // Update Shopify discount (delete old, create new)
-    const discountResult = await updateMilestoneDiscount(
-      admin,
-      existingMilestone?.shopifyDiscountId || null,
-      {
-        title,
-        rewardType,
-        rewardValue,
-        giftProducts,
-        minimumSubtotal: targetAmount, // Pass targetAmount as minimumSubtotal threshold
-      }
-    );
+    let discountCode = existingMilestone?.discountCode;
+    let shopifyDiscountId = existingMilestone?.shopifyDiscountId;
 
-    if (!discountResult) {
-      return json({ error: "Failed to update Shopify discount. Please check your configuration and try again." }, { status: 500 });
+    // Update Shopify discount ONLY if both Block and Milestone are active
+    if (milestoneBlock.isActive && existingMilestone?.isActive) {
+      // Update Shopify discount (delete old, create new)
+      const discountResult = await updateMilestoneDiscount(
+        admin,
+        existingMilestone?.shopifyDiscountId || null,
+        {
+          title,
+          rewardType,
+          rewardValue,
+          giftProducts,
+          minimumSubtotal: targetAmount, // Pass targetAmount as minimumSubtotal threshold
+        }
+      );
+
+      if (!discountResult) {
+        return json({ error: "Failed to update Shopify discount. Please check your configuration and try again." }, { status: 500 });
+      }
+      discountCode = discountResult.code;
+      shopifyDiscountId = discountResult.discountId;
+    } else {
+      // If inactive, we don't update/create discount yet. 
+      // Ensure that if it HAD a discount but shouldn't (edge case), we remove it?
+      // But simply updating the config in DB is safe. When they enable, it will recreate.
+      // However, if we change the config while disabled, the OLD discount might still persist if we don't clear it.
+      // But logic in toggle-block or toggle-milestone handles deletion.
+
+      // Wait, if I edit a disabled milestone, does it have a discount? 
+      // Ideally no.
+
+      // If I edit an ENABLED milestone while BLOCK is disabled?
+      // Block disabled -> no discounts should exist.
+      // So shopifyDiscountId should be null.
+
+      // If I update properties, I shouldn't try to update Shopify discount if ID is null.
+      // But wait, what if I update properties while disabled, then I enable? Re-creation uses new props. Correct.
     }
 
     // Parse eligibility fields
@@ -423,8 +514,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         targetAmount,
         rewardType,
         rewardValue,
-        discountCode: discountResult.code,
-        shopifyDiscountId: discountResult.discountId,
+        discountCode,
+        shopifyDiscountId,
         targetType,
         icon,
         unlockedMessage,
@@ -494,10 +585,62 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "toggle-milestone") {
     const milestoneId = formData.get("milestoneId") as string;
     const isActive = formData.get("isActive") === "true";
+
+    // Get full milestone data to recreate if needed
+    const milestone = await prisma.blockMilestone.findUnique({
+      where: { id: milestoneId },
+      include: { giftProducts: true }
+    });
+
+    if (!milestone) return json({ error: "Milestone not found" }, { status: 404 });
+
+    // Status update in DB
     await prisma.blockMilestone.update({
       where: { id: milestoneId },
       data: { isActive }
     });
+
+    if (isActive) {
+      // ENABLING MILESTONE
+      // Only if GLOBAL BLOCK is active, creates discount
+      if (milestoneBlock.isActive) {
+        if (!milestone.shopifyDiscountId) {
+          const discountResult = await createMilestoneDiscount(admin, {
+            title: milestone.title,
+            rewardType: milestone.rewardType,
+            rewardValue: milestone.rewardValue ? parseFloat(milestone.rewardValue.toString()) : null,
+            giftProducts: milestone.giftProducts,
+            minimumSubtotal: parseFloat(milestone.targetAmount.toString()),
+            triggerType: "spend",
+            triggerValue: parseFloat(milestone.targetAmount.toString()),
+          });
+
+          if (discountResult) {
+            await prisma.blockMilestone.update({
+              where: { id: milestoneId },
+              data: {
+                discountCode: discountResult.code,
+                shopifyDiscountId: discountResult.discountId
+              }
+            });
+          }
+        }
+      }
+    } else {
+      // DISABLING MILESTONE
+      // If it has a discount ID, delete it
+      if (milestone.shopifyDiscountId) {
+        await deleteShopifyDiscount(admin, milestone.shopifyDiscountId);
+        await prisma.blockMilestone.update({
+          where: { id: milestoneId },
+          data: {
+            discountCode: null,
+            shopifyDiscountId: null
+          }
+        });
+      }
+    }
+
     return json({ success: true });
   }
 
