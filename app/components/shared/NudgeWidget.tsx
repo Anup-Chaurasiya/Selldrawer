@@ -56,6 +56,11 @@ interface NudgeWidgetProps {
   isVisible?: boolean;
   checkboxMode?: boolean; // Enable checkbox selection mode
   selectedProductIds?: Set<string>; // Set of selected product IDs for checkbox mode
+  replacingProduct?: { // Product being replaced (for checkout trigger)
+    title: string;
+    imageUrl?: string;
+    price?: number;
+  };
 }
 
 export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
@@ -69,7 +74,8 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
   isPreview = false,
   isVisible = true,
   checkboxMode = false,
-  selectedProductIds = new Set()
+  selectedProductIds = new Set(),
+  replacingProduct
 }) => {
   const [animationClass, setAnimationClass] = useState('');
   const impressionTracked = React.useRef(false);
@@ -180,12 +186,12 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
   }
 
   return (
-    <div 
+    <div
       className={`upsellity-nudge-overlay ${config.enableAnimation && !isPreview ? `upsellity-nudge-animation-${config.animationType}` : ''} ${animationClass}`}
       style={overlayStyle}
       onClick={handleOverlayClick}
     >
-      <div 
+      <div
         className="upsellity-nudge-popup"
         style={popupStyle}
       >
@@ -212,7 +218,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
         </button>
 
         {/* Title */}
-        <h2 
+        <h2
           className="upsellity-nudge-title"
           style={{
             fontSize: '1.75rem',
@@ -228,7 +234,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
         </h2>
 
         {/* Subtitle */}
-        <p 
+        <p
           className="upsellity-nudge-subtitle"
           style={{
             fontSize: '1rem',
@@ -242,8 +248,77 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
           {config.subtitle}
         </p>
 
+        {/* Replacing Product Banner - Show only when replacingProduct is provided */}
+        {replacingProduct && (
+          <div
+            className="upsellity-nudge-replacing-banner"
+            style={{
+              width: '100%',
+              backgroundColor: '#F3F4F6',
+              border: '2px dashed #D1D5DB',
+              borderRadius: '12px',
+              padding: '1rem 1.25rem',
+              marginBottom: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem'
+            }}
+          >
+            {replacingProduct.imageUrl && (
+              <img
+                src={replacingProduct.imageUrl}
+                alt={replacingProduct.title}
+                style={{
+                  width: '60px',
+                  height: '60px',
+                  objectFit: 'cover',
+                  borderRadius: '8px',
+                  border: '2px solid #fff',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}
+              />
+            )}
+            <div style={{ flex: 1 }}>
+              <div style={{
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: '#6B7280',
+                marginBottom: '0.25rem'
+              }}>
+                ✨ Replacing
+              </div>
+              <div style={{
+                fontSize: '1rem',
+                fontWeight: 600,
+                color: '#111827',
+                lineHeight: 1.3
+              }}>
+                {replacingProduct.title}
+              </div>
+              {replacingProduct.price && (
+                <div style={{
+                  fontSize: '0.875rem',
+                  color: '#6B7280',
+                  marginTop: '0.25rem'
+                }}>
+                  {formatPrice(replacingProduct.price)}
+                </div>
+              )}
+            </div>
+            <div style={{
+              fontSize: '2rem',
+              color: '#9CA3AF',
+              lineHeight: 1
+            }}>
+              →
+            </div>
+          </div>
+        )}
+
         {/* Products Container */}
-        <div 
+        <div
           className={`upsellity-nudge-products upsellity-nudge-layout-${config.layout} upsellity-nudge-products-${productsToShow.length}`}
           style={{
             display: config.layout === 'grid' ? 'grid' : 'flex',
@@ -312,7 +387,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      onChange={() => {}}
+                      onChange={() => { }}
                       disabled={isPreview}
                       style={{
                         width: '20px',
@@ -323,98 +398,98 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                     />
                   </div>
                 )}
-              {config.showProductImage && product.imageUrl && (
-                <img 
-                  src={product.imageUrl}
-                  alt={product.title}
-                  className="upsellity-nudge-product-image"
-                  style={{
-                    width: '100%',
-                    height: '200px',
-                    objectFit: 'cover'
-                  }}
-                />
-              )}
+                {config.showProductImage && product.imageUrl && (
+                  <img
+                    src={product.imageUrl}
+                    alt={product.title}
+                    className="upsellity-nudge-product-image"
+                    style={{
+                      width: '100%',
+                      height: '200px',
+                      objectFit: 'cover'
+                    }}
+                  />
+                )}
 
-              <div 
-                className="upsellity-nudge-product-details"
-                style={{
-                  padding: '1rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  flexGrow: 1
-                }}
-              >
-                <h3 
-                  className="upsellity-nudge-product-title"
+                <div
+                  className="upsellity-nudge-product-details"
                   style={{
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                    margin: '0 0 0.5rem 0',
-                    lineHeight: 1.4,
-                    paddingRight: checkboxMode ? '2rem' : '0'
+                    padding: '1rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    flexGrow: 1
                   }}
                 >
-                  {product.title}
-                </h3>
-
-                {config.showProductDescription && product.description && (
-                  <p 
-                    className="upsellity-nudge-product-description"
+                  <h3
+                    className="upsellity-nudge-product-title"
                     style={{
-                      fontSize: '0.875rem',
-                      color: '#6b7280',
-                      margin: '0 0 0.75rem 0',
-                      lineHeight: 1.5
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      margin: '0 0 0.5rem 0',
+                      lineHeight: 1.4,
+                      paddingRight: checkboxMode ? '2rem' : '0'
                     }}
                   >
-                    {stripHtml(product.description).substring(0, 100)}...
-                  </p>
-                )}
+                    {product.title}
+                  </h3>
 
-                {config.showProductPrice && (
-                  <div 
-                    className="upsellity-nudge-product-price-container"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      marginTop: 'auto',
-                      paddingTop: '0.5rem'
-                    }}
-                  >
-                    {config.showProductComparePrice && product.compareAtPrice && product.compareAtPrice > product.price && (
-                      <span 
-                        className="upsellity-nudge-product-compare-price"
-                        style={{
-                          fontSize: '0.875rem',
-                          color: '#9ca3af',
-                          textDecoration: 'line-through'
-                        }}
-                      >
-                        {formatPrice(product.compareAtPrice)}
-                      </span>
-                    )}
-                    <span 
-                      className="upsellity-nudge-product-price"
+                  {config.showProductDescription && product.description && (
+                    <p
+                      className="upsellity-nudge-product-description"
                       style={{
-                        fontSize: '1.125rem',
-                        fontWeight: 600,
-                        color: '#111827'
+                        fontSize: '0.875rem',
+                        color: '#6b7280',
+                        margin: '0 0 0.75rem 0',
+                        lineHeight: 1.5
                       }}
                     >
-                      {formatPrice(product.price)}
-                    </span>
-                  </div>
-                )}
+                      {stripHtml(product.description).substring(0, 100)}...
+                    </p>
+                  )}
+
+                  {config.showProductPrice && (
+                    <div
+                      className="upsellity-nudge-product-price-container"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        marginTop: 'auto',
+                        paddingTop: '0.5rem'
+                      }}
+                    >
+                      {config.showProductComparePrice && product.compareAtPrice && product.compareAtPrice > product.price && (
+                        <span
+                          className="upsellity-nudge-product-compare-price"
+                          style={{
+                            fontSize: '0.875rem',
+                            color: '#9ca3af',
+                            textDecoration: 'line-through'
+                          }}
+                        >
+                          {formatPrice(product.compareAtPrice)}
+                        </span>
+                      )}
+                      <span
+                        className="upsellity-nudge-product-price"
+                        style={{
+                          fontSize: '1.125rem',
+                          fontWeight: 600,
+                          color: '#111827'
+                        }}
+                      >
+                        {formatPrice(product.price)}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
             );
           })}
         </div>
 
         {/* Bottom Action Section */}
-        <div 
+        <div
           className="upsellity-nudge-bottom-section"
           style={{
             display: 'flex',
@@ -427,7 +502,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
         >
           {/* Continue Button - Hide in checkbox mode */}
           {!checkboxMode && onContinue && (
-            <div 
+            <div
               className="upsellity-nudge-continue-section"
               style={{
                 flex: 1,
@@ -465,7 +540,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
 
           {/* Select All Button - Show only if not in checkbox mode or if checkbox mode, show as "Add Selected" */}
           {productsToShow.length > 0 && !checkboxMode && (
-            <div 
+            <div
               className="upsellity-nudge-selection-section"
               style={{
                 flex: 1,
@@ -502,7 +577,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
           )}
           {/* Add Selected Button for checkbox mode */}
           {checkboxMode && productsToShow.length > 0 && (
-            <div 
+            <div
               className="upsellity-nudge-selection-section"
               style={{
                 flex: 1,

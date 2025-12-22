@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.5
- * Built: 2025-12-22T09:43:34.883Z
+ * Built: 2025-12-22T10:48:02.497Z
  */
 "use strict";
 (() => {
@@ -7896,7 +7896,8 @@
     isPreview = false,
     isVisible = true,
     checkboxMode = false,
-    selectedProductIds = /* @__PURE__ */ new Set()
+    selectedProductIds = /* @__PURE__ */ new Set(),
+    replacingProduct
   }) => {
     const [animationClass, setAnimationClass] = (0, import_react.useState)("");
     const impressionTracked = import_react.default.useRef(false);
@@ -8056,6 +8057,66 @@
                     color: config.subtitleColor
                   },
                   children: config.subtitle
+                }
+              ),
+              replacingProduct && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "div",
+                {
+                  className: "upsellity-nudge-replacing-banner",
+                  style: {
+                    width: "100%",
+                    backgroundColor: "#F3F4F6",
+                    border: "2px dashed #D1D5DB",
+                    borderRadius: "12px",
+                    padding: "1rem 1.25rem",
+                    marginBottom: "1.5rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1rem"
+                  },
+                  children: [
+                    replacingProduct.imageUrl && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                      "img",
+                      {
+                        src: replacingProduct.imageUrl,
+                        alt: replacingProduct.title,
+                        style: {
+                          width: "60px",
+                          height: "60px",
+                          objectFit: "cover",
+                          borderRadius: "8px",
+                          border: "2px solid #fff",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+                        }
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1 }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "#6B7280",
+                        marginBottom: "0.25rem"
+                      }, children: "\u2728 Replacing" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                        fontSize: "1rem",
+                        fontWeight: 600,
+                        color: "#111827",
+                        lineHeight: 1.3
+                      }, children: replacingProduct.title }),
+                      replacingProduct.price && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                        fontSize: "0.875rem",
+                        color: "#6B7280",
+                        marginTop: "0.25rem"
+                      }, children: formatPrice(replacingProduct.price) })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                      fontSize: "2rem",
+                      color: "#9CA3AF",
+                      lineHeight: 1
+                    }, children: "\u2192" })
+                  ]
                 }
               ),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
@@ -8471,6 +8532,8 @@
       this.originalProductVariantId = null;
       this.reactRoot = null;
       this.triggerContext = null;
+      this.matchedProductHandle = null;
+      this.matchedCartItem = null;
       this.init();
     }
     async init() {
@@ -8609,7 +8672,8 @@
             return;
           }
           let hasRecommendations = false;
-          for (const handle of cartProductHandles) {
+          for (let i = 0; i < cartProductHandles.length; i++) {
+            const handle = cartProductHandles[i];
             const apiUrl = `${APP_URL}/api/nudge?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(handle)}`;
             console.log(`\u{1F50E} Checking nudge for product: ${handle}`);
             try {
@@ -8621,6 +8685,13 @@
                   console.log(`\u2705 Found recommendations for ${handle}!`);
                   this.recommendations = data.recommendations;
                   this.config = data.config;
+                  this.matchedProductHandle = handle;
+                  this.matchedCartItem = cart.items.find((item) => {
+                    var _a3;
+                    const itemHandle = item.handle || (item.url ? (_a3 = item.url.split("/products/")[1]) == null ? void 0 : _a3.split("?")[0] : null);
+                    return itemHandle === handle;
+                  });
+                  console.log("\u{1F4CC} Matched cart item:", this.matchedCartItem);
                   hasRecommendations = true;
                   break;
                 }
@@ -8668,9 +8739,18 @@
       this.renderPopup();
     }
     renderPopup() {
+      var _a2;
       const container = document.createElement("div");
       container.id = "upsellity-nudge-popup-root";
       document.body.appendChild(container);
+      let replacingProduct = null;
+      if (this.triggerContext === "checkout" && this.matchedCartItem) {
+        replacingProduct = {
+          title: this.matchedCartItem.title || this.matchedCartItem.product_title,
+          imageUrl: this.matchedCartItem.image || ((_a2 = this.matchedCartItem.featured_image) == null ? void 0 : _a2.url),
+          price: this.matchedCartItem.price || this.matchedCartItem.final_price
+        };
+      }
       this.reactRoot = (0, import_client.createRoot)(container);
       this.reactRoot.render(
         import_react2.default.createElement(NudgeWidget, {
@@ -8678,6 +8758,7 @@
           recommendations: this.recommendations,
           isVisible: true,
           isPreview: false,
+          replacingProduct,
           onClose: () => this.closePopup(),
           onContinue: () => this.continueWithOriginal(),
           onSelectProduct: (product) => this.selectProduct(product),
@@ -8703,6 +8784,20 @@
       });
       this.closePopup();
       try {
+        if (this.triggerContext === "checkout" && this.matchedCartItem) {
+          console.log(`\u{1F5D1}\uFE0F Removing matched product: ${this.matchedCartItem.title}`);
+          await fetch("/cart/change.js", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              id: this.matchedCartItem.key,
+              quantity: 0
+            })
+          });
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        }
         const formData = {
           items: [{
             id: product.variantId || product.id,
@@ -8729,6 +8824,7 @@
           });
           document.dispatchEvent(new CustomEvent("cart:updated"));
           if (this.triggerContext === "checkout") {
+            console.log("\u2705 Redirecting to checkout with selected product");
             setTimeout(() => {
               window.location.href = "/checkout";
             }, 500);
@@ -8743,36 +8839,51 @@
     async selectAllProducts(products) {
       this.closePopup();
       try {
-        const cartResponse = await fetch("/cart.js");
-        if (cartResponse.ok) {
-          const cart = await cartResponse.json();
-          let originalLineItemKey = null;
-          if (this.originalProductVariantId && cart.items) {
-            const normalizedOriginalId = this.originalProductVariantId.replace("gid://shopify/ProductVariant/", "");
-            const matchingItem = cart.items.find((item) => {
-              var _a2;
-              const itemVariantId = (_a2 = item.variant_id) == null ? void 0 : _a2.toString();
-              return itemVariantId === normalizedOriginalId || itemVariantId === this.originalProductVariantId;
-            });
-            if (matchingItem) {
-              originalLineItemKey = matchingItem.key;
-            }
-          }
-          if (originalLineItemKey) {
-            try {
-              await fetch("/cart/change.js", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                  updates: {
-                    [originalLineItemKey]: 0
-                  }
-                })
+        if (this.triggerContext === "checkout" && this.matchedCartItem) {
+          console.log(`\u{1F5D1}\uFE0F Removing matched product: ${this.matchedCartItem.title}`);
+          await fetch("/cart/change.js", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              id: this.matchedCartItem.key,
+              quantity: 0
+            })
+          });
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        } else {
+          const cartResponse = await fetch("/cart.js");
+          if (cartResponse.ok) {
+            const cart = await cartResponse.json();
+            let originalLineItemKey = null;
+            if (this.originalProductVariantId && cart.items) {
+              const normalizedOriginalId = this.originalProductVariantId.replace("gid://shopify/ProductVariant/", "");
+              const matchingItem = cart.items.find((item) => {
+                var _a2;
+                const itemVariantId = (_a2 = item.variant_id) == null ? void 0 : _a2.toString();
+                return itemVariantId === normalizedOriginalId || itemVariantId === this.originalProductVariantId;
               });
-            } catch (error) {
-              console.error("Error removing original product from cart:", error);
+              if (matchingItem) {
+                originalLineItemKey = matchingItem.key;
+              }
+            }
+            if (originalLineItemKey) {
+              try {
+                await fetch("/cart/change.js", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json"
+                  },
+                  body: JSON.stringify({
+                    updates: {
+                      [originalLineItemKey]: 0
+                    }
+                  })
+                });
+              } catch (error) {
+                console.error("Error removing original product from cart:", error);
+              }
             }
           }
         }

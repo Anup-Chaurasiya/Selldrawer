@@ -24,6 +24,8 @@ class NudgePopup {
     this.originalProductVariantId = null;
     this.reactRoot = null;
     this.triggerContext = null; // 'add_to_cart' or 'checkout'
+    this.matchedProductHandle = null; // Which cart product triggered the nudge
+    this.matchedCartItem = null; // The cart line item to remove
 
     this.init();
   }
@@ -216,7 +218,8 @@ class NudgePopup {
         // Check if any cart product has nudge recommendations
         let hasRecommendations = false;
 
-        for (const handle of cartProductHandles) {
+        for (let i = 0; i < cartProductHandles.length; i++) {
+          const handle = cartProductHandles[i];
           const apiUrl = `${APP_URL}/api/nudge?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(handle)}`;
           console.log(`🔎 Checking nudge for product: ${handle}`);
 
@@ -230,6 +233,16 @@ class NudgePopup {
                 console.log(`✅ Found recommendations for ${handle}!`);
                 this.recommendations = data.recommendations;
                 this.config = data.config;
+                this.matchedProductHandle = handle;
+
+                // Find and save the cart item that matched
+                this.matchedCartItem = cart.items.find(item => {
+                  const itemHandle = item.handle ||
+                    (item.url ? item.url.split('/products/')[1]?.split('?')[0] : null);
+                  return itemHandle === handle;
+                });
+
+                console.log('📌 Matched cart item:', this.matchedCartItem);
                 hasRecommendations = true;
                 break;
               }
@@ -287,6 +300,16 @@ class NudgePopup {
     container.id = 'upsellity-nudge-popup-root';
     document.body.appendChild(container);
 
+    // Prepare replacing product info for checkout trigger
+    let replacingProduct = null;
+    if (this.triggerContext === 'checkout' && this.matchedCartItem) {
+      replacingProduct = {
+        title: this.matchedCartItem.title || this.matchedCartItem.product_title,
+        imageUrl: this.matchedCartItem.image || this.matchedCartItem.featured_image?.url,
+        price: this.matchedCartItem.price || this.matchedCartItem.final_price
+      };
+    }
+
     // Create React root and render
     this.reactRoot = createRoot(container);
     this.reactRoot.render(
@@ -295,6 +318,7 @@ class NudgePopup {
         recommendations: this.recommendations,
         isVisible: true,
         isPreview: false,
+        replacingProduct: replacingProduct,
         onClose: () => this.closePopup(),
         onContinue: () => this.continueWithOriginal(),
         onSelectProduct: (product) => this.selectProduct(product),
@@ -326,6 +350,25 @@ class NudgePopup {
 
     // Add selected product to cart instead of original
     try {
+      // If triggered from checkout, remove only the matched product (not entire cart)
+      if (this.triggerContext === 'checkout' && this.matchedCartItem) {
+        console.log(`🗑️ Removing matched product: ${this.matchedCartItem.title}`);
+
+        // Remove the specific cart item by its key
+        await fetch('/cart/change.js', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: this.matchedCartItem.key,
+            quantity: 0
+          })
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
       const formData = {
         items: [{
           id: product.variantId || product.id,
@@ -358,6 +401,7 @@ class NudgePopup {
 
         // Navigate based on trigger context
         if (this.triggerContext === 'checkout') {
+          console.log('✅ Redirecting to checkout with selected product');
           // Proceed to checkout after adding product
           setTimeout(() => {
             window.location.href = '/checkout';
@@ -377,44 +421,60 @@ class NudgePopup {
     this.closePopup();
 
     try {
-      // First, get the current cart to find and remove the original product
-      const cartResponse = await fetch('/cart.js');
-      if (cartResponse.ok) {
-        const cart = await cartResponse.json();
+      // If triggered from checkout, remove only the matched product (not entire cart)
+      if (this.triggerContext === 'checkout' && this.matchedCartItem) {
+        console.log(`🗑️ Removing matched product: ${this.matchedCartItem.title}`);
 
-        // Find the line item with the original variant ID
-        let originalLineItemKey = null;
-        if (this.originalProductVariantId && cart.items) {
-          // Normalize the original variant ID (remove GID prefix if present)
-          const normalizedOriginalId = this.originalProductVariantId.replace('gid://shopify/ProductVariant/', '');
+        await fetch('/cart/change.js', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: this.matchedCartItem.key,
+            quantity: 0
+          })
+        });
 
-          const matchingItem = cart.items.find(item => {
-            const itemVariantId = item.variant_id?.toString();
-            // Match by numeric ID
-            return itemVariantId === normalizedOriginalId || itemVariantId === this.originalProductVariantId;
-          });
+        await new Promise(resolve => setTimeout(resolve, 200));
+      } else {
+        // For add_to_cart trigger, remove original product only
+        const cartResponse = await fetch('/cart.js');
+        if (cartResponse.ok) {
+          const cart = await cartResponse.json();
 
-          if (matchingItem) {
-            originalLineItemKey = matchingItem.key;
-          }
-        }
+          // Find the line item with the original variant ID
+          let originalLineItemKey = null;
+          if (this.originalProductVariantId && cart.items) {
+            const normalizedOriginalId = this.originalProductVariantId.replace('gid://shopify/ProductVariant/', '');
 
-        // Remove original product from cart if it exists
-        if (originalLineItemKey) {
-          try {
-            await fetch('/cart/change.js', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                updates: {
-                  [originalLineItemKey]: 0
-                }
-              })
+            const matchingItem = cart.items.find(item => {
+              const itemVariantId = item.variant_id?.toString();
+              return itemVariantId === normalizedOriginalId || itemVariantId === this.originalProductVariantId;
             });
-          } catch (error) {
-            console.error('Error removing original product from cart:', error);
+
+            if (matchingItem) {
+              originalLineItemKey = matchingItem.key;
+            }
+          }
+
+          // Remove original product from cart if it exists
+          if (originalLineItemKey) {
+            try {
+              await fetch('/cart/change.js', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  updates: {
+                    [originalLineItemKey]: 0
+                  }
+                })
+              });
+            } catch (error) {
+              console.error('Error removing original product from cart:', error);
+            }
           }
         }
       }

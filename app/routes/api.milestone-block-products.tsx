@@ -53,11 +53,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
                 eligibleProductIds: true,
                 upsellHeaderText: true,
                 viewAllLinkText: true,
+                milestoneBlock: {
+                    select: {
+                        isActive: true,
+                    }
+                }
             },
         });
 
         if (!milestone) return cors(request, json({ error: "Milestone not found" }, { status: 404 }));
         if (!milestone.isActive) return cors(request, json({ error: "Milestone is not active" }, { status: 403 }));
+        if (!milestone.milestoneBlock?.isActive) return cors(request, json({ error: "Milestone Block feature is disabled" }, { status: 403 }));
         if (milestone.shop !== shop) return cors(request, json({ error: "Shop mismatch" }, { status: 403 }));
 
         // Determine eligibility source (priority: collection > productIds > tag > all products)

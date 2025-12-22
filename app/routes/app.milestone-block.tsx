@@ -179,6 +179,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const intent = formData.get("intent");
 
+  if (intent === "toggle-milestone-block-status") {
+    let milestoneBlock = await prisma.milestoneBlock.findUnique({
+      where: { shop }
+    });
+
+    if (!milestoneBlock) {
+      milestoneBlock = await prisma.milestoneBlock.create({
+        data: { shop, isActive: true }
+      });
+    }
+
+    const isActive = formData.get("isActive") === "true";
+
+    await prisma.milestoneBlock.update({
+      where: { id: milestoneBlock.id },
+      data: { isActive }
+    });
+
+    return json({ success: true, isActive });
+  }
+
   // Get or create milestone block
   let milestoneBlock = await prisma.milestoneBlock.findUnique({
     where: { shop }
@@ -521,7 +542,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       data: {
         milestonesProgressBarColor: progressBarColor,
         milestonesAllUnlockedMessage: allUnlockedMessage,
-        isActive: true, // Auto-enable when saving
+        // Removed automatic activation to respect user's choice
       } as any
     });
 
@@ -541,6 +562,18 @@ export default function MilestoneBlockPage() {
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const [editingMilestone, setEditingMilestone] = useState<any>(null);
   const [livePreviewMilestone, setLivePreviewMilestone] = useState<any>(null);
+
+  const [isBlockActive, setIsBlockActive] = useState(milestoneBlock?.isActive ?? true);
+
+  const handleToggleBlockStatus = useCallback(() => {
+    const newStatus = !isBlockActive;
+    setIsBlockActive(newStatus);
+
+    const formData = new FormData();
+    formData.append("intent", "toggle-milestone-block-status");
+    formData.append("isActive", newStatus.toString());
+    submit(formData, { method: "post" });
+  }, [isBlockActive, submit]);
 
   // Check if we've reached the maximum of 3 milestones
   const hasReachedMaxMilestones = milestoneBlock?.milestones && milestoneBlock.milestones.length >= 3;
@@ -892,6 +925,37 @@ export default function MilestoneBlockPage() {
       <Layout>
         <Layout.Section variant="oneHalf">
           <BlockStack gap="400">
+            {/* Status Card */}
+            <Card>
+              <BlockStack gap="200">
+                <InlineStack align="space-between" blockAlign="center">
+                  <BlockStack gap="100">
+                    <Text as="h2" variant="headingMd">
+                      Status
+                    </Text>
+                    <Text as="p" tone="subdued">
+                      {isBlockActive
+                        ? "Milestone Block is currently active and visible on your storefront."
+                        : "Milestone Block is currently disabled and hidden from your storefront."}
+                    </Text>
+                  </BlockStack>
+                  <Button
+                    variant={isBlockActive ? undefined : "primary"}
+                    tone={isBlockActive ? "critical" : undefined}
+                    onClick={handleToggleBlockStatus}
+                    disabled={isSubmitting}
+                  >
+                    {isBlockActive ? "Disable" : "Enable"}
+                  </Button>
+                </InlineStack>
+                {!isBlockActive && (
+                  <Banner tone="warning">
+                    Enable this feature to show milestone rewards to your customers.
+                  </Banner>
+                )}
+              </BlockStack>
+            </Card>
+
             {/* Info Banner */}
             <Banner tone={hasReachedMaxMilestones ? "warning" : "info"}>
               <p>
@@ -1114,6 +1178,8 @@ export default function MilestoneBlockPage() {
       >
         <Modal.Section>
           <BlockStack gap="400">
+
+
             <FormLayout>
               <TextField
                 label="Milestone Title"

@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Add Together v1.0.5
- * Built: 2025-12-22T09:43:34.917Z
+ * Built: 2025-12-22T10:48:02.531Z
  */
 "use strict";
 (() => {
@@ -7899,7 +7899,8 @@
     isPreview = false,
     isVisible = true,
     checkboxMode = false,
-    selectedProductIds = /* @__PURE__ */ new Set()
+    selectedProductIds = /* @__PURE__ */ new Set(),
+    replacingProduct
   }) => {
     const [animationClass, setAnimationClass] = (0, import_react.useState)("");
     const impressionTracked = import_react.default.useRef(false);
@@ -8059,6 +8060,66 @@
                     color: config.subtitleColor
                   },
                   children: config.subtitle
+                }
+              ),
+              replacingProduct && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "div",
+                {
+                  className: "upsellity-nudge-replacing-banner",
+                  style: {
+                    width: "100%",
+                    backgroundColor: "#F3F4F6",
+                    border: "2px dashed #D1D5DB",
+                    borderRadius: "12px",
+                    padding: "1rem 1.25rem",
+                    marginBottom: "1.5rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1rem"
+                  },
+                  children: [
+                    replacingProduct.imageUrl && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                      "img",
+                      {
+                        src: replacingProduct.imageUrl,
+                        alt: replacingProduct.title,
+                        style: {
+                          width: "60px",
+                          height: "60px",
+                          objectFit: "cover",
+                          borderRadius: "8px",
+                          border: "2px solid #fff",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+                        }
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1 }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        color: "#6B7280",
+                        marginBottom: "0.25rem"
+                      }, children: "\u2728 Replacing" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                        fontSize: "1rem",
+                        fontWeight: 600,
+                        color: "#111827",
+                        lineHeight: 1.3
+                      }, children: replacingProduct.title }),
+                      replacingProduct.price && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                        fontSize: "0.875rem",
+                        color: "#6B7280",
+                        marginTop: "0.25rem"
+                      }, children: formatPrice(replacingProduct.price) })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                      fontSize: "2rem",
+                      color: "#9CA3AF",
+                      lineHeight: 1
+                    }, children: "\u2192" })
+                  ]
                 }
               ),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
