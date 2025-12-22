@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.5
- * Built: 2025-12-22T10:48:02.497Z
+ * Built: 2025-12-22T12:41:25.798Z
  */
 "use strict";
 (() => {
@@ -8518,7 +8518,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
-  var APP_URL = true ? "https://ceiling-consent-brunette-caps.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://hazardous-shelf-grain-ted.trycloudflare.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;
@@ -9038,6 +9038,12 @@
         }, 300);
       }
       this.isOpen = false;
+      if (this.triggerContext === "checkout") {
+        console.log("\u{1F6AA} Popup closed, redirecting to checkout");
+        setTimeout(() => {
+          window.location.href = "/checkout";
+        }, 350);
+      }
     }
   };
   if (document.readyState === "loading") {

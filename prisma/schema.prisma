@@ -648,6 +648,7 @@ model NudgeAddTogether {
   algorithm               String                    @default("related")
   useAI                   Boolean                   @default(false)
   showOnAddToCart         Boolean                   @default(true)
+  triggerPoint            String                    @default("add_to_cart")
   popupDelay              Int                       @default(0)
   overlayColor            String                    @default("#000000")
   overlayOpacity          Int                       @default(50)

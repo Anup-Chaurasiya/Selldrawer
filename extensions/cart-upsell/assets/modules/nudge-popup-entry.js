@@ -685,6 +685,14 @@ class NudgePopup {
       }, 300);
     }
     this.isOpen = false;
+
+    // If triggered from checkout, redirect to checkout when closing
+    if (this.triggerContext === 'checkout') {
+      console.log('🚪 Popup closed, redirecting to checkout');
+      setTimeout(() => {
+        window.location.href = '/checkout';
+      }, 350);
+    }
   }
 }
 

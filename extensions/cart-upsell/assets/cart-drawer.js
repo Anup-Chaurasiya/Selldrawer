@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.5
- * Built: 2025-12-22T10:48:02.428Z
+ * Built: 2025-12-22T12:41:25.726Z
  */
 "use strict";
 (() => {
@@ -13363,7 +13363,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://ceiling-consent-brunette-caps.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://hazardous-shelf-grain-ted.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.5" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

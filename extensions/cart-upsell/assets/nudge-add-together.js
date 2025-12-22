@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Add Together v1.0.5
- * Built: 2025-12-22T10:48:02.531Z
+ * Built: 2025-12-22T12:41:25.840Z
  */
 "use strict";
 (() => {
@@ -8657,7 +8657,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/nudge-add-together-entry.js
-  var APP_URL = true ? "https://ceiling-consent-brunette-caps.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://hazardous-shelf-grain-ted.trycloudflare.com" : "https://app.upsellity.com";
   var NudgeAddTogether = class {
     constructor() {
       this.shop = null;
@@ -8671,6 +8671,9 @@
       this.originalProductVariantId = null;
       this.originalProductData = null;
       this.reactRoot = null;
+      this.triggerContext = null;
+      this.matchedProductHandle = null;
+      this.matchedCartItem = null;
       this.init();
     }
     async init() {
@@ -8687,8 +8690,13 @@
           return;
         }
         await this.loadConfig();
-        if (this.enabled && this.config && this.config.showOnAddToCart) {
-          setTimeout(() => this.setupAddToCartInterceptor(), 200);
+        if (this.enabled && this.config) {
+          const triggerPoint = this.config.triggerPoint || "add_to_cart";
+          if (triggerPoint === "add_to_cart") {
+            setTimeout(() => this.setupAddToCartInterceptor(), 200);
+          } else if (triggerPoint === "checkout") {
+            this.setupCheckoutInterceptor();
+          }
         }
       } catch (error) {
         console.error("Error initializing Nudge Add Together:", error);
@@ -8834,6 +8842,88 @@
           }
         }, true);
       });
+    }
+    setupCheckoutInterceptor() {
+      console.log("\u{1F3AF} Nudge Add Together: Setting up checkout interceptor");
+      document.addEventListener("click", async (e) => {
+        var _a2, _b, _c, _d;
+        const target = e.target;
+        const isCheckoutButton = ((_a2 = target.classList) == null ? void 0 : _a2.contains("upsellity-checkout-btn")) || target.getAttribute("name") === "checkout" || ((_b = target.textContent) == null ? void 0 : _b.trim().toLowerCase()) === "checkout" || ((_d = (_c = target.closest("button")) == null ? void 0 : _c.textContent) == null ? void 0 : _d.trim().toLowerCase()) === "checkout";
+        if (!isCheckoutButton)
+          return;
+        console.log("\u{1F6D2} Checkout button clicked, checking cart...");
+        try {
+          e.preventDefault();
+          e.stopPropagation();
+          const cartResponse = await fetch("/cart.js");
+          if (!cartResponse.ok) {
+            console.warn("Failed to fetch cart for checkout trigger");
+            window.location.href = "/checkout";
+            return;
+          }
+          const cart = await cartResponse.json();
+          console.log("\u{1F4E6} Cart contents:", cart);
+          const cartProductHandles = cart.items.map((item) => {
+            if (item.handle) {
+              return item.handle;
+            }
+            if (item.url) {
+              const urlParts = item.url.split("/");
+              const productsIndex = urlParts.indexOf("products");
+              if (productsIndex !== -1 && urlParts[productsIndex + 1]) {
+                return urlParts[productsIndex + 1].split("?")[0];
+              }
+            }
+            return null;
+          }).filter(Boolean);
+          console.log("\u{1F50D} Cart product handles:", cartProductHandles);
+          if (cartProductHandles.length === 0) {
+            console.log("No valid product handles, proceeding to checkout");
+            window.location.href = "/checkout";
+            return;
+          }
+          let hasRecommendations = false;
+          for (let i = 0; i < cartProductHandles.length; i++) {
+            const handle = cartProductHandles[i];
+            const apiUrl = `${APP_URL}/api/nudge-add-together?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(handle)}`;
+            console.log(`\u{1F50E} Checking nudge for product: ${handle}`);
+            try {
+              const response = await fetch(apiUrl);
+              if (response.ok) {
+                const data = await response.json();
+                console.log(`\u{1F4CA} Nudge data for ${handle}:`, data);
+                if (data.enabled && data.recommendations && data.recommendations.length > 0) {
+                  console.log(`\u2705 Found recommendations for ${handle}!`);
+                  this.recommendations = data.recommendations;
+                  this.config = data.config;
+                  this.matchedProductHandle = handle;
+                  this.matchedCartItem = cart.items.find((item) => {
+                    var _a3;
+                    const itemHandle = item.handle || (item.url ? (_a3 = item.url.split("/products/")[1]) == null ? void 0 : _a3.split("?")[0] : null);
+                    return itemHandle === handle;
+                  });
+                  console.log("\u{1F4CC} Matched cart item:", this.matchedCartItem);
+                  hasRecommendations = true;
+                  break;
+                }
+              }
+            } catch (error) {
+              console.warn(`Failed to fetch nudge for product ${handle}:`, error);
+            }
+          }
+          if (hasRecommendations && this.recommendations.length > 0) {
+            console.log("\u{1F389} Showing nudge popup");
+            this.triggerContext = "checkout";
+            this.showPopup();
+          } else {
+            console.log("\u274C No nudge rules match cart products, proceeding to checkout");
+            window.location.href = "/checkout";
+          }
+        } catch (error) {
+          console.error("Error in checkout interceptor:", error);
+          window.location.href = "/checkout";
+        }
+      }, true);
     }
     async getCurrentProductData() {
       try {
@@ -8995,7 +9085,14 @@
         });
         await new Promise((resolve) => setTimeout(resolve, 150));
         document.dispatchEvent(new CustomEvent("cart:updated"));
-        this.openCartDrawer();
+        if (this.triggerContext === "checkout") {
+          console.log("\u2705 Redirecting to checkout with added products");
+          setTimeout(() => {
+            window.location.href = "/checkout";
+          }, 300);
+        } else {
+          this.openCartDrawer();
+        }
       } catch (error) {
         console.error("Error in addSelectedProducts:", error);
       }
@@ -9020,6 +9117,12 @@
         }, 300);
       }
       this.isOpen = false;
+      if (this.triggerContext === "checkout") {
+        console.log("\u{1F6AA} Popup closed, redirecting to checkout");
+        setTimeout(() => {
+          window.location.href = "/checkout";
+        }, 350);
+      }
     }
   };
   (function() {
