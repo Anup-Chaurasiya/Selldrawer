@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.5
- * Built: 2025-12-21T06:56:48.246Z
+ * Built: 2025-12-22T09:43:34.883Z
  */
 "use strict";
 (() => {
@@ -8457,7 +8457,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://ceiling-consent-brunette-caps.trycloudflare.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;
@@ -8470,6 +8470,7 @@
       this.originalAddToCartButton = null;
       this.originalProductVariantId = null;
       this.reactRoot = null;
+      this.triggerContext = null;
       this.init();
     }
     async init() {
@@ -8481,7 +8482,12 @@
         }
         await this.loadConfig();
         if (this.enabled && this.config) {
-          this.setupAddToCartInterceptor();
+          const triggerPoint = this.config.triggerPoint || "add_to_cart";
+          if (triggerPoint === "add_to_cart") {
+            this.setupAddToCartInterceptor();
+          } else if (triggerPoint === "checkout") {
+            this.setupCheckoutInterceptor();
+          }
         }
       } catch (error) {
         console.error("Error initializing Nudge Popup:", error);
@@ -8541,6 +8547,7 @@
           if (this.recommendations.length > 0 && this.config.showOnAddToCart) {
             e.preventDefault();
             e.stopPropagation();
+            this.triggerContext = "add_to_cart";
             this.originalAddToCartButton = button;
             this.currentProduct = await this.getCurrentProductData();
             const form = button.closest("form");
@@ -8561,6 +8568,84 @@
           }
         }, true);
       });
+    }
+    setupCheckoutInterceptor() {
+      console.log("\u{1F3AF} Nudge: Setting up checkout interceptor");
+      document.addEventListener("click", async (e) => {
+        var _a2, _b, _c, _d;
+        const target = e.target;
+        const isCheckoutButton = ((_a2 = target.classList) == null ? void 0 : _a2.contains("upsellity-checkout-btn")) || target.getAttribute("name") === "checkout" || ((_b = target.textContent) == null ? void 0 : _b.trim().toLowerCase()) === "checkout" || ((_d = (_c = target.closest("button")) == null ? void 0 : _c.textContent) == null ? void 0 : _d.trim().toLowerCase()) === "checkout";
+        if (!isCheckoutButton)
+          return;
+        console.log("\u{1F6D2} Checkout button clicked, checking cart...");
+        try {
+          e.preventDefault();
+          e.stopPropagation();
+          const cartResponse = await fetch("/cart.js");
+          if (!cartResponse.ok) {
+            console.warn("Failed to fetch cart for checkout trigger");
+            window.location.href = "/checkout";
+            return;
+          }
+          const cart = await cartResponse.json();
+          console.log("\u{1F4E6} Cart contents:", cart);
+          const cartProductHandles = cart.items.map((item) => {
+            if (item.handle) {
+              return item.handle;
+            }
+            if (item.url) {
+              const urlParts = item.url.split("/");
+              const productsIndex = urlParts.indexOf("products");
+              if (productsIndex !== -1 && urlParts[productsIndex + 1]) {
+                return urlParts[productsIndex + 1].split("?")[0];
+              }
+            }
+            return null;
+          }).filter(Boolean);
+          console.log("\u{1F50D} Cart product handles:", cartProductHandles);
+          if (cartProductHandles.length === 0) {
+            console.log("No valid product handles, proceeding to checkout");
+            window.location.href = "/checkout";
+            return;
+          }
+          let hasRecommendations = false;
+          for (const handle of cartProductHandles) {
+            const apiUrl = `${APP_URL}/api/nudge?shop=${encodeURIComponent(this.shop)}&productHandle=${encodeURIComponent(handle)}`;
+            console.log(`\u{1F50E} Checking nudge for product: ${handle}`);
+            try {
+              const response = await fetch(apiUrl);
+              if (response.ok) {
+                const data = await response.json();
+                console.log(`\u{1F4CA} Nudge data for ${handle}:`, data);
+                if (data.enabled && data.recommendations && data.recommendations.length > 0) {
+                  console.log(`\u2705 Found recommendations for ${handle}!`);
+                  this.recommendations = data.recommendations;
+                  this.config = data.config;
+                  hasRecommendations = true;
+                  break;
+                }
+              }
+            } catch (error) {
+              console.warn(`Failed to fetch nudge for product ${handle}:`, error);
+            }
+          }
+          if (hasRecommendations && this.recommendations.length > 0) {
+            console.log("\u{1F389} Showing nudge popup");
+            this.triggerContext = "checkout";
+            if (this.config.popupDelay > 0) {
+              setTimeout(() => this.showPopup(), this.config.popupDelay);
+            } else {
+              this.showPopup();
+            }
+          } else {
+            console.log("\u274C No nudge rules match cart products, proceeding to checkout");
+            window.location.href = "/checkout";
+          }
+        } catch (error) {
+          console.error("Error in checkout interceptor:", error);
+          window.location.href = "/checkout";
+        }
+      }, true);
     }
     async getCurrentProductData() {
       try {
@@ -8643,7 +8728,13 @@
             value: product.price
           });
           document.dispatchEvent(new CustomEvent("cart:updated"));
-          this.openCartDrawer();
+          if (this.triggerContext === "checkout") {
+            setTimeout(() => {
+              window.location.href = "/checkout";
+            }, 500);
+          } else {
+            this.openCartDrawer();
+          }
         }
       } catch (error) {
         console.error("Error adding product to cart:", error);
@@ -8780,28 +8871,38 @@
         });
         await new Promise((resolve) => setTimeout(resolve, 150));
         document.dispatchEvent(new CustomEvent("cart:updated"));
-        this.openCartDrawer();
+        if (this.triggerContext === "checkout") {
+          setTimeout(() => {
+            window.location.href = "/checkout";
+          }, 500);
+        } else {
+          this.openCartDrawer();
+        }
       } catch (error) {
         console.error("Error in selectAllProducts:", error);
       }
     }
     async continueWithOriginal() {
       this.closePopup();
-      if (this.originalAddToCartButton) {
-        const form = this.originalAddToCartButton.closest("form");
-        if (form) {
-          const formData = new FormData(form);
-          try {
-            const response = await fetch("/cart/add.js", {
-              method: "POST",
-              body: formData
-            });
-            if (response.ok) {
-              document.dispatchEvent(new CustomEvent("cart:updated"));
-              this.openCartDrawer();
+      if (this.triggerContext === "checkout") {
+        window.location.href = "/checkout";
+      } else {
+        if (this.originalAddToCartButton) {
+          const form = this.originalAddToCartButton.closest("form");
+          if (form) {
+            const formData = new FormData(form);
+            try {
+              const response = await fetch("/cart/add.js", {
+                method: "POST",
+                body: formData
+              });
+              if (response.ok) {
+                document.dispatchEvent(new CustomEvent("cart:updated"));
+                this.openCartDrawer();
+              }
+            } catch (error) {
+              console.error("Error adding original product to cart:", error);
             }
-          } catch (error) {
-            console.error("Error adding original product to cart:", error);
           }
         }
       }

@@ -83,7 +83,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Fetch products from Shopify (only active products)
   let shopProducts: any[] = [];
   let shopCollections: any[] = [];
-  
+
   try {
     const response = await admin.graphql(`
       query getProducts($first: Int!, $query: String!) {
@@ -117,14 +117,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         }
       }
     `, {
-      variables: { 
+      variables: {
         first: 100,
         query: "status:active"
       }
     });
 
     const responseJson = await response.json();
-    
+
     if (responseJson.data?.products?.edges) {
       shopProducts = responseJson.data.products.edges
         .filter((edge: any) => edge.node.status === 'ACTIVE')
@@ -132,7 +132,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           const product = edge.node;
           const image = product.images.edges[0]?.node;
           const variant = product.variants.edges[0]?.node;
-          
+
           return {
             id: product.handle,
             shopifyProductId: product.id.replace('gid://shopify/Product/', ''),
@@ -175,7 +175,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
 
     const collectionsJson = await collectionsResponse.json();
-    
+
     if (collectionsJson.data?.collections?.edges) {
       shopCollections = collectionsJson.data.collections.edges.map((edge: any) => {
         const collection = edge.node;
@@ -228,6 +228,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       subtitle: formData.get("subtitle") as string,
       recommendationType: "manual",
       showOnAddToCart: formData.get("showOnAddToCart") === "true",
+      triggerPoint: formData.get("triggerPoint") as string || "add_to_cart",
       popupDelay: parseInt(formData.get("popupDelay") as string || "0"),
       overlayColor: formData.get("overlayColor") as string,
       overlayOpacity: parseInt(formData.get("overlayOpacity") as string || "50"),
@@ -281,7 +282,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Add upsell products
     for (let i = 0; i < upsellProducts.length; i++) {
       const productHandle = upsellProducts[i];
-      
+
       try {
         const response = await admin.graphql(`
           query getProductByHandle($handle: String!) {
@@ -314,19 +315,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         });
 
         const responseJson = await response.json();
-        
+
         if (responseJson.data?.productByHandle) {
           const product = responseJson.data.productByHandle;
-          
+
           // Only save active products
           if (product.status !== 'ACTIVE') {
             console.warn(`Skipping product ${productHandle}: status is ${product.status}, only ACTIVE products are allowed`);
             continue;
           }
-          
+
           const variant = product.variants.edges[0]?.node;
           const image = product.images.edges[0]?.node;
-          
+
           if (variant) {
             await prisma.nudgeProduct.create({
               data: {
@@ -423,13 +424,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
         if (responseJson.data?.productByHandle) {
           const product = responseJson.data.productByHandle;
-          
+
           // Only save active products
           if (product.status !== 'ACTIVE') {
             console.warn(`Skipping product ${productHandle}: status is ${product.status}, only ACTIVE products are allowed`);
             continue;
           }
-          
+
           const variant = product.variants.edges[0]?.node;
           const image = product.images.edges[0]?.node;
 
@@ -476,7 +477,7 @@ export default function NudgePopup() {
   }
 
   const { nudgeConfig, shopProducts, shopCollections } = data as Exclude<typeof data, { billingRedirectUrl: string }>;
-  
+
   // Check which action is being submitted
   const formData = navigation.formData;
   const submittingIntent = formData?.get("intent") as string | null;
@@ -492,8 +493,8 @@ export default function NudgePopup() {
   // Show toast notification when settings are saved successfully
   useEffect(() => {
     // Check if we just finished submitting a save-settings action
-    const justFinishedSave = 
-      prevIsSubmitting.current && 
+    const justFinishedSave =
+      prevIsSubmitting.current &&
       prevSubmittingIntent.current === "save-settings" &&
       !isSubmitting &&
       actionData &&
@@ -520,6 +521,7 @@ export default function NudgePopup() {
       subtitle: nudgeConfig?.subtitle || "Select a product to replace your choice",
       recommendationType: "manual",
       showOnAddToCart: nudgeConfig?.showOnAddToCart ?? true,
+      triggerPoint: nudgeConfig?.triggerPoint || "add_to_cart",
       popupDelay: nudgeConfig?.popupDelay?.toString() || "0",
       overlayColor: nudgeConfig?.overlayColor || "#000000",
       overlayOpacity: nudgeConfig?.overlayOpacity?.toString() || "50",
@@ -580,11 +582,11 @@ export default function NudgePopup() {
     const formData = new FormData();
     const intent = editingRuleId ? "update-rule" : "add-rule";
     formData.append("intent", intent);
-    
+
     if (editingRuleId) {
       formData.append("ruleId", editingRuleId);
     }
-    
+
     let triggerType = "all";
     let triggerValue = "all";
     let triggerProductId = "";
@@ -637,11 +639,11 @@ export default function NudgePopup() {
 
   const handleEditRule = useCallback((rule: any) => {
     setEditingRuleId(rule.id);
-    
+
     // Convert rule to modal config format
-    const triggerType = rule.triggerType === "product" ? "specific_product" : 
-                        rule.triggerType === "collection" ? "collection" : 
-                        "all_products";
+    const triggerType = rule.triggerType === "product" ? "specific_product" :
+      rule.triggerType === "collection" ? "collection" :
+        "all_products";
     const selectedTriggerProduct = triggerType === "specific_product" && rule.triggerValue && rule.triggerValue !== "all"
       ? rule.triggerValue
       : null;
@@ -662,7 +664,7 @@ export default function NudgePopup() {
       showTriggerModal: false,
       showUpsellModal: false,
     });
-    
+
     setShowManualModal(true);
   }, []);
 
@@ -709,10 +711,10 @@ export default function NudgePopup() {
         variantId: product.shopifyVariantId || product.variants?.[0]?.id || '',
         title: product.title,
         handle: product.handle,
-        price: product.price ? parseFloat(product.price) : 
-               (product.variants?.[0]?.price ? parseFloat(product.variants[0].price) : 0),
+        price: product.price ? parseFloat(product.price) :
+          (product.variants?.[0]?.price ? parseFloat(product.variants[0].price) : 0),
         compareAtPrice: product.compareAtPrice ? parseFloat(product.compareAtPrice) :
-                       (product.variants?.[0]?.compare_at_price ? parseFloat(product.variants[0].compare_at_price) : undefined),
+          (product.variants?.[0]?.compare_at_price ? parseFloat(product.variants[0].compare_at_price) : undefined),
         imageUrl: product.imageUrl || product.images?.[0]?.src || '',
         description: product.description || ''
       }));
@@ -734,7 +736,7 @@ export default function NudgePopup() {
       }}
     >
       <TitleBar title="Nudge Upsell" />
-      
+
       {/* Custom Toast Notification - Appears at Top */}
       {showToast && (
         <div style={{
@@ -768,7 +770,7 @@ export default function NudgePopup() {
               flexShrink: 0,
             }}>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <div style={{ flex: 1 }}>
@@ -792,7 +794,7 @@ export default function NudgePopup() {
               aria-label="Close"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </button>
           </div>
@@ -811,7 +813,7 @@ export default function NudgePopup() {
           }
         }
       `}</style>
-      
+
       <Layout>
         <Layout.Section variant="oneHalf">
           <BlockStack gap="400">
@@ -824,8 +826,8 @@ export default function NudgePopup() {
                       Status
                     </Text>
                     <Text as="p" variant="bodyMd" tone="subdued">
-                      {nudgeConfig?.isActive 
-                        ? "Nudge Upsell feature is currently enabled" 
+                      {nudgeConfig?.isActive
+                        ? "Nudge Upsell feature is currently enabled"
                         : "Nudge Upsell feature is currently disabled"}
                     </Text>
                   </BlockStack>
@@ -833,7 +835,7 @@ export default function NudgePopup() {
                     {nudgeConfig?.isActive ? "Disable" : "Enable"}
                   </Button>
                 </InlineStack>
-                
+
                 {!nudgeConfig?.isActive && (
                   <Banner tone="warning">
                     Enable this feature to show product alternatives when customers click "Add to Cart".
@@ -880,6 +882,75 @@ export default function NudgePopup() {
                     helpText="Delay before showing popup after Add to Cart is clicked (0 for instant)"
                   />
                 </FormLayout>
+              </BlockStack>
+            </Card>
+
+            {/* Trigger Point Settings */}
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
+                  Trigger Point Settings
+                </Text>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  Choose when the nudge popup should appear
+                </Text>
+                <BlockStack gap="300">
+                  <div
+                    onClick={() => setFormState({ ...formState, triggerPoint: 'add_to_cart' })}
+                    style={{
+                      padding: '12px 16px',
+                      border: `2px solid ${formState.triggerPoint === 'add_to_cart' ? '#4F46E5' : '#E1E3E5'}`,
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      backgroundColor: formState.triggerPoint === 'add_to_cart' ? '#F5F5FF' : 'transparent',
+                      transition: 'all 0.2s',
+                    }}>
+                    <BlockStack gap="200">
+                      <InlineStack gap="200" blockAlign="center">
+                        <input
+                          type="radio"
+                          checked={formState.triggerPoint === 'add_to_cart'}
+                          onChange={() => setFormState({ ...formState, triggerPoint: 'add_to_cart' })}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <Text as="span" variant="bodyMd" fontWeight="semibold">
+                          Add to Cart
+                        </Text>
+                      </InlineStack>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Popup appears when user clicks "Add to Cart" on product pages. After selection, cart drawer opens.
+                      </Text>
+                    </BlockStack>
+                  </div>
+
+                  <div
+                    onClick={() => setFormState({ ...formState, triggerPoint: 'checkout' })}
+                    style={{
+                      padding: '12px 16px',
+                      border: `2px solid ${formState.triggerPoint === 'checkout' ? '#4F46E5' : '#E1E3E5'}`,
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      backgroundColor: formState.triggerPoint === 'checkout' ? '#F5F5FF' : 'transparent',
+                      transition: 'all 0.2s',
+                    }}>
+                    <BlockStack gap="200">
+                      <InlineStack gap="200" blockAlign="center">
+                        <input
+                          type="radio"
+                          checked={formState.triggerPoint === 'checkout'}
+                          onChange={() => setFormState({ ...formState, triggerPoint: 'checkout' })}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <Text as="span" variant="bodyMd" fontWeight="semibold">
+                          Checkout
+                        </Text>
+                      </InlineStack>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Popup appears when user clicks "Checkout" in cart drawer. After selection, proceeds to checkout page.
+                      </Text>
+                    </BlockStack>
+                  </div>
+                </BlockStack>
               </BlockStack>
             </Card>
 
@@ -1059,7 +1130,7 @@ export default function NudgePopup() {
               <BlockStack gap="400">
                 <InlineStack align="space-between" blockAlign="center">
                   <Text as="h2" variant="headingMd">
-                    Manual Rules 
+                    Manual Rules
                   </Text>
                   <Button onClick={() => {
                     setEditingRuleId(null);
@@ -1082,7 +1153,7 @@ export default function NudgePopup() {
                         <ResourceItem
                           id={id}
                           accessibilityLabel={`View details for ${triggerTitle}`}
-                          onClick={() => {}}
+                          onClick={() => { }}
                         >
                           <BlockStack gap="300">
                             <InlineStack align="space-between" blockAlign="center">
@@ -1160,7 +1231,7 @@ export default function NudgePopup() {
 
         {/* Preview Section */}
         <div style={{
-          flex: '0 0 40%', 
+          flex: '0 0 40%',
           minWidth: '350px',
           paddingLeft: '12px',
           position: 'sticky',
@@ -1170,7 +1241,7 @@ export default function NudgePopup() {
           overflowY: 'auto',
           paddingTop: '15px'
         }}>
-          <div style={{ position: 'sticky', top: '24px'}}>
+          <div style={{ position: 'sticky', top: '24px' }}>
             <Card>
               <BlockStack gap="400">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1178,12 +1249,12 @@ export default function NudgePopup() {
                     Live Preview
                   </Text>
                   <Badge tone={previewProducts.length === 0 ? 'info' : 'success'}>
-                    {formState.layout === 'grid' ? 'Grid' : 
-                     formState.layout === 'list' ? 'List' : 
-                     'Carousel'}
+                    {formState.layout === 'grid' ? 'Grid' :
+                      formState.layout === 'list' ? 'List' :
+                        'Carousel'}
                   </Badge>
                 </div>
-                
+
                 <div style={{
                   border: '2px solid #e5e7eb',
                   borderRadius: '12px',
@@ -1236,9 +1307,9 @@ export default function NudgePopup() {
                         recommendations={previewProducts}
                         isVisible={true}
                         isPreview={true}
-                        onContinue={() => {}} // No-op for preview
-                        onSelectProduct={() => {}} // No-op for preview
-                        onSelectAll={() => {}} // No-op for preview
+                        onContinue={() => { }} // No-op for preview
+                        onSelectProduct={() => { }} // No-op for preview
+                        onSelectAll={() => { }} // No-op for preview
                       />
                     </div>
                   </div>
@@ -1341,8 +1412,8 @@ export default function NudgePopup() {
                 <Box>
                   <BlockStack gap="200">
                     <Text as="p" variant="bodyMd">
-                      Selected Collection: {modalConfig.selectedTriggerCollection ? 
-                        shopCollections.find(c => c.handle === modalConfig.selectedTriggerCollection)?.title : 
+                      Selected Collection: {modalConfig.selectedTriggerCollection ?
+                        shopCollections.find(c => c.handle === modalConfig.selectedTriggerCollection)?.title :
                         "None"}
                     </Text>
                     <Button onClick={() => setModalConfig({ ...modalConfig, showTriggerModal: true })}>
@@ -1360,7 +1431,7 @@ export default function NudgePopup() {
               <Text as="p" variant="bodySm" tone="subdued">
                 Select products that will be shown as alternatives
               </Text>
-              
+
               <Box>
                 <BlockStack gap="200">
                   <Text as="p" variant="bodyMd">
@@ -1426,7 +1497,7 @@ export default function NudgePopup() {
               autoComplete="off"
               placeholder={modalConfig.triggerType === "collection" ? "Search collections..." : "Search products..."}
             />
-            
+
             {modalConfig.triggerType === "collection" ? (
               <ResourceList
                 resourceName={{ singular: 'collection', plural: 'collections' }}
@@ -1509,7 +1580,7 @@ export default function NudgePopup() {
               autoComplete="off"
               placeholder="Search products..."
             />
-            
+
             <ResourceList
               resourceName={{ singular: 'product', plural: 'products' }}
               items={filteredUpsellProducts}

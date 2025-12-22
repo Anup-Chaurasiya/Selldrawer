@@ -54,20 +54,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // Priority: specific product > collection > all products
     let recommendations: any[] = [];
     let matchingRule: any = null;
-    
+
     if (productHandle) {
       // 1. Check for specific product rule first (highest priority)
-      matchingRule = nudgeConfig.rules.find((rule: any) => 
+      matchingRule = nudgeConfig.rules.find((rule: any) =>
         rule.triggerType === "product" && rule.triggerValue === productHandle
       );
 
       // 2. If no specific product rule, check for collection rules
       if (!matchingRule) {
         // Get all collection rules
-        const collectionRules = nudgeConfig.rules.filter((rule: any) => 
+        const collectionRules = nudgeConfig.rules.filter((rule: any) =>
           rule.triggerType === "collection"
         );
-        
+
         if (collectionRules.length > 0) {
           // Fetch product data to check collections
           try {
@@ -80,13 +80,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                 'Accept': 'application/json',
               },
             });
-            
+
             if (productResponse.ok) {
               const productData = await productResponse.json();
               // Handle different collection formats from Shopify JSON API
               const productCollections = productData.collections || [];
               const productCollectionHandles: string[] = [];
-              
+
               productCollections.forEach((c: any) => {
                 if (typeof c === 'string') {
                   productCollectionHandles.push(c);
@@ -102,9 +102,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                   }
                 }
               });
-              
+
               // Find collection rule that matches one of the product's collections
-              matchingRule = collectionRules.find((rule: any) => 
+              matchingRule = collectionRules.find((rule: any) =>
                 productCollectionHandles.includes(rule.triggerValue)
               );
             } else {
@@ -119,7 +119,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
       // 3. If no specific or collection rule, check for all-products rule (lowest priority)
       if (!matchingRule) {
-        matchingRule = nudgeConfig.rules.find((rule: any) => 
+        matchingRule = nudgeConfig.rules.find((rule: any) =>
           rule.triggerType === "all"
         );
       }
@@ -170,6 +170,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         animationType: nudgeConfig.animationType || "fade",
         recommendationType: "manual",
         showOnAddToCart: nudgeConfig.showOnAddToCart ?? true,
+        triggerPoint: nudgeConfig.triggerPoint || "add_to_cart",
         popupDelay: nudgeConfig.popupDelay ?? 0,
       },
       recommendations
