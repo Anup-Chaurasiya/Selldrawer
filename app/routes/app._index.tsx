@@ -23,6 +23,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { checkAppEmbedEnabled } from "../utils/appEmbed.server";
 import { requireBilling } from "../utils/billing.server";
+import { ensureStorefrontAccessToken } from "../utils/storefrontToken.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing, session, admin } = await authenticate.admin(request);
@@ -36,6 +37,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Get subscription details
   const { appSubscriptions } = await billing.check();
+
+  // Ensure Storefront Access Token exists (create if missing)
+  try {
+    await ensureStorefrontAccessToken(request);
+  } catch (error) {
+    console.error("Error ensuring storefront access token:", error);
+    // Don't block app loading if token creation fails
+  }
 
   // Check if app embed is enabled
   const appEmbedEnabled = await checkAppEmbedEnabled(admin, session);
@@ -66,7 +75,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   analyticsEvents.forEach((event: any) => {
     const component = event.component || 'unknown';
-    
+
     if (!aggregatedData.components[component]) {
       aggregatedData.components[component] = {
         impressions: 0,
@@ -120,7 +129,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Get current active subscription details
   const currentSubscription = appSubscriptions.length > 0 ? appSubscriptions[0] : null;
 
-  return json({ 
+  return json({
     currentSubscription,
     shop,
     appEmbedEnabled,
@@ -181,185 +190,185 @@ export default function Index() {
                     </Badge>
                   )}
                 </InlineStack>
-                  
-                  {/* App Embed Status Banner */}
-                  {!appEmbedEnabled && (
-                    <Banner
-                      title={"Upsellity Disabled"}
-                      tone={"warning"}
-                    >
-                      <BlockStack gap="200">
-                          <>
-                            <Text as="p" variant="bodyMd">
-                              Now that you've installed Upsellity, you need to enable the <strong>Upsellity Bridge</strong> in your Shopify theme. This will not set your cart live yet.
-                            </Text>
-                            <BlockStack gap="100">
-                              <Text as="p" variant="bodyMd" fontWeight="semibold">
-                                1. Click the button below to enable the Upsellity Bridge from your theme editor.
-                              </Text>
-                              <Text as="p" variant="bodyMd" fontWeight="semibold">
-                                2. Ensure the Upsellity Bridge is toggled on and click save.
-                              </Text>
-                            </BlockStack>
-                            <Box paddingBlockStart="300">
-                              <Button
-                                variant="primary"
-                                url={`https://${shopDomain}/admin/themes/current/editor?context=apps&activateAppId=${apiKey}/cart-drawer-embed`}
-                                target="_blank"
-                              >
-                                Enable Upsellity Bridge
-                              </Button>
-                            </Box>
-                          </>
-                      </BlockStack>
-                    </Banner>
-                  )}
 
-                  <Divider />
+                {/* App Embed Status Banner */}
+                {!appEmbedEnabled && (
+                  <Banner
+                    title={"Upsellity Disabled"}
+                    tone={"warning"}
+                  >
+                    <BlockStack gap="200">
+                      <>
+                        <Text as="p" variant="bodyMd">
+                          Now that you've installed Upsellity, you need to enable the <strong>Upsellity Bridge</strong> in your Shopify theme. This will not set your cart live yet.
+                        </Text>
+                        <BlockStack gap="100">
+                          <Text as="p" variant="bodyMd" fontWeight="semibold">
+                            1. Click the button below to enable the Upsellity Bridge from your theme editor.
+                          </Text>
+                          <Text as="p" variant="bodyMd" fontWeight="semibold">
+                            2. Ensure the Upsellity Bridge is toggled on and click save.
+                          </Text>
+                        </BlockStack>
+                        <Box paddingBlockStart="300">
+                          <Button
+                            variant="primary"
+                            url={`https://${shopDomain}/admin/themes/current/editor?context=apps&activateAppId=${apiKey}/cart-drawer-embed`}
+                            target="_blank"
+                          >
+                            Enable Upsellity Bridge
+                          </Button>
+                        </Box>
+                      </>
+                    </BlockStack>
+                  </Banner>
+                )}
 
-                  {/* Analytics Dashboard */}
-                  <BlockStack gap="400">
-                    <Text as="h3" variant="headingMd">
-                      Analytics Overview (Last 30 Days)
-                    </Text>
-                    
-                    <InlineStack gap="400" align="start">
-                      <div style={{ flex: 1 }}>
-                        <Card>
-                          <BlockStack gap="200">
-                            <Text as="h3" variant="headingSm" tone="subdued">Upsell Revenue</Text>
-                            <Text as="p" variant="headingXl">
-                              {analytics.totalRevenue.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-                            </Text>
-                          </BlockStack>
-                        </Card>
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <Card>
-                          <BlockStack gap="200">
-                            <Text as="h3" variant="headingSm" tone="subdued">Orders with Upsell</Text>
-                            <Text as="p" variant="headingXl">
-                              {analytics.totalOrders}
-                            </Text>
-                          </BlockStack>
-                        </Card>
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <Card>
-                          <BlockStack gap="200">
-                            <Text as="h3" variant="headingSm" tone="subdued">Add to Carts</Text>
-                            <Text as="p" variant="headingXl">
-                              {analytics.totalAddToCart}
-                            </Text>
-                          </BlockStack>
-                        </Card>
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <Card>
-                          <BlockStack gap="200">
-                            <Text as="h3" variant="headingSm" tone="subdued">CTR</Text>
-                            <Text as="p" variant="headingXl">
-                              {analytics.totalImpressions > 0 
-                                ? ((analytics.totalClicks / analytics.totalImpressions) * 100).toFixed(1) + '%' 
-                                : '0%'}
-                            </Text>
-                          </BlockStack>
-                        </Card>
-                      </div>
-                    </InlineStack>
+                <Divider />
 
-                    <Divider />
+                {/* Analytics Dashboard */}
+                <BlockStack gap="400">
+                  <Text as="h3" variant="headingMd">
+                    Analytics Overview (Last 30 Days)
+                  </Text>
 
-                    <Text as="h3" variant="headingMd">
-                      Performance by Component
-                    </Text>
-                    <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '1px solid #e1e3e5' }}>
-                            <th style={{ padding: '12px' }}>Component</th>
-                            <th style={{ padding: '12px' }}>Impressions</th>
-                            <th style={{ padding: '12px' }}>Clicks</th>
-                            <th style={{ padding: '12px' }}>CTR</th>
-                            <th style={{ padding: '12px' }}>Add to Cart</th>
-                            <th style={{ padding: '12px' }}>Revenue</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Object.entries(analytics.components).map(([name, data]: [string, any]) => (
-                            <tr key={name} style={{ borderBottom: '1px solid #f1f2f3' }}>
-                              <td style={{ padding: '12px', textTransform: 'capitalize' }}>{name.replace(/_/g, ' ')}</td>
-                              <td style={{ padding: '12px' }}>{data.impressions}</td>
-                              <td style={{ padding: '12px' }}>{data.clicks}</td>
-                              <td style={{ padding: '12px' }}>
-                                {data.impressions > 0 ? ((data.clicks / data.impressions) * 100).toFixed(1) + '%' : '0%'}
-                              </td>
-                              <td style={{ padding: '12px' }}>{data.addToCarts}</td>
-                              <td style={{ padding: '12px' }}>
-                                {data.revenue.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-                              </td>
-                            </tr>
-                          ))}
-                          {Object.keys(analytics.components).length === 0 && (
-                            <tr>
-                              <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#6d7175' }}>
-                                No data available yet.
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
+                  <InlineStack gap="400" align="start">
+                    <div style={{ flex: 1 }}>
+                      <Card>
+                        <BlockStack gap="200">
+                          <Text as="h3" variant="headingSm" tone="subdued">Upsell Revenue</Text>
+                          <Text as="p" variant="headingXl">
+                            {analytics.totalRevenue.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                          </Text>
+                        </BlockStack>
+                      </Card>
                     </div>
-
-                    <Divider />
-
-                    <Text as="h3" variant="headingMd">
-                      Product Performance
-                    </Text>
-                    <Card>
-                      <DataTable
-                        columnContentTypes={[
-                          'text',
-                          'numeric',
-                          'numeric',
-                          'numeric',
-                          'numeric',
-                        ]}
-                        headings={[
-                          'Product ID',
-                          'Impressions',
-                          'Clicks',
-                          'Add to Cart',
-                          'Revenue',
-                        ]}
-                        rows={rows.length > 0 ? rows : [['No data', 0, 0, 0, '$0.00']]}
-                      />
-                    </Card>
-                  </BlockStack>
+                    <div style={{ flex: 1 }}>
+                      <Card>
+                        <BlockStack gap="200">
+                          <Text as="h3" variant="headingSm" tone="subdued">Orders with Upsell</Text>
+                          <Text as="p" variant="headingXl">
+                            {analytics.totalOrders}
+                          </Text>
+                        </BlockStack>
+                      </Card>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <Card>
+                        <BlockStack gap="200">
+                          <Text as="h3" variant="headingSm" tone="subdued">Add to Carts</Text>
+                          <Text as="p" variant="headingXl">
+                            {analytics.totalAddToCart}
+                          </Text>
+                        </BlockStack>
+                      </Card>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <Card>
+                        <BlockStack gap="200">
+                          <Text as="h3" variant="headingSm" tone="subdued">CTR</Text>
+                          <Text as="p" variant="headingXl">
+                            {analytics.totalImpressions > 0
+                              ? ((analytics.totalClicks / analytics.totalImpressions) * 100).toFixed(1) + '%'
+                              : '0%'}
+                          </Text>
+                        </BlockStack>
+                      </Card>
+                    </div>
+                  </InlineStack>
 
                   <Divider />
 
-                  {/* CTA to Cart Drawer */}
-                  <InlineStack align="center" gap="400">
-                    <Button
-                      variant="primary"
-                      size="large"
-                      onClick={() => navigate("/app/cart-drawer")}
-                    >
-                      Customize Your Cart Drawer
-                    </Button>
-                    <Button
-                      size="large"
-                      onClick={() => navigate("/app/billing")}
-                    >
-                      Manage Billing
-                    </Button>
-                  </InlineStack>
+                  <Text as="h3" variant="headingMd">
+                    Performance by Component
+                  </Text>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #e1e3e5' }}>
+                          <th style={{ padding: '12px' }}>Component</th>
+                          <th style={{ padding: '12px' }}>Impressions</th>
+                          <th style={{ padding: '12px' }}>Clicks</th>
+                          <th style={{ padding: '12px' }}>CTR</th>
+                          <th style={{ padding: '12px' }}>Add to Cart</th>
+                          <th style={{ padding: '12px' }}>Revenue</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(analytics.components).map(([name, data]: [string, any]) => (
+                          <tr key={name} style={{ borderBottom: '1px solid #f1f2f3' }}>
+                            <td style={{ padding: '12px', textTransform: 'capitalize' }}>{name.replace(/_/g, ' ')}</td>
+                            <td style={{ padding: '12px' }}>{data.impressions}</td>
+                            <td style={{ padding: '12px' }}>{data.clicks}</td>
+                            <td style={{ padding: '12px' }}>
+                              {data.impressions > 0 ? ((data.clicks / data.impressions) * 100).toFixed(1) + '%' : '0%'}
+                            </td>
+                            <td style={{ padding: '12px' }}>{data.addToCarts}</td>
+                            <td style={{ padding: '12px' }}>
+                              {data.revenue.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                            </td>
+                          </tr>
+                        ))}
+                        {Object.keys(analytics.components).length === 0 && (
+                          <tr>
+                            <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#6d7175' }}>
+                              No data available yet.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <Divider />
+
+                  <Text as="h3" variant="headingMd">
+                    Product Performance
+                  </Text>
+                  <Card>
+                    <DataTable
+                      columnContentTypes={[
+                        'text',
+                        'numeric',
+                        'numeric',
+                        'numeric',
+                        'numeric',
+                      ]}
+                      headings={[
+                        'Product ID',
+                        'Impressions',
+                        'Clicks',
+                        'Add to Cart',
+                        'Revenue',
+                      ]}
+                      rows={rows.length > 0 ? rows : [['No data', 0, 0, 0, '$0.00']]}
+                    />
+                  </Card>
                 </BlockStack>
-              </Card>
-            </Layout.Section>
-          </Layout>
-        </BlockStack>
-      </Page>
-    );
+
+                <Divider />
+
+                {/* CTA to Cart Drawer */}
+                <InlineStack align="center" gap="400">
+                  <Button
+                    variant="primary"
+                    size="large"
+                    onClick={() => navigate("/app/cart-drawer")}
+                  >
+                    Customize Your Cart Drawer
+                  </Button>
+                  <Button
+                    size="large"
+                    onClick={() => navigate("/app/billing")}
+                  >
+                    Manage Billing
+                  </Button>
+                </InlineStack>
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+        </Layout>
+      </BlockStack>
+    </Page>
+  );
 }

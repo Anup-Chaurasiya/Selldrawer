@@ -10,6 +10,7 @@ import {
     filterProducts,
     rankProductsByPriceDifference,
 } from "../utils/storefrontApi.server";
+import { getStorefrontAccessToken } from "../utils/storefrontToken.server";
 
 /**
  * Public API endpoint for milestone block product recommendations
@@ -66,6 +67,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
         if (!milestone.milestoneBlock?.isActive) return cors(request, json({ error: "Milestone Block feature is disabled" }, { status: 403 }));
         if (milestone.shop !== shop) return cors(request, json({ error: "Shop mismatch" }, { status: 403 }));
 
+        // Get Storefront Access Token for this shop
+        const storefrontAccessToken = await getStorefrontAccessToken(shop);
+        if (!storefrontAccessToken) {
+            return cors(request, json({ error: "Storefront access token not configured for this shop" }, { status: 500 }));
+        }
+
         // Determine eligibility source (priority: collection > productIds > tag > all products)
         let products: any[] = [];
         let collectionUrl: string | null = null;
@@ -74,20 +81,20 @@ export async function loader({ request }: LoaderFunctionArgs) {
         if (milestone.eligibleCollectionHandle) {
             // Priority 1: Collection
             eligibilitySource = "collection";
-            products = await fetchProductsByCollection(shop, milestone.eligibleCollectionHandle);
+            products = await fetchProductsByCollection(shop, storefrontAccessToken, milestone.eligibleCollectionHandle);
             collectionUrl = `/collections/${milestone.eligibleCollectionHandle}`;
         } else if (milestone.eligibleProductIds && milestone.eligibleProductIds.length > 0) {
             // Priority 2: Product IDs
             eligibilitySource = "productIds";
-            products = await fetchProductsByHandles(shop, milestone.eligibleProductIds);
+            products = await fetchProductsByHandles(shop, storefrontAccessToken, milestone.eligibleProductIds);
         } else if (milestone.eligibleTag) {
             // Priority 3: Tag
             eligibilitySource = "tag";
-            products = await fetchProductsByTag(shop, milestone.eligibleTag);
+            products = await fetchProductsByTag(shop, storefrontAccessToken, milestone.eligibleTag);
         } else {
             // Priority 4: All Products (no specific eligibility configured)
             eligibilitySource = "all_products";
-            products = await fetchAllProducts(shop);
+            products = await fetchAllProducts(shop, storefrontAccessToken);
         }
 
         if (!products.length) {

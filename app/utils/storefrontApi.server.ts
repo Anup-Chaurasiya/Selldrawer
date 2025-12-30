@@ -45,14 +45,13 @@ export interface ProductRecommendation {
  */
 export async function fetchProductsByCollection(
   shop: string,
+  storefrontAccessToken: string,
   collectionHandle: string,
   minPrice?: number,
   limit: number = 12
 ): Promise<StorefrontProduct[]> {
-  const storefrontAccessToken = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
-
   if (!storefrontAccessToken) {
-    throw new Error('SHOPIFY_STOREFRONT_ACCESS_TOKEN not configured');
+    throw new Error('Storefront access token not found for this shop');
   }
 
   const query = `
@@ -131,14 +130,13 @@ export async function fetchProductsByCollection(
  */
 export async function fetchProductsByHandles(
   shop: string,
+  storefrontAccessToken: string,
   productHandles: string[],
   minPrice?: number,
   limit: number = 12
 ): Promise<StorefrontProduct[]> {
-  const storefrontAccessToken = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
-
   if (!storefrontAccessToken) {
-    throw new Error('SHOPIFY_STOREFRONT_ACCESS_TOKEN not configured');
+    throw new Error('Storefront access token not found for this shop');
   }
 
   // Build individual product queries using handles
@@ -214,14 +212,13 @@ export async function fetchProductsByHandles(
  */
 export async function fetchProductsByIds(
   shop: string,
+  storefrontAccessToken: string,
   productIds: string[],
   minPrice?: number,
   limit: number = 12
 ): Promise<StorefrontProduct[]> {
-  const storefrontAccessToken = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
-
   if (!storefrontAccessToken) {
-    throw new Error('SHOPIFY_STOREFRONT_ACCESS_TOKEN not configured');
+    throw new Error('Storefront access token not found for this shop');
   }
 
   // Build individual product queries
@@ -299,14 +296,13 @@ export async function fetchProductsByIds(
  */
 export async function fetchProductsByTag(
   shop: string,
+  storefrontAccessToken: string,
   tag: string,
   minPrice?: number,
   limit: number = 12
 ): Promise<StorefrontProduct[]> {
-  const storefrontAccessToken = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
-
   if (!storefrontAccessToken) {
-    throw new Error('SHOPIFY_STOREFRONT_ACCESS_TOKEN not configured');
+    throw new Error('Storefront access token not found for this shop');
   }
 
   const query = `
@@ -420,13 +416,12 @@ export function rankProductsByPriceDifference(
  */
 export async function fetchAllProducts(
   shop: string,
+  storefrontAccessToken: string,
   minPrice?: number,
   limit: number = 12
 ): Promise<StorefrontProduct[]> {
-  const storefrontAccessToken = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
-
   if (!storefrontAccessToken) {
-    throw new Error('SHOPIFY_STOREFRONT_ACCESS_TOKEN not configured');
+    throw new Error('Storefront access token not found for this shop');
   }
 
   const query = `
