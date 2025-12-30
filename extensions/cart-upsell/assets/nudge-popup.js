@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.5
- * Built: 2025-12-30T12:52:35.822Z
+ * Built: 2025-12-30T15:43:54.287Z
  */
 "use strict";
 (() => {
@@ -8517,8 +8517,636 @@
     }
   };
 
+  // extensions/cart-upsell/assets/modules/cart-operations-enhanced.js
+  var DEFAULT_MAX_RETRIES = 3;
+  var DEFAULT_RETRY_DELAY = 300;
+  var CART_UPDATE_VERIFICATION_TIMEOUT = 2e3;
+  var CartOperations = class {
+    constructor() {
+      this.isOperationInProgress = false;
+      this.operationQueue = [];
+    }
+    /**
+     * Retry a cart operation with exponential backoff
+     * @param {Function} operation - The async operation to retry
+     * @param {number} maxRetries - Maximum retry attempts
+     * @param {number} baseDelay - Base delay between retries (ms)
+     * @returns {Promise} Result of the operation
+     */
+    async retryOperation(operation, maxRetries = DEFAULT_MAX_RETRIES, baseDelay = DEFAULT_RETRY_DELAY) {
+      let lastError;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const result = await operation();
+          return result;
+        } catch (error) {
+          lastError = error;
+          console.warn(`Cart operation attempt ${attempt} failed:`, error);
+          if (attempt < maxRetries) {
+            const delay = baseDelay * Math.pow(2, attempt - 1);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+          }
+        }
+      }
+      throw new Error(`Cart operation failed after ${maxRetries} attempts: ${(lastError == null ? void 0 : lastError.message) || "Unknown error"}`);
+    }
+    /**
+     * Fetch current cart state
+     * @returns {Promise<Object>} Current cart data
+     */
+    async getCart() {
+      return this.retryOperation(async () => {
+        const response = await fetch("/cart.js", {
+          method: "GET",
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`Cart fetch failed: ${response.status}`);
+        }
+        return await response.json();
+      });
+    }
+    /**
+     * Add items to cart with verification
+     * @param {Array} items - Array of items to add [{id, quantity, properties}]
+     * @param {Object} options - Additional options
+     * @returns {Promise<Object>} Result with success status and cart data
+     */
+    async addToCart(items, options = {}) {
+      const { verify = true, maxRetries = DEFAULT_MAX_RETRIES } = options;
+      try {
+        const result = await this.retryOperation(async () => {
+          const response = await fetch("/cart/add.js", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ items })
+          });
+          if (!response.ok) {
+            const errorText = await response.text();
+            let errorData;
+            try {
+              errorData = JSON.parse(errorText);
+            } catch (e) {
+              errorData = { description: errorText };
+            }
+            throw new Error(errorData.description || `Failed to add to cart: ${response.status}`);
+          }
+          return await response.json();
+        }, maxRetries);
+        if (verify) {
+          await new Promise((resolve) => setTimeout(resolve, 150));
+          const cart = await this.getCart();
+          const allItemsAdded = items.every((item) => {
+            const itemId = this.normalizeVariantId(item.id);
+            return cart.items.some((cartItem) => {
+              const cartItemId = this.normalizeVariantId(cartItem.variant_id || cartItem.id);
+              return cartItemId === itemId;
+            });
+          });
+          if (!allItemsAdded) {
+            console.warn("Not all items were verified in cart");
+          }
+        }
+        return { success: true, data: result };
+      } catch (error) {
+        console.error("Add to cart failed:", error);
+        return { success: false, error: error.message };
+      }
+    }
+    /**
+     * Remove item from cart by key
+     * @param {string} itemKey - Cart item key
+     * @param {Object} options - Additional options
+     * @returns {Promise<Object>} Result with success status
+     */
+    async removeFromCart(itemKey, options = {}) {
+      const { verify = true, maxRetries = DEFAULT_MAX_RETRIES } = options;
+      try {
+        await this.retryOperation(async () => {
+          const response = await fetch("/cart/change.js", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              id: itemKey,
+              quantity: 0
+            })
+          });
+          if (!response.ok) {
+            throw new Error(`Failed to remove from cart: ${response.status}`);
+          }
+          return await response.json();
+        }, maxRetries);
+        if (verify) {
+          await new Promise((resolve) => setTimeout(resolve, 150));
+          const cart = await this.getCart();
+          const itemStillExists = cart.items.some((item) => item.key === itemKey);
+          if (itemStillExists) {
+            throw new Error("Item not removed from cart");
+          }
+        }
+        return { success: true };
+      } catch (error) {
+        console.error("Remove from cart failed:", error);
+        return { success: false, error: error.message };
+      }
+    }
+    /**
+     * Replace a cart item with new items (atomic operation)
+     * @param {string} oldItemKey - Key of item to remove
+     * @param {Array} newItems - New items to add
+     * @param {Object} options - Additional options
+     * @returns {Promise<Object>} Result with success status
+     */
+    async replaceCartItem(oldItemKey, newItems, options = {}) {
+      const { maxRetries = DEFAULT_MAX_RETRIES } = options;
+      try {
+        const removeResult = await this.removeFromCart(oldItemKey, { verify: true, maxRetries });
+        if (!removeResult.success) {
+          throw new Error(`Failed to remove old item: ${removeResult.error}`);
+        }
+        const addResult = await this.addToCart(newItems, { verify: true, maxRetries });
+        if (!addResult.success) {
+          throw new Error(`Failed to add new items: ${addResult.error}`);
+        }
+        return { success: true };
+      } catch (error) {
+        console.error("Replace cart item failed:", error);
+        return { success: false, error: error.message };
+      }
+    }
+    /**
+     * Verify a product is in the cart
+     * @param {string|number} variantId - Variant ID to check
+     * @returns {Promise<boolean>} True if product is in cart
+     */
+    async verifyProductInCart(variantId) {
+      try {
+        const cart = await this.getCart();
+        const normalizedId = this.normalizeVariantId(variantId);
+        return cart.items.some((item) => {
+          const itemId = this.normalizeVariantId(item.variant_id || item.id);
+          return itemId === normalizedId;
+        });
+      } catch (error) {
+        console.error("Error verifying product in cart:", error);
+        return false;
+      }
+    }
+    /**
+     * Wait for cart to be ready (not locked)
+     * @param {number} timeout - Max time to wait in ms
+     * @returns {Promise<boolean>} True if cart is ready
+     */
+    async waitForCartReady(timeout = CART_UPDATE_VERIFICATION_TIMEOUT) {
+      const startTime = Date.now();
+      while (Date.now() - startTime < timeout) {
+        try {
+          const cart = await this.getCart();
+          return true;
+        } catch (error) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
+      return false;
+    }
+    /**
+     * Find cart item by variant ID
+     * @param {string|number} variantId - Variant ID to find
+     * @returns {Promise<Object|null>} Cart item or null
+     */
+    async findCartItem(variantId) {
+      try {
+        const cart = await this.getCart();
+        const normalizedId = this.normalizeVariantId(variantId);
+        return cart.items.find((item) => {
+          const itemId = this.normalizeVariantId(item.variant_id || item.id);
+          return itemId === normalizedId;
+        }) || null;
+      } catch (error) {
+        console.error("Error finding cart item:", error);
+        return null;
+      }
+    }
+    /**
+     * Normalize variant ID to consistent format (numeric string)
+     * @param {string|number} variantId - Variant ID in any format
+     * @returns {string} Normalized variant ID
+     */
+    normalizeVariantId(variantId) {
+      if (!variantId)
+        return "";
+      let id = String(variantId);
+      if (id.includes("gid://shopify/ProductVariant/")) {
+        id = id.replace("gid://shopify/ProductVariant/", "");
+      }
+      const numericId = id.replace(/\D/g, "");
+      return numericId;
+    }
+    /**
+     * Get checkout URL (handles custom checkout apps)
+     * @returns {string} Checkout URL
+     */
+    getCheckoutUrl() {
+      if (typeof Shopify !== "undefined" && Shopify.routes && Shopify.routes.root) {
+        return `${Shopify.routes.root}checkout`;
+      }
+      return "/checkout";
+    }
+    /**
+     * Validate variant ID format
+     * @param {string|number} variantId - Variant ID to validate
+     * @returns {boolean} True if valid
+     */
+    isValidVariantId(variantId) {
+      if (!variantId)
+        return false;
+      const normalized = this.normalizeVariantId(variantId);
+      const numericId = parseInt(normalized, 10);
+      return !isNaN(numericId) && numericId > 0;
+    }
+    /**
+     * Trigger cart updated event
+     */
+    triggerCartUpdated() {
+      document.dispatchEvent(new CustomEvent("cart:updated", { bubbles: true }));
+    }
+    /**
+     * Fetch product data from Shopify
+     * @param {string} handle - Product handle
+     * @returns {Promise<Object|null>} Product data or null
+     */
+    async fetchProductData(handle) {
+      try {
+        const response = await fetch(`/products/${handle}.js`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch product: ${response.status}`);
+        }
+        return await response.json();
+      } catch (error) {
+        console.error(`Error fetching product ${handle}:`, error);
+        return null;
+      }
+    }
+    /**
+     * Get variant from product data
+     * @param {Object} productData - Product data from Shopify
+     * @param {string|number} variantId - Preferred variant ID
+     * @returns {Object|null} Variant object or null
+     */
+    getVariantFromProduct(productData, variantId = null) {
+      if (!productData || !productData.variants || productData.variants.length === 0) {
+        return null;
+      }
+      if (variantId) {
+        const normalizedId = this.normalizeVariantId(variantId);
+        const variant = productData.variants.find((v) => {
+          const vId = this.normalizeVariantId(v.id);
+          return vId === normalizedId;
+        });
+        if (variant)
+          return variant;
+      }
+      return productData.variants[0];
+    }
+  };
+  var cartOps = new CartOperations();
+
+  // extensions/cart-upsell/assets/modules/utils.js
+  var toastContainer = null;
+  function initToastContainer() {
+    if (toastContainer)
+      return toastContainer;
+    toastContainer = document.createElement("div");
+    toastContainer.className = "upsellity-toast-container";
+    toastContainer.setAttribute("aria-live", "polite");
+    toastContainer.setAttribute("aria-atomic", "true");
+    if (!document.getElementById("upsellity-toast-styles")) {
+      const style = document.createElement("style");
+      style.id = "upsellity-toast-styles";
+      style.textContent = `
+      .upsellity-toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 100000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        pointer-events: none;
+        width: auto;
+        max-width: min(380px, calc(100vw - 40px));
+      }
+      
+      .upsellity-toast {
+        position: relative;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 10px;
+        padding: 14px 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 300px;
+        max-width: 100%;
+        pointer-events: auto;
+        overflow: hidden;
+        border-left: 4px solid;
+        animation: toastSlideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        transition: all 0.25s ease;
+        backdrop-filter: blur(12px);
+      }
+      
+      .upsellity-toast:hover {
+        transform: translateX(-4px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.12);
+      }
+      
+      .upsellity-toast-success {
+        border-left-color: #22c55e;
+        background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+      }
+      
+      .upsellity-toast-success:hover {
+        border-left-color: #16a34a;
+      }
+      
+      .upsellity-toast-error {
+        border-left-color: #f43f5e;
+        background: linear-gradient(135deg, #fff1f2 0%, #ffffff 100%);
+      }
+      
+      .upsellity-toast-error:hover {
+        border-left-color: #e11d48;
+      }
+      
+      .upsellity-toast-info {
+        border-left-color: #3b82f6;
+        background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+      }
+      
+      .upsellity-toast-info:hover {
+        border-left-color: #2563eb;
+      }
+      
+      .upsellity-toast-icon {
+        flex-shrink: 0;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      }
+      
+      .upsellity-toast-success .upsellity-toast-icon {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: white;
+      }
+      
+      .upsellity-toast-error .upsellity-toast-icon {
+        background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+        color: white;
+      }
+      
+      .upsellity-toast-info .upsellity-toast-icon {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+      }
+      
+      .upsellity-toast-content {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        min-width: 0;
+      }
+      
+      .upsellity-toast-message {
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.5;
+        color: #1e293b;
+        margin: 0;
+        word-wrap: break-word;
+      }
+      
+      .upsellity-toast-close {
+        flex-shrink: 0;
+        background: none;
+        border: none;
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        border-radius: 5px;
+        transition: all 0.2s ease;
+        opacity: 0.6;
+        margin-left: 4px;
+      }
+      
+      .upsellity-toast-close:hover {
+        opacity: 1;
+        background: rgba(0, 0, 0, 0.08);
+        color: #475569;
+        transform: rotate(90deg);
+      }
+      
+      .upsellity-toast-close::before {
+        content: '\xD7';
+        font-size: 22px;
+        line-height: 1;
+        font-weight: 300;
+      }
+      
+      .upsellity-toast-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 0 0 10px 10px;
+        overflow: hidden;
+      }
+      
+      .upsellity-toast-progress-bar {
+        height: 100%;
+        transition: width linear;
+        border-radius: 0 0 10px 10px;
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+      }
+      
+      .upsellity-toast-success .upsellity-toast-progress-bar {
+        background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+      }
+      
+      .upsellity-toast-error .upsellity-toast-progress-bar {
+        background: linear-gradient(90deg, #f43f5e 0%, #e11d48 100%);
+      }
+      
+      .upsellity-toast-info .upsellity-toast-progress-bar {
+        background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+      }
+      
+      @keyframes toastSlideInRight {
+        from {
+          opacity: 0;
+          transform: translateX(100%) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0) scale(1);
+        }
+      }
+      
+      @keyframes toastSlideOutRight {
+        from {
+          opacity: 1;
+          transform: translateX(0) scale(1);
+        }
+        to {
+          opacity: 0;
+          transform: translateX(100%) scale(0.95);
+        }
+      }
+      
+      .upsellity-toast.exiting {
+        animation: toastSlideOutRight 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+      }
+      
+      @media (max-width: 640px) {
+        .upsellity-toast-container {
+          right: 12px;
+          left: 12px;
+          max-width: none;
+          top: 12px;
+        }
+        
+        .upsellity-toast {
+          min-width: auto;
+          padding: 12px 14px;
+        }
+        
+        .upsellity-toast-message {
+          font-size: 12px;
+        }
+      }
+    `;
+      document.head.appendChild(style);
+    }
+    document.body.appendChild(toastContainer);
+    return toastContainer;
+  }
+  function getToastIcon(type) {
+    const icons = {
+      success: "\u2713",
+      error: "\u2715",
+      info: "i"
+    };
+    return icons[type] || icons.info;
+  }
+  function showNotification(message, type = "info", duration = 4e3) {
+    const container = initToastContainer();
+    const toast = document.createElement("div");
+    toast.className = `upsellity-toast upsellity-toast-${type}`;
+    toast.setAttribute("role", "alert");
+    const icon = document.createElement("div");
+    icon.className = "upsellity-toast-icon";
+    icon.textContent = getToastIcon(type);
+    icon.setAttribute("aria-hidden", "true");
+    const content = document.createElement("div");
+    content.className = "upsellity-toast-content";
+    const messageEl = document.createElement("p");
+    messageEl.className = "upsellity-toast-message";
+    messageEl.textContent = message;
+    content.appendChild(messageEl);
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "upsellity-toast-close";
+    closeBtn.setAttribute("aria-label", "Close notification");
+    closeBtn.setAttribute("type", "button");
+    const progressContainer = document.createElement("div");
+    progressContainer.className = "upsellity-toast-progress";
+    const progressBar = document.createElement("div");
+    progressBar.className = "upsellity-toast-progress-bar";
+    progressBar.style.width = "100%";
+    progressBar.style.transitionDuration = `${duration}ms`;
+    progressContainer.appendChild(progressBar);
+    toast.appendChild(icon);
+    toast.appendChild(content);
+    toast.appendChild(closeBtn);
+    toast.appendChild(progressContainer);
+    container.appendChild(toast);
+    requestAnimationFrame(() => {
+      toast.style.opacity = "1";
+    });
+    requestAnimationFrame(() => {
+      progressBar.style.width = "0%";
+    });
+    const removeToast = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      toast.classList.add("exiting");
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+        if (container.children.length === 0 && container.parentNode) {
+          container.parentNode.removeChild(container);
+          toastContainer = null;
+        }
+      }, 300);
+    };
+    closeBtn.addEventListener("click", () => {
+      isPaused = false;
+      removeToast();
+    });
+    let timeoutId = setTimeout(removeToast, duration);
+    let startTime = Date.now();
+    let remainingTime = duration;
+    let isPaused = false;
+    toast.addEventListener("mouseenter", () => {
+      if (isPaused)
+        return;
+      isPaused = true;
+      const elapsed = Date.now() - startTime;
+      remainingTime = duration - elapsed;
+      const currentWidth = progressBar.offsetWidth;
+      const containerWidth = progressContainer.offsetWidth;
+      const percentage = currentWidth / containerWidth * 100;
+      progressBar.style.width = `${percentage}%`;
+      progressBar.style.transitionDuration = "0ms";
+      clearTimeout(timeoutId);
+    });
+    toast.addEventListener("mouseleave", () => {
+      if (!isPaused)
+        return;
+      isPaused = false;
+      progressBar.style.transitionDuration = `${remainingTime}ms`;
+      requestAnimationFrame(() => {
+        progressBar.style.width = "0%";
+      });
+      startTime = Date.now();
+      timeoutId = setTimeout(removeToast, remainingTime);
+    });
+    return toast;
+  }
+
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
-  var APP_URL = true ? "https://cambridge-tariff-married-continental.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://provide-platinum-trivia-meetings.trycloudflare.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;
@@ -8785,36 +9413,21 @@
       this.closePopup();
       try {
         if (this.triggerContext === "checkout" && this.matchedCartItem) {
-          console.log(`\u{1F5D1}\uFE0F Removing matched product: ${this.matchedCartItem.title}`);
-          await fetch("/cart/change.js", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              id: this.matchedCartItem.key,
-              quantity: 0
-            })
-          });
-          await new Promise((resolve) => setTimeout(resolve, 200));
-        }
-        const formData = {
-          items: [{
-            id: product.variantId || product.id,
+          console.log(`\u{1F504} Replacing matched product: ${this.matchedCartItem.title}`);
+          const newItem = {
+            id: cartOps.normalizeVariantId(product.variantId || product.id),
             quantity: 1,
             properties: {
               "_upsell_source": "nudge"
             }
-          }]
-        };
-        const response = await fetch("/cart/add.js", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(formData)
-        });
-        if (response.ok) {
+          };
+          const result = await cartOps.replaceCartItem(
+            this.matchedCartItem.key,
+            [newItem]
+          );
+          if (!result.success) {
+            throw new Error(result.error || "Failed to replace product");
+          }
           Analytics.track({
             eventType: "add_to_cart",
             component: "nudge",
@@ -8822,181 +9435,161 @@
             variantId: product.variantId || product.id,
             value: product.price
           });
-          document.dispatchEvent(new CustomEvent("cart:updated"));
-          if (this.triggerContext === "checkout") {
-            console.log("\u2705 Redirecting to checkout with selected product");
-            setTimeout(() => {
-              window.location.href = "/checkout";
-            }, 500);
-          } else {
-            this.openCartDrawer();
+          await cartOps.waitForCartReady();
+          const verified = await cartOps.verifyProductInCart(product.variantId || product.id);
+          if (!verified) {
+            console.warn("Product not verified in cart, but proceeding to checkout");
           }
+          cartOps.triggerCartUpdated();
+          console.log("\u2705 Redirecting to checkout with selected product");
+          setTimeout(() => {
+            window.location.href = cartOps.getCheckoutUrl();
+          }, 200);
+        } else {
+          const newItem = {
+            id: cartOps.normalizeVariantId(product.variantId || product.id),
+            quantity: 1,
+            properties: {
+              "_upsell_source": "nudge"
+            }
+          };
+          const result = await cartOps.addToCart([newItem], { verify: true });
+          if (!result.success) {
+            throw new Error(result.error || "Failed to add product");
+          }
+          Analytics.track({
+            eventType: "add_to_cart",
+            component: "nudge",
+            productId: product.id,
+            variantId: product.variantId || product.id,
+            value: product.price
+          });
+          cartOps.triggerCartUpdated();
+          this.openCartDrawer();
         }
       } catch (error) {
-        console.error("Error adding product to cart:", error);
+        console.error("Error in selectProduct:", error);
+        showNotification(
+          error.message || "Failed to update cart. Please try again.",
+          "error",
+          5e3
+        );
+        if (this.triggerContext === "checkout") {
+          setTimeout(() => {
+            window.location.href = cartOps.getCheckoutUrl();
+          }, 1e3);
+        }
       }
     }
     async selectAllProducts(products) {
       this.closePopup();
       try {
+        let originalKey = null;
         if (this.triggerContext === "checkout" && this.matchedCartItem) {
           console.log(`\u{1F5D1}\uFE0F Removing matched product: ${this.matchedCartItem.title}`);
-          await fetch("/cart/change.js", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              id: this.matchedCartItem.key,
-              quantity: 0
-            })
-          });
-          await new Promise((resolve) => setTimeout(resolve, 200));
-        } else {
-          const cartResponse = await fetch("/cart.js");
-          if (cartResponse.ok) {
-            const cart = await cartResponse.json();
-            let originalLineItemKey = null;
-            if (this.originalProductVariantId && cart.items) {
-              const normalizedOriginalId = this.originalProductVariantId.replace("gid://shopify/ProductVariant/", "");
-              const matchingItem = cart.items.find((item) => {
-                var _a2;
-                const itemVariantId = (_a2 = item.variant_id) == null ? void 0 : _a2.toString();
-                return itemVariantId === normalizedOriginalId || itemVariantId === this.originalProductVariantId;
-              });
-              if (matchingItem) {
-                originalLineItemKey = matchingItem.key;
-              }
-            }
-            if (originalLineItemKey) {
-              try {
-                await fetch("/cart/change.js", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json"
-                  },
-                  body: JSON.stringify({
-                    updates: {
-                      [originalLineItemKey]: 0
-                    }
-                  })
-                });
-              } catch (error) {
-                console.error("Error removing original product from cart:", error);
-              }
-            }
+          originalKey = this.matchedCartItem.key;
+        } else if (this.originalProductVariantId) {
+          const cartItem = await cartOps.findCartItem(this.originalProductVariantId);
+          if (cartItem) {
+            originalKey = cartItem.key;
+          }
+        }
+        if (originalKey) {
+          const removeResult = await cartOps.removeFromCart(originalKey, { verify: true });
+          if (!removeResult.success) {
+            console.warn("Failed to remove original product:", removeResult.error);
           }
         }
         const itemsToAdd = [];
+        const failedProducts = [];
         for (const product of products) {
           try {
-            const productResponse = await fetch(`/products/${product.handle}.js`);
-            if (!productResponse.ok) {
-              console.warn("Failed to fetch product:", product.handle);
+            const productData = await cartOps.fetchProductData(product.handle);
+            if (!productData) {
+              console.warn(`Failed to fetch product: ${product.handle}`);
+              failedProducts.push(product.title);
               continue;
             }
-            const productData = await productResponse.json();
-            let variant = null;
-            if (product.variantId && productData.variants) {
-              const storedVariantId = product.variantId.toString().replace("gid://shopify/ProductVariant/", "").replace(/\D/g, "");
-              variant = productData.variants.find((v) => {
-                const vId = v.id.toString().replace("gid://shopify/ProductVariant/", "").replace(/\D/g, "");
-                return vId === storedVariantId;
-              });
-            }
-            if (!variant && productData.variants && productData.variants.length > 0) {
-              variant = productData.variants[0];
-            }
+            const variant = cartOps.getVariantFromProduct(productData, product.variantId);
             if (!variant) {
-              console.warn("No variant found for product:", product.title);
+              console.warn(`No variant found for product: ${product.title}`);
+              failedProducts.push(product.title);
               continue;
             }
-            let variantId = variant.id;
-            if (typeof variantId === "number") {
-              itemsToAdd.push({
-                id: variantId,
-                quantity: 1,
-                properties: {
-                  "_upsell_source": "nudge"
-                }
-              });
-            } else if (typeof variantId === "string") {
-              if (variantId.includes("gid://shopify/ProductVariant/")) {
-                variantId = variantId.replace("gid://shopify/ProductVariant/", "");
-              }
-              const numericId = parseInt(variantId.replace(/\D/g, ""), 10);
-              if (isNaN(numericId)) {
-                console.warn("Invalid variant ID for product:", product.title);
-                continue;
-              }
-              itemsToAdd.push({
-                id: numericId,
-                quantity: 1,
-                properties: {
-                  "_upsell_source": "nudge"
-                }
-              });
-            } else {
-              console.warn("Unexpected variant ID type for product:", product.title);
+            if (!cartOps.isValidVariantId(variant.id)) {
+              console.warn(`Invalid variant ID for product: ${product.title}`);
+              failedProducts.push(product.title);
               continue;
             }
+            const normalizedId = parseInt(cartOps.normalizeVariantId(variant.id), 10);
+            itemsToAdd.push({
+              id: normalizedId,
+              quantity: 1,
+              properties: {
+                "_upsell_source": "nudge"
+              }
+            });
           } catch (error) {
-            console.error("Error fetching product variant for:", product.title, error);
+            console.error(`Error processing product ${product.title}:`, error);
+            failedProducts.push(product.title);
           }
         }
         if (itemsToAdd.length === 0) {
-          console.error("No valid products to add to cart");
-          return;
+          throw new Error("No valid products to add to cart");
         }
-        const addResponse = await fetch("/cart/add.js", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            items: itemsToAdd
-          })
-        });
-        if (!addResponse.ok) {
-          const errorText = await addResponse.text();
-          let errorData;
-          try {
-            errorData = JSON.parse(errorText);
-          } catch (e) {
-            errorData = { description: errorText };
-          }
-          console.error("Error adding upsell products to cart:", errorData);
-          if (errorData.description) {
-            alert("Error adding products: " + errorData.description);
-          }
-          return;
+        const addResult = await cartOps.addToCart(itemsToAdd, { verify: true });
+        if (!addResult.success) {
+          throw new Error(addResult.error || "Failed to add products to cart");
         }
-        products.forEach((product) => {
-          Analytics.track({
-            eventType: "add_to_cart",
-            component: "nudge",
-            productId: product.id,
-            variantId: product.variantId || product.id,
-            value: product.price
-          });
+        products.forEach((product, index) => {
+          if (index < itemsToAdd.length) {
+            Analytics.track({
+              eventType: "add_to_cart",
+              component: "nudge",
+              productId: product.id,
+              variantId: product.variantId || product.id,
+              value: product.price
+            });
+          }
         });
-        await new Promise((resolve) => setTimeout(resolve, 150));
-        document.dispatchEvent(new CustomEvent("cart:updated"));
+        if (failedProducts.length > 0) {
+          showNotification(
+            `Some products could not be added: ${failedProducts.join(", ")}`,
+            "error",
+            5e3
+          );
+        }
+        await cartOps.waitForCartReady();
+        cartOps.triggerCartUpdated();
         if (this.triggerContext === "checkout") {
+          console.log("\u2705 Redirecting to checkout with all products");
           setTimeout(() => {
-            window.location.href = "/checkout";
-          }, 500);
+            window.location.href = cartOps.getCheckoutUrl();
+          }, 200);
         } else {
           this.openCartDrawer();
         }
       } catch (error) {
         console.error("Error in selectAllProducts:", error);
+        showNotification(
+          error.message || "Failed to update cart. Please try again.",
+          "error",
+          5e3
+        );
+        if (this.triggerContext === "checkout") {
+          setTimeout(() => {
+            window.location.href = cartOps.getCheckoutUrl();
+          }, 1e3);
+        }
       }
     }
     async continueWithOriginal() {
       this.closePopup();
       if (this.triggerContext === "checkout") {
-        window.location.href = "/checkout";
+        console.log("\u{1F4CB} Continuing with original cart to checkout");
+        setTimeout(() => {
+          window.location.href = cartOps.getCheckoutUrl();
+        }, 200);
       } else {
         if (this.originalAddToCartButton) {
           const form = this.originalAddToCartButton.closest("form");
@@ -9008,11 +9601,18 @@
                 body: formData
               });
               if (response.ok) {
-                document.dispatchEvent(new CustomEvent("cart:updated"));
+                cartOps.triggerCartUpdated();
                 this.openCartDrawer();
+              } else {
+                throw new Error("Failed to add original product");
               }
             } catch (error) {
               console.error("Error adding original product to cart:", error);
+              showNotification(
+                "Failed to add product to cart. Please try again.",
+                "error",
+                5e3
+              );
             }
           }
         }
@@ -9039,9 +9639,9 @@
       }
       this.isOpen = false;
       if (this.triggerContext === "checkout") {
-        console.log("\u{1F6AA} Popup closed, redirecting to checkout");
+        console.log("\u{1F6AA} Popup closed, redirecting to checkout with current cart");
         setTimeout(() => {
-          window.location.href = "/checkout";
+          window.location.href = cartOps.getCheckoutUrl();
         }, 350);
       }
     }

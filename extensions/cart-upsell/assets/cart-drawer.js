@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.5
- * Built: 2025-12-30T12:52:35.825Z
+ * Built: 2025-12-30T15:27:33.759Z
  */
 "use strict";
 (() => {
@@ -13363,7 +13363,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://cambridge-tariff-married-continental.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://provide-platinum-trivia-meetings.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.5" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

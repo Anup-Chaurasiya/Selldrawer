@@ -7,6 +7,9 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { NudgeWidget } from '../../../../app/components/shared/NudgeWidget.tsx';
 import { Analytics } from './analytics.js';
+import { cartOps } from './cart-operations-enhanced.js';
+import { showNotification } from './utils.js';
+
 
 // App URL is injected at build time from config.js
 const APP_URL = typeof __APP_URL__ !== 'undefined' ? __APP_URL__ : 'https://app.upsellity.com';
@@ -348,46 +351,72 @@ class NudgePopup {
     // Close popup
     this.closePopup();
 
-    // Add selected product to cart instead of original
     try {
-      // If triggered from checkout, remove only the matched product (not entire cart)
+      // If triggered from checkout, replace the matched product
       if (this.triggerContext === 'checkout' && this.matchedCartItem) {
-        console.log(`🗑️ Removing matched product: ${this.matchedCartItem.title}`);
+        console.log(`🔄 Replacing matched product: ${this.matchedCartItem.title}`);
 
-        // Remove the specific cart item by its key
-        await fetch('/cart/change.js', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            id: this.matchedCartItem.key,
-            quantity: 0
-          })
-        });
-
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-
-      const formData = {
-        items: [{
-          id: product.variantId || product.id,
+        // Prepare new item to add
+        const newItem = {
+          id: cartOps.normalizeVariantId(product.variantId || product.id),
           quantity: 1,
           properties: {
             '_upsell_source': 'nudge'
           }
-        }]
-      };
+        };
 
-      const response = await fetch('/cart/add.js', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      });
+        // Replace cart item (remove old, add new)
+        const result = await cartOps.replaceCartItem(
+          this.matchedCartItem.key,
+          [newItem]
+        );
 
-      if (response.ok) {
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to replace product');
+        }
+
+        // Track success
+        Analytics.track({
+          eventType: 'add_to_cart',
+          component: 'nudge',
+          productId: product.id,
+          variantId: product.variantId || product.id,
+          value: product.price
+        });
+
+        // Wait for cart to be ready
+        await cartOps.waitForCartReady();
+
+        // Verify the new product is in cart
+        const verified = await cartOps.verifyProductInCart(product.variantId || product.id);
+        if (!verified) {
+          console.warn('Product not verified in cart, but proceeding to checkout');
+        }
+
+        // Trigger cart update event
+        cartOps.triggerCartUpdated();
+
+        // Proceed to checkout after verification
+        console.log('✅ Redirecting to checkout with selected product');
+        setTimeout(() => {
+          window.location.href = cartOps.getCheckoutUrl();
+        }, 200);
+      } else {
+        // Add to cart trigger - just add the selected product
+        const newItem = {
+          id: cartOps.normalizeVariantId(product.variantId || product.id),
+          quantity: 1,
+          properties: {
+            '_upsell_source': 'nudge'
+          }
+        };
+
+        const result = await cartOps.addToCart([newItem], { verify: true });
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to add product');
+        }
+
         Analytics.track({
           eventType: 'add_to_cart',
           component: 'nudge',
@@ -397,22 +426,25 @@ class NudgePopup {
         });
 
         // Trigger cart update events
-        document.dispatchEvent(new CustomEvent('cart:updated'));
+        cartOps.triggerCartUpdated();
 
-        // Navigate based on trigger context
-        if (this.triggerContext === 'checkout') {
-          console.log('✅ Redirecting to checkout with selected product');
-          // Proceed to checkout after adding product
-          setTimeout(() => {
-            window.location.href = '/checkout';
-          }, 500);
-        } else {
-          // Open cart drawer (default behavior for add_to_cart)
-          this.openCartDrawer();
-        }
+        // Open cart drawer
+        this.openCartDrawer();
       }
     } catch (error) {
-      console.error('Error adding product to cart:', error);
+      console.error('Error in selectProduct:', error);
+      showNotification(
+        error.message || 'Failed to update cart. Please try again.',
+        'error',
+        5000
+      );
+
+      // If checkout trigger, still try to proceed
+      if (this.triggerContext === 'checkout') {
+        setTimeout(() => {
+          window.location.href = cartOps.getCheckoutUrl();
+        }, 1000);
+      }
     }
   }
 
@@ -421,197 +453,133 @@ class NudgePopup {
     this.closePopup();
 
     try {
-      // If triggered from checkout, remove only the matched product (not entire cart)
+      let originalKey = null;
+
+      // Step 1: Remove the original/matched product
       if (this.triggerContext === 'checkout' && this.matchedCartItem) {
         console.log(`🗑️ Removing matched product: ${this.matchedCartItem.title}`);
-
-        await fetch('/cart/change.js', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            id: this.matchedCartItem.key,
-            quantity: 0
-          })
-        });
-
-        await new Promise(resolve => setTimeout(resolve, 200));
-      } else {
-        // For add_to_cart trigger, remove original product only
-        const cartResponse = await fetch('/cart.js');
-        if (cartResponse.ok) {
-          const cart = await cartResponse.json();
-
-          // Find the line item with the original variant ID
-          let originalLineItemKey = null;
-          if (this.originalProductVariantId && cart.items) {
-            const normalizedOriginalId = this.originalProductVariantId.replace('gid://shopify/ProductVariant/', '');
-
-            const matchingItem = cart.items.find(item => {
-              const itemVariantId = item.variant_id?.toString();
-              return itemVariantId === normalizedOriginalId || itemVariantId === this.originalProductVariantId;
-            });
-
-            if (matchingItem) {
-              originalLineItemKey = matchingItem.key;
-            }
-          }
-
-          // Remove original product from cart if it exists
-          if (originalLineItemKey) {
-            try {
-              await fetch('/cart/change.js', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  updates: {
-                    [originalLineItemKey]: 0
-                  }
-                })
-              });
-            } catch (error) {
-              console.error('Error removing original product from cart:', error);
-            }
-          }
+        originalKey = this.matchedCartItem.key;
+      } else if (this.originalProductVariantId) {
+        // For add_to_cart trigger, find and remove original product
+        const cartItem = await cartOps.findCartItem(this.originalProductVariantId);
+        if (cartItem) {
+          originalKey = cartItem.key;
         }
       }
 
-      // Fetch variant IDs from Shopify for each product
+      // Remove original product if found
+      if (originalKey) {
+        const removeResult = await cartOps.removeFromCart(originalKey, { verify: true });
+        if (!removeResult.success) {
+          console.warn('Failed to remove original product:', removeResult.error);
+        }
+      }
+
+      // Step 2: Fetch all product variants and prepare items to add
       const itemsToAdd = [];
+      const failedProducts = [];
 
       for (const product of products) {
         try {
-          // Fetch product data from Shopify to get the correct variant ID
-          const productResponse = await fetch(`/products/${product.handle}.js`);
-          if (!productResponse.ok) {
-            console.warn('Failed to fetch product:', product.handle);
+          // Fetch fresh product data
+          const productData = await cartOps.fetchProductData(product.handle);
+          if (!productData) {
+            console.warn(`Failed to fetch product: ${product.handle}`);
+            failedProducts.push(product.title);
             continue;
           }
 
-          const productData = await productResponse.json();
-
-          // Get the first available variant (or match by stored variant ID if possible)
-          let variant = null;
-          if (product.variantId && productData.variants) {
-            // Try to find the variant by ID
-            const storedVariantId = product.variantId.toString().replace('gid://shopify/ProductVariant/', '').replace(/\D/g, '');
-            variant = productData.variants.find(v => {
-              const vId = v.id.toString().replace('gid://shopify/ProductVariant/', '').replace(/\D/g, '');
-              return vId === storedVariantId;
-            });
-          }
-
-          // Fallback to first variant if not found
-          if (!variant && productData.variants && productData.variants.length > 0) {
-            variant = productData.variants[0];
-          }
-
+          // Get the correct variant
+          const variant = cartOps.getVariantFromProduct(productData, product.variantId);
           if (!variant) {
-            console.warn('No variant found for product:', product.title);
+            console.warn(`No variant found for product: ${product.title}`);
+            failedProducts.push(product.title);
             continue;
           }
 
-          // Extract numeric variant ID
-          let variantId = variant.id;
-
-          // Handle different formats
-          if (typeof variantId === 'number') {
-            itemsToAdd.push({
-              id: variantId,
-              quantity: 1,
-              properties: {
-                '_upsell_source': 'nudge'
-              }
-            });
-          } else if (typeof variantId === 'string') {
-            // Remove GID prefix if present
-            if (variantId.includes('gid://shopify/ProductVariant/')) {
-              variantId = variantId.replace('gid://shopify/ProductVariant/', '');
-            }
-            // Extract numeric part
-            const numericId = parseInt(variantId.replace(/\D/g, ''), 10);
-            if (isNaN(numericId)) {
-              console.warn('Invalid variant ID for product:', product.title);
-              continue;
-            }
-            itemsToAdd.push({
-              id: numericId,
-              quantity: 1,
-              properties: {
-                '_upsell_source': 'nudge'
-              }
-            });
-          } else {
-            console.warn('Unexpected variant ID type for product:', product.title);
+          // Validate variant ID
+          if (!cartOps.isValidVariantId(variant.id)) {
+            console.warn(`Invalid variant ID for product: ${product.title}`);
+            failedProducts.push(product.title);
             continue;
           }
+
+          const normalizedId = parseInt(cartOps.normalizeVariantId(variant.id), 10);
+          itemsToAdd.push({
+            id: normalizedId,
+            quantity: 1,
+            properties: {
+              '_upsell_source': 'nudge'
+            }
+          });
         } catch (error) {
-          console.error('Error fetching product variant for:', product.title, error);
+          console.error(`Error processing product ${product.title}:`, error);
+          failedProducts.push(product.title);
         }
       }
 
+      // Step 3: Add all products to cart
       if (itemsToAdd.length === 0) {
-        console.error('No valid products to add to cart');
-        return;
+        throw new Error('No valid products to add to cart');
       }
 
-      const addResponse = await fetch('/cart/add.js', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          items: itemsToAdd
-        })
-      });
-
-      if (!addResponse.ok) {
-        const errorText = await addResponse.text();
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch (e) {
-          errorData = { description: errorText };
-        }
-        console.error('Error adding upsell products to cart:', errorData);
-        if (errorData.description) {
-          alert('Error adding products: ' + errorData.description);
-        }
-        return;
+      const addResult = await cartOps.addToCart(itemsToAdd, { verify: true });
+      if (!addResult.success) {
+        throw new Error(addResult.error || 'Failed to add products to cart');
       }
 
-      // Track events for all added items
-      products.forEach(product => {
-        Analytics.track({
-          eventType: 'add_to_cart',
-          component: 'nudge',
-          productId: product.id,
-          variantId: product.variantId || product.id,
-          value: product.price
-        });
+      // Track analytics for successfully added products
+      products.forEach((product, index) => {
+        if (index < itemsToAdd.length) {
+          Analytics.track({
+            eventType: 'add_to_cart',
+            component: 'nudge',
+            productId: product.id,
+            variantId: product.variantId || product.id,
+            value: product.price
+          });
+        }
       });
 
-      // Wait a moment to ensure cart is fully updated
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Notify user if some products failed
+      if (failedProducts.length > 0) {
+        showNotification(
+          `Some products could not be added: ${failedProducts.join(', ')}`,
+          'error',
+          5000
+        );
+      }
 
-      // Trigger cart update events
-      document.dispatchEvent(new CustomEvent('cart:updated'));
+      // Wait for cart to be ready
+      await cartOps.waitForCartReady();
+
+      // Trigger cart update event
+      cartOps.triggerCartUpdated();
 
       // Navigate based on trigger context
       if (this.triggerContext === 'checkout') {
-        // Proceed to checkout after adding products
+        console.log('✅ Redirecting to checkout with all products');
         setTimeout(() => {
-          window.location.href = '/checkout';
-        }, 500);
+          window.location.href = cartOps.getCheckoutUrl();
+        }, 200);
       } else {
-        // Open cart drawer (default behavior for add_to_cart)
+        // Open cart drawer
         this.openCartDrawer();
       }
     } catch (error) {
       console.error('Error in selectAllProducts:', error);
+      showNotification(
+        error.message || 'Failed to update cart. Please try again.',
+        'error',
+        5000
+      );
+
+      // If checkout trigger, still try to proceed
+      if (this.triggerContext === 'checkout') {
+        setTimeout(() => {
+          window.location.href = cartOps.getCheckoutUrl();
+        }, 1000);
+      }
     }
   }
 
@@ -622,7 +590,10 @@ class NudgePopup {
     // Navigate based on trigger context
     if (this.triggerContext === 'checkout') {
       // Proceed to checkout with current cart
-      window.location.href = '/checkout';
+      console.log('📋 Continuing with original cart to checkout');
+      setTimeout(() => {
+        window.location.href = cartOps.getCheckoutUrl();
+      }, 200);
     } else {
       // Add original product to cart
       if (this.originalAddToCartButton) {
@@ -639,13 +610,20 @@ class NudgePopup {
 
             if (response.ok) {
               // Trigger cart update events
-              document.dispatchEvent(new CustomEvent('cart:updated'));
+              cartOps.triggerCartUpdated();
 
               // Open cart drawer
               this.openCartDrawer();
+            } else {
+              throw new Error('Failed to add original product');
             }
           } catch (error) {
             console.error('Error adding original product to cart:', error);
+            showNotification(
+              'Failed to add product to cart. Please try again.',
+              'error',
+              5000
+            );
           }
         }
       }
@@ -686,11 +664,11 @@ class NudgePopup {
     }
     this.isOpen = false;
 
-    // If triggered from checkout, redirect to checkout when closing
+    // If triggered from checkout and user closes popup, proceed to checkout with current cart
     if (this.triggerContext === 'checkout') {
-      console.log('🚪 Popup closed, redirecting to checkout');
+      console.log('🚪 Popup closed, redirecting to checkout with current cart');
       setTimeout(() => {
-        window.location.href = '/checkout';
+        window.location.href = cartOps.getCheckoutUrl();
       }, 350);
     }
   }

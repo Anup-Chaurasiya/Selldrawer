@@ -1,6 +1,6 @@
 /**
  * Upsellity Milestone Block v1.0.5
- * Built: 2025-12-30T12:52:35.831Z
+ * Built: 2025-12-30T15:27:33.747Z
  */
 "use strict";
 (() => {
@@ -9407,7 +9407,7 @@
 
   // extensions/cart-upsell/assets/modules/milestone-block-entry.js
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://cambridge-tariff-married-continental.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://provide-platinum-trivia-meetings.trycloudflare.com" : "https://app.upsellity.com";
   function initMilestoneBlocks() {
     const containers = document.querySelectorAll(".upsellity-milestone-container");
     if (containers.length === 0) {
