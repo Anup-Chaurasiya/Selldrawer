@@ -167,7 +167,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         animationType: nudgeAddTogetherConfig.animationType || "fade",
         recommendationType: "manual",
         showOnAddToCart: nudgeAddTogetherConfig.showOnAddToCart ?? true,
-        triggerPoint: nudgeAddTogetherConfig.triggerPoint || "add_to_cart",
+        triggerPoint: matchingRule?.triggerPoint || nudgeAddTogetherConfig.triggerPoint || "add_to_cart",
         popupDelay: nudgeAddTogetherConfig.popupDelay ?? 0,
       },
       recommendations

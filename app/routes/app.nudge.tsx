@@ -266,6 +266,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const triggerValue = formData.get("triggerValue") as string;
     const triggerProductId = formData.get("triggerProductId") as string;
     const triggerTitle = formData.get("triggerTitle") as string;
+    const triggerPoint = formData.get("triggerPoint") as string || "add_to_cart";
     const upsellProducts = JSON.parse(formData.get("upsellProducts") as string || "[]");
 
     // Create the rule
@@ -276,6 +277,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         triggerValue,
         triggerProductId,
         triggerTitle,
+        triggerPoint,
       }
     });
 
@@ -367,6 +369,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const triggerValue = formData.get("triggerValue") as string;
     const triggerProductId = formData.get("triggerProductId") as string;
     const triggerTitle = formData.get("triggerTitle") as string;
+    const triggerPoint = formData.get("triggerPoint") as string || "add_to_cart";
     const upsellProducts = JSON.parse(formData.get("upsellProducts") as string || "[]");
 
     // Update the rule
@@ -377,6 +380,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         triggerValue,
         triggerProductId,
         triggerTitle,
+        triggerPoint,
       }
     });
 
@@ -554,6 +558,7 @@ export default function NudgePopup() {
     selectedTriggerProduct: null as string | null,
     selectedTriggerCollection: null as string | null,
     selectedUpsellProducts: [] as string[],
+    triggerPoint: "add_to_cart" as "add_to_cart" | "checkout",
     triggerTab: "product" as "product" | "collection",
     upsellTab: "product" as "product" | "collection",
     searchQuery: "",
@@ -609,6 +614,7 @@ export default function NudgePopup() {
     formData.append("triggerValue", triggerValue);
     formData.append("triggerProductId", triggerProductId);
     formData.append("triggerTitle", triggerTitle);
+    formData.append("triggerPoint", modalConfig.triggerPoint);
     formData.append("upsellProducts", JSON.stringify(modalConfig.selectedUpsellProducts));
 
     submit(formData, { method: "post" });
@@ -619,6 +625,7 @@ export default function NudgePopup() {
       selectedTriggerProduct: null,
       selectedTriggerCollection: null,
       selectedUpsellProducts: [],
+      triggerPoint: "add_to_cart",
       triggerTab: "product",
       upsellTab: "product",
       searchQuery: "",
@@ -657,6 +664,7 @@ export default function NudgePopup() {
       selectedTriggerProduct: selectedTriggerProduct,
       selectedTriggerCollection: selectedTriggerCollection,
       selectedUpsellProducts: selectedUpsellProducts,
+      triggerPoint: (rule.triggerPoint as "add_to_cart" | "checkout") || "add_to_cart",
       triggerTab: triggerType === "collection" ? "collection" : "product",
       upsellTab: "product",
       searchQuery: "",
@@ -885,75 +893,6 @@ export default function NudgePopup() {
               </BlockStack>
             </Card>
 
-            {/* Trigger Point Settings */}
-            <Card>
-              <BlockStack gap="400">
-                <Text as="h2" variant="headingMd">
-                  Trigger Point Settings
-                </Text>
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  Choose when the nudge popup should appear
-                </Text>
-                <BlockStack gap="300">
-                  <div
-                    onClick={() => setFormState({ ...formState, triggerPoint: 'add_to_cart' })}
-                    style={{
-                      padding: '12px 16px',
-                      border: `2px solid ${formState.triggerPoint === 'add_to_cart' ? '#4F46E5' : '#E1E3E5'}`,
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      backgroundColor: formState.triggerPoint === 'add_to_cart' ? '#F5F5FF' : 'transparent',
-                      transition: 'all 0.2s',
-                    }}>
-                    <BlockStack gap="200">
-                      <InlineStack gap="200" blockAlign="center">
-                        <input
-                          type="radio"
-                          checked={formState.triggerPoint === 'add_to_cart'}
-                          onChange={() => setFormState({ ...formState, triggerPoint: 'add_to_cart' })}
-                          style={{ cursor: 'pointer' }}
-                        />
-                        <Text as="span" variant="bodyMd" fontWeight="semibold">
-                          Add to Cart
-                        </Text>
-                      </InlineStack>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        Popup appears when user clicks "Add to Cart" on product pages. After selection, cart drawer opens.
-                      </Text>
-                    </BlockStack>
-                  </div>
-
-                  <div
-                    onClick={() => setFormState({ ...formState, triggerPoint: 'checkout' })}
-                    style={{
-                      padding: '12px 16px',
-                      border: `2px solid ${formState.triggerPoint === 'checkout' ? '#4F46E5' : '#E1E3E5'}`,
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      backgroundColor: formState.triggerPoint === 'checkout' ? '#F5F5FF' : 'transparent',
-                      transition: 'all 0.2s',
-                    }}>
-                    <BlockStack gap="200">
-                      <InlineStack gap="200" blockAlign="center">
-                        <input
-                          type="radio"
-                          checked={formState.triggerPoint === 'checkout'}
-                          onChange={() => setFormState({ ...formState, triggerPoint: 'checkout' })}
-                          style={{ cursor: 'pointer' }}
-                        />
-                        <Text as="span" variant="bodyMd" fontWeight="semibold">
-                          Checkout
-                        </Text>
-                      </InlineStack>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        Popup appears when user clicks "Checkout" in cart drawer. After selection, proceeds to checkout page.
-                      </Text>
-                    </BlockStack>
-                  </div>
-                </BlockStack>
-              </BlockStack>
-            </Card>
-
             <Card>
               <BlockStack gap="400">
                 <Text as="h2" variant="headingMd">
@@ -1166,9 +1105,14 @@ export default function NudgePopup() {
                                   />
                                 )}
                                 <BlockStack gap="100">
-                                  <Text as="h3" variant="headingMd">
-                                    {triggerTitle || "Unknown"}
-                                  </Text>
+                                  <InlineStack gap="200" blockAlign="center">
+                                    <Text as="h3" variant="headingMd">
+                                      {triggerTitle || "Unknown"}
+                                    </Text>
+                                    <Badge tone={(rule as any).triggerPoint === "checkout" ? "info" : "success"}>
+                                      {(rule as any).triggerPoint === "checkout" ? "Checkout" : "Add to Cart"}
+                                    </Badge>
+                                  </InlineStack>
                                   <Text as="p" variant="bodySm" tone="subdued">
                                     Trigger: {triggerType} | {products.length} upsell {products.length === 1 ? 'product' : 'products'}
                                   </Text>
@@ -1346,6 +1290,7 @@ export default function NudgePopup() {
             selectedTriggerProduct: null,
             selectedTriggerCollection: null,
             selectedUpsellProducts: [],
+            triggerPoint: "add_to_cart",
             triggerTab: "product",
             upsellTab: "product",
             searchQuery: "",
@@ -1422,6 +1367,17 @@ export default function NudgePopup() {
                   </BlockStack>
                 </Box>
               )}
+
+              <Select
+                label="Trigger Point"
+                options={[
+                  { label: "Add to Cart", value: "add_to_cart" },
+                  { label: "Checkout", value: "checkout" },
+                ]}
+                value={modalConfig.triggerPoint}
+                onChange={(value) => setModalConfig({ ...modalConfig, triggerPoint: value as "add_to_cart" | "checkout" })}
+                helpText="Choose when the nudge popup should appear"
+              />
 
               <Divider />
 

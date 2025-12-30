@@ -540,6 +540,7 @@ model NudgeRule {
   triggerValue     String
   triggerProductId String?
   triggerTitle     String?
+  triggerPoint     String         @default("add_to_cart")
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   products         NudgeProduct[]
@@ -683,6 +684,7 @@ model NudgeAddTogetherRule {
   triggerValue     String
   triggerProductId String?
   triggerTitle     String?
+  triggerPoint     String                    @default("add_to_cart")
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
   products         NudgeAddTogetherProduct[]
