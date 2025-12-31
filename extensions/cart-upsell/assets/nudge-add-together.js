@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Add Together v1.0.5
- * Built: 2025-12-30T15:27:30.971Z
+ * Built: 2025-12-31T08:42:40.992Z
  */
 "use strict";
 (() => {
@@ -8012,6 +8012,7 @@
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                 "button",
                 {
+                  type: "button",
                   className: "upsellity-nudge-close",
                   onClick: onClose,
                   style: {
@@ -8333,6 +8334,7 @@
                         children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                           "button",
                           {
+                            type: "button",
                             className: "upsellity-nudge-continue-btn",
                             onClick: onContinue,
                             disabled: isPreview,
@@ -8373,6 +8375,7 @@
                         children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                           "button",
                           {
+                            type: "button",
                             className: "upsellity-nudge-select-all-btn",
                             onClick: () => !isPreview && onSelectAll && onSelectAll(productsToShow),
                             disabled: isPreview,
@@ -8413,6 +8416,7 @@
                         children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                           "button",
                           {
+                            type: "button",
                             className: "upsellity-nudge-add-selected-btn",
                             onClick: () => !isPreview && onSelectAll && onSelectAll(productsToShow.filter((p) => selectedProductIds.has(p.id))),
                             disabled: isPreview || selectedProductIds.size === 0,
@@ -8893,7 +8897,8 @@
      */
     getCheckoutUrl() {
       if (typeof Shopify !== "undefined" && Shopify.routes && Shopify.routes.root) {
-        return `${Shopify.routes.root}checkout`;
+        const root = Shopify.routes.root.replace(/\/$/, "");
+        return `${root}/checkout`;
       }
       return "/checkout";
     }
@@ -9285,7 +9290,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/nudge-add-together-entry.js
-  var APP_URL = true ? "https://provide-platinum-trivia-meetings.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://freebsd-mechanism-losses-obj.trycloudflare.com" : "https://app.upsellity.com";
   var NudgeAddTogether = class {
     constructor() {
       this.shop = null;
@@ -9751,6 +9756,12 @@
         }, 300);
       }
       this.isOpen = false;
+      if (this.triggerContext === "checkout") {
+        console.log("\u{1F6AA} Popup closed, redirecting to checkout with current cart");
+        setTimeout(() => {
+          window.location.href = cartOps.getCheckoutUrl();
+        }, 350);
+      }
     }
   };
   (function() {

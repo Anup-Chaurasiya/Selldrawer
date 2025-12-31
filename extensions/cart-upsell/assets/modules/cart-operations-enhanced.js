@@ -289,7 +289,9 @@ class CartOperations {
     getCheckoutUrl() {
         // Check for custom checkout URL in theme settings
         if (typeof Shopify !== 'undefined' && Shopify.routes && Shopify.routes.root) {
-            return `${Shopify.routes.root}checkout`;
+            // Remove trailing slash to prevent double slashes
+            const root = Shopify.routes.root.replace(/\/$/, '');
+            return `${root}/checkout`;
         }
 
         return '/checkout';

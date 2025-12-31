@@ -197,6 +197,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
       >
         {/* Close Button */}
         <button
+          type="button"
           className="upsellity-nudge-close"
           onClick={onClose}
           style={{
@@ -510,6 +511,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
               }}
             >
               <button
+                type="button"
                 className="upsellity-nudge-continue-btn"
                 onClick={onContinue}
                 disabled={isPreview}
@@ -548,6 +550,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
               }}
             >
               <button
+                type="button"
                 className="upsellity-nudge-select-all-btn"
                 onClick={() => !isPreview && onSelectAll && onSelectAll(productsToShow)}
                 disabled={isPreview}
@@ -585,6 +588,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
               }}
             >
               <button
+                type="button"
                 className="upsellity-nudge-add-selected-btn"
                 onClick={() => !isPreview && onSelectAll && onSelectAll(productsToShow.filter(p => selectedProductIds.has(p.id)))}
                 disabled={isPreview || selectedProductIds.size === 0}

@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.5
- * Built: 2025-12-30T15:43:54.287Z
+ * Built: 2025-12-31T08:42:40.958Z
  */
 "use strict";
 (() => {
@@ -8009,6 +8009,7 @@
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                 "button",
                 {
+                  type: "button",
                   className: "upsellity-nudge-close",
                   onClick: onClose,
                   style: {
@@ -8330,6 +8331,7 @@
                         children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                           "button",
                           {
+                            type: "button",
                             className: "upsellity-nudge-continue-btn",
                             onClick: onContinue,
                             disabled: isPreview,
@@ -8370,6 +8372,7 @@
                         children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                           "button",
                           {
+                            type: "button",
                             className: "upsellity-nudge-select-all-btn",
                             onClick: () => !isPreview && onSelectAll && onSelectAll(productsToShow),
                             disabled: isPreview,
@@ -8410,6 +8413,7 @@
                         children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                           "button",
                           {
+                            type: "button",
                             className: "upsellity-nudge-add-selected-btn",
                             onClick: () => !isPreview && onSelectAll && onSelectAll(productsToShow.filter((p) => selectedProductIds.has(p.id))),
                             disabled: isPreview || selectedProductIds.size === 0,
@@ -8754,7 +8758,8 @@
      */
     getCheckoutUrl() {
       if (typeof Shopify !== "undefined" && Shopify.routes && Shopify.routes.root) {
-        return `${Shopify.routes.root}checkout`;
+        const root = Shopify.routes.root.replace(/\/$/, "");
+        return `${root}/checkout`;
       }
       return "/checkout";
     }
@@ -9146,7 +9151,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
-  var APP_URL = true ? "https://provide-platinum-trivia-meetings.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://freebsd-mechanism-losses-obj.trycloudflare.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;
@@ -9162,6 +9167,7 @@
       this.triggerContext = null;
       this.matchedProductHandle = null;
       this.matchedCartItem = null;
+      this.isHandlingSelection = false;
       this.init();
     }
     async init() {
@@ -9402,6 +9408,13 @@
       );
     }
     async selectProduct(product) {
+      console.log(`\u{1F3AF} Nudge selectProduct called:`, {
+        product: product.title,
+        variantId: product.variantId || product.id,
+        triggerContext: this.triggerContext,
+        hasMatchedCartItem: !!this.matchedCartItem
+      });
+      this.isHandlingSelection = true;
       this.selectedProduct = product;
       Analytics.track({
         eventType: "click",
@@ -9410,10 +9423,10 @@
         variantId: product.variantId || product.id,
         value: 0
       });
-      this.closePopup();
+      this.hidePopupVisually();
       try {
         if (this.triggerContext === "checkout" && this.matchedCartItem) {
-          console.log(`\u{1F504} Replacing matched product: ${this.matchedCartItem.title}`);
+          console.log(`\u{1F504} Nudge: CHECKOUT trigger - Replacing matched product: ${this.matchedCartItem.title}`);
           const newItem = {
             id: cartOps.normalizeVariantId(product.variantId || product.id),
             quantity: 1,
@@ -9438,14 +9451,15 @@
           await cartOps.waitForCartReady();
           const verified = await cartOps.verifyProductInCart(product.variantId || product.id);
           if (!verified) {
-            console.warn("Product not verified in cart, but proceeding to checkout");
+            console.warn("\u26A0\uFE0F Nudge: Product not verified in cart, but proceeding to checkout");
           }
           cartOps.triggerCartUpdated();
-          console.log("\u2705 Redirecting to checkout with selected product");
-          setTimeout(() => {
-            window.location.href = cartOps.getCheckoutUrl();
-          }, 200);
+          this.cleanupPopup();
+          const checkoutUrl = cartOps.getCheckoutUrl();
+          console.log(`\u2705 Nudge: Redirecting to checkout: ${checkoutUrl}`);
+          window.location.href = checkoutUrl;
         } else {
+          console.log(`\u2795 Nudge: ADD_TO_CART trigger - Adding selected product to cart`);
           const newItem = {
             id: cartOps.normalizeVariantId(product.variantId || product.id),
             quantity: 1,
@@ -9457,6 +9471,7 @@
           if (!result.success) {
             throw new Error(result.error || "Failed to add product");
           }
+          console.log(`\u2705 Nudge: Product added successfully to cart`);
           Analytics.track({
             eventType: "add_to_cart",
             component: "nudge",
@@ -9465,24 +9480,36 @@
             value: product.price
           });
           cartOps.triggerCartUpdated();
+          this.cleanupPopup();
+          console.log(`\u{1F4C2} Nudge: Opening cart drawer`);
           this.openCartDrawer();
         }
       } catch (error) {
-        console.error("Error in selectProduct:", error);
+        console.error("\u274C Nudge: Error in selectProduct:", error);
+        this.cleanupPopup();
         showNotification(
           error.message || "Failed to update cart. Please try again.",
           "error",
           5e3
         );
         if (this.triggerContext === "checkout") {
+          const checkoutUrl = cartOps.getCheckoutUrl();
+          console.log(`\u{1F504} Nudge: Error occurred, but redirecting to checkout anyway: ${checkoutUrl}`);
           setTimeout(() => {
-            window.location.href = cartOps.getCheckoutUrl();
+            window.location.href = checkoutUrl;
           }, 1e3);
         }
       }
     }
     async selectAllProducts(products) {
-      this.closePopup();
+      console.log(`\u{1F3AF} Nudge selectAllProducts called:`, {
+        productCount: products.length,
+        triggerContext: this.triggerContext,
+        hasMatchedCartItem: !!this.matchedCartItem
+      });
+      this.isHandlingSelection = true;
+      this.selectedProduct = products[0];
+      this.hidePopupVisually();
       try {
         let originalKey = null;
         if (this.triggerContext === "checkout" && this.matchedCartItem) {
@@ -9541,6 +9568,7 @@
         if (!addResult.success) {
           throw new Error(addResult.error || "Failed to add products to cart");
         }
+        console.log(`\u2705 Nudge: ${itemsToAdd.length} products added successfully to cart`);
         products.forEach((product, index) => {
           if (index < itemsToAdd.length) {
             Analytics.track({
@@ -9561,24 +9589,28 @@
         }
         await cartOps.waitForCartReady();
         cartOps.triggerCartUpdated();
+        this.cleanupPopup();
         if (this.triggerContext === "checkout") {
-          console.log("\u2705 Redirecting to checkout with all products");
-          setTimeout(() => {
-            window.location.href = cartOps.getCheckoutUrl();
-          }, 200);
+          const checkoutUrl = cartOps.getCheckoutUrl();
+          console.log(`\u2705 Nudge: Redirecting to checkout: ${checkoutUrl}`);
+          window.location.href = checkoutUrl;
         } else {
+          console.log(`\u{1F4C2} Nudge: Opening cart drawer`);
           this.openCartDrawer();
         }
       } catch (error) {
-        console.error("Error in selectAllProducts:", error);
+        console.error("\u274C Nudge: Error in selectAllProducts:", error);
+        this.cleanupPopup();
         showNotification(
           error.message || "Failed to update cart. Please try again.",
           "error",
           5e3
         );
         if (this.triggerContext === "checkout") {
+          const checkoutUrl = cartOps.getCheckoutUrl();
+          console.log(`\u{1F504} Nudge: Error occurred, but redirecting to checkout anyway: ${checkoutUrl}`);
           setTimeout(() => {
-            window.location.href = cartOps.getCheckoutUrl();
+            window.location.href = checkoutUrl;
           }, 1e3);
         }
       }
@@ -9629,6 +9661,30 @@
         }
       }, 200);
     }
+    /**
+     * Hide popup visually without triggering redirect logic
+     * Used during selection flow before cart operations complete
+     */
+    hidePopupVisually() {
+      const container = document.getElementById("upsellity-nudge-popup-root");
+      if (container) {
+        container.style.opacity = "0";
+        container.style.pointerEvents = "none";
+      }
+    }
+    /**
+     * Clean up popup completely without triggering redirect
+     * Used after selection flow cart operations complete  
+     */
+    cleanupPopup() {
+      const container = document.getElementById("upsellity-nudge-popup-root");
+      if (container && this.reactRoot) {
+        this.reactRoot.unmount();
+        container.remove();
+      }
+      this.isOpen = false;
+      this.isHandlingSelection = false;
+    }
     closePopup() {
       const container = document.getElementById("upsellity-nudge-popup-root");
       if (container && this.reactRoot) {
@@ -9638,11 +9694,20 @@
         }, 300);
       }
       this.isOpen = false;
-      if (this.triggerContext === "checkout") {
-        console.log("\u{1F6AA} Popup closed, redirecting to checkout with current cart");
+      if (this.isHandlingSelection) {
+        console.log("\u2705 Nudge: Popup closed during selection flow (redirect handled by selection method)");
+        return;
+      }
+      if (this.triggerContext === "checkout" && !this.selectedProduct) {
+        console.log("\u{1F6AA} Nudge: Popup closed without selection, redirecting to checkout with current cart");
+        const checkoutUrl = cartOps.getCheckoutUrl();
         setTimeout(() => {
-          window.location.href = cartOps.getCheckoutUrl();
+          window.location.href = checkoutUrl;
         }, 350);
+      } else if (this.selectedProduct) {
+        console.log("\u2705 Nudge: Popup closed after product selection (redirect handled by selectProduct)");
+      } else {
+        console.log("\u2705 Nudge: Popup closed (add_to_cart context, no redirect needed)");
       }
     }
   };
