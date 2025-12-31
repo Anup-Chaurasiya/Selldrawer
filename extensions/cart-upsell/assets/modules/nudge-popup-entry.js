@@ -129,12 +129,19 @@ class NudgePopup {
     // Intercept all "Add to Cart" buttons
     const addToCartButtons = document.querySelectorAll('[name="add"], [data-add-to-cart], button[type="submit"][name="add"], form[action*="/cart/add"] button[type="submit"]');
 
+    console.log('🎯 Nudge: Setting up add-to-cart interceptor, found', addToCartButtons.length, 'buttons');
+    console.log('🎯 Nudge: recommendations:', this.recommendations.length, 'showOnAddToCart:', this.config?.showOnAddToCart);
+
     addToCartButtons.forEach(button => {
       button.addEventListener('click', async (e) => {
+        console.log('🛒 Nudge: Add to cart button clicked, recommendations:', this.recommendations.length, 'showOnAddToCart:', this.config?.showOnAddToCart);
+
         // Only intercept if we have recommendations
         if (this.recommendations.length > 0 && this.config.showOnAddToCart) {
           e.preventDefault();
           e.stopPropagation();
+
+          console.log('✅ Nudge: Intercepting add-to-cart, showing popup');
 
           this.triggerContext = 'add_to_cart';
           this.originalAddToCartButton = button;
@@ -159,6 +166,8 @@ class NudgePopup {
           } else {
             this.showPopup();
           }
+        } else {
+          console.log('⏭️ Nudge: Not intercepting add-to-cart (no recommendations or showOnAddToCart is false)');
         }
       }, true);
     });
@@ -292,7 +301,27 @@ class NudgePopup {
   }
 
   showPopup() {
-    if (this.isOpen) return;
+    console.log('🔔 Nudge: showPopup called, isOpen:', this.isOpen);
+
+    // Clean up any existing popup container first (in case of stale state)
+    const existingContainer = document.getElementById('upsellity-nudge-popup-root');
+    if (existingContainer) {
+      console.log('🧹 Nudge: Cleaning up existing popup container');
+      existingContainer.remove();
+      if (this.reactRoot) {
+        try {
+          this.reactRoot.unmount();
+        } catch (e) {
+          // Ignore unmount errors
+        }
+      }
+      this.isOpen = false;
+    }
+
+    if (this.isOpen) {
+      console.log('⚠️ Nudge: Popup already open, skipping');
+      return;
+    }
 
     this.isOpen = true;
     this.renderPopup();
@@ -454,6 +483,9 @@ class NudgePopup {
     } catch (error) {
       console.error('❌ Nudge: Error in selectProduct:', error);
 
+      // Save trigger context before cleanup (cleanup resets it)
+      const shouldRedirectToCheckout = this.triggerContext === 'checkout';
+
       // Clean up popup
       this.cleanupPopup();
 
@@ -464,7 +496,7 @@ class NudgePopup {
       );
 
       // If checkout trigger, still try to proceed
-      if (this.triggerContext === 'checkout') {
+      if (shouldRedirectToCheckout) {
         const checkoutUrl = cartOps.getCheckoutUrl();
         console.log(`🔄 Nudge: Error occurred, but redirecting to checkout anyway: ${checkoutUrl}`);
         setTimeout(() => {
@@ -594,11 +626,14 @@ class NudgePopup {
       // Trigger cart update event
       cartOps.triggerCartUpdated();
 
+      // Save trigger context before cleanup (cleanup resets it)
+      const shouldRedirectToCheckout = this.triggerContext === 'checkout';
+
       // Clean up popup completely
       this.cleanupPopup();
 
       // Navigate based on trigger context
-      if (this.triggerContext === 'checkout') {
+      if (shouldRedirectToCheckout) {
         const checkoutUrl = cartOps.getCheckoutUrl();
         console.log(`✅ Nudge: Redirecting to checkout: ${checkoutUrl}`);
         window.location.href = checkoutUrl;
@@ -610,6 +645,9 @@ class NudgePopup {
     } catch (error) {
       console.error('❌ Nudge: Error in selectAllProducts:', error);
 
+      // Save trigger context before cleanup (cleanup resets it)
+      const shouldRedirectToCheckout = this.triggerContext === 'checkout';
+
       // Clean up popup
       this.cleanupPopup();
 
@@ -620,7 +658,7 @@ class NudgePopup {
       );
 
       // If checkout trigger, still try to proceed
-      if (this.triggerContext === 'checkout') {
+      if (shouldRedirectToCheckout) {
         const checkoutUrl = cartOps.getCheckoutUrl();
         console.log(`🔄 Nudge: Error occurred, but redirecting to checkout anyway: ${checkoutUrl}`);
         setTimeout(() => {
@@ -720,8 +758,12 @@ class NudgePopup {
       this.reactRoot.unmount();
       container.remove();
     }
+    // Reset all state so popup can show again
     this.isOpen = false;
     this.isHandlingSelection = false;
+    this.selectedProduct = null;
+    this.triggerContext = null;
+    this.matchedCartItem = null;
   }
 
   closePopup() {
@@ -757,6 +799,13 @@ class NudgePopup {
       console.log('✅ Nudge: Popup closed after product selection (redirect handled by selectProduct)');
     } else {
       console.log('✅ Nudge: Popup closed (add_to_cart context, no redirect needed)');
+    }
+
+    // Reset state so popup can show again (only if not redirecting to checkout)
+    if (!(this.triggerContext === 'checkout' && !this.selectedProduct)) {
+      this.selectedProduct = null;
+      this.triggerContext = null;
+      this.matchedCartItem = null;
     }
   }
 }

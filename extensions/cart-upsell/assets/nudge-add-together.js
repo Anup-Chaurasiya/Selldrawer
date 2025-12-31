@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Add Together v1.0.5
- * Built: 2025-12-31T08:42:40.992Z
+ * Built: 2025-12-31T10:27:34.597Z
  */
 "use strict";
 (() => {
@@ -9307,6 +9307,8 @@
       this.triggerContext = null;
       this.matchedProductHandle = null;
       this.matchedCartItem = null;
+      this.isHandlingSelection = false;
+      this.selectedProducts = null;
       this.init();
     }
     async init() {
@@ -9628,8 +9630,23 @@
       }
     }
     showPopup() {
-      if (this.isOpen)
+      console.log("\u{1F514} Nudge Add Together: showPopup called, isOpen:", this.isOpen);
+      const existingContainer = document.getElementById("upsellity-nudge-add-together-root");
+      if (existingContainer) {
+        console.log("\u{1F9F9} Nudge Add Together: Cleaning up existing popup container");
+        existingContainer.remove();
+        if (this.reactRoot) {
+          try {
+            this.reactRoot.unmount();
+          } catch (e) {
+          }
+        }
+        this.isOpen = false;
+      }
+      if (this.isOpen) {
+        console.log("\u26A0\uFE0F Nudge Add Together: Popup already open, skipping");
         return;
+      }
       this.isOpen = true;
       this.renderPopup();
     }
@@ -9650,7 +9667,13 @@
       );
     }
     async addSelectedProducts(selectedProducts) {
-      this.closePopup();
+      console.log(`\u{1F3AF} Nudge Add Together: addSelectedProducts called:`, {
+        productCount: selectedProducts.length,
+        triggerContext: this.triggerContext
+      });
+      this.isHandlingSelection = true;
+      this.selectedProducts = selectedProducts;
+      this.hidePopupVisually();
       try {
         const itemsToAdd = [];
         const failedProducts = [];
@@ -9693,6 +9716,7 @@
           if (!addResult.success) {
             throw new Error(addResult.error || "Failed to add selected products to cart");
           }
+          console.log(`\u2705 Nudge Add Together: ${itemsToAdd.length} products added successfully`);
           selectedProducts.forEach((product, index) => {
             if (index < itemsToAdd.length) {
               Analytics.track({
@@ -9714,24 +9738,30 @@
         }
         await cartOps.waitForCartReady();
         cartOps.triggerCartUpdated();
-        if (this.triggerContext === "checkout") {
-          console.log("\u2705 Redirecting to checkout with added products");
-          setTimeout(() => {
-            window.location.href = cartOps.getCheckoutUrl();
-          }, 200);
+        const shouldRedirectToCheckout = this.triggerContext === "checkout";
+        this.cleanupPopup();
+        if (shouldRedirectToCheckout) {
+          const checkoutUrl = cartOps.getCheckoutUrl();
+          console.log(`\u2705 Nudge Add Together: Redirecting to checkout: ${checkoutUrl}`);
+          window.location.href = checkoutUrl;
         } else {
+          console.log(`\u{1F4C2} Nudge Add Together: Opening cart drawer`);
           this.openCartDrawer();
         }
       } catch (error) {
-        console.error("Error in addSelectedProducts:", error);
+        console.error("\u274C Nudge Add Together: Error in addSelectedProducts:", error);
+        const shouldRedirectToCheckout = this.triggerContext === "checkout";
+        this.cleanupPopup();
         showNotification(
           error.message || "Failed to update cart. Please try again.",
           "error",
           5e3
         );
-        if (this.triggerContext === "checkout") {
+        if (shouldRedirectToCheckout) {
+          const checkoutUrl = cartOps.getCheckoutUrl();
+          console.log(`\u{1F504} Nudge Add Together: Error occurred, but redirecting to checkout anyway: ${checkoutUrl}`);
           setTimeout(() => {
-            window.location.href = cartOps.getCheckoutUrl();
+            window.location.href = checkoutUrl;
           }, 1e3);
         }
       }
@@ -9747,6 +9777,33 @@
         }
       }, 200);
     }
+    /**
+     * Hide popup visually without triggering redirect logic
+     * Used during selection flow before cart operations complete
+     */
+    hidePopupVisually() {
+      const container = document.getElementById("upsellity-nudge-add-together-root");
+      if (container) {
+        container.style.opacity = "0";
+        container.style.pointerEvents = "none";
+      }
+    }
+    /**
+     * Clean up popup completely without triggering redirect
+     * Used after selection flow cart operations complete  
+     */
+    cleanupPopup() {
+      const container = document.getElementById("upsellity-nudge-add-together-root");
+      if (container && this.reactRoot) {
+        this.reactRoot.unmount();
+        container.remove();
+      }
+      this.isOpen = false;
+      this.isHandlingSelection = false;
+      this.selectedProducts = null;
+      this.triggerContext = null;
+      this.matchedCartItem = null;
+    }
     closePopup() {
       const container = document.getElementById("upsellity-nudge-add-together-root");
       if (container && this.reactRoot) {
@@ -9756,11 +9813,20 @@
         }, 300);
       }
       this.isOpen = false;
+      if (this.isHandlingSelection) {
+        console.log("\u2705 Nudge Add Together: Popup closed during selection flow (redirect handled by selection method)");
+        return;
+      }
       if (this.triggerContext === "checkout") {
-        console.log("\u{1F6AA} Popup closed, redirecting to checkout with current cart");
+        console.log("\u{1F6AA} Nudge Add Together: Popup closed without selection, redirecting to checkout");
+        const checkoutUrl = cartOps.getCheckoutUrl();
         setTimeout(() => {
-          window.location.href = cartOps.getCheckoutUrl();
+          window.location.href = checkoutUrl;
         }, 350);
+      } else {
+        this.selectedProducts = null;
+        this.triggerContext = null;
+        this.matchedCartItem = null;
       }
     }
   };

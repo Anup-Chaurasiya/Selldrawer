@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.5
- * Built: 2025-12-31T08:42:40.958Z
+ * Built: 2025-12-31T10:27:34.557Z
  */
 "use strict";
 (() => {
@@ -9237,20 +9237,25 @@
       return null;
     }
     setupAddToCartInterceptor() {
+      var _a2;
       const addToCartButtons = document.querySelectorAll('[name="add"], [data-add-to-cart], button[type="submit"][name="add"], form[action*="/cart/add"] button[type="submit"]');
+      console.log("\u{1F3AF} Nudge: Setting up add-to-cart interceptor, found", addToCartButtons.length, "buttons");
+      console.log("\u{1F3AF} Nudge: recommendations:", this.recommendations.length, "showOnAddToCart:", (_a2 = this.config) == null ? void 0 : _a2.showOnAddToCart);
       addToCartButtons.forEach((button) => {
         button.addEventListener("click", async (e) => {
-          var _a2;
+          var _a3, _b;
+          console.log("\u{1F6D2} Nudge: Add to cart button clicked, recommendations:", this.recommendations.length, "showOnAddToCart:", (_a3 = this.config) == null ? void 0 : _a3.showOnAddToCart);
           if (this.recommendations.length > 0 && this.config.showOnAddToCart) {
             e.preventDefault();
             e.stopPropagation();
+            console.log("\u2705 Nudge: Intercepting add-to-cart, showing popup");
             this.triggerContext = "add_to_cart";
             this.originalAddToCartButton = button;
             this.currentProduct = await this.getCurrentProductData();
             const form = button.closest("form");
             if (form) {
               const formData = new FormData(form);
-              const variantId = formData.get("id") || formData.get("variant_id") || ((_a2 = form.querySelector('[name="id"]')) == null ? void 0 : _a2.value);
+              const variantId = formData.get("id") || formData.get("variant_id") || ((_b = form.querySelector('[name="id"]')) == null ? void 0 : _b.value);
               if (variantId) {
                 this.originalProductVariantId = variantId.toString();
               } else if (this.currentProduct && this.currentProduct.variants && this.currentProduct.variants.length > 0) {
@@ -9262,6 +9267,8 @@
             } else {
               this.showPopup();
             }
+          } else {
+            console.log("\u23ED\uFE0F Nudge: Not intercepting add-to-cart (no recommendations or showOnAddToCart is false)");
           }
         }, true);
       });
@@ -9367,8 +9374,23 @@
       return null;
     }
     showPopup() {
-      if (this.isOpen)
+      console.log("\u{1F514} Nudge: showPopup called, isOpen:", this.isOpen);
+      const existingContainer = document.getElementById("upsellity-nudge-popup-root");
+      if (existingContainer) {
+        console.log("\u{1F9F9} Nudge: Cleaning up existing popup container");
+        existingContainer.remove();
+        if (this.reactRoot) {
+          try {
+            this.reactRoot.unmount();
+          } catch (e) {
+          }
+        }
+        this.isOpen = false;
+      }
+      if (this.isOpen) {
+        console.log("\u26A0\uFE0F Nudge: Popup already open, skipping");
         return;
+      }
       this.isOpen = true;
       this.renderPopup();
     }
@@ -9486,13 +9508,14 @@
         }
       } catch (error) {
         console.error("\u274C Nudge: Error in selectProduct:", error);
+        const shouldRedirectToCheckout = this.triggerContext === "checkout";
         this.cleanupPopup();
         showNotification(
           error.message || "Failed to update cart. Please try again.",
           "error",
           5e3
         );
-        if (this.triggerContext === "checkout") {
+        if (shouldRedirectToCheckout) {
           const checkoutUrl = cartOps.getCheckoutUrl();
           console.log(`\u{1F504} Nudge: Error occurred, but redirecting to checkout anyway: ${checkoutUrl}`);
           setTimeout(() => {
@@ -9589,8 +9612,9 @@
         }
         await cartOps.waitForCartReady();
         cartOps.triggerCartUpdated();
+        const shouldRedirectToCheckout = this.triggerContext === "checkout";
         this.cleanupPopup();
-        if (this.triggerContext === "checkout") {
+        if (shouldRedirectToCheckout) {
           const checkoutUrl = cartOps.getCheckoutUrl();
           console.log(`\u2705 Nudge: Redirecting to checkout: ${checkoutUrl}`);
           window.location.href = checkoutUrl;
@@ -9600,13 +9624,14 @@
         }
       } catch (error) {
         console.error("\u274C Nudge: Error in selectAllProducts:", error);
+        const shouldRedirectToCheckout = this.triggerContext === "checkout";
         this.cleanupPopup();
         showNotification(
           error.message || "Failed to update cart. Please try again.",
           "error",
           5e3
         );
-        if (this.triggerContext === "checkout") {
+        if (shouldRedirectToCheckout) {
           const checkoutUrl = cartOps.getCheckoutUrl();
           console.log(`\u{1F504} Nudge: Error occurred, but redirecting to checkout anyway: ${checkoutUrl}`);
           setTimeout(() => {
@@ -9684,6 +9709,9 @@
       }
       this.isOpen = false;
       this.isHandlingSelection = false;
+      this.selectedProduct = null;
+      this.triggerContext = null;
+      this.matchedCartItem = null;
     }
     closePopup() {
       const container = document.getElementById("upsellity-nudge-popup-root");
@@ -9708,6 +9736,11 @@
         console.log("\u2705 Nudge: Popup closed after product selection (redirect handled by selectProduct)");
       } else {
         console.log("\u2705 Nudge: Popup closed (add_to_cart context, no redirect needed)");
+      }
+      if (!(this.triggerContext === "checkout" && !this.selectedProduct)) {
+        this.selectedProduct = null;
+        this.triggerContext = null;
+        this.matchedCartItem = null;
       }
     }
   };
