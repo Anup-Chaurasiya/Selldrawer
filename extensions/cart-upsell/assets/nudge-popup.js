@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.5
- * Built: 2025-12-31T10:27:34.557Z
+ * Built: 2025-12-31T11:00:07.115Z
  */
 "use strict";
 (() => {
@@ -9395,7 +9395,7 @@
       this.renderPopup();
     }
     renderPopup() {
-      var _a2;
+      var _a2, _b, _c, _d;
       const container = document.createElement("div");
       container.id = "upsellity-nudge-popup-root";
       document.body.appendChild(container);
@@ -9405,6 +9405,34 @@
           title: this.matchedCartItem.title || this.matchedCartItem.product_title,
           imageUrl: this.matchedCartItem.image || ((_a2 = this.matchedCartItem.featured_image) == null ? void 0 : _a2.url),
           price: this.matchedCartItem.price || this.matchedCartItem.final_price
+        };
+      } else if (this.triggerContext === "add_to_cart" && this.currentProduct) {
+        const variant = ((_b = this.currentProduct.variants) == null ? void 0 : _b.find((v) => {
+          if (!v || !v.id)
+            return false;
+          const vId = String(v.id).replace("gid://shopify/ProductVariant/", "").replace(/\D/g, "");
+          const origId = this.originalProductVariantId ? String(this.originalProductVariantId).replace(/\D/g, "") : null;
+          return origId && vId === origId;
+        })) || ((_c = this.currentProduct.variants) == null ? void 0 : _c[0]);
+        console.log("\u{1F50D} Nudge: Variant price debug:", {
+          variantPrice: variant == null ? void 0 : variant.price,
+          variantPriceType: typeof (variant == null ? void 0 : variant.price),
+          currentProduct: this.currentProduct.title
+        });
+        let priceInCents = 0;
+        if (variant && variant.price) {
+          const priceValue = parseFloat(variant.price);
+          if (priceValue > 1e3 && priceValue === Math.floor(priceValue)) {
+            priceInCents = Math.round(priceValue / 100) * 100;
+          } else {
+            priceInCents = Math.round(priceValue) * 100;
+          }
+        }
+        console.log("\u{1F4B0} Nudge: Calculated price in cents:", priceInCents);
+        replacingProduct = {
+          title: this.currentProduct.title || "",
+          imageUrl: this.currentProduct.featured_image || this.currentProduct.images && ((_d = this.currentProduct.images[0]) == null ? void 0 : _d.src) || null,
+          price: priceInCents
         };
       }
       this.reactRoot = (0, import_client.createRoot)(container);

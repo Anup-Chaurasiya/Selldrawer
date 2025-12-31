@@ -333,13 +333,54 @@ class NudgePopup {
     container.id = 'upsellity-nudge-popup-root';
     document.body.appendChild(container);
 
-    // Prepare replacing product info for checkout trigger
+    // Prepare replacing product info for display
     let replacingProduct = null;
     if (this.triggerContext === 'checkout' && this.matchedCartItem) {
+      // For checkout trigger, use the matched cart item
       replacingProduct = {
         title: this.matchedCartItem.title || this.matchedCartItem.product_title,
         imageUrl: this.matchedCartItem.image || this.matchedCartItem.featured_image?.url,
         price: this.matchedCartItem.price || this.matchedCartItem.final_price
+      };
+    } else if (this.triggerContext === 'add_to_cart' && this.currentProduct) {
+      // For add_to_cart trigger, use the current product being added
+      const variant = this.currentProduct.variants?.find(v => {
+        if (!v || !v.id) return false;
+        const vId = String(v.id).replace('gid://shopify/ProductVariant/', '').replace(/\D/g, '');
+        const origId = this.originalProductVariantId ? String(this.originalProductVariantId).replace(/\D/g, '') : null;
+        return origId && vId === origId;
+      }) || this.currentProduct.variants?.[0];
+
+      // Debug: Log the variant price to see its actual format
+      console.log('🔍 Nudge: Variant price debug:', {
+        variantPrice: variant?.price,
+        variantPriceType: typeof variant?.price,
+        currentProduct: this.currentProduct.title
+      });
+
+      // Shopify product prices can be in different formats:
+      // - String with decimals: "729.95"
+      // - Number with decimals: 729.95
+      // - Already in cents: 72995
+      // We need to handle all cases
+      let priceInCents = 0;
+      if (variant && variant.price) {
+        const priceValue = parseFloat(variant.price);
+        // If price is > 1000 and has no decimals, it's likely already in cents
+        if (priceValue > 1000 && priceValue === Math.floor(priceValue)) {
+          priceInCents = Math.round(priceValue / 100) * 100; // Round to nearest whole currency unit
+        } else {
+          // Price is in currency format, convert to cents
+          priceInCents = Math.round(priceValue) * 100;
+        }
+      }
+
+      console.log('💰 Nudge: Calculated price in cents:', priceInCents);
+
+      replacingProduct = {
+        title: this.currentProduct.title || '',
+        imageUrl: this.currentProduct.featured_image || (this.currentProduct.images && this.currentProduct.images[0]?.src) || null,
+        price: priceInCents
       };
     }
 

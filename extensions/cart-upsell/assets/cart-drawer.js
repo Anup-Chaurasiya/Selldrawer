@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.5
- * Built: 2025-12-31T10:27:34.482Z
+ * Built: 2025-12-31T10:59:40.644Z
  */
 "use strict";
 (() => {
