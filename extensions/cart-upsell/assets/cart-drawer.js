@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.5
- * Built: 2026-01-02T07:39:19.575Z
+ * Built: 2026-01-02T11:37:32.634Z
  */
 "use strict";
 (() => {
@@ -8708,13 +8708,16 @@
         console.warn("Upsellity: Product ID not found in cart item");
         return;
       }
-      const intent = recommendationType === "complementary" ? "complementary" : "related";
       const maxProducts = recommendations.maxProducts || 4;
-      const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=${maxProducts}`;
-      const response = await fetch(recommendationsUrl);
-      if (response.ok) {
+      const fetchRecommendationsByIntent = async (intent) => {
+        const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=${maxProducts}`;
+        const response = await fetch(recommendationsUrl);
+        if (!response.ok) {
+          return null;
+        }
         const data = await response.json();
-        const shopifyRecommendations = (data.products || []).map((product) => {
+        const rawProducts = data.products || [];
+        const shopifyRecommendations = rawProducts.map((product) => {
           var _a3, _b, _c;
           let variantId = null;
           if ((_b = (_a3 = product.variants) == null ? void 0 : _a3[0]) == null ? void 0 : _b.id) {
@@ -8726,7 +8729,7 @@
             }
           }
           const variant = (_c = product.variants) == null ? void 0 : _c[0];
-          const isAvailable = variant ? variant.available !== false && (variant.inventory_management === null || variant.inventory_quantity === null || variant.inventory_quantity > 0) : false;
+          const isAvailable = variant ? variant.available !== false && (variant.inventory_management === null || variant.inventory_quantity === null || variant.inventory_quantity === void 0 || variant.inventory_quantity > 0) : false;
           return {
             shopifyProductId: product.handle,
             shopifyVariantId: variantId,
@@ -8739,7 +8742,6 @@
             available: isAvailable
           };
         }).filter((rec) => rec.available);
-        const cartProductIds = new Set(cart.items.map((item) => item.product_id.toString()));
         const filteredRecommendations = shopifyRecommendations.filter((rec) => {
           const productInCart = cart.items.some((item) => {
             if (item.handle && item.handle === rec.handle) {
@@ -8749,12 +8751,21 @@
           });
           return !productInCart;
         });
-        if (!recommendations.products) {
-          recommendations.products = [];
-        }
-        recommendations.products = filteredRecommendations.slice(0, maxProducts);
+        return filteredRecommendations;
+      };
+      const primaryIntent = recommendationType === "complementary" ? "complementary" : "related";
+      let finalRecommendations = await fetchRecommendationsByIntent(primaryIntent);
+      let didFallback = false;
+      if (recommendationType === "complementary" && (!finalRecommendations || finalRecommendations.length === 0)) {
+        finalRecommendations = await fetchRecommendationsByIntent("related");
+        didFallback = true;
+      }
+      if (!recommendations.products) {
+        recommendations.products = [];
+      }
+      if (finalRecommendations && finalRecommendations.length > 0) {
+        recommendations.products = finalRecommendations.slice(0, maxProducts);
       } else {
-        console.warn(`Upsellity: Failed to fetch Shopify recommendations (${response.status} ${response.statusText}). Shopify recommendations may not be enabled for your store.`);
         recommendations.products = [];
       }
     } catch (error) {

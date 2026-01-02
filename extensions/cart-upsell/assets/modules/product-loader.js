@@ -7,7 +7,7 @@
  */
 export async function loadProductCompareAtPrices(cart) {
   const productCompareAtPrices = {};
-  
+
   if (!cart || !cart.items) {
     return productCompareAtPrices;
   }
@@ -21,14 +21,14 @@ export async function loadProductCompareAtPrices(cart) {
   for (const item of itemsToFetch) {
     try {
       let productHandle = item.handle;
-      
+
       if (!productHandle && item.url) {
         const urlMatch = item.url.match(/\/products\/([^\/]+)/);
         if (urlMatch) {
           productHandle = urlMatch[1];
         }
       }
-      
+
       if (productHandle) {
         const productResponse = await fetch(`/products/${productHandle}.js`);
         if (productResponse.ok) {
@@ -36,23 +36,23 @@ export async function loadProductCompareAtPrices(cart) {
           const variant = product.variants.find(v => {
             const variantId = v.id.toString();
             const itemVariantId = item.variant_id.toString();
-            return variantId === itemVariantId || 
-                   variantId.replace('gid://shopify/ProductVariant/', '') === itemVariantId ||
-                   variantId === itemVariantId.replace('gid://shopify/ProductVariant/', '');
+            return variantId === itemVariantId ||
+              variantId.replace('gid://shopify/ProductVariant/', '') === itemVariantId ||
+              variantId === itemVariantId.replace('gid://shopify/ProductVariant/', '');
           });
-          
+
           if (variant && variant.compare_at_price) {
             let compareAtPrice;
             if (typeof variant.compare_at_price === 'string') {
               compareAtPrice = parseInt(variant.compare_at_price, 10);
             } else if (typeof variant.compare_at_price === 'number') {
-              compareAtPrice = variant.compare_at_price > 1000 
-                ? Math.round(variant.compare_at_price) 
+              compareAtPrice = variant.compare_at_price > 1000
+                ? Math.round(variant.compare_at_price)
                 : Math.round(variant.compare_at_price * 100);
             } else {
               compareAtPrice = Math.round(parseFloat(variant.compare_at_price) * 100);
             }
-            
+
             if (compareAtPrice > 0) {
               productCompareAtPrices[item.variant_id] = compareAtPrice;
             }
@@ -63,7 +63,7 @@ export async function loadProductCompareAtPrices(cart) {
       console.warn('Failed to load compare_at_price for product:', item.title, error);
     }
   }
-  
+
   return productCompareAtPrices;
 }
 
@@ -77,7 +77,7 @@ export async function loadShopifyRecommendations(cart, config) {
   }
 
   const recommendationType = recommendations.recommendationType;
-  
+
   if (recommendationType !== 'related' && recommendationType !== 'complementary') {
     return;
   }
@@ -89,22 +89,27 @@ export async function loadShopifyRecommendations(cart, config) {
   try {
     const firstItem = cart.items[0];
     const productId = firstItem.product_id;
-    
+
     if (!productId) {
       console.warn('Upsellity: Product ID not found in cart item');
       return;
     }
 
-    const intent = recommendationType === 'complementary' ? 'complementary' : 'related';
     const maxProducts = recommendations.maxProducts || 4;
-    
-    const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=${maxProducts}`;
-    
-    const response = await fetch(recommendationsUrl);
-    
-    if (response.ok) {
+
+    // Helper function to fetch recommendations by intent
+    const fetchRecommendationsByIntent = async (intent) => {
+      const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=${maxProducts}`;
+      const response = await fetch(recommendationsUrl);
+
+      if (!response.ok) {
+        return null;
+      }
+
       const data = await response.json();
-      const shopifyRecommendations = (data.products || [])
+      const rawProducts = data.products || [];
+
+      const shopifyRecommendations = rawProducts
         .map(product => {
           let variantId = null;
           if (product.variants?.[0]?.id) {
@@ -115,23 +120,24 @@ export async function loadShopifyRecommendations(cart, config) {
               variantId = idStr;
             }
           }
-          
+
           const variant = product.variants?.[0];
           const isAvailable = variant ? (
-            variant.available !== false && 
-            (variant.inventory_management === null || 
-             variant.inventory_quantity === null || 
-             variant.inventory_quantity > 0)
+            variant.available !== false &&
+            (variant.inventory_management === null ||
+              variant.inventory_quantity === null ||
+              variant.inventory_quantity === undefined ||
+              variant.inventory_quantity > 0)
           ) : false;
-          
+
           return {
             shopifyProductId: product.handle,
             shopifyVariantId: variantId,
             title: product.title,
             handle: product.handle,
             price: variant?.price ? parseFloat(variant.price) / 100 : 0,
-            compareAtPrice: variant?.compare_at_price 
-              ? parseFloat(variant.compare_at_price) / 100 
+            compareAtPrice: variant?.compare_at_price
+              ? parseFloat(variant.compare_at_price) / 100
               : null,
             imageUrl: product.featured_image,
             position: 0,
@@ -140,7 +146,7 @@ export async function loadShopifyRecommendations(cart, config) {
         })
         .filter(rec => rec.available);
 
-      const cartProductIds = new Set(cart.items.map(item => item.product_id.toString()));
+      // Filter out products already in cart
       const filteredRecommendations = shopifyRecommendations.filter(rec => {
         const productInCart = cart.items.some(item => {
           if (item.handle && item.handle === rec.handle) {
@@ -151,14 +157,33 @@ export async function loadShopifyRecommendations(cart, config) {
         return !productInCart;
       });
 
-      if (!recommendations.products) {
-        recommendations.products = [];
-      }
-      recommendations.products = filteredRecommendations.slice(0, maxProducts);
-    } else {
-      console.warn(`Upsellity: Failed to fetch Shopify recommendations (${response.status} ${response.statusText}). Shopify recommendations may not be enabled for your store.`);
+      return filteredRecommendations;
+    };
+
+    // Determine initial intent based on recommendation type
+    const primaryIntent = recommendationType === 'complementary' ? 'complementary' : 'related';
+
+    // Fetch primary recommendations
+    let finalRecommendations = await fetchRecommendationsByIntent(primaryIntent);
+    let didFallback = false;
+
+    // If complementary returns empty and we want complementary, fallback to related
+    if (recommendationType === 'complementary' && (!finalRecommendations || finalRecommendations.length === 0)) {
+      finalRecommendations = await fetchRecommendationsByIntent('related');
+      didFallback = true;
+    }
+
+    // Set the final recommendations
+    if (!recommendations.products) {
       recommendations.products = [];
     }
+
+    if (finalRecommendations && finalRecommendations.length > 0) {
+      recommendations.products = finalRecommendations.slice(0, maxProducts);
+    } else {
+      recommendations.products = [];
+    }
+
   } catch (error) {
     console.error('Upsellity: Error loading Shopify recommendations:', error);
     if (recommendations) {
