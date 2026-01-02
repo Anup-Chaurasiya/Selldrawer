@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.5
- * Built: 2026-01-02T07:00:07.003Z
+ * Built: 2026-01-02T14:15:09.078Z
  */
 "use strict";
 (() => {
@@ -7896,11 +7896,12 @@
     isPreview = false,
     isVisible = true,
     checkboxMode = false,
-    selectedProductIds = /* @__PURE__ */ new Set(),
+    selectedProductIds: initialSelectedProductIds = /* @__PURE__ */ new Set(),
     replacingProduct
   }) => {
     const [animationClass, setAnimationClass] = (0, import_react.useState)("");
     const impressionTracked = import_react.default.useRef(false);
+    const [selectedIds, setSelectedIds] = (0, import_react.useState)(new Set(initialSelectedProductIds));
     (0, import_react.useEffect)(() => {
       if (isVisible && !isPreview && !impressionTracked.current && onImpression) {
         onImpression();
@@ -7913,7 +7914,21 @@
           setAnimationClass("upsellity-nudge-visible");
         }, 10);
       }
-    }, [isVisible, config.enableAnimation]);
+    }, [isVisible, config.enableAnimation, config.animationType]);
+    const handleCheckboxToggle = (product) => {
+      if (checkboxMode) {
+        const newSelectedIds = new Set(selectedIds);
+        if (newSelectedIds.has(product.id)) {
+          newSelectedIds.delete(product.id);
+        } else {
+          newSelectedIds.add(product.id);
+        }
+        setSelectedIds(newSelectedIds);
+      }
+      if (onSelectProduct) {
+        onSelectProduct(product);
+      }
+    };
     const hexToRgba = (hex, alpha) => {
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);
@@ -8139,12 +8154,12 @@
                     maxWidth: "100%"
                   },
                   children: productsToShow.map((product) => {
-                    const isSelected = checkboxMode && selectedProductIds.has(product.id);
+                    const isSelected = checkboxMode && selectedIds.has(product.id);
                     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                       "div",
                       {
                         className: "upsellity-nudge-product-card",
-                        onClick: () => !isPreview && onSelectProduct && onSelectProduct(product),
+                        onClick: () => !isPreview && handleCheckboxToggle(product),
                         style: {
                           border: checkboxMode && isSelected ? "2px solid #4F46E5" : "1px solid #e5e7eb",
                           borderRadius: "8px",
@@ -8182,8 +8197,8 @@
                               },
                               onClick: (e) => {
                                 e.stopPropagation();
-                                if (!isPreview && onSelectProduct) {
-                                  onSelectProduct(product);
+                                if (!isPreview) {
+                                  handleCheckboxToggle(product);
                                 }
                               },
                               children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
@@ -8320,7 +8335,7 @@
                     maxWidth: "100%"
                   },
                   children: [
-                    !checkboxMode && onContinue && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    onContinue && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                       "div",
                       {
                         className: "upsellity-nudge-continue-section",
@@ -8415,8 +8430,8 @@
                           {
                             type: "button",
                             className: "upsellity-nudge-add-selected-btn",
-                            onClick: () => !isPreview && onSelectAll && onSelectAll(productsToShow.filter((p) => selectedProductIds.has(p.id))),
-                            disabled: isPreview || selectedProductIds.size === 0,
+                            onClick: () => !isPreview && onSelectAll && onSelectAll(productsToShow.filter((p) => selectedIds.has(p.id))),
+                            disabled: isPreview || selectedIds.size === 0,
                             style: {
                               width: "100%",
                               padding: "1rem 1.5rem",
@@ -8424,24 +8439,24 @@
                               borderRadius: "6px",
                               fontSize: "1rem",
                               fontWeight: 600,
-                              cursor: isPreview || selectedProductIds.size === 0 ? "not-allowed" : "pointer",
+                              cursor: isPreview || selectedIds.size === 0 ? "not-allowed" : "pointer",
                               transition: "opacity 0.2s ease",
                               backgroundColor: config.selectButtonColor,
                               color: config.selectButtonTextColor,
-                              opacity: isPreview || selectedProductIds.size === 0 ? 0.6 : 1
+                              opacity: isPreview || selectedIds.size === 0 ? 0.6 : 1
                             },
                             onMouseEnter: (e) => {
-                              if (!isPreview && selectedProductIds.size > 0)
+                              if (!isPreview && selectedIds.size > 0)
                                 e.currentTarget.style.opacity = "0.9";
                             },
                             onMouseLeave: (e) => {
-                              if (!isPreview && selectedProductIds.size > 0)
+                              if (!isPreview && selectedIds.size > 0)
                                 e.currentTarget.style.opacity = "1";
                             },
                             children: [
                               config.selectButtonText,
                               " ",
-                              selectedProductIds.size > 0 && `(${selectedProductIds.size})`
+                              selectedIds.size > 0 && `(${selectedIds.size})`
                             ]
                           }
                         )
@@ -9151,7 +9166,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
-  var APP_URL = true ? "https://marking-electricity-medications-citizens.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://jackie-bracelet-snowboard-born.trycloudflare.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;
@@ -9168,6 +9183,7 @@
       this.matchedProductHandle = null;
       this.matchedCartItem = null;
       this.isHandlingSelection = false;
+      this.selectedProductIds = /* @__PURE__ */ new Set();
       this.init();
     }
     async init() {
@@ -9395,7 +9411,15 @@
       this.renderPopup();
     }
     renderPopup() {
-      var _a2, _b, _c, _d;
+      var _a2, _b, _c, _d, _e, _f;
+      const existingContainer = document.getElementById("upsellity-nudge-popup-root");
+      if (existingContainer && this.reactRoot) {
+        try {
+          this.reactRoot.unmount();
+        } catch (e) {
+        }
+        existingContainer.remove();
+      }
       const container = document.createElement("div");
       container.id = "upsellity-nudge-popup-root";
       document.body.appendChild(container);
@@ -9435,6 +9459,18 @@
           price: priceInCents
         };
       }
+      const checkboxMode = (_f = (_e = this.config) == null ? void 0 : _e.checkboxMode) != null ? _f : false;
+      const handleSelectProduct = (product) => {
+        if (checkboxMode) {
+          if (this.selectedProductIds.has(product.id)) {
+            this.selectedProductIds.delete(product.id);
+          } else {
+            this.selectedProductIds.add(product.id);
+          }
+        } else {
+          this.selectProduct(product);
+        }
+      };
       this.reactRoot = (0, import_client.createRoot)(container);
       this.reactRoot.render(
         import_react2.default.createElement(NudgeWidget, {
@@ -9443,9 +9479,11 @@
           isVisible: true,
           isPreview: false,
           replacingProduct,
+          checkboxMode,
+          selectedProductIds: new Set(this.selectedProductIds),
           onClose: () => this.closePopup(),
           onContinue: () => this.continueWithOriginal(),
-          onSelectProduct: (product) => this.selectProduct(product),
+          onSelectProduct: handleSelectProduct,
           onSelectAll: (products) => this.selectAllProducts(products),
           onImpression: () => {
             Analytics.track({
@@ -9740,6 +9778,7 @@
       this.selectedProduct = null;
       this.triggerContext = null;
       this.matchedCartItem = null;
+      this.selectedProductIds.clear();
     }
     closePopup() {
       const container = document.getElementById("upsellity-nudge-popup-root");

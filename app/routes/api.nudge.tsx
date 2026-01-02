@@ -170,6 +170,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         animationType: nudgeConfig.animationType || "fade",
         recommendationType: "manual",
         showOnAddToCart: nudgeConfig.showOnAddToCart ?? true,
+        checkboxMode: nudgeConfig.checkboxMode ?? false,
         // Use rule-specific trigger point if matched, otherwise fall back to global setting
         triggerPoint: matchingRule?.triggerPoint || nudgeConfig.triggerPoint || "add_to_cart",
         popupDelay: nudgeConfig.popupDelay ?? 0,

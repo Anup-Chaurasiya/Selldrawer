@@ -30,6 +30,7 @@ class NudgePopup {
     this.matchedProductHandle = null; // Which cart product triggered the nudge
     this.matchedCartItem = null; // The cart line item to remove
     this.isHandlingSelection = false; // Flag to prevent closePopup redirect during selection
+    this.selectedProductIds = new Set(); // For checkbox mode
 
     this.init();
   }
@@ -328,6 +329,17 @@ class NudgePopup {
   }
 
   renderPopup() {
+    // Clean up existing popup if re-rendering (for checkbox mode)
+    const existingContainer = document.getElementById('upsellity-nudge-popup-root');
+    if (existingContainer && this.reactRoot) {
+      try {
+        this.reactRoot.unmount();
+      } catch (e) {
+        // Ignore unmount errors
+      }
+      existingContainer.remove();
+    }
+
     // Create container for React component
     const container = document.createElement('div');
     container.id = 'upsellity-nudge-popup-root';
@@ -384,6 +396,26 @@ class NudgePopup {
       };
     }
 
+    // Get checkbox mode from config
+    const checkboxMode = this.config?.checkboxMode ?? false;
+
+    // Handle product selection - for checkbox mode, just track it without re-rendering
+    // React component will handle the visual updates internally
+    const handleSelectProduct = (product) => {
+      if (checkboxMode) {
+        // Toggle selection in our tracking set
+        if (this.selectedProductIds.has(product.id)) {
+          this.selectedProductIds.delete(product.id);
+        } else {
+          this.selectedProductIds.add(product.id);
+        }
+        // Don't re-render - React will handle it internally with its own state
+      } else {
+        // Non-checkbox mode: select product immediately
+        this.selectProduct(product);
+      }
+    };
+
     // Create React root and render
     this.reactRoot = createRoot(container);
     this.reactRoot.render(
@@ -393,9 +425,11 @@ class NudgePopup {
         isVisible: true,
         isPreview: false,
         replacingProduct: replacingProduct,
+        checkboxMode: checkboxMode,
+        selectedProductIds: new Set(this.selectedProductIds),
         onClose: () => this.closePopup(),
         onContinue: () => this.continueWithOriginal(),
-        onSelectProduct: (product) => this.selectProduct(product),
+        onSelectProduct: handleSelectProduct,
         onSelectAll: (products) => this.selectAllProducts(products),
         onImpression: () => {
           Analytics.track({
@@ -805,6 +839,7 @@ class NudgePopup {
     this.selectedProduct = null;
     this.triggerContext = null;
     this.matchedCartItem = null;
+    this.selectedProductIds.clear(); // Reset checkbox selections
   }
 
   closePopup() {

@@ -74,11 +74,14 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
   isPreview = false,
   isVisible = true,
   checkboxMode = false,
-  selectedProductIds = new Set(),
+  selectedProductIds: initialSelectedProductIds = new Set(),
   replacingProduct
 }) => {
   const [animationClass, setAnimationClass] = useState('');
   const impressionTracked = React.useRef(false);
+
+  // Internal state for checkbox selections
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(initialSelectedProductIds));
 
   useEffect(() => {
     if (isVisible && !isPreview && !impressionTracked.current && onImpression) {
@@ -94,7 +97,24 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
         setAnimationClass('upsellity-nudge-visible');
       }, 10);
     }
-  }, [isVisible, config.enableAnimation]);
+  }, [isVisible, config.enableAnimation, config.animationType]);
+
+  // Handle checkbox toggle in checkbox mode
+  const handleCheckboxToggle = (product: NudgeProduct) => {
+    if (checkboxMode) {
+      const newSelectedIds = new Set(selectedIds);
+      if (newSelectedIds.has(product.id)) {
+        newSelectedIds.delete(product.id);
+      } else {
+        newSelectedIds.add(product.id);
+      }
+      setSelectedIds(newSelectedIds);
+    }
+    // Also call the parent's onSelectProduct if provided
+    if (onSelectProduct) {
+      onSelectProduct(product);
+    }
+  };
 
   const hexToRgba = (hex: string, alpha: number) => {
     const r = parseInt(hex.slice(1, 3), 16);
@@ -337,12 +357,12 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
           }}
         >
           {productsToShow.map((product) => {
-            const isSelected = checkboxMode && selectedProductIds.has(product.id);
+            const isSelected = checkboxMode && selectedIds.has(product.id);
             return (
               <div
                 key={product.id}
                 className="upsellity-nudge-product-card"
-                onClick={() => !isPreview && onSelectProduct && onSelectProduct(product)}
+                onClick={() => !isPreview && handleCheckboxToggle(product)}
                 style={{
                   border: checkboxMode && isSelected ? '2px solid #4F46E5' : '1px solid #e5e7eb',
                   borderRadius: '8px',
@@ -380,8 +400,8 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (!isPreview && onSelectProduct) {
-                        onSelectProduct(product);
+                      if (!isPreview) {
+                        handleCheckboxToggle(product);
                       }
                     }}
                   >
@@ -501,8 +521,8 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
             maxWidth: '100%'
           }}
         >
-          {/* Continue Button - Hide in checkbox mode */}
-          {!checkboxMode && onContinue && (
+          {/* Continue Button - Always show when onContinue is provided */}
+          {onContinue && (
             <div
               className="upsellity-nudge-continue-section"
               style={{
@@ -590,8 +610,8 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
               <button
                 type="button"
                 className="upsellity-nudge-add-selected-btn"
-                onClick={() => !isPreview && onSelectAll && onSelectAll(productsToShow.filter(p => selectedProductIds.has(p.id)))}
-                disabled={isPreview || selectedProductIds.size === 0}
+                onClick={() => !isPreview && onSelectAll && onSelectAll(productsToShow.filter(p => selectedIds.has(p.id)))}
+                disabled={isPreview || selectedIds.size === 0}
                 style={{
                   width: '100%',
                   padding: '1rem 1.5rem',
@@ -599,20 +619,20 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                   borderRadius: '6px',
                   fontSize: '1rem',
                   fontWeight: 600,
-                  cursor: (isPreview || selectedProductIds.size === 0) ? 'not-allowed' : 'pointer',
+                  cursor: (isPreview || selectedIds.size === 0) ? 'not-allowed' : 'pointer',
                   transition: 'opacity 0.2s ease',
                   backgroundColor: config.selectButtonColor,
                   color: config.selectButtonTextColor,
-                  opacity: (isPreview || selectedProductIds.size === 0) ? 0.6 : 1
+                  opacity: (isPreview || selectedIds.size === 0) ? 0.6 : 1
                 }}
                 onMouseEnter={(e) => {
-                  if (!isPreview && selectedProductIds.size > 0) e.currentTarget.style.opacity = '0.9';
+                  if (!isPreview && selectedIds.size > 0) e.currentTarget.style.opacity = '0.9';
                 }}
                 onMouseLeave={(e) => {
-                  if (!isPreview && selectedProductIds.size > 0) e.currentTarget.style.opacity = '1';
+                  if (!isPreview && selectedIds.size > 0) e.currentTarget.style.opacity = '1';
                 }}
               >
-                {config.selectButtonText} {selectedProductIds.size > 0 && `(${selectedProductIds.size})`}
+                {config.selectButtonText} {selectedIds.size > 0 && `(${selectedIds.size})`}
               </button>
             </div>
           )}

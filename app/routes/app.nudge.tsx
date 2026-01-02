@@ -251,6 +251,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       layout: formData.get("layout") as string,
       enableAnimation: formData.get("enableAnimation") === "true",
       animationType: formData.get("animationType") as string,
+      checkboxMode: formData.get("checkboxMode") === "true",
     };
 
     await prisma.nudgePopup.update({
@@ -548,6 +549,7 @@ export default function NudgePopup() {
       layout: nudgeConfig?.layout || "grid",
       enableAnimation: nudgeConfig?.enableAnimation ?? true,
       animationType: nudgeConfig?.animationType || "fade",
+      checkboxMode: nudgeConfig?.checkboxMode ?? false,
     };
   });
 
@@ -953,6 +955,22 @@ export default function NudgePopup() {
             <Card>
               <BlockStack gap="400">
                 <Text as="h2" variant="headingMd">
+                  Selection Settings
+                </Text>
+                <FormLayout>
+                  <Checkbox
+                    label="Enable Checkbox Mode"
+                    checked={formState.checkboxMode}
+                    onChange={(value) => setFormState({ ...formState, checkboxMode: value })}
+                    helpText="Allow users to select multiple products using checkboxes"
+                  />
+                </FormLayout>
+              </BlockStack>
+            </Card>
+
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
                   Style Settings
                 </Text>
                 <FormLayout>
@@ -1251,6 +1269,7 @@ export default function NudgePopup() {
                         recommendations={previewProducts}
                         isVisible={true}
                         isPreview={true}
+                        checkboxMode={formState.checkboxMode}
                         onContinue={() => { }} // No-op for preview
                         onSelectProduct={() => { }} // No-op for preview
                         onSelectAll={() => { }} // No-op for preview
@@ -1277,10 +1296,10 @@ export default function NudgePopup() {
             </Card>
           </div>
         </div>
-      </Layout>
+      </Layout >
 
       {/* Add Rule Modal */}
-      <Modal
+      < Modal
         open={showManualModal}
         onClose={() => {
           setShowManualModal(false);
@@ -1298,19 +1317,21 @@ export default function NudgePopup() {
             showTriggerModal: false,
             showUpsellModal: false,
           });
-        }}
+        }
+        }
         title={editingRuleId ? "Edit Nudge Rule" : "Add Nudge Rule"}
         primaryAction={{
           content: editingRuleId ? "Update Rule" : "Add Rule",
           onAction: handleAddRule,
           disabled: modalConfig.selectedUpsellProducts.length === 0,
         }}
-        secondaryActions={[
-          {
-            content: "Cancel",
-            onAction: () => setShowManualModal(false),
-          },
-        ]}
+        secondaryActions={
+          [
+            {
+              content: "Cancel",
+              onAction: () => setShowManualModal(false),
+            },
+          ]}
         size="large"
       >
         <Modal.Section>
@@ -1431,10 +1452,10 @@ export default function NudgePopup() {
             </FormLayout>
           </BlockStack>
         </Modal.Section>
-      </Modal>
+      </Modal >
 
       {/* Product Selection Modal for Trigger */}
-      <Modal
+      < Modal
         open={modalConfig.showTriggerModal}
         onClose={() => setModalConfig({ ...modalConfig, showTriggerModal: false })}
         title={modalConfig.triggerType === "collection" ? "Select Collection" : "Select Product"}
@@ -1514,10 +1535,10 @@ export default function NudgePopup() {
             )}
           </BlockStack>
         </Modal.Section>
-      </Modal>
+      </Modal >
 
       {/* Product Selection Modal for Upsells */}
-      <Modal
+      < Modal
         open={modalConfig.showUpsellModal}
         onClose={() => setModalConfig({ ...modalConfig, showUpsellModal: false })}
         title="Select Products to Show"
@@ -1577,8 +1598,8 @@ export default function NudgePopup() {
             />
           </BlockStack>
         </Modal.Section>
-      </Modal>
-    </Page>
+      </Modal >
+    </Page >
   );
 }
 
