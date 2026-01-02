@@ -3,7 +3,7 @@
  * Used in both production cart drawer and Remix preview
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 // Helper function to convert hex to RGB
 const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
@@ -52,7 +52,12 @@ const getYouTubeEmbedUrl = (url: string): string | null => {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
   const videoId = (match && match[2].length === 11) ? match[2] : null;
-  return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0` : null;
+  if (!videoId) return null;
+
+  // Get origin for iframe API
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&enablejsapi=1&origin=${encodeURIComponent(origin)}`;
 };
 
 // Helper function to get Vimeo embed URL
@@ -84,6 +89,14 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
   const isScrolling = useRef(false);
   const currentIndexRef = useRef(0);
   const impressionTracked = useRef(false);
+
+  // Mute state: track mute status for each slide (all muted by default)
+  const [isMuted, setIsMuted] = useState<Record<number, boolean>>(() =>
+    slides.reduce<Record<number, boolean>>((acc, _, idx) => ({ ...acc, [idx]: true }), {})
+  );
+
+  // Refs to store video/iframe elements for mute control
+  const videoRefs = useRef<Record<number, HTMLVideoElement | HTMLIFrameElement | null>>({});
 
   // Determine if we're in block context (standalone promotional banner)
   const isBlockContext = context === 'block';
@@ -147,31 +160,31 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
 
       const container = scrollContainerRef.current;
       if (!container) return;
-      
+
       isScrolling.current = true;
       const gap = isBlockContext ? 16 : 8;
       const slideWidth = container.clientWidth + gap;
-      
+
       // Use ref to get the latest index without causing effect re-run
       const currentIdx = currentIndexRef.current;
       const nextIndex = currentIdx < slides.length - 1 ? currentIdx + 1 : 0;
       const targetScroll = nextIndex * slideWidth;
-      
+
       // Update index immediately for smooth indicator transition
       setCurrentIndex(nextIndex);
       currentIndexRef.current = nextIndex;
-      
+
       container.scrollTo({
         left: targetScroll,
         behavior: 'smooth'
       });
-      
+
       // Reset scrolling flag after animation
       setTimeout(() => {
         isScrolling.current = false;
       }, 500);
     }, carouselSettings?.rotationSpeed || 5000);
-    
+
     return () => clearInterval(interval);
   }, [slides.length, carouselSettings?.autoRotate, carouselSettings?.rotationSpeed, isBlockContext]);
 
@@ -299,7 +312,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
           }}>
             Summer Sale
           </div>
-          
+
           {/* Description and CTA Button Row */}
           <div style={{
             display: 'flex',
@@ -348,34 +361,82 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
     if (!url || typeof url !== 'string' || url.trim() === '') {
       return null;
     }
-    
+
     const trimmedUrl = url.trim();
-    
+
     // If it's already an absolute URL (http/https), return as is
     if (/^https?:\/\//i.test(trimmedUrl)) {
       return trimmedUrl;
     }
-    
+
     // If it starts with //, it's a protocol-relative URL, make it https
     if (trimmedUrl.startsWith('//')) {
       return `https:${trimmedUrl}`;
     }
-    
+
     // If it's a relative path starting with /, it's likely invalid for cross-origin use
     // Log a warning and return null to show placeholder instead
     if (trimmedUrl.startsWith('/')) {
       console.warn('[PromotionalBanner] Invalid relative image URL detected:', trimmedUrl);
       return null;
     }
-    
+
     // If it doesn't start with / or http, it might be a malformed URL
     // Return null to show placeholder
     console.warn('[PromotionalBanner] Potentially invalid image URL:', trimmedUrl);
     return null;
   };
 
+  // Mute toggle handler
+  const handleMuteToggle = useCallback((slideIndex: number, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+
+    setIsMuted(prev => {
+      const newMuted = !prev[slideIndex];
+      const videoElement = videoRefs.current[slideIndex];
+
+      if (!videoElement) return prev;
+
+      // Handle different video types
+      const slide = slides[slideIndex];
+
+      if (slide?.videoType === 'mp4' && videoElement instanceof HTMLVideoElement) {
+        // MP4: directly control muted property
+        videoElement.muted = newMuted;
+      } else if (slide?.videoType === 'youtube' && videoElement instanceof HTMLIFrameElement) {
+        // YouTube: use postMessage API
+        try {
+          const command = newMuted ? 'mute' : 'unMute';
+          videoElement.contentWindow?.postMessage(
+            JSON.stringify({ event: 'command', func: command, args: [] }),
+            '*'
+          );
+        } catch (error) {
+          console.error('[PromotionalBanner] YouTube mute control error:', error);
+        }
+      } else if (slide?.videoType === 'vimeo' && videoElement instanceof HTMLIFrameElement) {
+        // Vimeo: use postMessage API
+        try {
+          const method = newMuted ? 'setVolume' : 'setVolume';
+          const value = newMuted ? 0 : 1;
+          videoElement.contentWindow?.postMessage(
+            JSON.stringify({ method, value }),
+            '*'
+          );
+        } catch (error) {
+          console.error('[PromotionalBanner] Vimeo mute control error:', error);
+        }
+      }
+
+      return { ...prev, [slideIndex]: newMuted };
+    });
+  }, [slides]);
+
   // Render media based on type
-  const renderMedia = (slide: Slide) => {
+  const renderMedia = (slide: Slide, slideIndex: number) => {
     if (slide.videoUrl && slide.videoType) {
       if (slide.videoType === 'youtube') {
         const embedUrl = getYouTubeEmbedUrl(slide.videoUrl);
@@ -385,9 +446,10 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              borderRadius: '12px' 
+              borderRadius: '12px'
             }}>
               <iframe
+                ref={(el) => { videoRefs.current[slideIndex] = el; }}
                 src={embedUrl}
                 style={{
                   position: 'absolute',
@@ -409,6 +471,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         if (embedUrl) {
           return (
             <iframe
+              ref={(el) => { videoRefs.current[slideIndex] = el; }}
               src={embedUrl}
               style={{
                 width: '100%',
@@ -427,6 +490,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         if (normalizedVideoUrl) {
           return (
             <video
+              ref={(el) => { videoRefs.current[slideIndex] = el; }}
               src={normalizedVideoUrl}
               style={{
                 width: '100%',
@@ -472,7 +536,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         />
       );
     }
-    
+
     // No image available
     return (
       <div style={{
@@ -497,7 +561,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
     // Update index immediately for smooth indicator transition
     setCurrentIndex(index);
     currentIndexRef.current = index;
-    
+
     const gap = isBlockContext ? 16 : 8;
     const slideWidth = container.clientWidth + gap;
     const targetScroll = index * slideWidth;
@@ -550,7 +614,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
       onCtaClick(slide.ctaUrl);
     }
   };
-  
+
   return (
     <div style={{ marginBottom: isBlockContext ? '0' : '16px' }}>
       <style>{`
@@ -715,21 +779,79 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                   position: 'relative',
                   overflow: 'hidden',
                   // Flipkart-style compact height for block context, normal aspect ratio for cart drawer
-                  ...(isBlockContext 
+                  ...(isBlockContext
                     ? {
-                        width: '100%',
-                      }
+                      width: '100%',
+                    }
                     : {
-                        aspectRatio: '16 / 9',
-                        width: '100%',
-                        height: 'auto',
-                      }
+                      aspectRatio: '16 / 9',
+                      width: '100%',
+                      height: 'auto',
+                    }
                   ),
                   backgroundColor: '#f9fafb',
                   borderRadius: isBlockContext ? '' : '12px',
                 }}
               >
-                {renderMedia(slide)}
+                {renderMedia(slide, index)}
+
+                {/* Mute/Unmute Button - Only show for videos */}
+                {slide.videoUrl && slide.videoType && (
+                  <button
+                    onClick={(e) => handleMuteToggle(index, e)}
+                    style={{
+                      position: 'absolute',
+                      bottom: '12px',
+                      right: '12px',
+                      background: 'rgba(0, 0, 0, 0.6)',
+                      border: 'none',
+                      borderRadius: '4px',
+                      width: '32px',
+                      height: '32px',
+                      cursor: 'pointer',
+                      zIndex: 15,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease',
+                      pointerEvents: 'auto',
+                      padding: '6px'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)';
+                      e.currentTarget.style.transform = 'scale(1.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(0, 0, 0, 0.6)';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                    aria-label={isMuted[index] ? 'Unmute video' : 'Mute video'}
+                  >
+                    {isMuted[index] ? (
+                      // Muted icon (speaker with X)
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="white"
+                        style={{ display: 'block' }}
+                      >
+                        <path d="M3.63 3.63a.996.996 0 000 1.41L7.29 8.7 7 9H4c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h3l3.29 3.29c.63.63 1.71.18 1.71-.71v-4.17l4.18 4.18c-.49.37-1.02.68-1.6.91-.36.15-.58.53-.58.92 0 .72.73 1.18 1.39.91.8-.33 1.55-.77 2.22-1.31l1.34 1.34a.996.996 0 101.41-1.41L5.05 3.63c-.39-.39-1.02-.39-1.42 0zM19 12c0 .82-.15 1.61-.41 2.34l1.53 1.53c.56-1.17.88-2.48.88-3.87 0-3.83-2.4-7.11-5.78-8.4-.59-.23-1.22.23-1.22.86v.19c0 .38.25.71.61.85C17.18 6.54 19 9.06 19 12zm-8.71-6.29l-.17.17L12 7.76V6.41c0-.89-1.08-1.33-1.71-.7zM16.5 12A4.5 4.5 0 0014 7.97v1.79l2.48 2.48c.01-.08.02-.16.02-.24z" />
+                      </svg>
+                    ) : (
+                      // Unmuted icon (speaker with sound waves)
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="white"
+                        style={{ display: 'block' }}
+                      >
+                        <path d="M3 10v4c0 .55.45 1 1 1h3l3.29 3.29c.63.63 1.71.18 1.71-.71V6.41c0-.89-1.08-1.34-1.71-.71L7 9H4c-.55 0-1 .45-1 1zm13.5 2A4.5 4.5 0 0014 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 4.45v.2c0 .38.25.71.6.85C17.18 6.53 19 9.06 19 12s-1.82 5.47-4.4 6.5c-.36.14-.6.47-.6.85v.2c0 .63.63 1.07 1.21.85C18.6 19.11 21 15.84 21 12s-2.4-7.11-5.79-8.4c-.58-.23-1.21.22-1.21.85z" />
+                      </svg>
+                    )}
+                  </button>
+                )}
               </div>
               {/* Text Content Section - Only render if there's title, description, or CTA */}
               {(slide.title || slide.description || slide.ctaText) && (
@@ -765,7 +887,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                           {slide.title}
                         </div>
                       )}
-                      
+
                       {/* Description */}
                       {slide.description && (
                         <div style={{
@@ -782,7 +904,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                       )}
                     </div>
                   )}
-                  
+
                   {/* CTA Button - Spans full height */}
                   {slide.ctaText && (
                     <div style={{ flexShrink: 0, alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>
@@ -818,14 +940,14 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                   )}
                 </div>
               )}
-              
+
             </div>
           ))}
         </div>
 
         {/* Dot Indicators - Rounded rectangles like Flipkart style */}
         {slides.length > 1 && carouselSettings?.showDots !== false && (
-          <div 
+          <div
             className="upsellity-promo-indicators"
             style={{
               display: 'flex',
@@ -852,8 +974,8 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                   width: isBlockContext ? '24px' : '20px',
                   height: isBlockContext ? '4px' : '3px',
                   borderRadius: '2px',
-                  backgroundColor: index === currentIndex 
-                    ? '#000000' 
+                  backgroundColor: index === currentIndex
+                    ? '#000000'
                     : '#d1d5db',
                   transition: 'all 0.3s ease',
                   cursor: 'pointer',

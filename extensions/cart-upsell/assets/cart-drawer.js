@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.5
- * Built: 2025-12-31T10:59:40.644Z
+ * Built: 2026-01-02T07:39:19.575Z
  */
 "use strict";
 (() => {
@@ -9410,7 +9410,10 @@
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     const videoId = match && match[2].length === 11 ? match[2] : null;
-    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0` : null;
+    if (!videoId)
+      return null;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&enablejsapi=1&origin=${encodeURIComponent(origin)}`;
   };
   var getVimeoEmbedUrl = (url) => {
     const regExp = /(?:vimeo)\.com.*(?:videos|video|channels|)\/([\d]+)/i;
@@ -9439,6 +9442,10 @@
     const isScrolling = (0, import_react.useRef)(false);
     const currentIndexRef = (0, import_react.useRef)(0);
     const impressionTracked = (0, import_react.useRef)(false);
+    const [isMuted, setIsMuted] = (0, import_react.useState)(
+      () => slides.reduce((acc, _, idx) => __spreadProps(__spreadValues({}, acc), { [idx]: true }), {})
+    );
+    const videoRefs = (0, import_react.useRef)({});
     const isBlockContext = context === "block";
     (0, import_react.useEffect)(() => {
       if (!impressionTracked.current && onImpression && !isPreview && slides.length > 0) {
@@ -9674,7 +9681,46 @@
       console.warn("[PromotionalBanner] Potentially invalid image URL:", trimmedUrl);
       return null;
     };
-    const renderMedia = (slide) => {
+    const handleMuteToggle = (0, import_react.useCallback)((slideIndex, e) => {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      setIsMuted((prev) => {
+        var _a2, _b;
+        const newMuted = !prev[slideIndex];
+        const videoElement = videoRefs.current[slideIndex];
+        if (!videoElement)
+          return prev;
+        const slide = slides[slideIndex];
+        if ((slide == null ? void 0 : slide.videoType) === "mp4" && videoElement instanceof HTMLVideoElement) {
+          videoElement.muted = newMuted;
+        } else if ((slide == null ? void 0 : slide.videoType) === "youtube" && videoElement instanceof HTMLIFrameElement) {
+          try {
+            const command = newMuted ? "mute" : "unMute";
+            (_a2 = videoElement.contentWindow) == null ? void 0 : _a2.postMessage(
+              JSON.stringify({ event: "command", func: command, args: [] }),
+              "*"
+            );
+          } catch (error) {
+            console.error("[PromotionalBanner] YouTube mute control error:", error);
+          }
+        } else if ((slide == null ? void 0 : slide.videoType) === "vimeo" && videoElement instanceof HTMLIFrameElement) {
+          try {
+            const method = newMuted ? "setVolume" : "setVolume";
+            const value = newMuted ? 0 : 1;
+            (_b = videoElement.contentWindow) == null ? void 0 : _b.postMessage(
+              JSON.stringify({ method, value }),
+              "*"
+            );
+          } catch (error) {
+            console.error("[PromotionalBanner] Vimeo mute control error:", error);
+          }
+        }
+        return __spreadProps(__spreadValues({}, prev), { [slideIndex]: newMuted });
+      });
+    }, [slides]);
+    const renderMedia = (slide, slideIndex) => {
       if (slide.videoUrl && slide.videoType) {
         if (slide.videoType === "youtube") {
           const embedUrl = getYouTubeEmbedUrl(slide.videoUrl);
@@ -9687,6 +9733,9 @@
             }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "iframe",
               {
+                ref: (el) => {
+                  videoRefs.current[slideIndex] = el;
+                },
                 src: embedUrl,
                 style: {
                   position: "absolute",
@@ -9708,6 +9757,9 @@
             return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "iframe",
               {
+                ref: (el) => {
+                  videoRefs.current[slideIndex] = el;
+                },
                 src: embedUrl,
                 style: {
                   width: "100%",
@@ -9727,6 +9779,9 @@
             return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "video",
               {
+                ref: (el) => {
+                  videoRefs.current[slideIndex] = el;
+                },
                 src: normalizedVideoUrl,
                 style: {
                   width: "100%",
@@ -9982,7 +10037,7 @@
                   transition: "transform 0.2s ease, box-shadow 0.2s ease"
                 },
                 children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "div",
                     {
                       className: isBlockContext ? "upsellity-promo-block-media" : "",
@@ -9999,7 +10054,69 @@
                         backgroundColor: "#f9fafb",
                         borderRadius: isBlockContext ? "" : "12px"
                       }),
-                      children: renderMedia(slide)
+                      children: [
+                        renderMedia(slide, index),
+                        slide.videoUrl && slide.videoType && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                          "button",
+                          {
+                            onClick: (e) => handleMuteToggle(index, e),
+                            style: {
+                              position: "absolute",
+                              bottom: "12px",
+                              right: "12px",
+                              background: "rgba(0, 0, 0, 0.6)",
+                              border: "none",
+                              borderRadius: "4px",
+                              width: "32px",
+                              height: "32px",
+                              cursor: "pointer",
+                              zIndex: 15,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              transition: "all 0.2s ease",
+                              pointerEvents: "auto",
+                              padding: "6px"
+                            },
+                            onMouseEnter: (e) => {
+                              e.currentTarget.style.background = "rgba(0, 0, 0, 0.8)";
+                              e.currentTarget.style.transform = "scale(1.1)";
+                            },
+                            onMouseLeave: (e) => {
+                              e.currentTarget.style.background = "rgba(0, 0, 0, 0.6)";
+                              e.currentTarget.style.transform = "scale(1)";
+                            },
+                            "aria-label": isMuted[index] ? "Unmute video" : "Mute video",
+                            children: isMuted[index] ? (
+                              // Muted icon (speaker with X)
+                              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                                "svg",
+                                {
+                                  width: "20",
+                                  height: "20",
+                                  viewBox: "0 0 24 24",
+                                  fill: "white",
+                                  style: { display: "block" },
+                                  children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M3.63 3.63a.996.996 0 000 1.41L7.29 8.7 7 9H4c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h3l3.29 3.29c.63.63 1.71.18 1.71-.71v-4.17l4.18 4.18c-.49.37-1.02.68-1.6.91-.36.15-.58.53-.58.92 0 .72.73 1.18 1.39.91.8-.33 1.55-.77 2.22-1.31l1.34 1.34a.996.996 0 101.41-1.41L5.05 3.63c-.39-.39-1.02-.39-1.42 0zM19 12c0 .82-.15 1.61-.41 2.34l1.53 1.53c.56-1.17.88-2.48.88-3.87 0-3.83-2.4-7.11-5.78-8.4-.59-.23-1.22.23-1.22.86v.19c0 .38.25.71.61.85C17.18 6.54 19 9.06 19 12zm-8.71-6.29l-.17.17L12 7.76V6.41c0-.89-1.08-1.33-1.71-.7zM16.5 12A4.5 4.5 0 0014 7.97v1.79l2.48 2.48c.01-.08.02-.16.02-.24z" })
+                                }
+                              )
+                            ) : (
+                              // Unmuted icon (speaker with sound waves)
+                              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                                "svg",
+                                {
+                                  width: "20",
+                                  height: "20",
+                                  viewBox: "0 0 24 24",
+                                  fill: "white",
+                                  style: { display: "block" },
+                                  children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M3 10v4c0 .55.45 1 1 1h3l3.29 3.29c.63.63 1.71.18 1.71-.71V6.41c0-.89-1.08-1.34-1.71-.71L7 9H4c-.55 0-1 .45-1 1zm13.5 2A4.5 4.5 0 0014 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 4.45v.2c0 .38.25.71.6.85C17.18 6.53 19 9.06 19 12s-1.82 5.47-4.4 6.5c-.36.14-.6.47-.6.85v.2c0 .63.63 1.07 1.21.85C18.6 19.11 21 15.84 21 12s-2.4-7.11-5.79-8.4c-.58-.23-1.21.22-1.21.85z" })
+                                }
+                              )
+                            )
+                          }
+                        )
+                      ]
                     }
                   ),
                   (slide.title || slide.description || slide.ctaText) && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
@@ -13363,7 +13480,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://freebsd-mechanism-losses-obj.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://marking-electricity-medications-citizens.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.5" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {
