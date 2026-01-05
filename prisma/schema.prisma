@@ -430,7 +430,7 @@ model AppSubscription {
 model FrequentlyBoughtTogether {
   id                      String    @id @default(cuid())
   shop                    String    @unique
-  isActive                Boolean   @default(true)
+  isActive                Boolean   @default(false)
   title                   String    @default("Frequently Bought Together")
   recommendationType      String    @default("manual")
   algorithm               String    @default("related")
@@ -438,24 +438,21 @@ model FrequentlyBoughtTogether {
   useSmartVariantMatching Boolean   @default(false)
   showOfferIfInCart       Boolean   @default(false)
   limitUpsellsInCart      Boolean   @default(false)
-  maxUpsellsInCart        Int       @default(3)
+  maxUpsellsInCart        Int?      @default(3)
   showProductReviews      Boolean   @default(false)
   layout                  String    @default("horizontal")
   templateType            String    @default("classic")
   buttonText              String    @default("Add selected items")
   buttonColor             String    @default("#000000")
   buttonTextColor         String    @default("#FFFFFF")
-  showDiscount            Boolean   @default(true)
   showTotalPrice          Boolean   @default(true)
   showIndividualPrices    Boolean   @default(true)
   showCheckboxes          Boolean   @default(true)
-  discountType            String    @default("percentage")
-  discountValue           Decimal?
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
   rules                   FBTRule[]
 
-  @@index([shop, isActive])
+  @@index([shop])
 }
 
 model FBTRule {
@@ -465,6 +462,9 @@ model FBTRule {
   triggerValue     String
   triggerProductId String?
   triggerTitle     String?
+  discountType     String?                  // "percentage" | "fixed"
+  discountValue    Decimal?
+  discountCode     String?                  // Generated Shopify discount code ID
   createdAt        DateTime                 @default(now())
   updatedAt        DateTime                 @updatedAt
   products         FBTProduct[]

@@ -31,6 +31,7 @@ import { DeleteIcon, PlusIcon, EditIcon } from "@shopify/polaris-icons";
 import { FBTWidget } from "../components/shared/FBTWidget";
 import type { FBTProduct } from "../components/shared/FBTProductCard";
 import { checkPlanAccess } from "../utils/planAccess.server";
+import { createOrUpdateFBTDiscount, deleteFBTDiscount } from "../utils/fbt-discount.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing, session, admin } = await authenticate.admin(request);
@@ -234,12 +235,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       buttonText: formData.get("buttonText") as string,
       buttonColor: formData.get("buttonColor") as string,
       buttonTextColor: formData.get("buttonTextColor") as string,
-      showDiscount: formData.get("showDiscount") === "true",
       showTotalPrice: formData.get("showTotalPrice") === "true",
       showIndividualPrices: formData.get("showIndividualPrices") === "true",
       showCheckboxes: formData.get("showCheckboxes") === "true",
-      discountType: formData.get("discountType") as string,
-      discountValue: formData.get("discountValue") ? parseFloat(formData.get("discountValue") as string) : null,
     };
 
     await prisma.frequentlyBoughtTogether.update({
@@ -255,8 +253,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const triggerValue = formData.get("triggerValue") as string;
     const triggerProductId = formData.get("triggerProductId") as string;
     const triggerTitle = formData.get("triggerTitle") as string;
-    const upsellType = formData.get("upsellType") as string;
+    // Get discount configuration
+    const showDiscount = formData.get("showDiscount") === "true";
+    const discountType = formData.get("discountType") as string | null;
+    const discountValueStr = formData.get("discountValue") as string | null;
+    const discountValue = discountValueStr ? parseFloat(discountValueStr) : null;
     const upsellProducts = JSON.parse(formData.get("upsellProducts") as string || "[]");
+
+    console.log("FBT Rule Discount Data:", { showDiscount, discountType, discountValue, discountValueStr });
 
     // Create the rule
     const rule = await prisma.fBTRule.create({
@@ -268,6 +272,39 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         triggerTitle,
       }
     });
+
+    // Create discount code if enabled
+    // Check: showDiscount must be true, discountType must exist, discountValue must be valid number > 0
+    const hasValidDiscount = showDiscount &&
+      discountType &&
+      discountType !== "" && // Ensure discountType is not an empty string
+      discountValue !== null &&
+      !isNaN(discountValue) &&
+      discountValue > 0;
+
+    console.log("Discount validation:", { hasValidDiscount, showDiscount, discountType, discountValue });
+
+    if (hasValidDiscount) {
+      const discountCode = `FBT_RULE_${rule.id}`;
+      const discountResult = await createOrUpdateFBTDiscount(
+        admin,
+        discountCode,
+        discountType as "percentage" | "fixed",
+        discountValue
+      );
+
+      if (discountResult) {
+        // Update rule with discount info
+        await prisma.fBTRule.update({
+          where: { id: rule.id },
+          data: {
+            discountType,
+            discountValue,
+            discountCode: discountResult.discountId
+          }
+        });
+      }
+    }
 
     // Add upsell products
     for (let i = 0; i < upsellProducts.length; i++) {
@@ -343,6 +380,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "delete-rule") {
     const ruleId = formData.get("ruleId") as string;
+
+    // Get rule with discount info before deleting
+    const rule = await prisma.fBTRule.findUnique({
+      where: { id: ruleId },
+      select: { discountCode: true }
+    });
+
+    // Delete discount if exists
+    if (rule?.discountCode) {
+      await deleteFBTDiscount(admin, rule.discountCode);
+    }
+
+    // Delete rule (cascade deletes products)
     await prisma.fBTRule.delete({
       where: { id: ruleId }
     });
@@ -356,6 +406,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const triggerProductId = formData.get("triggerProductId") as string;
     const triggerTitle = formData.get("triggerTitle") as string;
     const upsellProducts = JSON.parse(formData.get("upsellProducts") as string || "[]");
+
+    // Get discount configuration
+    const showDiscount = formData.get("showDiscount") === "true";
+    const discountType = formData.get("discountType") as string | null;
+    const discountValueStr = formData.get("discountValue") as string | null;
+    const discountValue = discountValueStr ? parseFloat(discountValueStr) : null;
 
     // Update the rule
     await prisma.fBTRule.update({
@@ -442,6 +498,49 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
     }
 
+    // Handle discount: delete old if exists, create new if enabled
+    const existingRule = await prisma.fBTRule.findUnique({
+      where: { id: ruleId },
+      select: { discountCode: true }
+    });
+
+    // Delete old discount if exists
+    if (existingRule?.discountCode) {
+      await deleteFBTDiscount(admin, existingRule.discountCode);
+    }
+
+    // Create new discount if enabled
+    if (showDiscount && discountType && discountValue && discountValue > 0) {
+      const discountCode = `FBT_RULE_${ruleId}`;
+      const discountResult = await createOrUpdateFBTDiscount(
+        admin,
+        discountCode,
+        discountType as "percentage" | "fixed",
+        discountValue
+      );
+
+      if (discountResult) {
+        await prisma.fBTRule.update({
+          where: { id: ruleId },
+          data: {
+            discountType,
+            discountValue,
+            discountCode: discountResult.discountId
+          }
+        });
+      }
+    } else {
+      // Clear discount fields if disabled
+      await prisma.fBTRule.update({
+        where: { id: ruleId },
+        data: {
+          discountType: null,
+          discountValue: null,
+          discountCode: null
+        }
+      });
+    }
+
     return json({ success: true });
   }
 
@@ -519,12 +618,9 @@ export default function FrequentlyBoughtTogether() {
       buttonText: fbtConfig?.buttonText || "Add selected items",
       buttonColor: fbtConfig?.buttonColor || "#000000",
       buttonTextColor: fbtConfig?.buttonTextColor || "#FFFFFF",
-      showDiscount: fbtConfig?.showDiscount ?? true,
       showTotalPrice: fbtConfig?.showTotalPrice ?? true,
       showIndividualPrices: fbtConfig?.showIndividualPrices ?? true,
       showCheckboxes: fbtConfig?.showCheckboxes ?? true,
-      discountType: fbtConfig?.discountType || "percentage",
-      discountValue: fbtConfig?.discountValue?.toString() || "",
     };
   });
 
@@ -544,6 +640,9 @@ export default function FrequentlyBoughtTogether() {
     upsellSearchQuery: string;
     showTriggerModal: boolean;
     showUpsellModal: boolean;
+    showDiscount: boolean;
+    discountType: "percentage" | "fixed";
+    discountValue: string;
   }
 
   const [upsellRows, setUpsellRows] = useState<UpsellRow[]>([
@@ -559,6 +658,9 @@ export default function FrequentlyBoughtTogether() {
       upsellSearchQuery: "",
       showTriggerModal: false,
       showUpsellModal: false,
+      showDiscount: true,
+      discountType: "percentage",
+      discountValue: "",
     }
   ]);
 
@@ -591,6 +693,9 @@ export default function FrequentlyBoughtTogether() {
       upsellSearchQuery: "",
       showTriggerModal: false,
       showUpsellModal: false,
+      showDiscount: true,
+      discountType: "percentage",
+      discountValue: "",
     };
     setUpsellRows(prev => [...prev, newRow]);
   }, []);
@@ -653,6 +758,10 @@ export default function FrequentlyBoughtTogether() {
       formData.append("triggerProductId", triggerProductId);
       formData.append("triggerTitle", triggerTitle);
       formData.append("upsellProducts", JSON.stringify(row.selectedUpsellProducts));
+      formData.append("showDiscount", row.showDiscount.toString());
+      formData.append("discountType", row.discountType);
+      formData.append("discountValue", row.discountValue);
+
 
       await submit(formData, { method: "post" });
     }
@@ -673,6 +782,9 @@ export default function FrequentlyBoughtTogether() {
         upsellSearchQuery: "",
         showTriggerModal: false,
         showUpsellModal: false,
+        showDiscount: true,
+        discountType: "percentage",
+        discountValue: "",
       }
     ]);
   }, [upsellRows, shopProducts, shopCollections, submit, editingRuleId]);
@@ -710,6 +822,9 @@ export default function FrequentlyBoughtTogether() {
         upsellSearchQuery: "",
         showTriggerModal: false,
         showUpsellModal: false,
+        showDiscount: rule.discountType && rule.discountValue ? true : false,
+        discountType: (rule.discountType as "percentage" | "fixed") || "percentage",
+        discountValue: rule.discountValue?.toString() || "",
       }
     ]);
 
@@ -1130,12 +1245,6 @@ export default function FrequentlyBoughtTogether() {
                   </InlineStack>
 
                   <Checkbox
-                    label="Show discount information"
-                    checked={formState.showDiscount}
-                    onChange={(value) => setFormState({ ...formState, showDiscount: value })}
-                  />
-
-                  <Checkbox
                     label="Show total price"
                     checked={formState.showTotalPrice}
                     onChange={(value) => setFormState({ ...formState, showTotalPrice: value })}
@@ -1151,25 +1260,6 @@ export default function FrequentlyBoughtTogether() {
                     label="Show checkboxes"
                     checked={formState.showCheckboxes}
                     onChange={(value) => setFormState({ ...formState, showCheckboxes: value })}
-                  />
-
-                  <Select
-                    label="Discount Type"
-                    options={[
-                      { label: "Percentage", value: "percentage" },
-                      { label: "Fixed Amount", value: "fixed" },
-                    ]}
-                    value={formState.discountType}
-                    onChange={(value) => setFormState({ ...formState, discountType: value })}
-                  />
-
-                  <TextField
-                    label="Discount Value"
-                    type="number"
-                    value={formState.discountValue}
-                    onChange={(value) => setFormState({ ...formState, discountValue: value })}
-                    helpText={formState.discountType === 'percentage' ? 'Discount percentage (e.g., 10 for 10%)' : 'Fixed discount amount'}
-                    autoComplete="off"
                   />
                 </FormLayout>
               </BlockStack>
@@ -1867,6 +1957,45 @@ export default function FrequentlyBoughtTogether() {
                           ) : null;
                         })}
                       </div>
+                    )}
+                  </BlockStack>
+
+                  {/* Discount Configuration */}
+                  <Divider />
+                  <BlockStack gap="300">
+                    <Text as="h3" variant="headingMd">
+                      Discount Configuration
+                    </Text>
+
+                    <Checkbox
+                      label="Enable discount for this FBT bundle"
+                      checked={row.showDiscount}
+                      onChange={(value) => updateUpsellRow(row.id, { showDiscount: value })}
+                    />
+
+                    {row.showDiscount && (
+                      <FormLayout>
+                        <FormLayout.Group>
+                          <Select
+                            label="Discount Type"
+                            options={[
+                              { label: 'Percentage', value: 'percentage' },
+                              { label: 'Fixed Amount', value: 'fixed' }
+                            ]}
+                            value={row.discountType}
+                            onChange={(value) => updateUpsellRow(row.id, { discountType: value as "percentage" | "fixed" })}
+                          />
+                          <TextField
+                            label={row.discountType === 'percentage' ? 'Discount Percentage (%)' : 'Fixed Discount Amount (₹)'}
+                            type="number"
+                            value={row.discountValue}
+                            onChange={(value) => updateUpsellRow(row.id, { discountValue: value })}
+                            autoComplete="off"
+                            placeholder={row.discountType === 'percentage' ? '10' : '100'}
+                            min="0"
+                          />
+                        </FormLayout.Group>
+                      </FormLayout>
                     )}
                   </BlockStack>
                 </div>

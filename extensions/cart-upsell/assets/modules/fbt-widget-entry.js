@@ -34,6 +34,26 @@ class FrequentlyBoughtTogether {
       await this.loadConfig();
       if (this.enabled && this.config) {
         await this.loadCurrentProduct();
+
+        // Fetch full parent product details if available
+        if (this.parentProduct && this.parentProduct.handle) {
+          try {
+            const response = await fetch(`/products/${this.parentProduct.handle}.js`);
+            if (response.ok) {
+              const productData = await response.json();
+              this.parentProduct = {
+                ...this.parentProduct,
+                price: productData.price / 100,
+                compareAtPrice: productData.compare_at_price ? productData.compare_at_price / 100 : null,
+                imageUrl: productData.featured_image || productData.images?.[0] || null,
+                variantId: productData.variants?.[0]?.id?.toString() || this.parentProduct.variantId
+              };
+            }
+          } catch (error) {
+            console.error('Error fetching parent product details:', error);
+          }
+        }
+
         await this.loadRecommendations();
         this.render();
       } else {
@@ -241,7 +261,8 @@ class FrequentlyBoughtTogether {
                 quantity: 1,
                 properties: {
                   '_upsell_source': 'fbt',
-                  '_fbt_parent': 'true'
+                  '_fbt_parent': 'true',
+                  '_fbt_discount_code': this.config?.discountCode || ''
                 }
               });
 
@@ -272,7 +293,8 @@ class FrequentlyBoughtTogether {
                 id: productData.variants?.[0]?.id,
                 quantity: 1,
                 properties: {
-                  '_upsell_source': 'fbt'
+                  '_upsell_source': 'fbt',
+                  '_fbt_discount_code': this.config?.discountCode || ''
                 }
               });
 
@@ -303,9 +325,34 @@ class FrequentlyBoughtTogether {
         if (response.ok) {
           document.dispatchEvent(new CustomEvent('cart:updated'));
 
+          console.log('=== FBT: Items added to cart successfully ===');
+          console.log('FBT Config:', this.config);
+          console.log('Discount code:', this.config?.discountCode);
+
           if (window.upsellityDrawer && typeof window.upsellityDrawer.open === 'function') {
+            console.log('FBT: Opening cart drawer...');
             setTimeout(() => {
               window.upsellityDrawer.open();
+              console.log('FBT: Cart drawer opened');
+
+              // Apply discount code if available
+              if (this.config?.discountCode && window.upsellityDrawer.applyCouponWithCode) {
+                console.log('=== FBT: Applying discount code:', this.config.discountCode);
+                setTimeout(() => {
+                  try {
+                    window.upsellityDrawer.applyCouponWithCode(this.config.discountCode);
+                    console.log('=== FBT: Discount applied successfully! ===');
+                  } catch (error) {
+                    console.error('=== FBT: Failed to apply discount ===', error);
+                  }
+                }, 1000);
+              } else {
+                console.warn('FBT: No discount code or applyCouponWithCode not available', {
+                  hasDiscountCode: !!this.config?.discountCode,
+                  discountCode: this.config?.discountCode,
+                  hasMethod: !!window.upsellityDrawer?.applyCouponWithCode
+                });
+              }
             }, 1500);
           }
 

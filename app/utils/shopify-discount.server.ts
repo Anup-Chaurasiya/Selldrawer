@@ -167,7 +167,9 @@ async function createBasicAutomatic(
       },
       customerGets,
       combinesWith: {
-        shippingDiscounts: true
+        shippingDiscounts: true,
+        productDiscounts: true,
+        orderDiscounts: true
       }
     }
   };

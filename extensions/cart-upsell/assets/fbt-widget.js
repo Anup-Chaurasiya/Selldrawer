@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.5
- * Built: 2026-01-05T08:47:26.860Z
+ * Built: 2026-01-05T14:42:49.220Z
  */
 "use strict";
 (() => {
@@ -8099,11 +8099,13 @@
     isAtLimit,
     total,
     originalTotal = 0,
+    bundleTotal,
+    hasDiscount = false,
+    hasFBTDiscount = false,
     selectedCount,
     onAddToCart,
     isAdding = false
   }) => {
-    const hasDiscount = config.showDiscount && originalTotal > total;
     const formatMoney = (price) => {
       return `\u20B9${Math.round(price)}`;
     };
@@ -8584,11 +8586,13 @@
     isAtLimit,
     total,
     originalTotal = 0,
+    bundleTotal,
+    hasDiscount = false,
+    hasFBTDiscount = false,
     selectedCount,
     onAddToCart,
     isAdding = false
   }) => {
-    const hasDiscount = config.showDiscount && originalTotal > total;
     const formatMoney = (price) => {
       return `\u20B9${Math.round(price)}`;
     };
@@ -9369,15 +9373,19 @@
           total2 += price;
         }
       });
+      return total2;
+    };
+    const calculateDiscountedTotal = (originalTotal2) => {
+      let discountedTotal = originalTotal2;
       if (config.discountValue && config.discountType) {
         const discountValue = parsePrice(config.discountValue);
         if (config.discountType === "percentage") {
-          total2 = total2 * (1 - discountValue / 100);
+          discountedTotal = originalTotal2 * (1 - discountValue / 100);
         } else if (config.discountType === "fixed") {
-          total2 = Math.max(0, total2 - discountValue);
+          discountedTotal = Math.max(0, originalTotal2 - discountValue);
         }
       }
-      return total2;
+      return discountedTotal;
     };
     const calculateOriginalTotal = () => {
       let total2 = 0;
@@ -9417,9 +9425,13 @@
     };
     const layout = config.layout || "horizontal";
     const templateType = config.templateType || "classic";
-    const total = calculateTotal();
+    const bundleTotal = calculateTotal();
+    const total = calculateDiscountedTotal(bundleTotal);
     const originalTotal = calculateOriginalTotal();
-    const hasDiscount = config.showDiscount && originalTotal > total;
+    const hasFBTDiscount = config.discountType && config.discountValue && bundleTotal > total;
+    const hasCompareAtDiscount = config.showDiscount && originalTotal > bundleTotal;
+    const hasDiscount = hasFBTDiscount || hasCompareAtDiscount;
+    const displayOriginalPrice = hasFBTDiscount ? bundleTotal : originalTotal;
     const selectedCount = selectedProducts.size;
     const isAtLimit = maxUpsells !== null && selectedCount >= maxUpsells;
     if (showSuccess) {
@@ -9466,7 +9478,10 @@
                     isPreview,
                     isAtLimit,
                     total,
-                    originalTotal,
+                    originalTotal: displayOriginalPrice,
+                    bundleTotal,
+                    hasDiscount,
+                    hasFBTDiscount,
                     selectedCount,
                     onAddToCart: handleAddToCart,
                     isAdding
@@ -9542,7 +9557,10 @@
             isPreview,
             isAtLimit,
             total,
-            originalTotal,
+            originalTotal: displayOriginalPrice,
+            bundleTotal,
+            hasDiscount,
+            hasFBTDiscount,
             selectedCount,
             onAddToCart: handleAddToCart,
             isAdding
@@ -9583,7 +9601,10 @@
                     isPreview,
                     isAtLimit,
                     total,
-                    originalTotal,
+                    originalTotal: displayOriginalPrice,
+                    bundleTotal,
+                    hasDiscount,
+                    hasFBTDiscount,
                     selectedCount,
                     onAddToCart: handleAddToCart,
                     isAdding
@@ -9659,7 +9680,10 @@
             isPreview,
             isAtLimit,
             total,
-            originalTotal,
+            originalTotal: displayOriginalPrice,
+            bundleTotal,
+            hasDiscount,
+            hasFBTDiscount,
             selectedCount,
             onAddToCart: handleAddToCart,
             isAdding
@@ -9872,7 +9896,7 @@
                                 fontSize: "0.8125rem",
                                 fontWeight: "400"
                               },
-                              children: formatMoney(originalTotal)
+                              children: formatMoney(displayOriginalPrice)
                             }
                           ),
                           /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
@@ -9882,7 +9906,7 @@
                               style: {
                                 fontSize: "1rem",
                                 fontWeight: "700",
-                                color: "#111827"
+                                color: hasDiscount ? "#059669" : "#111827"
                               },
                               children: formatMoney(total)
                             }
@@ -9989,7 +10013,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://victor-math-berlin-invite.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://endless-reporters-peace-owns.trycloudflare.com" : "https://app.upsellity.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;
@@ -10007,10 +10031,27 @@
       this.init();
     }
     async init() {
+      var _a2, _b, _c, _d;
       try {
         await this.loadConfig();
         if (this.enabled && this.config) {
           await this.loadCurrentProduct();
+          if (this.parentProduct && this.parentProduct.handle) {
+            try {
+              const response = await fetch(`/products/${this.parentProduct.handle}.js`);
+              if (response.ok) {
+                const productData = await response.json();
+                this.parentProduct = __spreadProps(__spreadValues({}, this.parentProduct), {
+                  price: productData.price / 100,
+                  compareAtPrice: productData.compare_at_price ? productData.compare_at_price / 100 : null,
+                  imageUrl: productData.featured_image || ((_a2 = productData.images) == null ? void 0 : _a2[0]) || null,
+                  variantId: ((_d = (_c = (_b = productData.variants) == null ? void 0 : _b[0]) == null ? void 0 : _c.id) == null ? void 0 : _d.toString()) || this.parentProduct.variantId
+                });
+              }
+            } catch (error) {
+              console.error("Error fetching parent product details:", error);
+            }
+          }
           await this.loadRecommendations();
           this.render();
         } else {
@@ -10164,7 +10205,7 @@
       }
     }
     async addToCart(selectedIds) {
-      var _a2, _b, _c, _d, _e, _f, _g, _h, _i, _j;
+      var _a2, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
       try {
         const items = [];
         if (this.parentProduct) {
@@ -10179,14 +10220,15 @@
                   quantity: 1,
                   properties: {
                     "_upsell_source": "fbt",
-                    "_fbt_parent": "true"
+                    "_fbt_parent": "true",
+                    "_fbt_discount_code": ((_c = this.config) == null ? void 0 : _c.discountCode) || ""
                   }
                 });
                 Analytics.track({
                   eventType: "add_to_cart",
                   component: "fbt",
                   productId: this.parentProduct.id,
-                  variantId: (_e = (_d = (_c = productData.variants) == null ? void 0 : _c[0]) == null ? void 0 : _d.id) == null ? void 0 : _e.toString(),
+                  variantId: (_f = (_e = (_d = productData.variants) == null ? void 0 : _d[0]) == null ? void 0 : _e.id) == null ? void 0 : _f.toString(),
                   value: typeof this.parentProduct.price === "number" ? this.parentProduct.price : parseFloat(this.parentProduct.price)
                 });
               }
@@ -10203,17 +10245,18 @@
               if (response.ok) {
                 const productData = await response.json();
                 items.push({
-                  id: (_g = (_f = productData.variants) == null ? void 0 : _f[0]) == null ? void 0 : _g.id,
+                  id: (_h = (_g = productData.variants) == null ? void 0 : _g[0]) == null ? void 0 : _h.id,
                   quantity: 1,
                   properties: {
-                    "_upsell_source": "fbt"
+                    "_upsell_source": "fbt",
+                    "_fbt_discount_code": ((_i = this.config) == null ? void 0 : _i.discountCode) || ""
                   }
                 });
                 Analytics.track({
                   eventType: "add_to_cart",
                   component: "fbt",
                   productId: product.id,
-                  variantId: (_j = (_i = (_h = productData.variants) == null ? void 0 : _h[0]) == null ? void 0 : _i.id) == null ? void 0 : _j.toString(),
+                  variantId: (_l = (_k = (_j = productData.variants) == null ? void 0 : _j[0]) == null ? void 0 : _k.id) == null ? void 0 : _l.toString(),
                   value: typeof product.price === "number" ? product.price : parseFloat(product.price)
                 });
               }
@@ -10232,9 +10275,32 @@
           });
           if (response.ok) {
             document.dispatchEvent(new CustomEvent("cart:updated"));
+            console.log("=== FBT: Items added to cart successfully ===");
+            console.log("FBT Config:", this.config);
+            console.log("Discount code:", (_m = this.config) == null ? void 0 : _m.discountCode);
             if (window.upsellityDrawer && typeof window.upsellityDrawer.open === "function") {
+              console.log("FBT: Opening cart drawer...");
               setTimeout(() => {
+                var _a3, _b2, _c2, _d2;
                 window.upsellityDrawer.open();
+                console.log("FBT: Cart drawer opened");
+                if (((_a3 = this.config) == null ? void 0 : _a3.discountCode) && window.upsellityDrawer.applyCouponWithCode) {
+                  console.log("=== FBT: Applying discount code:", this.config.discountCode);
+                  setTimeout(() => {
+                    try {
+                      window.upsellityDrawer.applyCouponWithCode(this.config.discountCode);
+                      console.log("=== FBT: Discount applied successfully! ===");
+                    } catch (error) {
+                      console.error("=== FBT: Failed to apply discount ===", error);
+                    }
+                  }, 1e3);
+                } else {
+                  console.warn("FBT: No discount code or applyCouponWithCode not available", {
+                    hasDiscountCode: !!((_b2 = this.config) == null ? void 0 : _b2.discountCode),
+                    discountCode: (_c2 = this.config) == null ? void 0 : _c2.discountCode,
+                    hasMethod: !!((_d2 = window.upsellityDrawer) == null ? void 0 : _d2.applyCouponWithCode)
+                  });
+                }
               }, 1500);
             }
             return true;

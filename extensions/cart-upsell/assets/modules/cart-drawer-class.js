@@ -797,6 +797,9 @@ export class UpsellityCartDrawer {
       // Just ensure cart is reloaded and rendered
       await this.loadCart();
       this.render();
+    } finally {
+      // Trigger cart:updated event for FBT monitor
+      document.dispatchEvent(new CustomEvent('cart:updated'));
     }
   }
 
@@ -804,6 +807,9 @@ export class UpsellityCartDrawer {
     await CartOps.removeItem(itemKey, async (updatedCart) => {
       // Update cart and reload free gifts to check qualification
       await this.loadCart(updatedCart);
+
+      // Trigger cart:updated event for FBT monitor
+      document.dispatchEvent(new CustomEvent('cart:updated'));
     }, this.render.bind(this));
   }
 

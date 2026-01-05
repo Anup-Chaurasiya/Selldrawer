@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.5
- * Built: 2026-01-05T07:31:27.601Z
+ * Built: 2026-01-05T14:42:49.217Z
  */
 "use strict";
 (() => {
@@ -13428,11 +13428,14 @@
       } catch (error) {
         await this.loadCart();
         this.render();
+      } finally {
+        document.dispatchEvent(new CustomEvent("cart:updated"));
       }
     }
     async removeItem(itemKey) {
       await removeItem(itemKey, async (updatedCart) => {
         await this.loadCart(updatedCart);
+        document.dispatchEvent(new CustomEvent("cart:updated"));
       }, this.render.bind(this));
     }
     // Get discount from Shopify cart
@@ -13490,8 +13493,156 @@
     }
   };
 
+  // extensions/cart-upsell/assets/modules/fbt-cart-monitor.js
+  var FBTCartMonitor = class {
+    constructor() {
+      this.fbtBundles = /* @__PURE__ */ new Map();
+      this.currentDiscountCode = null;
+      this.isRemoving = false;
+      this.init();
+    }
+    init() {
+      console.log("FBT Monitor: Initialized (Production Mode)");
+      document.addEventListener("cart:updated", () => {
+        this.checkAndCleanup();
+      });
+      if (typeof window !== "undefined") {
+        setTimeout(() => this.checkAndCleanup(), 1e3);
+      }
+    }
+    async checkAndCleanup() {
+      var _a2;
+      if (this.isRemoving) {
+        console.log("FBT Monitor: Already removing discount, skipping...");
+        return;
+      }
+      try {
+        const response = await fetch("/cart.js");
+        if (!response.ok) {
+          console.error("FBT Monitor: Failed to fetch cart");
+          return;
+        }
+        const cart = await response.json();
+        console.log("FBT Monitor: Checking cart...", {
+          totalItems: cart.item_count,
+          appliedDiscountCodes: ((_a2 = cart.cart_level_discount_applications) == null ? void 0 : _a2.map((d) => d.title)) || []
+        });
+        const currentFBTItems = /* @__PURE__ */ new Map();
+        cart.items.forEach((item) => {
+          var _a3, _b;
+          const discountCode = (_a3 = item.properties) == null ? void 0 : _a3._fbt_discount_code;
+          const bundleSize = (_b = item.properties) == null ? void 0 : _b._fbt_bundle_size;
+          if (discountCode) {
+            if (!currentFBTItems.has(discountCode)) {
+              currentFBTItems.set(discountCode, {
+                requiredCount: bundleSize ? parseInt(bundleSize) : 0,
+                items: /* @__PURE__ */ new Set()
+              });
+            }
+            currentFBTItems.get(discountCode).items.add(item.key);
+          }
+        });
+        let shouldRemoveDiscount = false;
+        let discountToRemove = null;
+        if (currentFBTItems.size === 0 && this.currentDiscountCode) {
+          console.log("FBT Monitor: No FBT items in cart, need to remove discount");
+          shouldRemoveDiscount = true;
+          discountToRemove = this.currentDiscountCode;
+        }
+        for (const [discountCode, bundleData] of currentFBTItems.entries()) {
+          const currentCount = bundleData.items.size;
+          const requiredCount = bundleData.requiredCount;
+          console.log(`FBT Monitor: Bundle ${discountCode}:`, {
+            current: currentCount,
+            required: requiredCount
+          });
+          if (requiredCount > 0 && currentCount < requiredCount) {
+            console.log(`FBT Monitor: Bundle ${discountCode} incomplete (${currentCount}/${requiredCount})`);
+            shouldRemoveDiscount = true;
+            discountToRemove = discountCode;
+            break;
+          }
+          const previousBundle = this.fbtBundles.get(discountCode);
+          if (previousBundle && currentCount < previousBundle.items.size) {
+            console.log(`FBT Monitor: Items removed from bundle ${discountCode}`);
+            shouldRemoveDiscount = true;
+            discountToRemove = discountCode;
+            break;
+          }
+        }
+        if (shouldRemoveDiscount) {
+          await this.removeDiscountFromCart(discountToRemove);
+          this.currentDiscountCode = null;
+          this.fbtBundles.clear();
+        } else {
+          this.fbtBundles = currentFBTItems;
+          const appliedDiscounts = cart.cart_level_discount_applications || [];
+          if (appliedDiscounts.length > 0 && currentFBTItems.size > 0) {
+            const fbtDiscount = appliedDiscounts.find(
+              (d) => d.title && d.title.startsWith("FBT_RULE_")
+            );
+            if (fbtDiscount) {
+              this.currentDiscountCode = fbtDiscount.title;
+            }
+          }
+        }
+      } catch (error) {
+        console.error("FBT Monitor: Error in checkAndCleanup:", error);
+      }
+    }
+    async removeDiscountFromCart(discountCode) {
+      if (this.isRemoving) {
+        console.log("FBT Monitor: Already removing, skipping...");
+        return;
+      }
+      this.isRemoving = true;
+      try {
+        console.log(`FBT Monitor: Removing discount ${discountCode || "current"} from cart...`);
+        if (window.upsellityDrawer && typeof window.upsellityDrawer.removeDiscount === "function") {
+          console.log("FBT Monitor: Using cart drawer removeDiscount method");
+          await window.upsellityDrawer.removeDiscount();
+        } else {
+          console.log("FBT Monitor: Using direct Shopify API");
+          const response = await fetch("/cart/update.js", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              attributes: {
+                discount_code: ""
+                // Clear discount
+              }
+            })
+          });
+          if (!response.ok) {
+            console.error("FBT Monitor: Failed to remove discount via API");
+          }
+        }
+        console.log("FBT Monitor: Discount removed successfully");
+        if (window.upsellityDrawer && typeof window.upsellityDrawer.loadCart === "function") {
+          await window.upsellityDrawer.loadCart();
+        }
+        document.dispatchEvent(new CustomEvent("cart:updated"));
+      } catch (error) {
+        console.error("FBT Monitor: Error removing discount:", error);
+      } finally {
+        this.isRemoving = false;
+      }
+    }
+  };
+  if (typeof window !== "undefined") {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => {
+        window.fbtCartMonitor = new FBTCartMonitor();
+      });
+    } else {
+      window.fbtCartMonitor = new FBTCartMonitor();
+    }
+  }
+
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://victor-math-berlin-invite.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://endless-reporters-peace-owns.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.5" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

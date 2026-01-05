@@ -53,6 +53,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     // Find matching rule for the product based on recommendation type
     let recommendations: any[] = [];
+    let matchingRule: any = null;
     const recommendationType = fbtConfig.recommendationType || "manual";
 
     // Only fetch manual recommendations if recommendation type is manual or hybrid
@@ -62,7 +63,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         // Priority: specific_product > collection > all_products
 
         // 1. Check for specific product rule
-        let matchingRule = fbtConfig.rules.find(
+        matchingRule = fbtConfig.rules.find(
           (rule: any) => rule.triggerType === "specific_product" && rule.triggerValue === productHandle
         );
 
@@ -125,83 +126,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // For AI mode, recommendations will be fetched by the widget from Shopify's API
     // For hybrid mode, manual recommendations are included above, AI will be added by widget
 
-    // Fetch parent product information
+    // Construct parent product from matching rule if available
     let parentProduct = null;
-    if (productHandle) {
-      try {
-        const storefrontToken = await getStorefrontAccessToken(shop);
-
-        if (storefrontToken) {
-          // Fetch product from Storefront API
-          const storefrontQuery = `
-            query getProduct($handle: String!) {
-              product(handle: $handle) {
-                id
-                title
-                handle
-                variants(first: 1) {
-                  edges {
-                    node {
-                      id
-                      price {
-                        amount
-                      }
-                      compareAtPrice {
-                        amount
-                      }
-                      image {
-                        url
-                      }
-                    }
-                  }
-                }
-                featuredImage {
-                  url
-                }
-              }
-            }
-          `;
-
-          const storefrontResponse = await fetch(
-            `https://${shop}/api/2024-01/graphql.json`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Shopify-Storefront-Access-Token': storefrontToken,
-              },
-              body: JSON.stringify({
-                query: storefrontQuery,
-                variables: { handle: productHandle }
-              })
-            }
-          );
-
-          if (storefrontResponse.ok) {
-            const storefrontData = await storefrontResponse.json();
-            const product = storefrontData?.data?.product;
-
-            if (product) {
-              const variant = product.variants?.edges?.[0]?.node;
-              const productId = product.id.split('/').pop();
-              const variantId = variant?.id.split('/').pop();
-
-              parentProduct = {
-                id: productId,
-                variantId: variantId,
-                title: product.title,
-                handle: product.handle,
-                price: variant?.price?.amount ? parseFloat(variant.price.amount) : 0,
-                compareAtPrice: variant?.compareAtPrice?.amount ? parseFloat(variant.compareAtPrice.amount) : null,
-                imageUrl: variant?.image?.url || product.featuredImage?.url || null,
-              };
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching parent product:', error);
-        // Continue even if parent product fetch fails
-      }
+    if (matchingRule && matchingRule.triggerType === 'specific_product') {
+      // For specific product triggers, construct minimal parent product data
+      // The extension will fetch full product details (price, image) on the client side
+      parentProduct = {
+        id: matchingRule.triggerProductId || matchingRule.triggerValue,
+        variantId: matchingRule.triggerProductId || matchingRule.triggerValue,
+        title: matchingRule.triggerTitle || matchingRule.triggerValue,
+        handle: matchingRule.triggerValue,
+        price: 0, // Will be fetched client-side
+        compareAtPrice: null,
+        imageUrl: null // Will be fetched client-side
+      };
     }
 
     // Return configuration with recommendations and parent product
@@ -219,8 +157,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         showIndividualPrices: fbtConfig.showIndividualPrices,
         showCheckboxes: fbtConfig.showCheckboxes,
         showProductReviews: fbtConfig.showProductReviews,
-        discountType: fbtConfig.discountType,
-        discountValue: fbtConfig.discountValue,
+        // Use per-rule discount values instead of global config
+        discountType: matchingRule?.discountType || null,
+        discountValue: matchingRule?.discountValue || null,
         recommendationType: recommendationType,
         useAI: fbtConfig.useAI,
         algorithm: fbtConfig.algorithm,
@@ -228,6 +167,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         showOfferIfInCart: fbtConfig.showOfferIfInCart,
         limitUpsellsInCart: fbtConfig.limitUpsellsInCart,
         maxUpsellsInCart: fbtConfig.maxUpsellsInCart,
+        discountCode: matchingRule?.discountCode ? `FBT_RULE_${matchingRule.id}` : null,
       },
       recommendations,
       parentProduct

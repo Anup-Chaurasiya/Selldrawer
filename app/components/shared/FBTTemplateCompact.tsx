@@ -16,6 +16,9 @@ interface FBTTemplateCompactProps {
   isAtLimit: boolean;
   total: number;
   originalTotal?: number;
+  bundleTotal?: number;
+  hasDiscount?: boolean;
+  hasFBTDiscount?: boolean;
   selectedCount: number;
   onAddToCart?: () => void;
   isAdding?: boolean;
@@ -31,11 +34,13 @@ export const FBTTemplateCompact: React.FC<FBTTemplateCompactProps> = ({
   isAtLimit,
   total,
   originalTotal = 0,
+  bundleTotal,
+  hasDiscount = false,
+  hasFBTDiscount = false,
   selectedCount,
   onAddToCart,
   isAdding = false
 }) => {
-  const hasDiscount = config.showDiscount && originalTotal > total;
 
   // Format money like cart drawer (₹ symbol, proper decimal parsing)
   const formatMoney = (price: number): string => {

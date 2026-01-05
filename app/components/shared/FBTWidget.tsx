@@ -259,17 +259,25 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
       }
     });
 
-    // Apply discount if configured
+    // Return total WITHOUT FBT bundle discount
+    // (This allows templates to show original vs discounted price)
+    return total;
+  };
+
+  const calculateDiscountedTotal = (originalTotal: number) => {
+    let discountedTotal = originalTotal;
+
+    // Apply FBT bundle discount if configured
     if (config.discountValue && config.discountType) {
       const discountValue = parsePrice(config.discountValue);
       if (config.discountType === 'percentage') {
-        total = total * (1 - discountValue / 100);
+        discountedTotal = originalTotal * (1 - discountValue / 100);
       } else if (config.discountType === 'fixed') {
-        total = Math.max(0, total - discountValue);
+        discountedTotal = Math.max(0, originalTotal - discountValue);
       }
     }
 
-    return total;
+    return discountedTotal;
   };
 
   const calculateOriginalTotal = () => {
@@ -315,11 +323,26 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
     }
   };
 
+
   const layout = config.layout || 'horizontal';
   const templateType = config.templateType || 'classic';
-  const total = calculateTotal();
-  const originalTotal = calculateOriginalTotal();
-  const hasDiscount = config.showDiscount && originalTotal > total;
+
+  // Calculate totals
+  const bundleTotal = calculateTotal(); // Original total without FBT bundle discount
+  const total = calculateDiscountedTotal(bundleTotal); // Apply FBT bundle discount
+  const originalTotal = calculateOriginalTotal(); // Total using compareAtPrice if available
+
+  // Show discount if:
+  // 1. FBT bundle discount is configured (discountType and discountValue exist)
+  // 2. OR if there are compareAtPrice differences
+  const hasFBTDiscount = config.discountType && config.discountValue && bundleTotal > total;
+  const hasCompareAtDiscount = config.showDiscount && originalTotal > bundleTotal;
+  const hasDiscount = hasFBTDiscount || hasCompareAtDiscount;
+
+  // For display, show bundleTotal with strikethrough if FBT discount exists
+  // Otherwise show originalTotal (compareAtPrice) with strikethrough
+  const displayOriginalPrice = hasFBTDiscount ? bundleTotal : originalTotal;
+
   const selectedCount = selectedProducts.size;
   const isAtLimit = maxUpsells !== null && selectedCount >= maxUpsells;
 
@@ -377,7 +400,10 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                 isPreview={isPreview}
                 isAtLimit={isAtLimit}
                 total={total}
-                originalTotal={originalTotal}
+                originalTotal={displayOriginalPrice}
+                bundleTotal={bundleTotal}
+                hasDiscount={hasDiscount}
+                hasFBTDiscount={hasFBTDiscount}
                 selectedCount={selectedCount}
                 onAddToCart={handleAddToCart}
                 isAdding={isAdding}
@@ -458,7 +484,10 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
           isPreview={isPreview}
           isAtLimit={isAtLimit}
           total={total}
-          originalTotal={originalTotal}
+          originalTotal={displayOriginalPrice}
+          bundleTotal={bundleTotal}
+          hasDiscount={hasDiscount}
+          hasFBTDiscount={hasFBTDiscount}
           selectedCount={selectedCount}
           onAddToCart={handleAddToCart}
           isAdding={isAdding}
@@ -501,7 +530,10 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                 isPreview={isPreview}
                 isAtLimit={isAtLimit}
                 total={total}
-                originalTotal={originalTotal}
+                originalTotal={displayOriginalPrice}
+                bundleTotal={bundleTotal}
+                hasDiscount={hasDiscount}
+                hasFBTDiscount={hasFBTDiscount}
                 selectedCount={selectedCount}
                 onAddToCart={handleAddToCart}
                 isAdding={isAdding}
@@ -582,7 +614,10 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
           isPreview={isPreview}
           isAtLimit={isAtLimit}
           total={total}
-          originalTotal={originalTotal}
+          originalTotal={displayOriginalPrice}
+          bundleTotal={bundleTotal}
+          hasDiscount={hasDiscount}
+          hasFBTDiscount={hasFBTDiscount}
           selectedCount={selectedCount}
           onAddToCart={handleAddToCart}
           isAdding={isAdding}
@@ -798,7 +833,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                         fontWeight: '400'
                       }}
                     >
-                      {formatMoney(originalTotal)}
+                      {formatMoney(displayOriginalPrice)}
                     </span>
                   )}
                   <span
@@ -806,7 +841,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                     style={{
                       fontSize: '1rem',
                       fontWeight: '700',
-                      color: '#111827'
+                      color: hasDiscount ? '#059669' : '#111827'
                     }}
                   >
                     {formatMoney(total)}

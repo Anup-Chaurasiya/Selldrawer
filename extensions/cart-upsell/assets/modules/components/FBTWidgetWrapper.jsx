@@ -15,8 +15,40 @@ export const FBTWidgetWrapper = ({
 }) => {
   const handleAddToCart = async (selectedIds) => {
     const items = [];
+    const discountCode = config.discountCode;
 
-    // Fetch each product to get the variant ID
+    // Calculate total bundle size (selected items + parent product if it exists)
+    const totalBundleSize = selectedIds.size + (parentProduct ? 1 : 0);
+
+    console.log('FBT: Preparing bundle:', {
+      selectedCount: selectedIds.size,
+      hasParent: !!parentProduct,
+      totalBundleSize,
+      discountCode
+    });
+
+    // Add parent product first if it exists (FBT parent is always included in bundle)
+    if (parentProduct) {
+      try {
+        const response = await fetch(`/products/${parentProduct.handle}.js`);
+        if (response.ok) {
+          const productData = await response.json();
+          items.push({
+            id: productData.variants?.[0]?.id,
+            quantity: 1,
+            properties: {
+              _fbt_discount_code: discountCode,
+              _fbt_bundle_size: totalBundleSize.toString(),
+              _fbt_item_type: 'parent'
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching parent product:', error);
+      }
+    }
+
+    // Fetch each selected product to get the variant ID and add FBT properties
     for (const rec of recommendations) {
       const variantId = rec.variantId || rec.id;
       if (selectedIds.has(variantId)) {
@@ -26,7 +58,12 @@ export const FBTWidgetWrapper = ({
             const productData = await response.json();
             items.push({
               id: productData.variants?.[0]?.id,
-              quantity: 1
+              quantity: 1,
+              properties: {
+                _fbt_discount_code: discountCode,
+                _fbt_bundle_size: totalBundleSize.toString(),
+                _fbt_item_type: 'recommendation'
+              }
             });
           }
         } catch (error) {
@@ -34,6 +71,8 @@ export const FBTWidgetWrapper = ({
         }
       }
     }
+
+    console.log('FBT: Adding items to cart with properties:', items);
 
     // Add items to cart
     if (items.length > 0) {
@@ -49,11 +88,44 @@ export const FBTWidgetWrapper = ({
         // Trigger cart update event
         document.dispatchEvent(new CustomEvent('cart:updated'));
 
+        console.log('=== FBT: Items added to cart successfully ===');
+        console.log('FBT config:', config);
+        console.log('Has discount code?', !!config.discountCode);
+        console.log('Discount code value:', config.discountCode);
+
         // Open cart drawer if it exists
         if (window.upsellityDrawer && typeof window.upsellityDrawer.open === 'function') {
+          console.log('FBT: Opening cart drawer in 1.5s...');
           setTimeout(() => {
             window.upsellityDrawer.open();
+            console.log('FBT: Cart drawer opened');
+
+            // Apply discount code if available
+            if (config.discountCode) {
+              console.log('=== FBT: Attempting to apply discount code ===');
+              console.log('Discount code:', config.discountCode);
+              console.log('applyCouponWithCode available?', typeof window.upsellityDrawer.applyCouponWithCode);
+
+              if (window.upsellityDrawer.applyCouponWithCode) {
+                // Wait a bit more for cart to fully load, then apply discount
+                setTimeout(() => {
+                  try {
+                    console.log('FBT: Calling applyCouponWithCode with:', config.discountCode);
+                    window.upsellityDrawer.applyCouponWithCode(config.discountCode);
+                    console.log('=== FBT: Discount code applied successfully ===');
+                  } catch (error) {
+                    console.error('=== FBT: Failed to apply discount ===', error);
+                  }
+                }, 800);
+              } else {
+                console.error('FBT: applyCouponWithCode method not found on upsellityDrawer');
+              }
+            } else {
+              console.log('FBT: No discount code in config to apply');
+            }
           }, 1500);
+        } else {
+          console.error('FBT: upsellityDrawer not found or open method not available');
         }
 
         return true;

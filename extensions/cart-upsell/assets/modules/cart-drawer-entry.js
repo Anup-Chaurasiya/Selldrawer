@@ -4,6 +4,7 @@
  */
 
 import { UpsellityCartDrawer } from './cart-drawer-class.js';
+import './fbt-cart-monitor.js'; // Import FBT cart monitor (initializes automatically)
 
 // App URL is injected at build time from config.js
 const APP_URL = typeof __APP_URL__ !== 'undefined' ? __APP_URL__ : 'https://app.upsellity.com';
