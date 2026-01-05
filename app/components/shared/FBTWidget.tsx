@@ -232,12 +232,11 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
     }
   };
 
-  // Format money like cart drawer (₹ symbol, proper decimal parsing)
+  // Format money - Shopify prices are already in dollars/rupees
   const formatMoney = (price: number): string => {
-    // If price is in cents (very large number), convert to currency unit
-    const amount = price > 10000 ? price / 100 : price;
-    // Round to whole number like cart drawer
-    return `₹${Math.round(amount)}`;
+    // Shopify GraphQL and Storefront API return prices in currency units (not cents)
+    // So we just format them directly
+    return `₹${Math.round(price)}`;
   };
 
   const calculateTotal = () => {

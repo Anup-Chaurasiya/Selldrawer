@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.5
- * Built: 2026-01-05T08:12:41.039Z
+ * Built: 2026-01-05T08:47:26.860Z
  */
 "use strict";
 (() => {
@@ -7902,8 +7902,7 @@
     const variantId = product.variantId || product.id;
     const discountPercent = product.compareAtPrice && product.price < product.compareAtPrice ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
     const formatMoney = (price) => {
-      const amount = price > 1e4 ? price / 100 : price;
-      return `\u20B9${Math.round(amount)}`;
+      return `\u20B9${Math.round(price)}`;
     };
     const handleCheckboxChange = (e) => {
       if (onToggle && !isDisabled) {
@@ -8106,8 +8105,7 @@
   }) => {
     const hasDiscount = config.showDiscount && originalTotal > total;
     const formatMoney = (price) => {
-      const amount = price > 1e4 ? price / 100 : price;
-      return `\u20B9${Math.round(amount)}`;
+      return `\u20B9${Math.round(price)}`;
     };
     return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
       "div",
@@ -8592,8 +8590,7 @@
   }) => {
     const hasDiscount = config.showDiscount && originalTotal > total;
     const formatMoney = (price) => {
-      const amount = price > 1e4 ? price / 100 : price;
-      return `\u20B9${Math.round(amount)}`;
+      return `\u20B9${Math.round(price)}`;
     };
     return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
       "div",
@@ -9355,8 +9352,7 @@
       }
     };
     const formatMoney = (price) => {
-      const amount = price > 1e4 ? price / 100 : price;
-      return `\u20B9${Math.round(amount)}`;
+      return `\u20B9${Math.round(price)}`;
     };
     const calculateTotal = () => {
       let total2 = 0;

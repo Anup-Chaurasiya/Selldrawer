@@ -114,7 +114,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         }
       }
     `, {
-      variables: { 
+      variables: {
         first: 100,
         query: "status:active"
       }
@@ -307,13 +307,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
         if (responseJson.data?.productByHandle) {
           const product = responseJson.data.productByHandle;
-          
+
           // Only save active products
           if (product.status !== 'ACTIVE') {
             console.warn(`Skipping product ${productHandle}: status is ${product.status}, only ACTIVE products are allowed`);
             continue;
           }
-          
+
           const variant = product.variants.edges[0]?.node;
           const image = product.images.edges[0]?.node;
 
@@ -411,13 +411,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
         if (responseJson.data?.productByHandle) {
           const product = responseJson.data.productByHandle;
-          
+
           // Only save active products
           if (product.status !== 'ACTIVE') {
             console.warn(`Skipping product ${productHandle}: status is ${product.status}, only ACTIVE products are allowed`);
             continue;
           }
-          
+
           const variant = product.variants.edges[0]?.node;
           const image = product.images.edges[0]?.node;
 
@@ -479,8 +479,8 @@ export default function FrequentlyBoughtTogether() {
   // Show toast notification when settings are saved successfully
   useEffect(() => {
     // Check if we just finished submitting a save-settings action
-    const justFinishedSave = 
-      prevIsSubmitting.current && 
+    const justFinishedSave =
+      prevIsSubmitting.current &&
       prevSubmittingIntent.current === "save-settings" &&
       !isSubmitting &&
       actionData &&
@@ -686,7 +686,7 @@ export default function FrequentlyBoughtTogether() {
 
   const handleEditRule = useCallback((rule: any) => {
     setEditingRuleId(rule.id);
-    
+
     // Convert rule to upsell row format
     const triggerType = rule.triggerType as "specific_product" | "collection" | "all_products";
     const selectedTriggerProduct = triggerType === "specific_product" && rule.triggerValue && rule.triggerValue !== "all"
@@ -712,7 +712,7 @@ export default function FrequentlyBoughtTogether() {
         showUpsellModal: false,
       }
     ]);
-    
+
     setShowManualModal(true);
   }, []);
 
@@ -748,6 +748,56 @@ export default function FrequentlyBoughtTogether() {
       compareAtPrice: 39.99 + (i * 10),
       imageUrl: null // Will show fallback icon in the component
     }));
+  };
+
+  const getSampleParentProduct = () => {
+    // Try to get the trigger product from the modal being configured
+    for (const row of upsellRows) {
+      if (row.selectedTriggerProduct) {
+        const triggerProduct = shopProducts.find((p: any) => p.handle === row.selectedTriggerProduct);
+        if (triggerProduct) {
+          return {
+            id: triggerProduct.id,
+            variantId: triggerProduct.variants?.[0]?.id || triggerProduct.id,
+            title: triggerProduct.title,
+            handle: triggerProduct.handle,
+            price: triggerProduct.variants?.[0]?.price ? parseFloat(triggerProduct.variants[0].price) : 0,
+            compareAtPrice: triggerProduct.variants?.[0]?.compare_at_price ? parseFloat(triggerProduct.variants[0].compare_at_price) : null,
+            imageUrl: triggerProduct.images?.[0]?.src || null
+          };
+        }
+      }
+    }
+
+    // Otherwise, try to get from the first configured rule
+    if (fbtConfig?.rules && fbtConfig.rules.length > 0) {
+      const firstRule = fbtConfig.rules[0];
+      if (firstRule.triggerType === 'specific_product' && firstRule.triggerValue) {
+        const triggerProduct = shopProducts.find((p: any) => p.handle === firstRule.triggerValue);
+        if (triggerProduct) {
+          return {
+            id: triggerProduct.id,
+            variantId: triggerProduct.variants?.[0]?.id || triggerProduct.id,
+            title: triggerProduct.title,
+            handle: triggerProduct.handle,
+            price: triggerProduct.variants?.[0]?.price ? parseFloat(triggerProduct.variants[0].price) : 0,
+            compareAtPrice: triggerProduct.variants?.[0]?.compare_at_price ? parseFloat(triggerProduct.variants[0].compare_at_price) : null,
+            imageUrl: triggerProduct.images?.[0]?.src || null
+          };
+        }
+      }
+    }
+
+    // Fallback to generic sample parent product
+    return {
+      id: 'sample-parent',
+      variantId: 'sample-parent-variant',
+      title: 'The Complete Snowboard',
+      handle: 'complete-snowboard',
+      price: 699.99,
+      compareAtPrice: 899.99,
+      imageUrl: null
+    };
   };
 
   const getPreviewProducts = () => {
@@ -815,10 +865,21 @@ export default function FrequentlyBoughtTogether() {
     return getSampleProducts();
   };
 
-  const calculatePreviewTotal = (products: any[]) => {
-    if (products.length === 0) return { original: 0, discounted: 0 };
+  const calculatePreviewTotal = (products: any[], parentProduct: any) => {
+    if (products.length === 0 && !parentProduct) return { original: 0, discounted: 0 };
 
-    const total = products.reduce((sum, product) => {
+    let total = 0;
+
+    // Include parent product price
+    if (parentProduct) {
+      const parentPrice = typeof parentProduct.price === 'number'
+        ? parentProduct.price
+        : parseFloat(parentProduct.price) || 0;
+      total += parentPrice;
+    }
+
+    // Include recommendations prices
+    total += products.reduce((sum, product) => {
       const price = typeof product.price === 'number'
         ? product.price
         : parseFloat(product.price) || 0;
@@ -842,7 +903,8 @@ export default function FrequentlyBoughtTogether() {
   };
 
   const previewProducts = getPreviewProducts();
-  const { original, discounted } = calculatePreviewTotal(previewProducts);
+  const sampleParentProduct = getSampleParentProduct();
+  const { original, discounted } = calculatePreviewTotal(previewProducts, sampleParentProduct);
 
   return (
     <Page
@@ -854,7 +916,7 @@ export default function FrequentlyBoughtTogether() {
       }}
     >
       <TitleBar title="Frequently Bought Together" />
-      
+
       {/* Custom Toast Notification - Appears at Top */}
       {showToast && (
         <div style={{
@@ -888,7 +950,7 @@ export default function FrequentlyBoughtTogether() {
               flexShrink: 0,
             }}>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <div style={{ flex: 1 }}>
@@ -912,7 +974,7 @@ export default function FrequentlyBoughtTogether() {
               aria-label="Close"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </button>
           </div>
@@ -1324,7 +1386,7 @@ export default function FrequentlyBoughtTogether() {
 
         {/* Preview Section */}
         <div style={{
-          flex: '0 0 40%', 
+          flex: '0 0 40%',
           minWidth: '350px',
           paddingLeft: '12px',
           position: 'sticky',
@@ -1381,6 +1443,7 @@ export default function FrequentlyBoughtTogether() {
                       limitUpsellsInCart: formState.limitUpsellsInCart,
                       maxUpsellsInCart: parseInt(formState.maxUpsellsInCart)
                     }}
+                    parentProduct={sampleParentProduct as FBTProduct}
                     recommendations={previewProducts.map((product: any) => {
                       const productPrice = typeof product.price === 'number'
                         ? product.price

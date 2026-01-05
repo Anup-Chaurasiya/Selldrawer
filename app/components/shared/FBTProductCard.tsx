@@ -48,10 +48,8 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
 
   // Format money like cart drawer (₹ symbol, proper decimal parsing)
   const formatMoney = (price: number): string => {
-    // If price is in cents (very large number), convert to currency unit
-    const amount = price > 10000 ? price / 100 : price;
-    // Round to whole number like cart drawer
-    return `₹${Math.round(amount)}`;
+    // Shopify prices are already in currency units (not cents)
+    return `₹${Math.round(price)}`;
   };
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,7 +63,7 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
       e.preventDefault();
       return;
     }
-    
+
     if (onProductClick) {
       onProductClick(product.id, variantId);
     }
@@ -73,7 +71,7 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
   };
 
   return (
-    <div 
+    <div
       className={`upsellity-fbt-product ${isDisabled ? 'upsellity-fbt-product-disabled' : ''}`}
       data-variant-id={variantId}
       style={{
@@ -88,9 +86,9 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
       }}
     >
       {showCheckbox && (
-        <input 
-          type="checkbox" 
-          className="upsellity-fbt-checkbox" 
+        <input
+          type="checkbox"
+          className="upsellity-fbt-checkbox"
           data-variant-id={variantId}
           checked={isSelected}
           disabled={isDisabled}
@@ -106,16 +104,16 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
           }}
         />
       )}
-      
+
       <div className="upsellity-fbt-product-image-wrapper" style={{ position: 'relative', marginBottom: '0.375rem' }}>
-        <a 
-          href={`/products/${product.handle}`} 
+        <a
+          href={`/products/${product.handle}`}
           onClick={handleProductClick}
           style={{ display: 'block', cursor: 'pointer', textDecoration: 'none' }}
         >
           {product.imageUrl ? (
-            <img 
-              src={product.imageUrl} 
+            <img
+              src={product.imageUrl}
               alt={product.title}
               className="upsellity-fbt-product-image"
               style={{
@@ -142,7 +140,7 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
           )}
         </a>
         {discountPercent > 0 && showDiscount && (
-          <div 
+          <div
             className="upsellity-fbt-discount-badge"
             style={{
               position: 'absolute',
@@ -162,13 +160,13 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
           </div>
         )}
       </div>
-      
-      <a 
-        href={`/products/${product.handle}`} 
+
+      <a
+        href={`/products/${product.handle}`}
         onClick={handleProductClick}
         style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
       >
-        <h3 
+        <h3
           className="upsellity-fbt-product-title"
           style={{
             fontSize: '0.75rem',
@@ -187,9 +185,9 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
           {product.title}
         </h3>
       </a>
-      
+
       {showIndividualPrices && (
-        <div 
+        <div
           className="upsellity-fbt-product-price"
           style={{
             fontSize: '0.8125rem',
@@ -199,7 +197,7 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
           }}
         >
           {product.compareAtPrice && showDiscount && (
-            <span 
+            <span
               className="upsellity-fbt-product-compare-price"
               style={{
                 textDecoration: 'line-through',
@@ -215,9 +213,9 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
           {formatMoney(product.price)}
         </div>
       )}
-      
+
       {showReviews && (
-        <div 
+        <div
           className="upsellity-fbt-reviews"
           style={{
             fontSize: '0.75rem',

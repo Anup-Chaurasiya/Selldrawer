@@ -39,10 +39,8 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
 
   // Format money like cart drawer (₹ symbol, proper decimal parsing)
   const formatMoney = (price: number): string => {
-    // If price is in cents (very large number), convert to currency unit
-    const amount = price > 10000 ? price / 100 : price;
-    // Round to whole number like cart drawer
-    return `₹${Math.round(amount)}`;
+    // Shopify prices are already in currency units (not cents)
+    return `₹${Math.round(price)}`;
   };
 
   return (
