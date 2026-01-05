@@ -56,13 +56,14 @@ class FrequentlyBoughtTogether {
       if (!response.ok) {
         throw new Error(`Failed to load FBT config: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       this.enabled = data.enabled || false;
       this.config = data.config || null;
       this.recommendations = data.recommendations || [];
-      
+      this.parentProduct = data.parentProduct || null;
+
       return data;
     } catch (error) {
       console.error('Error loading FBT config:', error);
@@ -74,7 +75,7 @@ class FrequentlyBoughtTogether {
     try {
       const response = await fetch(`/products/${this.productHandle}.js`);
       if (!response.ok) throw new Error('Failed to load product');
-      
+
       this.currentProduct = await response.json();
     } catch (error) {
       console.error('Error loading current product:', error);
@@ -91,15 +92,15 @@ class FrequentlyBoughtTogether {
       try {
         const rawProductId = this.currentProduct?.id || this.productId;
         const productId = this.extractProductId(rawProductId);
-        
+
         if (!productId) {
           console.warn('FBT Widget: Product ID not available for AI recommendations');
         } else {
           const intent = this.config.algorithm === 'complementary' ? 'complementary' : 'related';
           const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=3`;
-          
+
           const response = await fetch(recommendationsUrl);
-          
+
           if (response.ok) {
             const data = await response.json();
             aiRecommendations = data.products?.map(product => ({
@@ -108,14 +109,14 @@ class FrequentlyBoughtTogether {
               title: product.title,
               handle: product.handle,
               price: product.variants?.[0]?.price ? parseFloat(product.variants[0].price) / 100 : 0,
-              compareAtPrice: product.variants?.[0]?.compare_at_price ? 
+              compareAtPrice: product.variants?.[0]?.compare_at_price ?
                 parseFloat(product.variants[0].compare_at_price) / 100 : null,
               imageUrl: product.featured_image,
               source: 'ai'
             })) || [];
-            
-            const maxUpsells = this.config.limitUpsellsInCart && this.config.maxUpsellsInCart 
-              ? this.config.maxUpsellsInCart 
+
+            const maxUpsells = this.config.limitUpsellsInCart && this.config.maxUpsellsInCart
+              ? this.config.maxUpsellsInCart
               : null;
             if (maxUpsells && aiRecommendations.length > maxUpsells) {
               aiRecommendations = aiRecommendations.slice(0, maxUpsells);
@@ -131,7 +132,7 @@ class FrequentlyBoughtTogether {
 
     // Combine recommendations based on recommendation type
     let allRecommendations = [];
-    
+
     if (recommendationType === 'ai') {
       allRecommendations = aiRecommendations;
     } else if (recommendationType === 'hybrid') {
@@ -147,16 +148,23 @@ class FrequentlyBoughtTogether {
     this.recommendations = allRecommendations.filter(rec => rec.handle !== currentProductHandle);
 
     // Limit displayed recommendations
-    const maxUpsells = this.config.limitUpsellsInCart && this.config.maxUpsellsInCart 
-      ? this.config.maxUpsellsInCart 
+    const maxUpsells = this.config.limitUpsellsInCart && this.config.maxUpsellsInCart
+      ? this.config.maxUpsellsInCart
       : null;
-    
+
     if (maxUpsells && this.recommendations.length > maxUpsells) {
       this.recommendations = this.recommendations.slice(0, maxUpsells);
     }
 
     // Auto-select recommendations
     const limitToSelect = maxUpsells || this.recommendations.length;
+
+    // Auto-select parent product first
+    if (this.parentProduct) {
+      this.selectedProducts.add(this.parentProduct.variantId || this.parentProduct.id);
+    }
+
+    // Then auto-select recommendations
     this.recommendations.slice(0, limitToSelect).forEach(rec => {
       this.selectedProducts.add(rec.variantId || rec.id);
     });
@@ -174,7 +182,7 @@ class FrequentlyBoughtTogether {
     try {
       // Clear loading state
       this.container.innerHTML = '';
-      
+
       // Create React root if not exists
       if (!this.reactRoot) {
         this.reactRoot = createRoot(this.container);
@@ -185,6 +193,7 @@ class FrequentlyBoughtTogether {
         React.createElement(FBTWidget, {
           config: this.config,
           recommendations: this.recommendations,
+          parentProduct: this.parentProduct,
           selectedProductIds: this.selectedProducts,
           onSelectionChange: (selectedIds) => {
             this.selectedProducts = selectedIds;
@@ -219,6 +228,39 @@ class FrequentlyBoughtTogether {
     try {
       const items = [];
 
+      // Add parent product first if selected
+      if (this.parentProduct) {
+        const parentVariantId = this.parentProduct.variantId || this.parentProduct.id;
+        if (selectedIds.has(parentVariantId)) {
+          try {
+            const response = await fetch(`/products/${this.parentProduct.handle}.js`);
+            if (response.ok) {
+              const productData = await response.json();
+              items.push({
+                id: productData.variants?.[0]?.id,
+                quantity: 1,
+                properties: {
+                  '_upsell_source': 'fbt',
+                  '_fbt_parent': 'true'
+                }
+              });
+
+              // Track Add to Cart for parent
+              Analytics.track({
+                eventType: 'add_to_cart',
+                component: 'fbt',
+                productId: this.parentProduct.id,
+                variantId: productData.variants?.[0]?.id?.toString(),
+                value: typeof this.parentProduct.price === 'number' ? this.parentProduct.price : parseFloat(this.parentProduct.price)
+              });
+            }
+          } catch (error) {
+            console.error('Error fetching parent product:', error);
+          }
+        }
+      }
+
+      // Add selected recommendations
       for (const product of this.recommendations) {
         const variantId = product.variantId || product.id;
         if (selectedIds.has(variantId)) {
@@ -260,13 +302,13 @@ class FrequentlyBoughtTogether {
 
         if (response.ok) {
           document.dispatchEvent(new CustomEvent('cart:updated'));
-          
+
           if (window.upsellityDrawer && typeof window.upsellityDrawer.open === 'function') {
             setTimeout(() => {
               window.upsellityDrawer.open();
             }, 1500);
           }
-          
+
           return true;
         } else {
           throw new Error('Failed to add items to cart');
@@ -277,7 +319,7 @@ class FrequentlyBoughtTogether {
       alert('Failed to add items to cart. Please try again.');
       throw error;
     }
-    
+
     return false;
   }
 

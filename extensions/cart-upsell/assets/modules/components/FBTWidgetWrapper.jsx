@@ -9,12 +9,13 @@ import { FBTWidget } from '../../../../../app/components/shared/FBTWidget.tsx';
 export const FBTWidgetWrapper = ({
   config,
   recommendations,
+  parentProduct,
   onAddToCart,
   shop
 }) => {
   const handleAddToCart = async (selectedIds) => {
     const items = [];
-    
+
     // Fetch each product to get the variant ID
     for (const rec of recommendations) {
       const variantId = rec.variantId || rec.id;
@@ -47,20 +48,20 @@ export const FBTWidgetWrapper = ({
       if (response.ok) {
         // Trigger cart update event
         document.dispatchEvent(new CustomEvent('cart:updated'));
-        
+
         // Open cart drawer if it exists
         if (window.upsellityDrawer && typeof window.upsellityDrawer.open === 'function') {
           setTimeout(() => {
             window.upsellityDrawer.open();
           }, 1500);
         }
-        
+
         return true;
       } else {
         throw new Error('Failed to add items to cart');
       }
     }
-    
+
     return false;
   };
 
@@ -68,6 +69,7 @@ export const FBTWidgetWrapper = ({
     <FBTWidget
       config={config}
       recommendations={recommendations}
+      parentProduct={parentProduct}
       onAddToCart={onAddToCart ? handleAddToCart : undefined}
       isPreview={false}
     />

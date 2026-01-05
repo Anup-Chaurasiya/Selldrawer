@@ -8,6 +8,7 @@ import { FBTProduct } from './FBTProductCard';
 
 interface FBTTemplateMinimalProps {
   recommendations: FBTProduct[];
+  parentProduct?: FBTProduct | null;
   selectedProducts: Set<string>;
   config: any;
   handleToggle: (variantId: string, checked: boolean) => void;
@@ -22,6 +23,7 @@ interface FBTTemplateMinimalProps {
 
 export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
   recommendations,
+  parentProduct,
   selectedProducts,
   config,
   handleToggle,
@@ -44,7 +46,7 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
   };
 
   return (
-    <div 
+    <div
       className="upsellity-fbt-template-minimal"
       style={{
         display: 'flex',
@@ -64,40 +66,38 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
           border: '1px solid #e5e7eb'
         }}
       >
-          {recommendations.map((product, index) => {
-            const variantId = product.variantId || product.id;
-            const isSelected = selectedProducts.has(variantId);
-            const isDisabled = isAtLimit && !isSelected;
-            const discountPercent = product.compareAtPrice && product.price < product.compareAtPrice
-              ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
-              : 0;
+        {/* Render Parent Product First */}
+        {parentProduct && (() => {
+          const variantId = parentProduct.variantId || parentProduct.id;
+          const isSelected = selectedProducts.has(variantId);
+          const discountPercent = parentProduct.compareAtPrice && parentProduct.price < parentProduct.compareAtPrice
+            ? Math.round(((parentProduct.compareAtPrice - parentProduct.price) / parentProduct.compareAtPrice) * 100)
+            : 0;
 
-            return (
-              <React.Fragment key={variantId}>
+          return (
+            <React.Fragment key={`parent-${variantId}`}>
+              <div style={{ position: 'relative' }}>
                 <div
-                  className={`upsellity-fbt-minimal-card ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
+                  className="upsellity-fbt-minimal-card selected"
                   style={{
                     width: '100%',
                     padding: '0.75rem',
-                    border: isSelected ? '2px solid #10b981' : '1px solid #d1d5db',
+                    border: '2px solid #3b82f6',
                     borderRadius: '12px',
                     background: '#f9fafb',
                     transition: 'all 0.2s',
-                    opacity: isDisabled ? 0.5 : 1,
-                    cursor: 'pointer',
                     position: 'relative',
-                    boxShadow: isSelected ? '0 6px 14px rgba(16, 185, 129, 0.15)' : '0 4px 10px rgba(15, 23, 42, 0.08)',
+                    boxShadow: '0 6px 14px rgba(59, 130, 246, 0.2)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '0.375rem'
                   }}
-                  onClick={() => !isDisabled && handleToggle(variantId, !isSelected)}
                 >
                   <div style={{ position: 'relative', width: '100%' }}>
-                    {product.imageUrl ? (
+                    {parentProduct.imageUrl ? (
                       <img
-                        src={product.imageUrl}
-                        alt={product.title}
+                        src={parentProduct.imageUrl}
+                        alt={parentProduct.title}
                         style={{
                           width: '100%',
                           height: '110px',
@@ -155,20 +155,20 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
                       textAlign: 'center'
                     }}
                   >
-                    {product.title}
+                    {parentProduct.title}
                   </h4>
 
                   {/* Individual Price Display */}
                   {config.showIndividualPrices && (
-                    <div style={{ 
-                      display: 'flex', 
+                    <div style={{
+                      display: 'flex',
                       flexDirection: 'row',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.375rem',
                       flexWrap: 'wrap'
                     }}>
-                      {product.compareAtPrice && config.showDiscount && (
+                      {parentProduct.compareAtPrice && config.showDiscount && (
                         <span
                           style={{
                             textDecoration: 'line-through',
@@ -177,7 +177,7 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
                             fontWeight: '400'
                           }}
                         >
-                          {formatMoney(product.compareAtPrice)}
+                          {formatMoney(parentProduct.compareAtPrice)}
                         </span>
                       )}
                       <span
@@ -187,54 +187,224 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
                           color: '#111827'
                         }}
                       >
-                        {formatMoney(product.price)}
+                        {formatMoney(parentProduct.price)}
                       </span>
                     </div>
                   )}
-
-                  {isSelected && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '4px',
-                        right: '4px',
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        background: '#10b981',
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.75rem',
-                        fontWeight: '600'
-                      }}
-                    >
-                      ✓
-                    </div>
-                  )}
                 </div>
-                
-                {index < recommendations.length - 1 && (
-                  <div
-                    style={{
+
+                {/* "This Item" Badge */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-10px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: '#3b82f6',
+                    color: 'white',
+                    padding: '4px 10px',
+                    borderRadius: '4px',
+                    fontSize: '0.65rem',
+                    fontWeight: '600',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)',
+                    whiteSpace: 'nowrap',
+                    zIndex: 20
+                  }}
+                >
+                  THIS ITEM
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem',
+                  color: '#6b7280',
+                  fontWeight: '600',
+                  minWidth: '32px',
+                  flexShrink: 0
+                }}
+              >
+                +
+              </div>
+            </React.Fragment>
+          );
+        })()}
+
+        {/* Render Recommendation Products */}
+        {recommendations.map((product, index) => {
+          const variantId = product.variantId || product.id;
+          const isSelected = selectedProducts.has(variantId);
+          const isDisabled = isAtLimit && !isSelected;
+          const discountPercent = product.compareAtPrice && product.price < product.compareAtPrice
+            ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
+            : 0;
+
+          return (
+            <React.Fragment key={variantId}>
+              <div
+                className={`upsellity-fbt-minimal-card ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: isSelected ? '2px solid #10b981' : '1px solid #d1d5db',
+                  borderRadius: '12px',
+                  background: '#f9fafb',
+                  transition: 'all 0.2s',
+                  opacity: isDisabled ? 0.5 : 1,
+                  cursor: 'pointer',
+                  position: 'relative',
+                  boxShadow: isSelected ? '0 6px 14px rgba(16, 185, 129, 0.15)' : '0 4px 10px rgba(15, 23, 42, 0.08)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.375rem'
+                }}
+                onClick={() => !isDisabled && handleToggle(variantId, !isSelected)}
+              >
+                <div style={{ position: 'relative', width: '100%' }}>
+                  {product.imageUrl ? (
+                    <img
+                      src={product.imageUrl}
+                      alt={product.title}
+                      style={{
+                        width: '100%',
+                        height: '110px',
+                        objectFit: 'cover',
+                        borderRadius: '8px',
+                        background: '#f3f4f6'
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '100%',
+                      height: '110px',
+                      backgroundColor: '#f3f4f6',
+                      borderRadius: '8px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '1.5rem',
-                      color: '#6b7280',
-                      fontWeight: '600',
-                      minWidth: '32px',
-                      flexShrink: 0
-                    }}
-                  >
-                    +
+                      fontSize: '40px'
+                    }}>
+                      📦
+                    </div>
+                  )}
+                  {discountPercent > 0 && config.showDiscount && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        left: '8px',
+                        background: '#10b981',
+                        color: 'white',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                      }}
+                    >
+                      {discountPercent}% off
+                    </div>
+                  )}
+                </div>
+
+                {/* Product Title */}
+                <h4
+                  style={{
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    color: '#111827',
+                    lineHeight: 1.4,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    margin: 0,
+                    textAlign: 'center'
+                  }}
+                >
+                  {product.title}
+                </h4>
+
+                {/* Individual Price Display */}
+                {config.showIndividualPrices && (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.375rem',
+                    flexWrap: 'wrap'
+                  }}>
+                    {product.compareAtPrice && config.showDiscount && (
+                      <span
+                        style={{
+                          textDecoration: 'line-through',
+                          color: '#9ca3af',
+                          fontSize: '0.6875rem',
+                          fontWeight: '400'
+                        }}
+                      >
+                        {formatMoney(product.compareAtPrice)}
+                      </span>
+                    )}
+                    <span
+                      style={{
+                        fontSize: '0.875rem',
+                        fontWeight: '700',
+                        color: '#111827'
+                      }}
+                    >
+                      {formatMoney(product.price)}
+                    </span>
                   </div>
                 )}
-              </React.Fragment>
-            );
-          })}
-        </div>
+
+                {isSelected && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '4px',
+                      right: '4px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      background: '#10b981',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.75rem',
+                      fontWeight: '600'
+                    }}
+                  >
+                    ✓
+                  </div>
+                )}
+              </div>
+
+              {index < recommendations.length - 1 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.5rem',
+                    color: '#6b7280',
+                    fontWeight: '600',
+                    minWidth: '32px',
+                    flexShrink: 0
+                  }}
+                >
+                  +
+                </div>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
 
       {/* Total Price and Button */}
       <div

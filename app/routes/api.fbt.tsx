@@ -3,6 +3,7 @@ import { json } from "@remix-run/node";
 import { cors } from "remix-utils/cors";
 import prisma from "../db.server";
 import { checkPlanAccess } from "../utils/planAccess.server";
+import { getStorefrontAccessToken } from "../utils/storefrontToken.server";
 
 /**
  * Public API endpoint for FBT data
@@ -53,13 +54,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // Find matching rule for the product based on recommendation type
     let recommendations: any[] = [];
     const recommendationType = fbtConfig.recommendationType || "manual";
-    
+
     // Only fetch manual recommendations if recommendation type is manual or hybrid
     if (recommendationType === "manual" || recommendationType === "hybrid") {
       if (productHandle) {
         // Find rules that match the current product
         // Priority: specific_product > collection > all_products
-        
+
         // 1. Check for specific product rule
         let matchingRule = fbtConfig.rules.find(
           (rule: any) => rule.triggerType === "specific_product" && rule.triggerValue === productHandle
@@ -111,20 +112,99 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
               position: product.position
             };
           });
-          
+
           // Limit recommendations if limitUpsellsInCart is enabled
           if (fbtConfig.limitUpsellsInCart && fbtConfig.maxUpsellsInCart) {
             recommendations = recommendations.slice(0, fbtConfig.maxUpsellsInCart);
           }
-          
+
         }
       }
     }
-    
+
     // For AI mode, recommendations will be fetched by the widget from Shopify's API
     // For hybrid mode, manual recommendations are included above, AI will be added by widget
 
-    // Return configuration with recommendations
+    // Fetch parent product information
+    let parentProduct = null;
+    if (productHandle) {
+      try {
+        const storefrontToken = await getStorefrontAccessToken(shop);
+
+        if (storefrontToken) {
+          // Fetch product from Storefront API
+          const storefrontQuery = `
+            query getProduct($handle: String!) {
+              product(handle: $handle) {
+                id
+                title
+                handle
+                variants(first: 1) {
+                  edges {
+                    node {
+                      id
+                      price {
+                        amount
+                      }
+                      compareAtPrice {
+                        amount
+                      }
+                      image {
+                        url
+                      }
+                    }
+                  }
+                }
+                featuredImage {
+                  url
+                }
+              }
+            }
+          `;
+
+          const storefrontResponse = await fetch(
+            `https://${shop}/api/2024-01/graphql.json`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Shopify-Storefront-Access-Token': storefrontToken,
+              },
+              body: JSON.stringify({
+                query: storefrontQuery,
+                variables: { handle: productHandle }
+              })
+            }
+          );
+
+          if (storefrontResponse.ok) {
+            const storefrontData = await storefrontResponse.json();
+            const product = storefrontData?.data?.product;
+
+            if (product) {
+              const variant = product.variants?.edges?.[0]?.node;
+              const productId = product.id.split('/').pop();
+              const variantId = variant?.id.split('/').pop();
+
+              parentProduct = {
+                id: productId,
+                variantId: variantId,
+                title: product.title,
+                handle: product.handle,
+                price: variant?.price?.amount ? parseFloat(variant.price.amount) : 0,
+                compareAtPrice: variant?.compareAtPrice?.amount ? parseFloat(variant.compareAtPrice.amount) : null,
+                imageUrl: variant?.image?.url || product.featuredImage?.url || null,
+              };
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching parent product:', error);
+        // Continue even if parent product fetch fails
+      }
+    }
+
+    // Return configuration with recommendations and parent product
     const response = json({
       enabled: true,
       config: {
@@ -149,7 +229,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         limitUpsellsInCart: fbtConfig.limitUpsellsInCart,
         maxUpsellsInCart: fbtConfig.maxUpsellsInCart,
       },
-      recommendations
+      recommendations,
+      parentProduct
     });
 
     return cors(request, response);

@@ -30,6 +30,7 @@ interface FBTConfig {
 interface FBTWidgetProps {
   config: FBTConfig;
   recommendations: FBTProduct[];
+  parentProduct?: FBTProduct | null;
   selectedProductIds?: Set<string>;
   onSelectionChange?: (selectedIds: Set<string>) => void;
   onAddToCart?: (selectedIds: Set<string>) => void;
@@ -41,6 +42,7 @@ interface FBTWidgetProps {
 export const FBTWidget: React.FC<FBTWidgetProps> = ({
   config,
   recommendations,
+  parentProduct,
   selectedProductIds: initialSelectedIds,
   onSelectionChange,
   onAddToCart,
@@ -48,11 +50,25 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
   onProductClick,
   isPreview = false
 }) => {
-  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
-    initialSelectedIds || new Set(
-      recommendations.slice(0, config.maxUpsellsInCart || recommendations.length).map(r => r.variantId || r.id)
-    )
-  );
+  // Initialize selected products including parent product by default
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+
+    // Always select parent product first
+    if (parentProduct) {
+      initial.add(parentProduct.variantId || parentProduct.id);
+    }
+
+    // Then add recommendations based on initial selection or limit
+    if (initialSelectedIds) {
+      initialSelectedIds.forEach(id => initial.add(id));
+    } else {
+      recommendations.slice(0, config.maxUpsellsInCart || recommendations.length)
+        .forEach(r => initial.add(r.variantId || r.id));
+    }
+
+    return initial;
+  });
   const [isAdding, setIsAdding] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -70,8 +86,8 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
     }
   }, [onImpression, isPreview, recommendations.length]);
 
-  const maxUpsells = config.limitUpsellsInCart && config.maxUpsellsInCart 
-    ? config.maxUpsellsInCart 
+  const maxUpsells = config.limitUpsellsInCart && config.maxUpsellsInCart
+    ? config.maxUpsellsInCart
     : null;
 
   // Check if we should show mobile carousel
@@ -81,7 +97,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
         setIsMobileCarousel(window.innerWidth <= 768);
       }
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -141,11 +157,18 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
   };
 
   const handleToggle = (variantId: string, checked: boolean) => {
+    // Prevent deselection of parent product
+    const parentVariantId = parentProduct?.variantId || parentProduct?.id;
+    if (!checked && variantId === parentVariantId) {
+      return; // Don't allow deselecting parent product
+    }
+
     const newSelected = new Set(selectedProducts);
-    
+
     if (checked) {
-      // Check if we're at the limit
-      if (maxUpsells !== null && newSelected.size >= maxUpsells) {
+      // Check if we're at the limit (not counting parent product)
+      const nonParentCount = Array.from(newSelected).filter(id => id !== parentVariantId).length;
+      if (maxUpsells !== null && nonParentCount >= maxUpsells) {
         showLimitMessage(maxUpsells);
         return;
       }
@@ -153,7 +176,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
     } else {
       newSelected.delete(variantId);
     }
-    
+
     setSelectedProducts(newSelected);
     if (onSelectionChange) {
       onSelectionChange(newSelected);
@@ -163,7 +186,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
   const showLimitMessage = (max: number) => {
     // Only run in browser
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
-    
+
     const messageDiv = document.createElement('div');
     messageDiv.style.cssText = `
       position: fixed;
@@ -180,9 +203,9 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
       font-weight: 500;
     `;
     messageDiv.textContent = `Maximum ${max} upsell product${max > 1 ? 's' : ''} can be selected.`;
-    
+
     document.body.appendChild(messageDiv);
-    
+
     setTimeout(() => {
       messageDiv.remove();
     }, 3000);
@@ -219,6 +242,16 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
 
   const calculateTotal = () => {
     let total = 0;
+
+    // Include parent product price
+    if (parentProduct) {
+      const parentVariantId = parentProduct.variantId || parentProduct.id;
+      if (selectedProducts.has(parentVariantId)) {
+        total += parsePrice(parentProduct.price);
+      }
+    }
+
+    // Include recommendations prices
     recommendations.forEach(product => {
       const variantId = product.variantId || product.id;
       if (selectedProducts.has(variantId)) {
@@ -242,6 +275,18 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
 
   const calculateOriginalTotal = () => {
     let total = 0;
+
+    // Include parent product original price
+    if (parentProduct) {
+      const parentVariantId = parentProduct.variantId || parentProduct.id;
+      if (selectedProducts.has(parentVariantId)) {
+        const comparePrice = parsePrice(parentProduct.compareAtPrice);
+        const regularPrice = parsePrice(parentProduct.price);
+        total += comparePrice > 0 ? comparePrice : regularPrice;
+      }
+    }
+
+    // Include recommendations original prices
     recommendations.forEach(product => {
       const variantId = product.variantId || product.id;
       if (selectedProducts.has(variantId)) {
@@ -255,9 +300,9 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
 
   const handleAddToCart = async () => {
     if (isPreview) return;
-    
+
     setIsAdding(true);
-    
+
     try {
       if (onAddToCart) {
         await onAddToCart(selectedProducts);
@@ -297,14 +342,14 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
   const renderTemplate = () => {
     // Check if carousel layout should be used
     const useCarousel = layout === 'carousel' || (isMobileCarousel && recommendations.length > 1);
-    
+
     // Render Compact Template
     if (templateType === 'compact') {
       if (useCarousel) {
         // Carousel layout for compact template
         return (
           <div style={{ position: 'relative' }}>
-            <div 
+            <div
               ref={carouselRef}
               className="upsellity-fbt-carousel"
               onMouseDown={handleMouseDown}
@@ -326,6 +371,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
             >
               <FBTTemplateCompact
                 recommendations={recommendations}
+                parentProduct={parentProduct}
                 selectedProducts={selectedProducts}
                 config={config}
                 handleToggle={handleToggle}
@@ -338,7 +384,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                 isAdding={isAdding}
               />
             </div>
-            
+
             {/* Carousel Navigation Controls */}
             {!isMobileCarousel && recommendations.length > 2 && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
@@ -380,7 +426,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                 </button>
               </div>
             )}
-            
+
             {/* Mobile Carousel Indicators */}
             {isMobileCarousel && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: '0.25rem', marginBottom: '0.75rem' }}>
@@ -401,11 +447,12 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
           </div>
         );
       }
-      
+
       // Horizontal layout for compact template
       return (
         <FBTTemplateCompact
           recommendations={recommendations}
+          parentProduct={parentProduct}
           selectedProducts={selectedProducts}
           config={config}
           handleToggle={handleToggle}
@@ -418,15 +465,15 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
           isAdding={isAdding}
         />
       );
-    } 
-    
+    }
+
     // Render Minimal Template
     else if (templateType === 'minimal') {
       if (useCarousel) {
         // Carousel layout for minimal template
         return (
           <div style={{ position: 'relative' }}>
-            <div 
+            <div
               ref={carouselRef}
               className="upsellity-fbt-carousel"
               onMouseDown={handleMouseDown}
@@ -448,6 +495,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
             >
               <FBTTemplateMinimal
                 recommendations={recommendations}
+                parentProduct={parentProduct}
                 selectedProducts={selectedProducts}
                 config={config}
                 handleToggle={handleToggle}
@@ -460,7 +508,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                 isAdding={isAdding}
               />
             </div>
-            
+
             {/* Carousel Navigation Controls */}
             {!isMobileCarousel && recommendations.length > 2 && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
@@ -502,7 +550,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                 </button>
               </div>
             )}
-            
+
             {/* Mobile Carousel Indicators */}
             {isMobileCarousel && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: '0.25rem', marginBottom: '0.75rem' }}>
@@ -523,11 +571,12 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
           </div>
         );
       }
-      
+
       // Horizontal layout for minimal template
       return (
         <FBTTemplateMinimal
           recommendations={recommendations}
+          parentProduct={parentProduct}
           selectedProducts={selectedProducts}
           config={config}
           handleToggle={handleToggle}
@@ -540,15 +589,15 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
           isAdding={isAdding}
         />
       );
-    } 
-    
+    }
+
     // Render Classic Template
     else {
       if (useCarousel) {
         // Carousel layout for classic template
         return (
           <div style={{ position: 'relative' }}>
-            <div 
+            <div
               ref={carouselRef}
               className="upsellity-fbt-carousel"
               onMouseDown={handleMouseDown}
@@ -572,9 +621,9 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                 const variantId = product.variantId || product.id;
                 const isSelected = selectedProducts.has(variantId);
                 const isDisabled = isAtLimit && !isSelected;
-                
+
                 return (
-                  <div 
+                  <div
                     key={variantId}
                     style={{
                       minWidth: isMobileCarousel ? '100%' : '180px',
@@ -597,7 +646,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                 );
               })}
             </div>
-            
+
             {/* Carousel Navigation Controls */}
             {!isMobileCarousel && recommendations.length > 3 && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
@@ -639,7 +688,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                 </button>
               </div>
             )}
-            
+
             {/* Mobile Carousel Indicators */}
             {isMobileCarousel && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: '0.25rem', marginBottom: '0.75rem' }}>
@@ -660,11 +709,12 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
           </div>
         );
       }
-      
+
       // Horizontal layout for classic template
       return (
         <FBTTemplateClassic
           recommendations={recommendations}
+          parentProduct={parentProduct}
           selectedProducts={selectedProducts}
           config={config}
           handleToggle={handleToggle}
@@ -677,7 +727,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
 
   return (
     <div className="upsellity-fbt-content">
-      <h2 
+      <h2
         className="upsellity-fbt-title"
         style={{
           fontSize: '1rem',
@@ -689,8 +739,8 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
       >
         {config.title || 'Frequently Bought Together'}
       </h2>
-      
-      <div 
+
+      <div
         className="upsellity-fbt-layout"
         style={{
           display: (templateType === 'compact' || templateType === 'minimal') ? 'block' : 'grid',
@@ -700,95 +750,95 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
         }}
       >
         {renderTemplate()}
-        
+
         {templateType !== 'compact' && templateType !== 'minimal' && (
-        <div 
-          className="upsellity-fbt-sidebar"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.5rem',
-            alignItems: 'stretch',
-            justifyContent: 'center',
-            minHeight: '100%'
-          }}
-        >
-          {config.showTotalPrice && (
-            <div 
-              className="upsellity-fbt-total"
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.25rem',
-                padding: '0.5rem 0.625rem',
-                background: '#f9fafb',
-                borderRadius: '4px',
-                marginBottom: '0.25rem',
-                border: '1px solid #e5e7eb'
-              }}
-            >
-              <span 
-                className="upsellity-fbt-total-label"
+          <div
+            className="upsellity-fbt-sidebar"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+              alignItems: 'stretch',
+              justifyContent: 'center',
+              minHeight: '100%'
+            }}
+          >
+            {config.showTotalPrice && (
+              <div
+                className="upsellity-fbt-total"
                 style={{
-                  fontSize: '0.8125rem',
-                  fontWeight: '600',
-                  color: '#111827'
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.25rem',
+                  padding: '0.5rem 0.625rem',
+                  background: '#f9fafb',
+                  borderRadius: '4px',
+                  marginBottom: '0.25rem',
+                  border: '1px solid #e5e7eb'
                 }}
               >
-                Total price:
-              </span>
-              <div>
-                {hasDiscount && (
-                <span 
-                  className="upsellity-fbt-total-original"
+                <span
+                  className="upsellity-fbt-total-label"
                   style={{
-                    textDecoration: 'line-through',
-                    color: '#9ca3af',
-                    marginRight: '0.375rem',
                     fontSize: '0.8125rem',
-                    fontWeight: '400'
-                  }}
-                >
-                  {formatMoney(originalTotal)}
-                </span>
-                )}
-                <span 
-                  className="upsellity-fbt-total-price"
-                  style={{
-                    fontSize: '1rem',
-                    fontWeight: '700',
+                    fontWeight: '600',
                     color: '#111827'
                   }}
                 >
-                  {formatMoney(total)}
+                  Total price:
                 </span>
+                <div>
+                  {hasDiscount && (
+                    <span
+                      className="upsellity-fbt-total-original"
+                      style={{
+                        textDecoration: 'line-through',
+                        color: '#9ca3af',
+                        marginRight: '0.375rem',
+                        fontSize: '0.8125rem',
+                        fontWeight: '400'
+                      }}
+                    >
+                      {formatMoney(originalTotal)}
+                    </span>
+                  )}
+                  <span
+                    className="upsellity-fbt-total-price"
+                    style={{
+                      fontSize: '1rem',
+                      fontWeight: '700',
+                      color: '#111827'
+                    }}
+                  >
+                    {formatMoney(total)}
+                  </span>
+                </div>
               </div>
-            </div>
-          )}
-          
-          <button 
-            className="upsellity-fbt-button" 
-            onClick={handleAddToCart}
-            disabled={selectedCount === 0 || isAdding || isPreview}
-            style={{
-              width: '100%',
-              padding: '0.75rem 0.625rem',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '0.8125rem',
-              fontWeight: '600',
-              cursor: (selectedCount === 0 || isAdding || isPreview) ? 'not-allowed' : 'pointer',
-              transition: 'opacity 0.2s, transform 0.1s',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-              backgroundColor: config.buttonColor || '#000000',
-              color: config.buttonTextColor || '#FFFFFF',
-              opacity: (selectedCount === 0 || isAdding) ? 0.5 : 1,
-              lineHeight: 1.2
-            }}
-          >
-            {isAdding ? 'Adding...' : `${config.buttonText || 'Add selected items'} ${selectedCount > 0 ? `(${selectedCount})` : ''}`}
-          </button>
-        </div>
+            )}
+
+            <button
+              className="upsellity-fbt-button"
+              onClick={handleAddToCart}
+              disabled={selectedCount === 0 || isAdding || isPreview}
+              style={{
+                width: '100%',
+                padding: '0.75rem 0.625rem',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '0.8125rem',
+                fontWeight: '600',
+                cursor: (selectedCount === 0 || isAdding || isPreview) ? 'not-allowed' : 'pointer',
+                transition: 'opacity 0.2s, transform 0.1s',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                backgroundColor: config.buttonColor || '#000000',
+                color: config.buttonTextColor || '#FFFFFF',
+                opacity: (selectedCount === 0 || isAdding) ? 0.5 : 1,
+                lineHeight: 1.2
+              }}
+            >
+              {isAdding ? 'Adding...' : `${config.buttonText || 'Add selected items'} ${selectedCount > 0 ? `(${selectedCount})` : ''}`}
+            </button>
+          </div>
         )}
       </div>
     </div>
