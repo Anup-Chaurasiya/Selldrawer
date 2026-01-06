@@ -1,6 +1,10 @@
 /**
  * Upsellity Nudge Popup v1.0.5
+<<<<<<< HEAD
  * Built: 2026-01-05T14:42:49.214Z
+=======
+ * Built: 2026-01-05T14:57:08.361Z
+>>>>>>> 65244fdaf30cecc674be71752ca302063015f3cc
  */
 "use strict";
 (() => {
@@ -9166,7 +9170,11 @@
   }
 
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
+<<<<<<< HEAD
   var APP_URL = true ? "https://endless-reporters-peace-owns.trycloudflare.com" : "https://app.upsellity.com";
+=======
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+>>>>>>> 65244fdaf30cecc674be71752ca302063015f3cc
   var NudgePopup = class {
     constructor() {
       this.shop = null;
