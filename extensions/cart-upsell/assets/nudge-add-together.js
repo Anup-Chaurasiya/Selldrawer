@@ -1,10 +1,6 @@
 /**
  * Upsellity Nudge Add Together v1.0.5
-<<<<<<< HEAD
- * Built: 2026-01-05T14:42:47.292Z
-=======
- * Built: 2026-01-05T14:57:08.379Z
->>>>>>> 65244fdaf30cecc674be71752ca302063015f3cc
+ * Built: 2026-01-06T13:26:37.235Z
  */
 "use strict";
 (() => {
@@ -9309,11 +9305,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/nudge-add-together-entry.js
-<<<<<<< HEAD
-  var APP_URL = true ? "https://endless-reporters-peace-owns.trycloudflare.com" : "https://app.upsellity.com";
-=======
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
->>>>>>> 65244fdaf30cecc674be71752ca302063015f3cc
+  var APP_URL = true ? "https://mailed-foreign-pound-loops.trycloudflare.com" : "https://app.upsellity.com";
   var NudgeAddTogether = class {
     constructor() {
       this.shop = null;

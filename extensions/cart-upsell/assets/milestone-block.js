@@ -1,10 +1,6 @@
 /**
  * Upsellity Milestone Block v1.0.5
-<<<<<<< HEAD
- * Built: 2026-01-05T14:42:49.208Z
-=======
- * Built: 2026-01-05T14:57:08.416Z
->>>>>>> 65244fdaf30cecc674be71752ca302063015f3cc
+ * Built: 2026-01-06T13:27:10.898Z
  */
 "use strict";
 (() => {
@@ -9411,11 +9407,7 @@
 
   // extensions/cart-upsell/assets/modules/milestone-block-entry.js
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
-<<<<<<< HEAD
-  var APP_URL = true ? "https://endless-reporters-peace-owns.trycloudflare.com" : "https://app.upsellity.com";
-=======
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
->>>>>>> 65244fdaf30cecc674be71752ca302063015f3cc
+  var APP_URL = true ? "https://sbjct-tables-compare-posing.trycloudflare.com" : "https://app.upsellity.com";
   function initMilestoneBlocks() {
     const containers = document.querySelectorAll(".upsellity-milestone-container");
     if (containers.length === 0) {

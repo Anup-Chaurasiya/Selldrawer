@@ -1,10 +1,6 @@
 /**
  * Upsellity Promotional Banner Block v1.0.5
-<<<<<<< HEAD
- * Built: 2026-01-05T14:42:49.211Z
-=======
- * Built: 2026-01-05T14:57:08.396Z
->>>>>>> 65244fdaf30cecc674be71752ca302063015f3cc
+ * Built: 2026-01-06T13:27:10.905Z
  */
 "use strict";
 (() => {
@@ -8843,11 +8839,7 @@
 
   // extensions/cart-upsell/assets/modules/promotional-banner-entry.js
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-<<<<<<< HEAD
-  var APP_URL = true ? "https://endless-reporters-peace-owns.trycloudflare.com" : "https://app.upsellity.com";
-=======
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
->>>>>>> 65244fdaf30cecc674be71752ca302063015f3cc
+  var APP_URL = true ? "https://sbjct-tables-compare-posing.trycloudflare.com" : "https://app.upsellity.com";
   function initPromotionalBannerBlocks() {
     const containers = document.querySelectorAll(".upsellity-promotional-banner-container");
     if (containers.length === 0) {
@@ -8855,6 +8847,7 @@
     }
     containers.forEach((container) => {
       const shop = container.getAttribute("data-shop");
+      const configId = container.getAttribute("data-config-id") || "default";
       const maxHeight = container.getAttribute("data-max-height") || "180px";
       if (!shop) {
         console.error("Missing required attribute: data-shop");
@@ -8868,7 +8861,7 @@
         border-radius: 12px;
         border: 1px solid #e5e7eb;
       ">
-        <div style="
+       <div style="
           display: inline-block;
           width: 24px;
           height: 24px;
@@ -8890,7 +8883,7 @@
       </style>
     `;
       Analytics.init(APP_URL);
-      const apiUrl = `${APP_URL}/api/promotional-banner?shop=${encodeURIComponent(shop)}`;
+      const apiUrl = `${APP_URL}/api/promotional-banner?shop=${encodeURIComponent(shop)}&configId=${encodeURIComponent(configId)}`;
       fetch(apiUrl).then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

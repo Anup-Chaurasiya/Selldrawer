@@ -39,6 +39,7 @@
   <div 
     class="upsellity-promotional-banner-container{% if is_full_width %} upsellity-promotional-banner-fullwidth{% endif %}"
     data-shop="{{ shop.permanent_domain }}"
+    data-config-id="{{ block.settings.config_id }}"
     data-max-height="{{ block.settings.max_height }}"
     style="margin: {{ block.settings.margin_top }}px 0 {{ block.settings.margin_bottom }}px 0; {% if is_full_width %}width: 100%; max-width: 100%;{% else %}max-width: {{ block.settings.max_width }}; width: 100%; margin-left: auto; margin-right: auto;{% endif %} padding: 0 {{ block.settings.horizontal_padding }}px;"
   >
@@ -88,6 +89,13 @@
       "label": "Enable Promotional Banner",
       "default": true,
       "info": "You can also enable/disable from the Upsellity admin panel"
+    },
+    {
+      "type": "text",
+      "id": "config_id",
+      "label": "Configuration ID",
+      "default": "default",
+      "info": "Enter the Configuration ID from the Upsellity admin panel (e.g., 'homepage', 'product-banner')"
     },
     {
       "type": "header",

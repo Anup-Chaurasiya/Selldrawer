@@ -12,21 +12,22 @@ import { Analytics } from './analytics.js';
 const APP_URL = typeof __APP_URL__ !== 'undefined' ? __APP_URL__ : 'https://app.upsellity.com';
 
 // Version info
-const VERSION = typeof __PROMOTIONAL_BANNER_VERSION__ !== 'undefined' 
-  ? __PROMOTIONAL_BANNER_VERSION__ 
+const VERSION = typeof __PROMOTIONAL_BANNER_VERSION__ !== 'undefined'
+  ? __PROMOTIONAL_BANNER_VERSION__
   : '1.0.0';
 
 // Initialize promotional banner blocks
 function initPromotionalBannerBlocks() {
   // Find all promotional banner containers
   const containers = document.querySelectorAll('.upsellity-promotional-banner-container');
-  
+
   if (containers.length === 0) {
     return;
   }
 
   containers.forEach((container) => {
     const shop = container.getAttribute('data-shop');
+    const configId = container.getAttribute('data-config-id') || 'default';
     const maxHeight = container.getAttribute('data-max-height') || '180px';
 
     if (!shop) {
@@ -43,7 +44,7 @@ function initPromotionalBannerBlocks() {
         border-radius: 12px;
         border: 1px solid #e5e7eb;
       ">
-        <div style="
+       <div style="
           display: inline-block;
           width: 24px;
           height: 24px;
@@ -68,9 +69,9 @@ function initPromotionalBannerBlocks() {
     // Initialize Analytics with the app URL
     Analytics.init(APP_URL);
 
-    // Fetch promotional banner data
-    const apiUrl = `${APP_URL}/api/promotional-banner?shop=${encodeURIComponent(shop)}`;
-    
+    // Fetch promotional banner data with configId
+    const apiUrl = `${APP_URL}/api/promotional-banner?shop=${encodeURIComponent(shop)}&configId=${encodeURIComponent(configId)}`;
+
     fetch(apiUrl)
       .then(response => {
         if (!response.ok) {
@@ -150,7 +151,7 @@ if (typeof MutationObserver !== 'undefined') {
       mutation.addedNodes.forEach((node) => {
         if (node.nodeType === 1) { // Element node
           if (node.classList?.contains('upsellity-promotional-banner-container') ||
-              node.querySelector?.('.upsellity-promotional-banner-container')) {
+            node.querySelector?.('.upsellity-promotional-banner-container')) {
             shouldInit = true;
           }
         }

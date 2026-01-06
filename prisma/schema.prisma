@@ -200,7 +200,9 @@ model PromotionalBannerCarouselSettings {
 
 model PromotionalBannerBlock {
   id               String                                   @id @default(cuid())
-  shop             String                                   @unique
+  shop             String
+  configId         String                                   @default("default")
+  name             String                                   @default("Default Banner")
   isActive         Boolean                                  @default(true)
   title            String                                   @default("Promotional Banner Block")
   createdAt        DateTime                                 @default(now())
@@ -208,6 +210,7 @@ model PromotionalBannerBlock {
   images           PromotionalBannerBlockImage[]
   carouselSettings PromotionalBannerBlockCarouselSettings?
 
+  @@unique([shop, configId])
   @@index([shop, isActive])
 }
 

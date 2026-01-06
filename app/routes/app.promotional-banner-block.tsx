@@ -16,26 +16,31 @@ import {
   RangeSlider,
   Thumbnail,
   Icon,
+  Select,
+  Tabs,
+  Modal,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { PromotionalBannerCard } from "../components/shared/PromotionalBannerCard";
-import { PlayIcon } from "@shopify/polaris-icons";
+import { PlayIcon, DeleteIcon, ImageIcon } from "@shopify/polaris-icons";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
 
-  const promotionalBannerBlock = await prisma.promotionalBannerBlock.findUnique({
+  // Fetch all promotional banner configurations for this shop
+  const promotionalBannerBlocks = await prisma.promotionalBannerBlock.findMany({
     where: { shop },
     include: {
       images: { orderBy: { order: 'asc' } },
       carouselSettings: true,
     },
+    orderBy: { createdAt: 'asc' },
   });
 
-  return json({ promotionalBannerBlock });
+  return json({ promotionalBannerBlocks });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -45,167 +50,104 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const intent = formData.get("intent");
 
-  if (intent === "toggle") {
-    const enabled = formData.get("enabled") === "true";
+  if (intent === "create-config") {
+    const configId = formData.get("configId") as string;
+    const name = formData.get("name") as string;
 
-    // Check if data exists before enabling
-    if (enabled) {
-      const block = await prisma.promotionalBannerBlock.findUnique({
-        where: { shop },
-        include: {
-          images: { orderBy: { order: 'asc' } },
-        },
-      });
-
-      if (!block) {
-        return json({ 
-          success: false, 
-          error: "Configuration required. Please save the configuration first before enabling." 
-        }, { status: 400 });
-      }
-
-      const hasBlockData = block.images && block.images.length > 0;
-
-      if (!hasBlockData) {
-        return json({ 
-          success: false, 
-          error: "Configuration required. Please add at least one slide before enabling." 
-        }, { status: 400 });
-      }
+    if (!configId || !name) {
+      return json({ error: "Configuration ID and name are required" }, { status: 400 });
     }
-    
-    await prisma.promotionalBannerBlock.upsert({
-      where: { shop },
-      create: {
+
+    // Validate configId format (alphanumeric, hyphens, underscores only)
+    if (!/^[a-z0-9_-]+$/i.test(configId)) {
+      return json({ error: "Configuration ID can only contain letters, numbers, hyphens, and underscores" }, { status: 400 });
+    }
+
+    // Check if config already exists
+    const existing = await prisma.promotionalBannerBlock.findUnique({
+      where: { shop_configId: { shop, configId } },
+    });
+
+    if (existing) {
+      return json({ error: "A configuration with this ID already exists" }, { status: 400 });
+    }
+
+    await prisma.promotionalBannerBlock.create({
+      data: {
         shop,
-        isActive: enabled,
-        title: "Promotional Banner Block",
+        configId,
+        name,
+        isActive: true,
+        title: name,
       },
-      update: {
-        isActive: enabled,
-      },
+    });
+
+    return json({ success: true, configId });
+  }
+
+  if (intent === "delete-config") {
+    const configId = formData.get("configId") as string;
+
+    if (!configId) {
+      return json({ error: "Configuration ID is required" }, { status: 400 });
+    }
+
+    // Don't allow deleting if it's the only config
+    const count = await prisma.promotionalBannerBlock.count({
+      where: { shop },
+    });
+
+    if (count <= 1) {
+      return json({ error: "Cannot delete the last configuration" }, { status: 400 });
+    }
+
+    await prisma.promotionalBannerBlock.delete({
+      where: { shop_configId: { shop, configId } },
     });
 
     return json({ success: true });
   }
 
-  if (intent === "save-block") {
-    await prisma.promotionalBannerBlock.upsert({
-      where: { shop },
-      create: {
-        shop,
-        isActive: true,
-        title: formData.get("title") as string || "Promotional Banner Block",
-      },
-      update: {
-        title: formData.get("title") as string || "Promotional Banner Block",
-      },
+  if (intent === "toggle") {
+    const enabled = formData.get("enabled") === "true";
+    const configId = formData.get("configId") as string;
+
+    if (!configId) {
+      return json({ error: "Configuration ID is required" }, { status: 400 });
+    }
+
+    await prisma.promotionalBannerBlock.update({
+      where: { shop_configId: { shop, configId } },
+      data: { isActive: enabled },
     });
 
     return json({ success: true });
+  }
+
+  // All remaining intents need a configId
+  const configId = formData.get("configId") as string;
+  if (!configId) {
+    return json({ error: "Configuration ID is required" }, { status: 400 });
   }
 
   if (intent === "add-slide") {
     const block = await prisma.promotionalBannerBlock.findUnique({
-      where: { shop },
+      where: { shop_configId: { shop, configId } },
     });
 
     if (!block) {
-      // Create block first
-      const newBlock = await prisma.promotionalBannerBlock.create({
-        data: {
-          shop,
-          isActive: true,
-          title: "Promotional Banner Block",
-        },
-      });
-      
-      const blockId = newBlock.id;
-      
-      // Now add the slide
-      const mediaUrlRaw = (formData.get("mediaUrl") as string) || "";
-      let imageUrl = (formData.get("imageUrl") as string) || "";
-      let videoUrl = (formData.get("videoUrl") as string) || null;
-      let videoType = (formData.get("videoType") as string) || null;
-      const mediaUrl = (mediaUrlRaw || "").trim();
-      
-      if (mediaUrl) {
-        const lower = mediaUrl.toLowerCase();
-        const isYouTube = /youtube\.com|youtu\.be/.test(lower);
-        const isVimeo = /vimeo\.com/.test(lower);
-        const isMp4 = /\.mp4(\?|$)/.test(lower);
-        if (isYouTube) {
-          videoType = "youtube";
-          videoUrl = mediaUrl;
-          imageUrl = imageUrl || "";
-        } else if (isVimeo) {
-          videoType = "vimeo";
-          videoUrl = mediaUrl;
-          imageUrl = imageUrl || "";
-        } else if (isMp4) {
-          videoType = "mp4";
-          videoUrl = mediaUrl;
-          imageUrl = imageUrl || "";
-        } else {
-          imageUrl = mediaUrl;
-          videoType = null;
-          videoUrl = null;
-        }
-      }
-      
-      const title = formData.get("title") as string || null;
-      const description = formData.get("description") as string || null;
-      const ctaText = formData.get("ctaText") as string || null;
-      const ctaUrl = formData.get("ctaUrl") as string || null;
-      
-      // Validate character limits
-      const MIN_TITLE_LENGTH = 10;
-      const MAX_TITLE_LENGTH = 25;
-      const MIN_DESCRIPTION_LENGTH = 15;
-      const MAX_DESCRIPTION_LENGTH = 35;
-      const MAX_CTA_TEXT_LENGTH = 12;
-      
-      if (title && (title.length < MIN_TITLE_LENGTH || title.length > MAX_TITLE_LENGTH)) {
-        return json({ 
-          error: `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters` 
-        }, { status: 400 });
-      }
-      if (description && (description.length < MIN_DESCRIPTION_LENGTH || description.length > MAX_DESCRIPTION_LENGTH)) {
-        return json({ 
-          error: `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters` 
-        }, { status: 400 });
-      }
-      if (ctaText && ctaText.length > MAX_CTA_TEXT_LENGTH) {
-        return json({ 
-          error: `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less` 
-        }, { status: 400 });
-      }
-      
-      await prisma.promotionalBannerBlockImage.create({
-        data: {
-          blockId,
-          imageUrl,
-          videoUrl,
-          videoType,
-          title,
-          description,
-          ctaText,
-          ctaUrl,
-          order: 0,
-        },
-      });
-
-      return json({ success: true });
+      return json({ error: "Configuration not found" }, { status: 404 });
     }
 
     const blockId = block.id;
-    
-    // Support new single-field mediaUrl; fallback to legacy fields if provided
+
+    // Support new single-field mediaUrl
     const mediaUrlRaw = (formData.get("mediaUrl") as string) || "";
     let imageUrl = (formData.get("imageUrl") as string) || "";
     let videoUrl = (formData.get("videoUrl") as string) || null;
     let videoType = (formData.get("videoType") as string) || null;
     const mediaUrl = (mediaUrlRaw || "").trim();
+
     if (mediaUrl) {
       const lower = mediaUrl.toLowerCase();
       const isYouTube = /youtube\.com|youtu\.be/.test(lower);
@@ -229,34 +171,35 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         videoUrl = null;
       }
     }
+
     const title = formData.get("title") as string || null;
     const description = formData.get("description") as string || null;
     const ctaText = formData.get("ctaText") as string || null;
     const ctaUrl = formData.get("ctaUrl") as string || null;
-    
+
     // Validate character limits
     const MIN_TITLE_LENGTH = 10;
     const MAX_TITLE_LENGTH = 25;
     const MIN_DESCRIPTION_LENGTH = 15;
     const MAX_DESCRIPTION_LENGTH = 35;
     const MAX_CTA_TEXT_LENGTH = 12;
-    
+
     if (title && (title.length < MIN_TITLE_LENGTH || title.length > MAX_TITLE_LENGTH)) {
-      return json({ 
-        error: `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters` 
+      return json({
+        error: `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters`
       }, { status: 400 });
     }
     if (description && (description.length < MIN_DESCRIPTION_LENGTH || description.length > MAX_DESCRIPTION_LENGTH)) {
-      return json({ 
-        error: `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters` 
+      return json({
+        error: `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters`
       }, { status: 400 });
     }
     if (ctaText && ctaText.length > MAX_CTA_TEXT_LENGTH) {
-      return json({ 
-        error: `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less` 
+      return json({
+        error: `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less`
       }, { status: 400 });
     }
-    
+
     const maxOrder = await prisma.promotionalBannerBlockImage.findFirst({
       where: { blockId },
       orderBy: { order: 'desc' },
@@ -277,12 +220,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
 
-    // Auto-enable the feature after adding a slide
-    await prisma.promotionalBannerBlock.update({
-      where: { shop },
-      data: { isActive: true },
-    });
-
     return json({ success: true });
   }
 
@@ -293,6 +230,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     let videoUrl = (formData.get("videoUrl") as string) || null;
     let videoType = (formData.get("videoType") as string) || null;
     const mediaUrl = (mediaUrlRaw || "").trim();
+
     if (mediaUrl) {
       const lower = mediaUrl.toLowerCase();
       const isYouTube = /youtube\.com|youtu\.be/.test(lower);
@@ -316,6 +254,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         videoUrl = null;
       }
     }
+
     const title = formData.get("title") as string || null;
     const description = formData.get("description") as string || null;
     const ctaText = formData.get("ctaText") as string || null;
@@ -324,27 +263,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (!slideId) {
       return json({ error: "Slide ID is required" }, { status: 400 });
     }
-    
+
     // Validate character limits
     const MIN_TITLE_LENGTH = 10;
     const MAX_TITLE_LENGTH = 23;
     const MIN_DESCRIPTION_LENGTH = 15;
     const MAX_DESCRIPTION_LENGTH = 35;
     const MAX_CTA_TEXT_LENGTH = 10;
-    
+
     if (title && (title.length < MIN_TITLE_LENGTH || title.length > MAX_TITLE_LENGTH)) {
-      return json({ 
-        error: `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters` 
+      return json({
+        error: `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters`
       }, { status: 400 });
     }
     if (description && (description.length < MIN_DESCRIPTION_LENGTH || description.length > MAX_DESCRIPTION_LENGTH)) {
-      return json({ 
-        error: `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters` 
+      return json({
+        error: `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters`
       }, { status: 400 });
     }
     if (ctaText && ctaText.length > MAX_CTA_TEXT_LENGTH) {
-      return json({ 
-        error: `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less` 
+      return json({
+        error: `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less`
       }, { status: 400 });
     }
 
@@ -354,7 +293,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
 
       if (!existingSlide) {
-        console.error(`Slide not found for update: ${slideId}`);
         return json({ error: "Slide not found" }, { status: 404 });
       }
 
@@ -380,21 +318,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "delete-slide") {
     const slideId = formData.get("slideId") as string;
-    
+
     if (!slideId) {
       return json({ error: "Slide ID is required" }, { status: 400 });
     }
 
     try {
-      const existingSlide = await prisma.promotionalBannerBlockImage.findUnique({
-        where: { id: slideId },
-      });
-
-      if (!existingSlide) {
-        console.error(`Slide not found for deletion: ${slideId}`);
-        return json({ error: "Slide not found" }, { status: 404 });
-      }
-
       await prisma.promotionalBannerBlockImage.delete({
         where: { id: slideId },
       });
@@ -408,11 +337,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "save-carousel-settings") {
     const block = await prisma.promotionalBannerBlock.findUnique({
-      where: { shop },
+      where: { shop_configId: { shop, configId } },
     });
 
     if (!block) {
-      return json({ error: "Block not found" }, { status: 404 });
+      return json({ error: "Configuration not found" }, { status: 404 });
     }
 
     const blockId = block.id;
@@ -456,15 +385,15 @@ interface SlideFormData {
   ctaUrl: string;
 }
 
-function SlideEditor({ 
-  slide, 
-  onSave, 
-  onCancel, 
-  isLoading 
-}: { 
-  slide?: any; 
-  onSave: (data: SlideFormData) => void; 
-  onCancel: () => void; 
+function SlideEditor({
+  slide,
+  onSave,
+  onCancel,
+  isLoading
+}: {
+  slide?: any;
+  onSave: (data: SlideFormData) => void;
+  onCancel: () => void;
   isLoading: boolean;
 }) {
   const [formData, setFormData] = useState<SlideFormData>({
@@ -488,106 +417,100 @@ function SlideEditor({
   // Validation errors
   const titleError = formData.title.length > 0 && formData.title.length < MIN_TITLE_LENGTH
     ? `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters`
-    : formData.title.length > MAX_TITLE_LENGTH 
-    ? `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters` 
-    : undefined;
+    : formData.title.length > MAX_TITLE_LENGTH
+      ? `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters`
+      : undefined;
   const descriptionError = formData.description.length > 0 && formData.description.length < MIN_DESCRIPTION_LENGTH
     ? `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters`
-    : formData.description.length > MAX_DESCRIPTION_LENGTH 
-    ? `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters` 
-    : undefined;
-  const ctaTextError = formData.ctaText.length > MAX_CTA_TEXT_LENGTH 
-    ? `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less` 
+    : formData.description.length > MAX_DESCRIPTION_LENGTH
+      ? `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters`
+      : undefined;
+  const ctaTextError = formData.ctaText.length > MAX_CTA_TEXT_LENGTH
+    ? `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less`
     : undefined;
 
   const hasValidationErrors = !!(titleError || descriptionError || ctaTextError);
 
   return (
-    <Card>
-      <BlockStack gap="400">
-        <Text as="h3" variant="headingMd">
-          {slide ? `Edit Slide ${slide.order + 1}` : "Add New Slide"}
-        </Text>
-        
-        <FormLayout>
-          <TextField
-            label="Media URL (Image or Video)"
-            value={formData.mediaUrl}
-            onChange={(value) => setFormData({ ...formData, mediaUrl: value })}
-            placeholder="https://... (jpg, png, mp4, YouTube, Vimeo)"
-            helpText="Paste an image URL or a video URL (MP4/YouTube/Vimeo). Pixel size for single/multi banner is (360x200px)/(300x170px)."
-            autoComplete="off"
-            requiredIndicator
-          />
+    <BlockStack gap="400">
+      <FormLayout>
+        <TextField
+          label="Media URL (Image or Video)"
+          value={formData.mediaUrl}
+          onChange={(value) => setFormData({ ...formData, mediaUrl: value })}
+          placeholder="https://... (jpg, png, mp4, YouTube, Vimeo)"
+          helpText="Paste an image URL or a video URL (MP4/YouTube/Vimeo). Pixel size for single/multi banner is (360x200px)/(300x170px)."
+          autoComplete="off"
+          requiredIndicator
+        />
 
-          <TextField
-            label="Slide Title"
-            value={formData.title}
-            onChange={(value) => setFormData({ ...formData, title: value })}
-            placeholder="Summer Sale"
-            helpText={`${formData.title.length}/${MAX_TITLE_LENGTH} characters (min ${MIN_TITLE_LENGTH})`}
-            autoComplete="off"
-            error={titleError}
-            maxLength={MAX_TITLE_LENGTH}
-          />
+        <TextField
+          label="Slide Title"
+          value={formData.title}
+          onChange={(value) => setFormData({ ...formData, title: value })}
+          placeholder="Summer Sale"
+          helpText={`${formData.title.length}/${MAX_TITLE_LENGTH} characters (min ${MIN_TITLE_LENGTH})`}
+          autoComplete="off"
+          error={titleError}
+          maxLength={MAX_TITLE_LENGTH}
+        />
 
-          <TextField
-            label="Slide Description"
-            value={formData.description}
-            onChange={(value) => setFormData({ ...formData, description: value })}
-            placeholder="Get 20% off all summer items"
-            helpText={`${formData.description.length}/${MAX_DESCRIPTION_LENGTH} characters (min ${MIN_DESCRIPTION_LENGTH})`}
-            autoComplete="off"
-            multiline={2}
-            error={descriptionError}
-            maxLength={MAX_DESCRIPTION_LENGTH}
-          />
+        <TextField
+          label="Slide Description"
+          value={formData.description}
+          onChange={(value) => setFormData({ ...formData, description: value })}
+          placeholder="Get 20% off all summer items"
+          helpText={`${formData.description.length}/${MAX_DESCRIPTION_LENGTH} characters (min ${MIN_DESCRIPTION_LENGTH})`}
+          autoComplete="off"
+          multiline={2}
+          error={descriptionError}
+          maxLength={MAX_DESCRIPTION_LENGTH}
+        />
 
-          <TextField
-            label="CTA Button Text"
-            value={formData.ctaText}
-            onChange={(value) => setFormData({ ...formData, ctaText: value })}
-            placeholder="Shop Now"
-            helpText={`${formData.ctaText.length}/${MAX_CTA_TEXT_LENGTH} characters`}
-            autoComplete="off"
-            error={ctaTextError}
-            maxLength={MAX_CTA_TEXT_LENGTH}
-          />
+        <TextField
+          label="CTA Button Text"
+          value={formData.ctaText}
+          onChange={(value) => setFormData({ ...formData, ctaText: value })}
+          placeholder="Shop Now"
+          helpText={`${formData.ctaText.length}/${MAX_CTA_TEXT_LENGTH} characters`}
+          autoComplete="off"
+          error={ctaTextError}
+          maxLength={MAX_CTA_TEXT_LENGTH}
+        />
 
-          <TextField
-            label="CTA Button URL"
-            value={formData.ctaUrl}
-            onChange={(value) => setFormData({ ...formData, ctaUrl: value })}
-            placeholder="/collections/summer"
-            helpText="Link when button is clicked"
-            autoComplete="off"
-          />
-        </FormLayout>
+        <TextField
+          label="CTA Button URL"
+          value={formData.ctaUrl}
+          onChange={(value) => setFormData({ ...formData, ctaUrl: value })}
+          placeholder="/collections/summer"
+          helpText="Link when button is clicked"
+          autoComplete="off"
+        />
+      </FormLayout>
 
-        <InlineStack gap="200" align="end">
-          <Button onClick={onCancel}>Cancel</Button>
-          <Button 
-            variant="primary" 
-            onClick={() => onSave(formData)}
-            loading={isLoading}
-            disabled={!formData.mediaUrl || hasValidationErrors}
-          >
-            {slide ? "Update Slide" : "Add Slide"}
-          </Button>
-        </InlineStack>
-      </BlockStack>
-    </Card>
+      <InlineStack gap="200" align="end">
+        <Button onClick={onCancel}>Cancel</Button>
+        <Button
+          variant="primary"
+          onClick={() => onSave(formData)}
+          loading={isLoading}
+          disabled={!formData.mediaUrl || hasValidationErrors}
+        >
+          {slide ? "Update Slide" : "Add Slide"}
+        </Button>
+      </InlineStack>
+    </BlockStack>
   );
 }
 
 // Carousel Preview Component
-function CarouselPreview({ slides, carouselSettings }: { 
-  slides: any[]; 
+function CarouselPreview({ slides, carouselSettings }: {
+  slides: any[];
   carouselSettings: any;
 }) {
   if (!slides || slides.length === 0) {
     return (
-      <div style={{ 
+      <div style={{
         padding: '60px 20px',
         borderRadius: '12px',
         backgroundColor: '#f8f9fa',
@@ -600,38 +523,46 @@ function CarouselPreview({ slides, carouselSettings }: {
       </div>
     );
   }
-  
+
   return (
-    <PromotionalBannerCard 
+    <PromotionalBannerCard
       slides={slides}
       carouselSettings={carouselSettings}
-      onCtaClick={() => {}}
+      onCtaClick={() => { }}
       isPreview={true}
     />
   );
 }
 
 export default function PromotionalBannerBlockPage() {
-  const { promotionalBannerBlock } = useLoaderData<typeof loader>();
+  const { promotionalBannerBlocks } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const actionData = useActionData<typeof action>();
   const isLoading = navigation.state === "submitting";
-  
+
+  // State for managing configs
+  const [selectedConfigIndex, setSelectedConfigIndex] = useState(0);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newConfigId, setNewConfigId] = useState("");
+  const [newConfigName, setNewConfigName] = useState("");
+
+  // Get the current config
+  const currentConfig = promotionalBannerBlocks[selectedConfigIndex];
+
   // Check which action is being submitted
   const formData = navigation.formData;
   const submittingIntent = formData?.get("intent") as string | null;
 
-  // Track previous submission state to detect when save completes
+  // Track previous submission state
   const prevIsSubmitting = useRef(false);
   const prevSubmittingIntent = useRef<string | null>(null);
   const [showToast, setShowToast] = useState(false);
 
   // Show toast notification when settings are saved successfully
   useEffect(() => {
-    // Check if we just finished submitting a save-carousel-settings action
-    const justFinishedSave = 
-      prevIsSubmitting.current && 
+    const justFinishedSave =
+      prevIsSubmitting.current &&
       prevSubmittingIntent.current === "save-carousel-settings" &&
       !isLoading &&
       actionData &&
@@ -640,14 +571,12 @@ export default function PromotionalBannerBlockPage() {
 
     if (justFinishedSave) {
       setShowToast(true);
-      // Auto-hide after 3 seconds
       const timer = setTimeout(() => {
         setShowToast(false);
       }, 3000);
       return () => clearTimeout(timer);
     }
 
-    // Update refs for next render
     prevIsSubmitting.current = isLoading;
     prevSubmittingIntent.current = submittingIntent;
   }, [actionData, submittingIntent, isLoading]);
@@ -655,24 +584,87 @@ export default function PromotionalBannerBlockPage() {
   const [editingSlide, setEditingSlide] = useState<any>(null);
   const [isAddingSlide, setIsAddingSlide] = useState(false);
   const [carouselSettings, setCarouselSettings] = useState({
-    autoRotate: promotionalBannerBlock?.carouselSettings?.autoRotate ?? true,
-    rotationSpeed: promotionalBannerBlock?.carouselSettings?.rotationSpeed ?? 5000,
-    showDots: promotionalBannerBlock?.carouselSettings?.showDots ?? true,
-    showArrows: promotionalBannerBlock?.carouselSettings?.showArrows ?? true,
+    autoRotate: currentConfig?.carouselSettings?.autoRotate ?? true,
+    rotationSpeed: currentConfig?.carouselSettings?.rotationSpeed ?? 5000,
+    showDots: currentConfig?.carouselSettings?.showDots ?? true,
+    showArrows: currentConfig?.carouselSettings?.showArrows ?? true,
   });
 
-  const slides = promotionalBannerBlock?.images || [];
+  // Update carousel settings when config changes
+  useEffect(() => {
+    if (currentConfig) {
+      setCarouselSettings({
+        autoRotate: currentConfig.carouselSettings?.autoRotate ?? true,
+        rotationSpeed: currentConfig.carouselSettings?.rotationSpeed ?? 5000,
+        showDots: currentConfig.carouselSettings?.showDots ?? true,
+        showArrows: currentConfig.carouselSettings?.showArrows ?? true,
+      });
+    }
+  }, [currentConfig]);
+
+  // Auto-select newly created configuration
+  useEffect(() => {
+    if (actionData && 'success' in actionData && actionData.success && 'configId' in actionData) {
+      // Find the index of the newly created config
+      const newConfigIndex = promotionalBannerBlocks.findIndex(
+        (config) => config.configId === actionData.configId
+      );
+      if (newConfigIndex !== -1) {
+        setSelectedConfigIndex(newConfigIndex);
+        // Show success message
+        shopify.toast.show(`Configuration "${promotionalBannerBlocks[newConfigIndex].name}" created successfully!`);
+      }
+    }
+  }, [actionData, promotionalBannerBlocks]);
+
+  const slides = currentConfig?.images || [];
+
+  const handleCreateConfig = useCallback(() => {
+    const formData = new FormData();
+    formData.append("intent", "create-config");
+    formData.append("configId", newConfigId);
+    formData.append("name", newConfigName);
+    submit(formData, { method: "post" });
+    setShowCreateModal(false);
+    setNewConfigId("");
+    setNewConfigName("");
+
+    // After successful creation, switch to the new config
+    // The new config will be at the end of the array after reload
+    setTimeout(() => {
+      const newIndex = promotionalBannerBlocks.length;
+      setSelectedConfigIndex(newIndex);
+    }, 100);
+  }, [newConfigId, newConfigName, submit, promotionalBannerBlocks.length]);
+
+  const handleDeleteConfig = useCallback((configId: string) => {
+    if (!confirm("Are you sure you want to delete this configuration? All slides will be removed.")) return;
+
+    const formData = new FormData();
+    formData.append("intent", "delete-config");
+    formData.append("configId", configId);
+    submit(formData, { method: "post" });
+
+    // Switch to first config after delete
+    setSelectedConfigIndex(0);
+  }, [submit]);
 
   const handleToggle = useCallback(() => {
+    if (!currentConfig) return;
+
     const formData = new FormData();
     formData.append("intent", "toggle");
-    formData.append("enabled", (!promotionalBannerBlock?.isActive).toString());
+    formData.append("configId", currentConfig.configId);
+    formData.append("enabled", (!currentConfig.isActive).toString());
     submit(formData, { method: "post" });
-  }, [promotionalBannerBlock?.isActive, submit]);
+  }, [currentConfig, submit]);
 
   const handleAddSlide = useCallback((data: SlideFormData) => {
+    if (!currentConfig) return;
+
     const formData = new FormData();
     formData.append("intent", "add-slide");
+    formData.append("configId", currentConfig.configId);
     if (data.mediaUrl) formData.append("mediaUrl", data.mediaUrl);
     formData.append("title", data.title);
     formData.append("description", data.description);
@@ -680,13 +672,14 @@ export default function PromotionalBannerBlockPage() {
     formData.append("ctaUrl", data.ctaUrl);
     submit(formData, { method: "post", replace: true });
     setIsAddingSlide(false);
-  }, [submit]);
+  }, [currentConfig, submit]);
 
   const handleUpdateSlide = useCallback((data: SlideFormData) => {
-    if (!editingSlide) return;
+    if (!editingSlide || !currentConfig) return;
 
     const formData = new FormData();
     formData.append("intent", "update-slide");
+    formData.append("configId", currentConfig.configId);
     formData.append("slideId", editingSlide.id);
     if (data.mediaUrl) formData.append("mediaUrl", data.mediaUrl);
     formData.append("title", data.title);
@@ -695,44 +688,119 @@ export default function PromotionalBannerBlockPage() {
     formData.append("ctaUrl", data.ctaUrl);
     submit(formData, { method: "post", replace: true });
     setEditingSlide(null);
-  }, [editingSlide, submit]);
+  }, [editingSlide, currentConfig, submit]);
 
   const handleDeleteSlide = useCallback((slideId: string) => {
     if (!confirm("Are you sure you want to delete this slide?")) return;
+    if (!currentConfig) return;
 
     const formData = new FormData();
     formData.append("intent", "delete-slide");
+    formData.append("configId", currentConfig.configId);
     formData.append("slideId", slideId);
     submit(formData, { method: "post", replace: true });
-  }, [submit]);
+  }, [currentConfig, submit]);
 
   const handleSaveCarouselSettings = useCallback(() => {
+    if (!currentConfig) return;
+
     const formData = new FormData();
     formData.append("intent", "save-carousel-settings");
+    formData.append("configId", currentConfig.configId);
     formData.append("autoRotate", carouselSettings.autoRotate.toString());
     formData.append("rotationSpeed", carouselSettings.rotationSpeed.toString());
     formData.append("showDots", carouselSettings.showDots.toString());
     formData.append("showArrows", carouselSettings.showArrows.toString());
     submit(formData, { method: "post", replace: true });
-  }, [carouselSettings, submit]);
+  }, [currentConfig, carouselSettings, submit]);
 
-  const handleSaveAll = useCallback(() => {
-    if (promotionalBannerBlock?.id) {
-      handleSaveCarouselSettings();
-    }
-  }, [promotionalBannerBlock?.id, handleSaveCarouselSettings]);
+  // Create tabs for each configuration
+  const tabs = promotionalBannerBlocks.map((config, index) => ({
+    id: config.configId,
+    content: config.name,
+    accessibilityLabel: config.name,
+    panelID: `config-${config.configId}`,
+  }));
+
+  if (promotionalBannerBlocks.length === 0) {
+    return (
+      <Page
+        backAction={{ url: "/app" }}
+        title="Promotional Banner Block"
+      >
+        <Layout>
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="400">
+                <Text as="p" variant="bodyMd">
+                  No promotional banner configurations found. Create your first configuration to get started.
+                </Text>
+                <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                  Create Configuration
+                </Button>
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+        </Layout>
+
+        <Modal
+          open={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          title="Create New Configuration"
+          primaryAction={{
+            content: "Create",
+            onAction: handleCreateConfig,
+            disabled: !newConfigId || !newConfigName,
+          }}
+          secondaryActions={[
+            {
+              content: "Cancel",
+              onAction: () => setShowCreateModal(false),
+            },
+          ]}
+        >
+          <Modal.Section>
+            <FormLayout>
+              <TextField
+                label="Configuration ID"
+                value={newConfigId}
+                onChange={setNewConfigId}
+                placeholder="homepage-banner"
+                helpText="Unique identifier (use lowercase, hyphens, underscores only)"
+                autoComplete="off"
+              />
+              <TextField
+                label="Configuration Name"
+                value={newConfigName}
+                onChange={setNewConfigName}
+                placeholder="Homepage Banner"
+                helpText="Display name for this configuration"
+                autoComplete="off"
+              />
+            </FormLayout>
+          </Modal.Section>
+        </Modal>
+      </Page>
+    );
+  }
 
   return (
     <Page
       backAction={{ url: "/app" }}
-      title="Promotional Banner Block"
+      title="🎨 Promotional Banner Block"
       primaryAction={{
-        content: "Save",
-        onAction: handleSaveAll,
-        loading: isLoading,
+        content: "Save Settings",
+        onAction: handleSaveCarouselSettings,
+        loading: isLoading && submittingIntent === "save-carousel-settings",
       }}
+      secondaryActions={[
+        {
+          content: "Create New Configuration",
+          onAction: () => setShowCreateModal(true),
+        },
+      ]}
     >
-      {/* Custom Toast Notification - Appears at Top */}
+      {/* Toast notification */}
       {showToast && (
         <div style={{
           position: 'fixed',
@@ -740,263 +808,250 @@ export default function PromotionalBannerBlockPage() {
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 10000,
-          animation: 'slideDown 0.3s ease-out',
         }}>
-          <div style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-            padding: '12px 20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            minWidth: '300px',
-            maxWidth: '500px',
-          }}>
-            <div style={{
-              width: '20px',
-              height: '20px',
-              borderRadius: '50%',
-              backgroundColor: '#10b981',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <div style={{ flex: 1 }}>
-              <Text as="p" variant="bodyMd" fontWeight="medium">
-                Settings saved successfully
-              </Text>
-            </div>
-            <button
-              onClick={() => setShowToast(false)}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#6b7280',
-                flexShrink: 0,
-              }}
-              aria-label="Close"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </button>
-          </div>
+          <Banner tone="success" onDismiss={() => setShowToast(false)}>
+            Settings saved successfully
+          </Banner>
         </div>
       )}
 
-      <style>{`
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateX(-50%) translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-          }
-        }
-      `}</style>
-      
+      {/* Error banner */}
+      {actionData && 'error' in actionData && (
+        <Layout>
+          <Layout.Section>
+            <Banner tone="critical">
+              {actionData.error}
+            </Banner>
+          </Layout.Section>
+        </Layout>
+      )}
+
       <Layout>
         <Layout.Section>
-          <BlockStack gap="400">
-            {/* Header Card */}
-            <Card>
+          <Card>
+            <Tabs
+              tabs={tabs}
+              selected={selectedConfigIndex}
+              onSelect={setSelectedConfigIndex}
+            >
               <BlockStack gap="400">
+                {/* Configuration Info */}
                 <InlineStack align="space-between">
-                  <Text as="h2" variant="headingMd">
-                    Block Configuration
-                  </Text>
-                  <Button onClick={handleToggle} loading={isLoading}>
-                    {promotionalBannerBlock?.isActive ? "Disable" : "Enable"}
-                  </Button>
+                  <BlockStack gap="200">
+                    <Text as="h2" variant="headingMd">
+                      {currentConfig.name}
+                    </Text>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Configuration ID: <code>{currentConfig.configId}</code>
+                    </Text>
+                  </BlockStack>
+                  <InlineStack gap="200">
+                    <Checkbox
+                      label="Enabled"
+                      checked={currentConfig.isActive}
+                      onChange={handleToggle}
+                    />
+                    {promotionalBannerBlocks.length > 1 && (
+                      <Button
+                        variant="plain"
+                        tone="critical"
+                        onClick={() => handleDeleteConfig(currentConfig.configId)}
+                      >
+                        Delete Config
+                      </Button>
+                    )}
+                  </InlineStack>
                 </InlineStack>
-                
-                {!promotionalBannerBlock?.isActive && (
-                  <Banner tone="warning">
-                    This block is currently disabled. Enable it to show the promotional banner on your store.
-                  </Banner>
-                )}
 
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  Create a stunning promotional banner carousel that can be placed anywhere on your store. Configure slides with images/videos, titles, descriptions, and CTA buttons.
-                </Text>
+                {/* Usage Instructions */}
+                <Banner>
+                  <Text as="p" variant="bodyMd">
+                    To use this configuration on your storefront, add the Promotional Banner block and set the <strong>Configuration ID</strong> to: <code>{currentConfig.configId}</code>
+                  </Text>
+                </Banner>
               </BlockStack>
-            </Card>
+            </Tabs>
+          </Card>
+        </Layout.Section>
 
-            {/* Slides Management */}
-            {!isAddingSlide && !editingSlide && (
+        <Layout.Section>
+          <Layout>
+            <Layout.Section variant="oneThird">
+              {/* Slides Management */}
               <Card>
                 <BlockStack gap="400">
                   <InlineStack align="space-between">
-                    <Text as="h2" variant="headingMd">
-                      Slides ({slides.length})
-                    </Text>
+                    <Text as="h3" variant="headingMd">Slides ({slides.length})</Text>
                     <Button variant="primary" onClick={() => setIsAddingSlide(true)}>
                       Add Slide
                     </Button>
                   </InlineStack>
 
-                  {slides.length > 0 ? (
-                    <BlockStack gap="300">
-                      {slides.map((slide: any, index: number) => (
+                  {slides.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {slides.map((slide: any) => (
                         <Card key={slide.id}>
                           <InlineStack align="space-between" blockAlign="center">
                             <InlineStack gap="300" blockAlign="center">
-                              {slide.videoUrl && !slide.imageUrl ? (
-                                <div
-                                  style={{
-                                    width: '40px',
-                                    height: '40px',
-                                    borderRadius: '8px',
-                                    backgroundColor: '#FA003F',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    flexShrink: 0
-                                  }}
-                                >
-                                  <Icon source={PlayIcon} tone="base" />
-                                </div>
-                              ) : (
-                                <Thumbnail 
-                                  source={slide.imageUrl || slide.videoUrl} 
-                                  alt={`Slide ${index + 1}`} 
-                                  size="small" 
-                                />
+                              {slide.imageUrl && (
+                                <Thumbnail source={slide.imageUrl} alt={slide.title || "Slide"} size="small" />
                               )}
                               <BlockStack gap="100">
                                 <Text as="p" variant="bodyMd" fontWeight="semibold">
-                                  Slide {index + 1}
+                                  {slide.title || `Slide ${slide.order + 1}`}
                                 </Text>
-                                {slide.title && (
-                                  <Text as="p" variant="bodySm" tone="subdued">
-                                    {slide.title}
-                                  </Text>
-                                )}
+                                <Text as="p" variant="bodySm" tone="subdued">
+                                  {slide.description || "No description"}
+                                </Text>
                               </BlockStack>
                             </InlineStack>
                             <InlineStack gap="200">
                               <Button onClick={() => setEditingSlide(slide)}>Edit</Button>
-                              <Button tone="critical" onClick={() => handleDeleteSlide(slide.id)}>
+                              <Button variant="plain" tone="critical" onClick={() => handleDeleteSlide(slide.id)}>
                                 Delete
                               </Button>
                             </InlineStack>
                           </InlineStack>
                         </Card>
                       ))}
-                    </BlockStack>
-                  ) : (
-                    <Banner tone="info">
-                      No slides added yet. Click "Add Slide" to create your first slide.
-                    </Banner>
+                    </div>
                   )}
                 </BlockStack>
               </Card>
-            )}
 
-            {/* Add/Edit Slide */}
-            {(isAddingSlide || editingSlide) && (
-              <SlideEditor
-                slide={editingSlide}
-                onSave={editingSlide ? handleUpdateSlide : handleAddSlide}
-                onCancel={() => {
-                  setIsAddingSlide(false);
-                  setEditingSlide(null);
-                }}
-                isLoading={isLoading}
-              />
-            )}
-
-            {/* Carousel Settings */}
-            {!isAddingSlide && !editingSlide && promotionalBannerBlock?.id && (
+              {/* Carousel Settings */}
               <Card>
                 <BlockStack gap="400">
-                  <Text as="h2" variant="headingMd">
-                    Carousel Settings
-                  </Text>
-
+                  <Text as="h3" variant="headingMd">Carousel Settings</Text>
                   <FormLayout>
                     <Checkbox
                       label="Auto-rotate slides"
                       checked={carouselSettings.autoRotate}
-                      onChange={(checked) => setCarouselSettings({ ...carouselSettings, autoRotate: checked })}
-                      helpText="Automatically cycle through slides"
+                      onChange={(value) => setCarouselSettings({ ...carouselSettings, autoRotate: value })}
                     />
-
                     {carouselSettings.autoRotate && (
                       <RangeSlider
-                        label="Rotation speed (seconds)"
-                        value={carouselSettings.rotationSpeed / 1000}
-                        onChange={(value: number) => setCarouselSettings({ ...carouselSettings, rotationSpeed: value * 1000 })}
-                        min={2}
-                        max={10}
-                        step={1}
+                        label="Rotation speed (ms)"
+                        value={carouselSettings.rotationSpeed}
+                        onChange={(value) => setCarouselSettings({ ...carouselSettings, rotationSpeed: value as number })}
+                        min={2000}
+                        max={10000}
+                        step={500}
                         output
                       />
                     )}
-
                     <Checkbox
-                      label="Show dot indicators"
+                      label="Show navigation dots"
                       checked={carouselSettings.showDots}
-                      onChange={(checked) => setCarouselSettings({ ...carouselSettings, showDots: checked })}
+                      onChange={(value) => setCarouselSettings({ ...carouselSettings, showDots: value })}
                     />
-
                     <Checkbox
                       label="Show navigation arrows"
                       checked={carouselSettings.showArrows}
-                      onChange={(checked) => setCarouselSettings({ ...carouselSettings, showArrows: checked })}
+                      onChange={(value) => setCarouselSettings({ ...carouselSettings, showArrows: value })}
                     />
                   </FormLayout>
                 </BlockStack>
               </Card>
-            )}
-          </BlockStack>
+            </Layout.Section>
+
+            <Layout.Section variant="oneThird">
+              {/* Preview */}
+              <Card>
+                <BlockStack gap="400">
+                  <Text as="h3" variant="headingMd">Preview</Text>
+                  <CarouselPreview slides={slides} carouselSettings={carouselSettings} />
+                </BlockStack>
+              </Card>
+            </Layout.Section>
+          </Layout>
         </Layout.Section>
-
-        {/* Preview Section */}
-        <div style={{
-          flex: '0 0 40%', 
-          minWidth: '350px',
-          paddingLeft: '12px',
-          position: 'sticky',
-          top: '0',
-          height: 'fit-content',
-          maxHeight: 'calc(100vh)',
-          overflowY: 'auto',
-          paddingTop: '15px'
-        }}>
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h3" variant="headingMd">
-                Live Preview
-              </Text>
-              
-              <CarouselPreview 
-                slides={slides} 
-                carouselSettings={carouselSettings}
-              />
-
-              <Text as="p" variant="bodySm" tone="subdued">
-                This is how your promotional banner block will appear on your store. Add it to any section using the theme editor.
-              </Text>
-            </BlockStack>
-          </Card>
-        </div>
       </Layout>
+
+      {/* Add Slide Modal */}
+      <Modal
+        open={isAddingSlide}
+        onClose={() => setIsAddingSlide(false)}
+        title="Add New Slide"
+      >
+        <Modal.Section>
+          {isAddingSlide && (
+            <SlideEditor
+              onSave={handleAddSlide}
+              onCancel={() => setIsAddingSlide(false)}
+              isLoading={isLoading && submittingIntent === "add-slide"}
+            />
+          )}
+        </Modal.Section>
+      </Modal>
+
+      {/* Edit Slide Modal */}
+      <Modal
+        open={!!editingSlide}
+        onClose={() => setEditingSlide(null)}
+        title={editingSlide ? `Edit Slide ${editingSlide.order + 1}` : "Edit Slide"}
+      >
+        <Modal.Section>
+          {editingSlide && (
+            <SlideEditor
+              slide={editingSlide}
+              onSave={handleUpdateSlide}
+              onCancel={() => setEditingSlide(null)}
+              isLoading={isLoading && submittingIntent === "update-slide"}
+            />
+          )}
+        </Modal.Section>
+      </Modal>
+
+      {/* Create Config Modal */}
+      <Modal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Create New Configuration"
+        primaryAction={{
+          content: "Create",
+          onAction: handleCreateConfig,
+          disabled:
+            !newConfigId ||
+            !newConfigName ||
+            newConfigName.length < 3 ||
+            !/^[a-z0-9-_]+$/.test(newConfigId),
+          loading: isLoading && submittingIntent === "create-config",
+        }}
+        secondaryActions={[
+          {
+            content: "Cancel",
+            onAction: () => setShowCreateModal(false),
+          },
+        ]}
+      >
+        <Modal.Section>
+          <FormLayout>
+            <TextField
+              label="Configuration ID"
+              value={newConfigId}
+              onChange={(value) => {
+                // Only allow lowercase letters, numbers, hyphens, and underscores
+                const sanitized = value.toLowerCase().replace(/[^a-z0-9-_]/g, '');
+                setNewConfigId(sanitized);
+              }}
+              placeholder="homepage-banner"
+              helpText="Use lowercase letters, numbers, hyphens, and underscores only (e.g., homepage-banner, product-page)"
+              autoComplete="off"
+              error={newConfigId && !/^[a-z0-9-_]+$/.test(newConfigId) ? "Invalid format: use only lowercase, numbers, hyphens, underscores" : undefined}
+            />
+            <TextField
+              label="Configuration Name"
+              value={newConfigName}
+              onChange={setNewConfigName}
+              placeholder="Homepage Banner"
+              helpText="Display name for this configuration (e.g., Homepage Banner, Product Page Promo)"
+              autoComplete="off"
+              error={newConfigName && newConfigName.length < 3 ? "Name must be at least 3 characters" : undefined}
+            />
+          </FormLayout>
+        </Modal.Section>
+      </Modal>
     </Page>
   );
 }
-

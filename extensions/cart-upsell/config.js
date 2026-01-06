@@ -4,11 +4,7 @@
  */
 
 // App URL - Update this with your deployment URL
-<<<<<<< HEAD
-export const APP_URL = 'https://endless-reporters-peace-owns.trycloudflare.com';
-=======
-export const APP_URL = 'https://app.upsellity.com';
->>>>>>> 65244fdaf30cecc674be71752ca302063015f3cc
+export const APP_URL = 'https://sbjct-tables-compare-posing.trycloudflare.com';
 
 // Version - Update this to force cache invalidation across all components
 export const VERSION = '1.0.5';

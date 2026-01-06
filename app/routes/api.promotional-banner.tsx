@@ -5,6 +5,7 @@ import prisma from "../db.server";
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
+  const configId = url.searchParams.get("configId") || "default";
 
   if (!shop) {
     return json({ error: "Shop parameter is required" }, { status: 400 });
@@ -14,9 +15,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
     // Normalize shop domain
     const normalizedShop = shop.endsWith('.myshopify.com') ? shop : `${shop}.myshopify.com`;
 
-    // Get promotional banner block configuration (standalone block)
+    // Get promotional banner block configuration by shop + configId
     const promotionalBannerBlock = await prisma.promotionalBannerBlock.findUnique({
-      where: { shop: normalizedShop },
+      where: {
+        shop_configId: {
+          shop: normalizedShop,
+          configId: configId
+        }
+      },
       include: {
         images: { orderBy: { order: 'asc' } },
         carouselSettings: true,
@@ -61,7 +67,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
 
     if (!cartDrawer) {
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: "Configuration not found",
         enabled: false,
         slides: [],
@@ -102,7 +108,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   } catch (error) {
     console.error("Error fetching promotional banner:", error);
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       error: "Internal server error",
       enabled: false,
       slides: [],
