@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.5
- * Built: 2026-01-06T13:27:10.908Z
+ * Built: 2026-01-07T13:23:29.453Z
  */
 "use strict";
 (() => {
@@ -9166,7 +9166,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
-  var APP_URL = true ? "https://sbjct-tables-compare-posing.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;
