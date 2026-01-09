@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.5
- * Built: 2026-01-07T12:55:06.160Z
+ * Built: 2026-01-09T09:52:55.642Z
  */
 "use strict";
 (() => {
@@ -10013,7 +10013,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://runner-correction-boring-grade.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://wallet-minimal-possibilities-activation.trycloudflare.com" : "https://app.upsellity.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;
@@ -10031,11 +10031,22 @@
       this.init();
     }
     async init() {
-      var _a2, _b, _c, _d;
+      var _a2, _b, _c, _d, _e, _f, _g, _h, _i;
       try {
         await this.loadConfig();
         if (this.enabled && this.config) {
           await this.loadCurrentProduct();
+          if (!this.parentProduct && this.currentProduct) {
+            this.parentProduct = {
+              id: ((_a2 = this.currentProduct.id) == null ? void 0 : _a2.toString()) || this.productId,
+              variantId: ((_d = (_c = (_b = this.currentProduct.variants) == null ? void 0 : _b[0]) == null ? void 0 : _c.id) == null ? void 0 : _d.toString()) || this.productId,
+              title: this.currentProduct.title,
+              handle: this.currentProduct.handle,
+              price: this.currentProduct.price ? this.currentProduct.price / 100 : 0,
+              compareAtPrice: this.currentProduct.compare_at_price ? this.currentProduct.compare_at_price / 100 : null,
+              imageUrl: this.currentProduct.featured_image || ((_e = this.currentProduct.images) == null ? void 0 : _e[0]) || null
+            };
+          }
           if (this.parentProduct && this.parentProduct.handle) {
             try {
               const response = await fetch(`/products/${this.parentProduct.handle}.js`);
@@ -10044,8 +10055,8 @@
                 this.parentProduct = __spreadProps(__spreadValues({}, this.parentProduct), {
                   price: productData.price / 100,
                   compareAtPrice: productData.compare_at_price ? productData.compare_at_price / 100 : null,
-                  imageUrl: productData.featured_image || ((_a2 = productData.images) == null ? void 0 : _a2[0]) || null,
-                  variantId: ((_d = (_c = (_b = productData.variants) == null ? void 0 : _b[0]) == null ? void 0 : _c.id) == null ? void 0 : _d.toString()) || this.parentProduct.variantId
+                  imageUrl: productData.featured_image || ((_f = productData.images) == null ? void 0 : _f[0]) || null,
+                  variantId: ((_i = (_h = (_g = productData.variants) == null ? void 0 : _g[0]) == null ? void 0 : _h.id) == null ? void 0 : _i.toString()) || this.parentProduct.variantId
                 });
               }
             } catch (error) {
@@ -10092,7 +10103,7 @@
       }
     }
     async loadRecommendations() {
-      var _a2, _b;
+      var _a2;
       const recommendationType = this.config.recommendationType || "manual";
       const manualRecommendations = [...this.recommendations];
       let aiRecommendations = [];
@@ -10103,30 +10114,44 @@
           if (!productId) {
             console.warn("FBT Widget: Product ID not available for AI recommendations");
           } else {
-            const intent = this.config.algorithm === "complementary" ? "complementary" : "related";
-            const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=3`;
-            const response = await fetch(recommendationsUrl);
-            if (response.ok) {
+            const algorithm = this.config.algorithm || "related";
+            const fetchRecommendationsByIntent = async (intent) => {
+              const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=3`;
+              const response = await fetch(recommendationsUrl);
+              if (!response.ok) {
+                return null;
+              }
               const data = await response.json();
-              aiRecommendations = ((_b = data.products) == null ? void 0 : _b.map((product) => {
-                var _a3, _b2, _c, _d, _e, _f, _g;
+              const rawProducts = data.products || [];
+              return rawProducts.map((product) => {
+                var _a3, _b;
+                const variant = (_a3 = product.variants) == null ? void 0 : _a3[0];
+                const isAvailable = variant ? variant.available !== false && (variant.inventory_management === null || variant.inventory_quantity === null || variant.inventory_quantity === void 0 || variant.inventory_quantity > 0) : false;
                 return {
                   id: product.id.toString(),
-                  variantId: (_c = (_b2 = (_a3 = product.variants) == null ? void 0 : _a3[0]) == null ? void 0 : _b2.id) == null ? void 0 : _c.toString(),
+                  variantId: (_b = variant == null ? void 0 : variant.id) == null ? void 0 : _b.toString(),
                   title: product.title,
                   handle: product.handle,
-                  price: ((_e = (_d = product.variants) == null ? void 0 : _d[0]) == null ? void 0 : _e.price) ? parseFloat(product.variants[0].price) / 100 : 0,
-                  compareAtPrice: ((_g = (_f = product.variants) == null ? void 0 : _f[0]) == null ? void 0 : _g.compare_at_price) ? parseFloat(product.variants[0].compare_at_price) / 100 : null,
+                  price: (variant == null ? void 0 : variant.price) ? parseFloat(variant.price) / 100 : 0,
+                  compareAtPrice: (variant == null ? void 0 : variant.compare_at_price) ? parseFloat(variant.compare_at_price) / 100 : null,
                   imageUrl: product.featured_image,
+                  available: isAvailable,
                   source: "ai"
                 };
-              })) || [];
+              }).filter((rec) => rec.available);
+            };
+            const primaryIntent = algorithm === "complementary" ? "complementary" : "related";
+            aiRecommendations = await fetchRecommendationsByIntent(primaryIntent);
+            if (algorithm === "complementary" && (!aiRecommendations || aiRecommendations.length === 0)) {
+              aiRecommendations = await fetchRecommendationsByIntent("related");
+            }
+            if (aiRecommendations && aiRecommendations.length > 0) {
               const maxUpsells2 = this.config.limitUpsellsInCart && this.config.maxUpsellsInCart ? this.config.maxUpsellsInCart : null;
               if (maxUpsells2 && aiRecommendations.length > maxUpsells2) {
                 aiRecommendations = aiRecommendations.slice(0, maxUpsells2);
               }
             } else {
-              console.warn(`FBT Widget: Failed to fetch AI recommendations (${response.status} ${response.statusText})`);
+              aiRecommendations = [];
             }
           }
         } catch (error) {

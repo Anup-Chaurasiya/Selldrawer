@@ -19,7 +19,7 @@ export async function addProductToCart(variantId, quantity = 1, loadCartCallback
       const formData = new FormData();
       formData.append('id', variantId);
       formData.append('quantity', quantity.toString());
-      
+
       // Add properties if provided
       Object.keys(properties).forEach(key => {
         formData.append(`properties[${key}]`, properties[key]);
@@ -60,7 +60,7 @@ export async function addProductToCartByHandle(productHandle, variantId, quantit
       const formData = new FormData();
       formData.append('id', productHandle);
       formData.append('quantity', quantity.toString());
-      
+
       // Add properties if provided
       Object.keys(properties).forEach(key => {
         formData.append(`properties[${key}]`, properties[key]);
@@ -89,18 +89,18 @@ export async function addProductToCartByHandle(productHandle, variantId, quantit
         throw new Error('Product not found');
       }
     }
-    
+
     const product = await productResponse.json();
-    
+
     // Use the first variant if no specific variant ID provided
-    const variant = variantId ? 
+    const variant = variantId ?
       product.variants.find(v => {
         const vId = v.id.toString().replace('gid://shopify/ProductVariant/', '');
         const pId = variantId.toString().replace('gid://shopify/ProductVariant/', '');
         return vId === pId;
       }) :
       product.variants[0];
-    
+
     if (!variant) {
       console.error('No variant found for product:', product.title);
       throw new Error('Variant not found');
@@ -123,7 +123,7 @@ export async function addProductToCartByHandle(productHandle, variantId, quantit
     const formData = new FormData();
     formData.append('id', variant.id);
     formData.append('quantity', quantity.toString());
-    
+
     // Add properties if provided
     Object.keys(properties).forEach(key => {
       formData.append(`properties[${key}]`, properties[key]);
@@ -160,7 +160,7 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
     showNotification('Quantity cannot be negative', 'error');
     return; // Return gracefully without throwing
   }
-  
+
   const cartItem = document.querySelector(`[data-item-key="${itemKey}"]`);
   if (cartItem) {
     cartItem.classList.add('upsellity-loading');
@@ -173,7 +173,7 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
       throw new Error('Failed to fetch cart');
     }
     const cart = await cartResponse.json();
-    
+
     // Find the cart item by key
     const cartItemIndex = cart.items.findIndex(item => item.key === itemKey);
     if (cartItemIndex === -1) {
@@ -183,26 +183,26 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
       showNotification('Item not found in cart', 'error');
       return;
     }
-    
+
     const item = cart.items[cartItemIndex];
-    
+
     // Check if this is a gift item - gift items cannot be manually modified
     const isGift = item.properties && (
       item.properties['_upsellity_gift'] === 'true' ||
       item.properties['_gift'] === 'true' ||
       item.properties['_gift'] === true
     );
-    
+
     if (isGift) {
       showNotification('Gift items are automatically managed and cannot be modified', 'info');
       await loadCartCallback();
       renderCallback();
       return;
     }
-    
+
     // Use line number (1-based index) for the update request
     const lineNumber = cartItemIndex + 1;
-    
+
     const response = await fetch('/cart/change.js', {
       method: 'POST',
       headers: {
@@ -216,7 +216,7 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
 
     if (response.ok) {
       const result = await response.json();
-      
+
       // Check if the item was actually updated or if it's out of stock BEFORE rendering
       if (result.items) {
         const updatedItem = result.items.find(item => item.key === itemKey);
@@ -227,11 +227,11 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
           return; // Return gracefully without showing notification
         }
       }
-      
+
       // Item was successfully updated - update cart data and re-render
       await loadCartCallback(result);
       renderCallback();
-      
+
       // Only show success if we're not removing the item (quantity 0)
       if (newQuantity > 0) {
         showNotification('Cart updated!', 'success');
@@ -239,12 +239,12 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
     } else {
       const error = await response.json();
       console.error('Cart update error:', error);
-      
+
       await loadCartCallback();
       renderCallback();
-      
+
       let errorMessage = error.description || error.message || 'Failed to update cart';
-      
+
       if (error.description && error.description.includes('sold out')) {
         if (newQuantity !== 0) {
           errorMessage = 'This product is out of stock';
@@ -253,21 +253,21 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
       } else {
         showNotification(errorMessage, 'error');
       }
-      
+
       // Don't throw - handle gracefully to prevent uncaught promise rejection
       return;
     }
   } catch (error) {
     // Handle unexpected errors (network errors, JSON parsing errors, etc.)
     console.error('Error updating quantity:', error);
-    
+
     // Reload cart to ensure UI is in sync
     await loadCartCallback();
     renderCallback();
-    
+
     // Show generic error notification
     showNotification('Failed to update cart', 'error');
-    
+
     // Don't throw error - handle gracefully to prevent uncaught promise rejection
   } finally {
     if (cartItem) {
@@ -291,7 +291,7 @@ export async function removeItem(itemKey, loadCartCallback, renderCallback) {
     if (cartResponse.ok) {
       const cart = await cartResponse.json();
       const item = cart.items.find(i => i.key === itemKey);
-      
+
       if (item) {
         // Check if this is a gift item
         const isGift = item.properties && (
@@ -299,7 +299,7 @@ export async function removeItem(itemKey, loadCartCallback, renderCallback) {
           item.properties['_gift'] === 'true' ||
           item.properties['_gift'] === true
         );
-        
+
         if (isGift) {
           showNotification('Gift items are automatically managed and cannot be removed manually', 'info');
           await loadCartCallback();
@@ -308,7 +308,7 @@ export async function removeItem(itemKey, loadCartCallback, renderCallback) {
         }
       }
     }
-    
+
     const response = await fetch('/cart/change.js', {
       method: 'POST',
       headers: {
@@ -322,10 +322,10 @@ export async function removeItem(itemKey, loadCartCallback, renderCallback) {
 
     if (response.ok) {
       const result = await response.json();
-      
+
       await loadCartCallback(result);
       renderCallback();
-      
+
       showNotification('Item removed from cart', 'success');
     } else {
       const error = await response.json();

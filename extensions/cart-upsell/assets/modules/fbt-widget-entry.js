@@ -35,6 +35,19 @@ class FrequentlyBoughtTogether {
       if (this.enabled && this.config) {
         await this.loadCurrentProduct();
 
+        // For AI/Hybrid mode, set current product as parent if not set by API
+        if (!this.parentProduct && this.currentProduct) {
+          this.parentProduct = {
+            id: this.currentProduct.id?.toString() || this.productId,
+            variantId: this.currentProduct.variants?.[0]?.id?.toString() || this.productId,
+            title: this.currentProduct.title,
+            handle: this.currentProduct.handle,
+            price: this.currentProduct.price ? this.currentProduct.price / 100 : 0,
+            compareAtPrice: this.currentProduct.compare_at_price ? this.currentProduct.compare_at_price / 100 : null,
+            imageUrl: this.currentProduct.featured_image || this.currentProduct.images?.[0] || null
+          };
+        }
+
         // Fetch full parent product details if available
         if (this.parentProduct && this.parentProduct.handle) {
           try {
@@ -116,25 +129,59 @@ class FrequentlyBoughtTogether {
         if (!productId) {
           console.warn('FBT Widget: Product ID not available for AI recommendations');
         } else {
-          const intent = this.config.algorithm === 'complementary' ? 'complementary' : 'related';
-          const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=3`;
+          const algorithm = this.config.algorithm || 'related';
 
-          const response = await fetch(recommendationsUrl);
+          // Helper function to fetch recommendations by intent
+          const fetchRecommendationsByIntent = async (intent) => {
+            const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=3`;
+            const response = await fetch(recommendationsUrl);
 
-          if (response.ok) {
+            if (!response.ok) {
+              return null;
+            }
+
             const data = await response.json();
-            aiRecommendations = data.products?.map(product => ({
-              id: product.id.toString(),
-              variantId: product.variants?.[0]?.id?.toString(),
-              title: product.title,
-              handle: product.handle,
-              price: product.variants?.[0]?.price ? parseFloat(product.variants[0].price) / 100 : 0,
-              compareAtPrice: product.variants?.[0]?.compare_at_price ?
-                parseFloat(product.variants[0].compare_at_price) / 100 : null,
-              imageUrl: product.featured_image,
-              source: 'ai'
-            })) || [];
+            const rawProducts = data.products || [];
 
+            return rawProducts.map(product => {
+              const variant = product.variants?.[0];
+
+              // Fix: Handle undefined inventory_quantity from Shopify API
+              const isAvailable = variant ? (
+                variant.available !== false &&
+                (variant.inventory_management === null ||
+                  variant.inventory_quantity === null ||
+                  variant.inventory_quantity === undefined ||
+                  variant.inventory_quantity > 0)
+              ) : false;
+
+              return {
+                id: product.id.toString(),
+                variantId: variant?.id?.toString(),
+                title: product.title,
+                handle: product.handle,
+                price: variant?.price ? parseFloat(variant.price) / 100 : 0,
+                compareAtPrice: variant?.compare_at_price ? parseFloat(variant.compare_at_price) / 100 : null,
+                imageUrl: product.featured_image,
+                available: isAvailable,
+                source: 'ai'
+              };
+            }).filter(rec => rec.available);
+          };
+
+          // Determine primary intent
+          const primaryIntent = algorithm === 'complementary' ? 'complementary' : 'related';
+
+          // Fetch primary recommendations
+          aiRecommendations = await fetchRecommendationsByIntent(primaryIntent);
+
+          // Fallback to related if complementary returns empty
+          if (algorithm === 'complementary' && (!aiRecommendations || aiRecommendations.length === 0)) {
+            aiRecommendations = await fetchRecommendationsByIntent('related');
+          }
+
+          // Filter final recommendations
+          if (aiRecommendations && aiRecommendations.length > 0) {
             const maxUpsells = this.config.limitUpsellsInCart && this.config.maxUpsellsInCart
               ? this.config.maxUpsellsInCart
               : null;
@@ -142,7 +189,7 @@ class FrequentlyBoughtTogether {
               aiRecommendations = aiRecommendations.slice(0, maxUpsells);
             }
           } else {
-            console.warn(`FBT Widget: Failed to fetch AI recommendations (${response.status} ${response.statusText})`);
+            aiRecommendations = [];
           }
         }
       } catch (error) {
