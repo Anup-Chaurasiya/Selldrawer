@@ -1241,7 +1241,7 @@ export default function CartMilestones() {
                                   ? giftProduct.title.substring(0, 20) + '...'
                                   : giftProduct.title}
                               </Text>
-                              <div style={{ marginTop: '8px' }}>
+                              <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 <Button
                                   size="slim"
                                   variant="secondary"
@@ -1251,6 +1251,17 @@ export default function CartMilestones() {
                                   }}
                                 >
                                   Change product
+                                </Button>
+                                <Button
+                                  size="slim"
+                                  variant="plain"
+                                  tone="critical"
+                                  onClick={() => {
+                                    const newGiftProducts = selectedGiftProducts.filter((_, i) => i !== index);
+                                    setSelectedGiftProducts(newGiftProducts);
+                                  }}
+                                >
+                                  Remove
                                 </Button>
                               </div>
                             </>

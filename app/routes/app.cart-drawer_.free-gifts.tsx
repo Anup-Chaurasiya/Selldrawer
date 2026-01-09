@@ -193,21 +193,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     try {
       const name = formData.get("name") as string;
       const triggerType = formData.get("triggerType") as string;
-      
+
       // Parse trigger value for all trigger types
       const triggerValueRaw = formData.get("triggerValue") as string;
       const triggerValue = parseFloat(triggerValueRaw) || 0;
-      
+
       const customerLimit = parseInt(formData.get("customerLimit") as string);
 
       // Parse gift products
       const giftProductsJson = formData.get("giftProducts") as string;
       let giftProducts: any[] = [];
-      
+
       if (giftProductsJson) {
         giftProducts = JSON.parse(giftProductsJson);
       }
-      
+
       // Validate that at least one gift product is selected
       if (giftProducts.length === 0) {
         return json({ error: "Please select at least one gift product" }, { status: 400 });
@@ -303,11 +303,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const freeGiftId = formData.get("freeGiftId") as string;
     const name = formData.get("name") as string;
     const triggerType = formData.get("triggerType") as string;
-    
+
     // Parse trigger value for all trigger types
     const triggerValueRaw = formData.get("triggerValue") as string;
     const triggerValue = parseFloat(triggerValueRaw) || 0;
-    
+
     const customerLimit = parseInt(formData.get("customerLimit") as string);
 
     // Get existing free gift to retrieve old discount ID
@@ -319,11 +319,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Parse gift products
     const giftProductsJson = formData.get("giftProducts") as string;
     let giftProducts: any[] = [];
-    
+
     if (giftProductsJson) {
       giftProducts = JSON.parse(giftProductsJson);
     }
-    
+
     // Validate that at least one gift product is selected
     if (giftProducts.length === 0) {
       return json({ error: "Please select at least one gift product" }, { status: 400 });
@@ -414,7 +414,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "delete-free-gift") {
     const freeGiftId = formData.get("freeGiftId") as string;
-    
+
     // Get free gift to retrieve discount ID
     const freeGift = await prisma.freeGift.findUnique({
       where: { id: freeGiftId },
@@ -430,7 +430,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await prisma.freeGift.delete({
       where: { id: freeGiftId }
     });
-    
+
     return json({ success: true });
   }
 
@@ -508,7 +508,7 @@ export default function FreeGifts() {
   const handleSave = useCallback(() => {
     const formData = new FormData();
     formData.append("intent", editingFreeGift ? "update-free-gift" : "add-free-gift");
-    
+
     if (editingFreeGift) {
       formData.append("freeGiftId", editingFreeGift.id);
     }
@@ -516,7 +516,7 @@ export default function FreeGifts() {
     Object.entries(formState).forEach(([key, value]) => {
       formData.append(key, value.toString());
     });
-    
+
     // Always set customerLimit to 1 (users can only choose one product)
     formData.set("customerLimit", "1");
 
@@ -585,7 +585,7 @@ export default function FreeGifts() {
           qualified: true,
         }));
     }
-    
+
     // Default sample
     return [{
       id: 'sample-1',
@@ -645,7 +645,7 @@ export default function FreeGifts() {
             {/* Info Banner */}
             <Banner tone="info">
               <p>
-                Configure free gift offers that customers can choose when they meet certain conditions. 
+                Configure free gift offers that customers can choose when they meet certain conditions.
                 Set up triggers like minimum spend, quantity, or specific products to unlock gift options.
               </p>
             </Banner>
@@ -676,7 +676,7 @@ export default function FreeGifts() {
                         <ResourceItem
                           id={id}
                           accessibilityLabel={`View details for ${name}`}
-                          onClick={() => {}}
+                          onClick={() => { }}
                         >
                           <BlockStack gap="300">
                             <BlockStack gap="200">
@@ -694,13 +694,13 @@ export default function FreeGifts() {
                                     </Badge>
                                   </InlineStack>
                                   <Text as="p" variant="bodySm" tone="subdued">
-                                    Trigger: {getTriggerTypeLabel(triggerType)} 
+                                    Trigger: {getTriggerTypeLabel(triggerType)}
                                     {triggerType === "spend" && ` (₹${triggerValue.toString()})`}
                                     {triggerType === "quantity" && ` (${triggerValue.toString()} items)`}
                                     {triggerType === "products" && ` (${triggerValue.toString()} qty from ${targets?.length || 0} products)`}
                                     {triggerType === "collections" && ` (${triggerValue.toString()} qty from ${targets?.length || 0} collections)`}
                                     {' | '}
-                                    Choose {customerLimit} gift{customerLimit > 1 ? 's' : ''} | 
+                                    Choose {customerLimit} gift{customerLimit > 1 ? 's' : ''} |
                                     {giftProducts.length} product{giftProducts.length > 1 ? 's' : ''}
                                   </Text>
                                 </BlockStack>
@@ -768,7 +768,7 @@ export default function FreeGifts() {
                 <FreeGiftSelector
                   freeGifts={previewFreeGifts}
                   selectedGiftId={null}
-                  onSelectGift={() => {}}
+                  onSelectGift={() => { }}
                   isPreview={true}
                 />
               </div>
@@ -790,7 +790,7 @@ export default function FreeGifts() {
           content: editingFreeGift ? "Update" : "Add",
           onAction: handleSave,
           loading: isSubmitting,
-          disabled: !formState.name || 
+          disabled: !formState.name ||
             !formState.triggerValue ||
             selectedGiftProducts.length === 0 ||
             ((formState.triggerType === "products" || formState.triggerType === "collections") && selectedTargets.length === 0),
@@ -844,8 +844,8 @@ export default function FreeGifts() {
                     {formState.triggerType === "products" ? "Select Products" : "Select Collections"}
                   </Text>
                   <Text as="p" variant="bodySm" tone="subdued">
-                    {formState.triggerType === "products" 
-                      ? "Choose which products must be in cart to unlock gifts" 
+                    {formState.triggerType === "products"
+                      ? "Choose which products must be in cart to unlock gifts"
                       : "Choose which collections must be in cart to unlock gifts"}
                   </Text>
                   {selectedTargets.length === 0 && (
@@ -859,8 +859,8 @@ export default function FreeGifts() {
                       setTargetTab(formState.triggerType === "products" ? "product" : "collection");
                     }}
                   >
-                    {selectedTargets.length > 0 
-                      ? `${selectedTargets.length} selected - Change` 
+                    {selectedTargets.length > 0
+                      ? `${selectedTargets.length} selected - Change`
                       : `Select ${formState.triggerType === "products" ? "Products" : "Collections"}`}
                   </Button>
                   {selectedTargets.length > 0 && (
@@ -894,7 +894,7 @@ export default function FreeGifts() {
                       ))}
                     </div>
                   )}
-                  
+
                   <TextField
                     label="Required Quantity"
                     type="number"
@@ -902,8 +902,8 @@ export default function FreeGifts() {
                     onChange={(value) => setFormState({ ...formState, triggerValue: value })}
                     placeholder={formState.triggerType === "products" ? "2" : "3"}
                     autoComplete="off"
-                    helpText={formState.triggerType === "products" 
-                      ? "Total quantity of selected products required in cart to unlock gifts" 
+                    helpText={formState.triggerType === "products"
+                      ? "Total quantity of selected products required in cart to unlock gifts"
                       : "Total quantity of items from selected collections required in cart to unlock gifts"}
                   />
                 </BlockStack>
@@ -963,11 +963,11 @@ export default function FreeGifts() {
                               }}
                             />
                             <Text as="p" variant="bodySm" fontWeight="medium" alignment="center">
-                              {giftProduct.title.length > 20 
-                                ? giftProduct.title.substring(0, 20) + '...' 
+                              {giftProduct.title.length > 20
+                                ? giftProduct.title.substring(0, 20) + '...'
                                 : giftProduct.title}
                             </Text>
-                            <div style={{ marginTop: '8px' }}>
+                            <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                               <Button
                                 size="slim"
                                 variant="secondary"
@@ -977,6 +977,17 @@ export default function FreeGifts() {
                                 }}
                               >
                                 Change product
+                              </Button>
+                              <Button
+                                size="slim"
+                                variant="plain"
+                                tone="critical"
+                                onClick={() => {
+                                  const newGiftProducts = selectedGiftProducts.filter((_, i) => i !== index);
+                                  setSelectedGiftProducts(newGiftProducts);
+                                }}
+                              >
+                                Remove
                               </Button>
                             </div>
                           </>
@@ -1068,13 +1079,13 @@ export default function FreeGifts() {
                               imageUrl: product.images?.[0]?.src || null,
                               handle: product.handle,
                             };
-                            
+
                             if (editingGiftProductIndex < newGiftProducts.length) {
                               newGiftProducts[editingGiftProductIndex] = productData;
                             } else {
                               newGiftProducts.push(productData);
                             }
-                            
+
                             // Limit to 3 products
                             setSelectedGiftProducts(newGiftProducts.slice(0, 3));
                             setShowGiftProductModal(false);
@@ -1163,7 +1174,7 @@ export default function FreeGifts() {
                 <div style={{ display: 'grid', gap: '8px' }}>
                   {getFilteredProducts().map((product: any) => {
                     const isSelected = selectedTargets.some(t => t.shopifyId === product.shopifyProductId);
-                    
+
                     return (
                       <div
                         key={product.handle}
@@ -1236,7 +1247,7 @@ export default function FreeGifts() {
                     )
                     .map((collection: any) => {
                       const isSelected = selectedTargets.some(t => t.shopifyId === collection.shopifyCollectionId);
-                      
+
                       return (
                         <div
                           key={collection.handle}
