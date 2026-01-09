@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.5
- * Built: 2026-01-09T09:52:55.679Z
+ * Built: 2026-01-09T10:08:26.631Z
  */
 "use strict";
 (() => {
@@ -7915,6 +7915,12 @@
         }, 10);
       }
     }, [isVisible, config.enableAnimation, config.animationType]);
+    (0, import_react.useEffect)(() => {
+      if (checkboxMode && recommendations.length > 0) {
+        const allProductIds = new Set(recommendations.map((p) => p.id));
+        setSelectedIds(allProductIds);
+      }
+    }, [checkboxMode, recommendations]);
     const handleCheckboxToggle = (product) => {
       if (checkboxMode) {
         const newSelectedIds = new Set(selectedIds);

@@ -99,6 +99,14 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
     }
   }, [isVisible, config.enableAnimation, config.animationType]);
 
+  // Auto-select all products when checkbox mode is enabled and popup opens
+  useEffect(() => {
+    if (checkboxMode && recommendations.length > 0) {
+      const allProductIds = new Set(recommendations.map(p => p.id));
+      setSelectedIds(allProductIds);
+    }
+  }, [checkboxMode, recommendations]);
+
   // Handle checkbox toggle in checkbox mode
   const handleCheckboxToggle = (product: NudgeProduct) => {
     if (checkboxMode) {
