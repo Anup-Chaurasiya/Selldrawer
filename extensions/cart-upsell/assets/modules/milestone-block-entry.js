@@ -1,6 +1,10 @@
 /**
  * Milestone Block Entry Point
  * Standalone milestone progress block that can be embedded anywhere on the site
+ * 
+ * MILESTONE CALCULATION FIX: Now uses original_line_price (before discounts)
+ * Last Updated: 2026-01-12 18:08 IST - Build 1.0.8-FIXED
+ * Critical: Calculates milestones from original cart value, not discounted subtotal
  */
 
 import React from 'react';
@@ -11,7 +15,8 @@ import {
   handleMilestoneRewards,
   getCheckoutUrlWithDiscount,
   evaluateMilestones,
-  showMilestoneUnlockedNotification
+  showMilestoneUnlockedNotification,
+  calculateCartTotalExcludingGifts
 } from './milestone-reward-manager.js';
 
 // App URL is injected at build time from config.js
@@ -83,10 +88,14 @@ function initMilestoneBlocks() {
       }
     };
 
-    // Function to fetch cart total
+    // Function to fetch cart total (using ORIGINAL prices, excluding gifts)
     const fetchCartTotal = async () => {
       const cart = await fetchCart();
-      return cart.total_price / 100; // Convert cents to currency
+      // Use calculateCartTotalExcludingGifts to get original cart total (before discounts)
+      const cartTotalInCents = calculateCartTotalExcludingGifts(cart);
+      const cartTotalInRupees = cartTotalInCents / 100;
+      console.log('🔧 MILESTONE FIX LOADED v1.0.9 - Using original cart total:', cartTotalInRupees, 'rupees');
+      return cartTotalInRupees; // Convert cents to currency
     };
 
     // Function to replace placeholders in messages
@@ -208,7 +217,9 @@ function initMilestoneBlocks() {
 
             // Fetch fresh cart data
             const cart = await fetchCart();
-            const newCartTotal = cart.total_price / 100;
+            // Use original cart total (before discounts) for milestone calculation
+            const cartTotalInCents = calculateCartTotalExcludingGifts(cart);
+            const newCartTotal = cartTotalInCents / 100;
 
             // Update UI with new milestones
             const updatedMilestones = processMilestones(data.milestones, newCartTotal);
@@ -280,7 +291,9 @@ function initMilestoneBlocks() {
           }
 
           const cart = await fetchCart();
-          const currentTotal = cart.total_price / 100;
+          // Use original cart total (before discounts) for milestone polling
+          const cartTotalInCents = calculateCartTotalExcludingGifts(cart);
+          const currentTotal = cartTotalInCents / 100;
 
           if (Math.abs(currentTotal - lastCartTotal) > 0.01) { // Check for meaningful change
             lastCartTotal = currentTotal;

@@ -140,7 +140,10 @@ export class UpsellityCartDrawer {
       const appUrl = document.querySelector('[data-upsellity-app-url]')?.dataset.upsellityAppUrl;
       if (!appUrl) return;
 
-      const cartTotal = this.cart ? this.cart.total_price / 100 : 0; // Convert cents to rupees
+      // CRITICAL FIX: Use original cart total (before discounts) for milestone calculation
+      // This ensures milestones are calculated from the original cart value, not the discounted subtotal
+      const cartTotalInCents = MilestoneRewardManager.calculateCartTotalExcludingGifts(this.cart);
+      const cartTotal = cartTotalInCents / 100; // Convert cents to rupees
       const cartItemsJson = this.cart ? JSON.stringify(this.cart.items) : '[]';
 
       const timestamp = new Date().getTime();

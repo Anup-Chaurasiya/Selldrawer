@@ -246,8 +246,11 @@ export const UnifiedCartDrawer = ({
         const milestones = config?.features?.milestones;
         if (!milestones || !milestones.length) return null;
 
-        // Milestones are already calculated by the API, just use them directly
-        const cartTotalInRupees = cart.total_price / 100; // Convert cents to rupees
+        // Import calculateCartTotalExcludingGifts from milestone-reward-manager
+        // to get the ORIGINAL cart total (before discounts) for milestone calculation
+        const MilestoneRewardManager = require('../milestone-reward-manager.js');
+        const cartTotalInCents = MilestoneRewardManager.calculateCartTotalExcludingGifts(cart);
+        const cartTotalInRupees = cartTotalInCents / 100; // Convert cents to rupees
 
         // Extract shop domain from config or window location
         const shopDomain = config?.shop || window.Shopify?.shop || window.location.hostname;

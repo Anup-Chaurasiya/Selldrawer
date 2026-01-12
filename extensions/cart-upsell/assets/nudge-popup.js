@@ -1,6 +1,6 @@
 /**
- * Upsellity Nudge Popup v1.0.5
- * Built: 2026-01-10T14:02:24.092Z
+ * Upsellity Nudge Popup v1.0.9
+ * Built: 2026-01-12T12:46:16.807Z
  */
 "use strict";
 (() => {
@@ -9172,7 +9172,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://deaths-memories-roots-evening.trycloudflare.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;

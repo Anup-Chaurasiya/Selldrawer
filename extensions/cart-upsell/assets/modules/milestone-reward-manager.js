@@ -63,7 +63,10 @@ export function calculateCartTotalExcludingGifts(cart) {
     );
 
     if (!isGift) {
-      total += item.final_line_price || item.line_price || (item.price * item.quantity);
+      // Use original prices for milestone calculation (before any discounts)
+      // This ensures milestone progress is calculated on pre-discount cart value
+      // Prevents infinite loop where discount application reduces cart total below threshold
+      total += item.original_line_price || (item.price * item.quantity);
     }
   }
 

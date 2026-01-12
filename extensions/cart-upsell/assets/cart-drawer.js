@@ -1,6 +1,6 @@
 /**
- * Upsellity Cart Drawer v1.0.5
- * Built: 2026-01-10T14:02:24.054Z
+ * Upsellity Cart Drawer v1.0.9
+ * Built: 2026-01-12T12:46:16.728Z
  */
 "use strict";
 (() => {
@@ -27,8 +27,15 @@
     return a;
   };
   var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+  var __esm = (fn, res) => function __init() {
+    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+  };
   var __commonJS = (cb, mod) => function __require() {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+  };
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, { get: all[name], enumerable: true });
   };
   var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
@@ -46,6 +53,7 @@
     isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
     mod
   ));
+  var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
   // node_modules/react/cjs/react.production.min.js
   var require_react_production_min = __commonJS({
@@ -7838,52 +7846,14 @@
     }
   });
 
-  // node_modules/react/cjs/react-jsx-runtime.production.min.js
-  var require_react_jsx_runtime_production_min = __commonJS({
-    "node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
+  // extensions/cart-upsell/assets/modules/constants.js
+  var init_constants = __esm({
+    "extensions/cart-upsell/assets/modules/constants.js"() {
       "use strict";
-      var f = require_react();
-      var k = Symbol.for("react.element");
-      var l = Symbol.for("react.fragment");
-      var m = Object.prototype.hasOwnProperty;
-      var n = f.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner;
-      var p = { key: true, ref: true, __self: true, __source: true };
-      function q(c, a, g) {
-        var b, d = {}, e = null, h = null;
-        void 0 !== g && (e = "" + g);
-        void 0 !== a.key && (e = "" + a.key);
-        void 0 !== a.ref && (h = a.ref);
-        for (b in a)
-          m.call(a, b) && !p.hasOwnProperty(b) && (d[b] = a[b]);
-        if (c && c.defaultProps)
-          for (b in a = c.defaultProps, a)
-            void 0 === d[b] && (d[b] = a[b]);
-        return { $$typeof: k, type: c, key: e, ref: h, props: d, _owner: n.current };
-      }
-      exports.Fragment = l;
-      exports.jsx = q;
-      exports.jsxs = q;
     }
   });
-
-  // node_modules/react/jsx-runtime.js
-  var require_jsx_runtime = __commonJS({
-    "node_modules/react/jsx-runtime.js"(exports, module) {
-      "use strict";
-      if (true) {
-        module.exports = require_react_jsx_runtime_production_min();
-      } else {
-        module.exports = null;
-      }
-    }
-  });
-
-  // extensions/cart-upsell/assets/modules/cart-drawer-class.js
-  var import_react8 = __toESM(require_react(), 1);
-  var import_client = __toESM(require_client(), 1);
 
   // extensions/cart-upsell/assets/modules/utils.js
-  var toastContainer = null;
   function initToastContainer() {
     if (toastContainer)
       return toastContainer;
@@ -8209,8 +8179,372 @@
     });
     return toast;
   }
+  var toastContainer;
+  var init_utils = __esm({
+    "extensions/cart-upsell/assets/modules/utils.js"() {
+      "use strict";
+      init_constants();
+      toastContainer = null;
+    }
+  });
+
+  // extensions/cart-upsell/assets/modules/milestone-reward-manager.js
+  var milestone_reward_manager_exports = {};
+  __export(milestone_reward_manager_exports, {
+    addGiftToCart: () => addGiftToCart,
+    calculateCartTotalExcludingGifts: () => calculateCartTotalExcludingGifts,
+    evaluateMilestones: () => evaluateMilestones,
+    findGiftInCart: () => findGiftInCart,
+    getAllGiftsInCart: () => getAllGiftsInCart,
+    getCheckoutUrlWithDiscount: () => getCheckoutUrlWithDiscount,
+    handleMilestoneRewards: () => handleMilestoneRewards,
+    removeGiftFromCart: () => removeGiftFromCart,
+    showMilestoneUnlockedNotification: () => showMilestoneUnlockedNotification,
+    syncGiftProducts: () => syncGiftProducts,
+    validateMilestoneForCheckout: () => validateMilestoneForCheckout
+  });
+  function evaluateMilestones(milestones, cart) {
+    if (!milestones || milestones.length === 0 || !cart) {
+      return null;
+    }
+    const cartTotalExcludingGifts = calculateCartTotalExcludingGifts(cart);
+    const cartTotalInRupees = cartTotalExcludingGifts / 100;
+    const unlockedMilestones = milestones.filter((milestone) => {
+      return cartTotalInRupees >= milestone.targetAmount;
+    });
+    if (unlockedMilestones.length === 0) {
+      return null;
+    }
+    const sortedUnlocked = [...unlockedMilestones].sort((a, b) => b.targetAmount - a.targetAmount);
+    return sortedUnlocked[0];
+  }
+  function calculateCartTotalExcludingGifts(cart) {
+    if (!cart || !cart.items) {
+      return 0;
+    }
+    let total = 0;
+    for (const item of cart.items) {
+      const isGift = item.properties && (item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+      if (!isGift) {
+        total += item.original_line_price || item.price * item.quantity;
+      }
+    }
+    return total;
+  }
+  function findGiftInCart(cart, variantId, milestoneId) {
+    if (!cart || !cart.items || !variantId) {
+      return null;
+    }
+    const normalizedVariantId = normalizeVariantId(variantId);
+    return cart.items.find((item) => {
+      const itemVariantId = normalizeVariantId(item.variant_id || item.id);
+      const isGift = item.properties && (item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+      if (isGift && itemVariantId === normalizedVariantId) {
+        if (milestoneId && item.properties[GIFT_MILESTONE_ID_KEY]) {
+          return item.properties[GIFT_MILESTONE_ID_KEY] === milestoneId;
+        }
+        return true;
+      }
+      return false;
+    });
+  }
+  function getAllGiftsInCart(cart) {
+    if (!cart || !cart.items) {
+      return [];
+    }
+    return cart.items.filter((item) => {
+      return item.properties && (item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+    });
+  }
+  async function addGiftToCart(giftProduct, milestoneId) {
+    if (!giftProduct || !giftProduct.shopifyVariantId) {
+      return false;
+    }
+    try {
+      const variantId = normalizeVariantId(giftProduct.shopifyVariantId);
+      const formData = new FormData();
+      formData.append("id", variantId);
+      formData.append("quantity", "1");
+      formData.append(`properties[${GIFT_PROPERTY_KEY}]`, GIFT_PROPERTY_VALUE);
+      formData.append(`properties[${GIFT_MILESTONE_ID_KEY}]`, milestoneId);
+      formData.append("properties[_gift_title]", giftProduct.title || "Free Gift");
+      const response = await fetch("/cart/add.js", {
+        method: "POST",
+        body: formData
+      });
+      if (response.ok) {
+        const result = await response.json();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        document.dispatchEvent(new CustomEvent("cart:updated", { detail: result }));
+        document.dispatchEvent(new CustomEvent("cart:change", { detail: result }));
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      return false;
+    }
+  }
+  async function removeGiftFromCart(itemKey) {
+    if (!itemKey) {
+      return false;
+    }
+    try {
+      const response = await fetch("/cart/update.js", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          updates: {
+            [itemKey]: 0
+          }
+        })
+      });
+      if (response.ok) {
+        const result = await response.json();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        document.dispatchEvent(new CustomEvent("cart:updated", { detail: result }));
+        document.dispatchEvent(new CustomEvent("cart:change", { detail: result }));
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      return false;
+    }
+  }
+  async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback) {
+    let cartModified = false;
+    const currentGifts = getAllGiftsInCart(cart);
+    if (!unlockedMilestone) {
+      for (const giftItem of currentGifts) {
+        const removed = await removeGiftFromCart(giftItem.key);
+        if (removed) {
+          cartModified = true;
+        }
+      }
+      if (cartModified && loadCartCallback) {
+        await loadCartCallback();
+      }
+      return cartModified;
+    }
+    if (unlockedMilestone.rewardType !== "gift_wrapping") {
+      for (const giftItem of currentGifts) {
+        const removed = await removeGiftFromCart(giftItem.key);
+        if (removed) {
+          cartModified = true;
+        }
+      }
+      if (cartModified && loadCartCallback) {
+        await loadCartCallback();
+      }
+      return cartModified;
+    }
+    const giftProducts = unlockedMilestone.giftProducts || [];
+    if (giftProducts.length === 0) {
+      for (const giftItem of currentGifts) {
+        const removed = await removeGiftFromCart(giftItem.key);
+        if (removed) {
+          cartModified = true;
+        }
+      }
+      if (cartModified && loadCartCallback) {
+        await loadCartCallback();
+      }
+      return cartModified;
+    }
+    const validGiftVariantIds = new Set(
+      giftProducts.map((gp) => normalizeVariantId(gp.shopifyVariantId))
+    );
+    const seenValidGifts = /* @__PURE__ */ new Set();
+    for (const giftItem of currentGifts) {
+      const itemVariantId = normalizeVariantId(giftItem.variant_id || giftItem.id);
+      const belongsToThisMilestone = giftItem.properties && giftItem.properties[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
+      const isValidGift = belongsToThisMilestone && validGiftVariantIds.has(itemVariantId);
+      const isDuplicate = seenValidGifts.has(itemVariantId);
+      const shouldRemove = !belongsToThisMilestone || belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId) || isDuplicate;
+      if (shouldRemove) {
+        const removed = await removeGiftFromCart(giftItem.key);
+        if (removed) {
+          cartModified = true;
+        }
+      } else if (isValidGift) {
+        seenValidGifts.add(itemVariantId);
+        if (giftItem.quantity !== 1) {
+          try {
+            const response = await fetch("/cart/change.js", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                id: giftItem.key,
+                quantity: 1
+              })
+            });
+            if (response.ok) {
+              cartModified = true;
+            }
+          } catch (error) {
+          }
+        }
+      }
+    }
+    for (const giftProduct of giftProducts) {
+      const variantId = normalizeVariantId(giftProduct.shopifyVariantId);
+      if (seenValidGifts.has(variantId)) {
+        continue;
+      }
+      const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
+      if (!existingGift) {
+        const added = await addGiftToCart(giftProduct, unlockedMilestone.id);
+        if (added) {
+          cartModified = true;
+          seenValidGifts.add(variantId);
+        }
+      }
+    }
+    if (cartModified) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      if (loadCartCallback) {
+        await loadCartCallback();
+      }
+    }
+    return cartModified;
+  }
+  function getCheckoutUrlWithDiscount(unlockedMilestone) {
+    if (!unlockedMilestone || !unlockedMilestone.discountCode) {
+      return "/checkout";
+    }
+    return `/checkout?discount=${encodeURIComponent(unlockedMilestone.discountCode)}`;
+  }
+  async function validateMilestoneForCheckout(unlockedMilestone, cart) {
+    if (!unlockedMilestone) {
+      return { valid: true, message: "" };
+    }
+    if (!unlockedMilestone.discountCode) {
+      return {
+        valid: false,
+        message: "Milestone reward is not properly configured. Please contact support."
+      };
+    }
+    if (unlockedMilestone.rewardType === "gift_wrapping") {
+      const giftProducts = unlockedMilestone.giftProducts || [];
+      if (giftProducts.length > 0) {
+        let allGiftsPresent = true;
+        for (const giftProduct of giftProducts) {
+          const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
+          if (!existingGift) {
+            allGiftsPresent = false;
+            break;
+          }
+        }
+        if (!allGiftsPresent) {
+          return {
+            valid: false,
+            message: "Adding your free gift... Please wait."
+          };
+        }
+      }
+    }
+    return { valid: true, message: "" };
+  }
+  function normalizeVariantId(variantId) {
+    if (!variantId)
+      return "";
+    const idString = String(variantId);
+    if (idString.includes("gid://shopify/ProductVariant/")) {
+      return idString.replace("gid://shopify/ProductVariant/", "");
+    }
+    return idString;
+  }
+  function showMilestoneUnlockedNotification(milestone) {
+    if (!milestone)
+      return;
+    const rewardText = getRewardDescription(milestone);
+    showNotification(`\u{1F389} Milestone Unlocked: ${milestone.title}! ${rewardText}`, "success");
+  }
+  function getRewardDescription(milestone) {
+    if (!milestone)
+      return "";
+    switch (milestone.rewardType) {
+      case "free_shipping":
+        return "Free shipping will be applied at checkout!";
+      case "discount_percentage":
+        return `${milestone.rewardValue}% discount will be applied at checkout!`;
+      case "discount_fixed":
+        return `\u20B9${milestone.rewardValue} discount will be applied at checkout!`;
+      case "gift_wrapping":
+        return "Your free gift has been added to cart!";
+      default:
+        return "Reward will be applied at checkout!";
+    }
+  }
+  async function handleMilestoneRewards(milestones, cart, loadCartCallback) {
+    const unlockedMilestone = evaluateMilestones(milestones, cart);
+    const cartModified = await syncGiftProducts(unlockedMilestone, cart, loadCartCallback);
+    return unlockedMilestone;
+  }
+  var GIFT_PROPERTY_KEY, GIFT_PROPERTY_VALUE, GIFT_MILESTONE_ID_KEY;
+  var init_milestone_reward_manager = __esm({
+    "extensions/cart-upsell/assets/modules/milestone-reward-manager.js"() {
+      "use strict";
+      init_utils();
+      GIFT_PROPERTY_KEY = "_upsellity_gift";
+      GIFT_PROPERTY_VALUE = "true";
+      GIFT_MILESTONE_ID_KEY = "_upsellity_milestone_id";
+    }
+  });
+
+  // node_modules/react/cjs/react-jsx-runtime.production.min.js
+  var require_react_jsx_runtime_production_min = __commonJS({
+    "node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
+      "use strict";
+      var f = require_react();
+      var k = Symbol.for("react.element");
+      var l = Symbol.for("react.fragment");
+      var m = Object.prototype.hasOwnProperty;
+      var n = f.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner;
+      var p = { key: true, ref: true, __self: true, __source: true };
+      function q(c, a, g) {
+        var b, d = {}, e = null, h = null;
+        void 0 !== g && (e = "" + g);
+        void 0 !== a.key && (e = "" + a.key);
+        void 0 !== a.ref && (h = a.ref);
+        for (b in a)
+          m.call(a, b) && !p.hasOwnProperty(b) && (d[b] = a[b]);
+        if (c && c.defaultProps)
+          for (b in a = c.defaultProps, a)
+            void 0 === d[b] && (d[b] = a[b]);
+        return { $$typeof: k, type: c, key: e, ref: h, props: d, _owner: n.current };
+      }
+      exports.Fragment = l;
+      exports.jsx = q;
+      exports.jsxs = q;
+    }
+  });
+
+  // node_modules/react/jsx-runtime.js
+  var require_jsx_runtime = __commonJS({
+    "node_modules/react/jsx-runtime.js"(exports, module) {
+      "use strict";
+      if (true) {
+        module.exports = require_react_jsx_runtime_production_min();
+      } else {
+        module.exports = null;
+      }
+    }
+  });
+
+  // extensions/cart-upsell/assets/modules/cart-drawer-class.js
+  var import_react8 = __toESM(require_react(), 1);
+  var import_client = __toESM(require_client(), 1);
+  init_constants();
+  init_utils();
 
   // extensions/cart-upsell/assets/modules/cart-operations.js
+  init_utils();
   async function addProductToCart(variantId, quantity = 1, loadCartCallback, properties = {}) {
     try {
       if (!variantId) {
@@ -8454,6 +8788,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/discount-manager.js
+  init_utils();
   async function loadAvailableDiscounts(appUrl, shop, config) {
     var _a2;
     const couponField = (_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.couponCodeField;
@@ -8816,295 +9151,11 @@
     }
   }
 
-  // extensions/cart-upsell/assets/modules/milestone-reward-manager.js
-  var GIFT_PROPERTY_KEY = "_upsellity_gift";
-  var GIFT_PROPERTY_VALUE = "true";
-  var GIFT_MILESTONE_ID_KEY = "_upsellity_milestone_id";
-  function evaluateMilestones(milestones, cart) {
-    if (!milestones || milestones.length === 0 || !cart) {
-      return null;
-    }
-    const cartTotalExcludingGifts = calculateCartTotalExcludingGifts(cart);
-    const cartTotalInRupees = cartTotalExcludingGifts / 100;
-    const unlockedMilestones = milestones.filter((milestone) => {
-      return cartTotalInRupees >= milestone.targetAmount;
-    });
-    if (unlockedMilestones.length === 0) {
-      return null;
-    }
-    const sortedUnlocked = [...unlockedMilestones].sort((a, b) => b.targetAmount - a.targetAmount);
-    return sortedUnlocked[0];
-  }
-  function calculateCartTotalExcludingGifts(cart) {
-    if (!cart || !cart.items) {
-      return 0;
-    }
-    let total = 0;
-    for (const item of cart.items) {
-      const isGift = item.properties && (item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
-      if (!isGift) {
-        total += item.final_line_price || item.line_price || item.price * item.quantity;
-      }
-    }
-    return total;
-  }
-  function findGiftInCart(cart, variantId, milestoneId) {
-    if (!cart || !cart.items || !variantId) {
-      return null;
-    }
-    const normalizedVariantId = normalizeVariantId(variantId);
-    return cart.items.find((item) => {
-      const itemVariantId = normalizeVariantId(item.variant_id || item.id);
-      const isGift = item.properties && (item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
-      if (isGift && itemVariantId === normalizedVariantId) {
-        if (milestoneId && item.properties[GIFT_MILESTONE_ID_KEY]) {
-          return item.properties[GIFT_MILESTONE_ID_KEY] === milestoneId;
-        }
-        return true;
-      }
-      return false;
-    });
-  }
-  function getAllGiftsInCart(cart) {
-    if (!cart || !cart.items) {
-      return [];
-    }
-    return cart.items.filter((item) => {
-      return item.properties && (item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
-    });
-  }
-  async function addGiftToCart(giftProduct, milestoneId) {
-    if (!giftProduct || !giftProduct.shopifyVariantId) {
-      return false;
-    }
-    try {
-      const variantId = normalizeVariantId(giftProduct.shopifyVariantId);
-      const formData = new FormData();
-      formData.append("id", variantId);
-      formData.append("quantity", "1");
-      formData.append(`properties[${GIFT_PROPERTY_KEY}]`, GIFT_PROPERTY_VALUE);
-      formData.append(`properties[${GIFT_MILESTONE_ID_KEY}]`, milestoneId);
-      formData.append("properties[_gift_title]", giftProduct.title || "Free Gift");
-      const response = await fetch("/cart/add.js", {
-        method: "POST",
-        body: formData
-      });
-      if (response.ok) {
-        const result = await response.json();
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        document.dispatchEvent(new CustomEvent("cart:updated", { detail: result }));
-        document.dispatchEvent(new CustomEvent("cart:change", { detail: result }));
-        return true;
-      } else {
-        return false;
-      }
-    } catch (error) {
-      return false;
-    }
-  }
-  async function removeGiftFromCart(itemKey) {
-    if (!itemKey) {
-      return false;
-    }
-    try {
-      const response = await fetch("/cart/update.js", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          updates: {
-            [itemKey]: 0
-          }
-        })
-      });
-      if (response.ok) {
-        const result = await response.json();
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        document.dispatchEvent(new CustomEvent("cart:updated", { detail: result }));
-        document.dispatchEvent(new CustomEvent("cart:change", { detail: result }));
-        return true;
-      } else {
-        return false;
-      }
-    } catch (error) {
-      return false;
-    }
-  }
-  async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback) {
-    let cartModified = false;
-    const currentGifts = getAllGiftsInCart(cart);
-    if (!unlockedMilestone) {
-      for (const giftItem of currentGifts) {
-        const removed = await removeGiftFromCart(giftItem.key);
-        if (removed) {
-          cartModified = true;
-        }
-      }
-      if (cartModified && loadCartCallback) {
-        await loadCartCallback();
-      }
-      return cartModified;
-    }
-    if (unlockedMilestone.rewardType !== "gift_wrapping") {
-      for (const giftItem of currentGifts) {
-        const removed = await removeGiftFromCart(giftItem.key);
-        if (removed) {
-          cartModified = true;
-        }
-      }
-      if (cartModified && loadCartCallback) {
-        await loadCartCallback();
-      }
-      return cartModified;
-    }
-    const giftProducts = unlockedMilestone.giftProducts || [];
-    if (giftProducts.length === 0) {
-      for (const giftItem of currentGifts) {
-        const removed = await removeGiftFromCart(giftItem.key);
-        if (removed) {
-          cartModified = true;
-        }
-      }
-      if (cartModified && loadCartCallback) {
-        await loadCartCallback();
-      }
-      return cartModified;
-    }
-    const validGiftVariantIds = new Set(
-      giftProducts.map((gp) => normalizeVariantId(gp.shopifyVariantId))
-    );
-    const seenValidGifts = /* @__PURE__ */ new Set();
-    for (const giftItem of currentGifts) {
-      const itemVariantId = normalizeVariantId(giftItem.variant_id || giftItem.id);
-      const belongsToThisMilestone = giftItem.properties && giftItem.properties[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
-      const isValidGift = belongsToThisMilestone && validGiftVariantIds.has(itemVariantId);
-      const isDuplicate = seenValidGifts.has(itemVariantId);
-      const shouldRemove = !belongsToThisMilestone || belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId) || isDuplicate;
-      if (shouldRemove) {
-        const removed = await removeGiftFromCart(giftItem.key);
-        if (removed) {
-          cartModified = true;
-        }
-      } else if (isValidGift) {
-        seenValidGifts.add(itemVariantId);
-        if (giftItem.quantity !== 1) {
-          try {
-            const response = await fetch("/cart/change.js", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                id: giftItem.key,
-                quantity: 1
-              })
-            });
-            if (response.ok) {
-              cartModified = true;
-            }
-          } catch (error) {
-          }
-        }
-      }
-    }
-    for (const giftProduct of giftProducts) {
-      const variantId = normalizeVariantId(giftProduct.shopifyVariantId);
-      if (seenValidGifts.has(variantId)) {
-        continue;
-      }
-      const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
-      if (!existingGift) {
-        const added = await addGiftToCart(giftProduct, unlockedMilestone.id);
-        if (added) {
-          cartModified = true;
-          seenValidGifts.add(variantId);
-        }
-      }
-    }
-    if (cartModified) {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      if (loadCartCallback) {
-        await loadCartCallback();
-      }
-    }
-    return cartModified;
-  }
-  function getCheckoutUrlWithDiscount(unlockedMilestone) {
-    if (!unlockedMilestone || !unlockedMilestone.discountCode) {
-      return "/checkout";
-    }
-    return `/checkout?discount=${encodeURIComponent(unlockedMilestone.discountCode)}`;
-  }
-  async function validateMilestoneForCheckout(unlockedMilestone, cart) {
-    if (!unlockedMilestone) {
-      return { valid: true, message: "" };
-    }
-    if (!unlockedMilestone.discountCode) {
-      return {
-        valid: false,
-        message: "Milestone reward is not properly configured. Please contact support."
-      };
-    }
-    if (unlockedMilestone.rewardType === "gift_wrapping") {
-      const giftProducts = unlockedMilestone.giftProducts || [];
-      if (giftProducts.length > 0) {
-        let allGiftsPresent = true;
-        for (const giftProduct of giftProducts) {
-          const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
-          if (!existingGift) {
-            allGiftsPresent = false;
-            break;
-          }
-        }
-        if (!allGiftsPresent) {
-          return {
-            valid: false,
-            message: "Adding your free gift... Please wait."
-          };
-        }
-      }
-    }
-    return { valid: true, message: "" };
-  }
-  function normalizeVariantId(variantId) {
-    if (!variantId)
-      return "";
-    const idString = String(variantId);
-    if (idString.includes("gid://shopify/ProductVariant/")) {
-      return idString.replace("gid://shopify/ProductVariant/", "");
-    }
-    return idString;
-  }
-  function showMilestoneUnlockedNotification(milestone) {
-    if (!milestone)
-      return;
-    const rewardText = getRewardDescription(milestone);
-    showNotification(`\u{1F389} Milestone Unlocked: ${milestone.title}! ${rewardText}`, "success");
-  }
-  function getRewardDescription(milestone) {
-    if (!milestone)
-      return "";
-    switch (milestone.rewardType) {
-      case "free_shipping":
-        return "Free shipping will be applied at checkout!";
-      case "discount_percentage":
-        return `${milestone.rewardValue}% discount will be applied at checkout!`;
-      case "discount_fixed":
-        return `\u20B9${milestone.rewardValue} discount will be applied at checkout!`;
-      case "gift_wrapping":
-        return "Your free gift has been added to cart!";
-      default:
-        return "Reward will be applied at checkout!";
-    }
-  }
-  async function handleMilestoneRewards(milestones, cart, loadCartCallback) {
-    const unlockedMilestone = evaluateMilestones(milestones, cart);
-    const cartModified = await syncGiftProducts(unlockedMilestone, cart, loadCartCallback);
-    return unlockedMilestone;
-  }
+  // extensions/cart-upsell/assets/modules/cart-drawer-class.js
+  init_milestone_reward_manager();
 
   // extensions/cart-upsell/assets/modules/free-gift-manager.js
+  init_milestone_reward_manager();
   async function loadFreeGifts(appUrl, shop, cart, cartTotalExcludingGifts = null) {
     try {
       const cartTotal = cartTotalExcludingGifts !== null ? cartTotalExcludingGifts : cart.total_price / 100;
@@ -12658,7 +12709,9 @@
           const milestones = (_k = config == null ? void 0 : config.features) == null ? void 0 : _k.milestones;
           if (!milestones || !milestones.length)
             return null;
-          const cartTotalInRupees = cart.total_price / 100;
+          const MilestoneRewardManager = (init_milestone_reward_manager(), __toCommonJS(milestone_reward_manager_exports));
+          const cartTotalInCents = MilestoneRewardManager.calculateCartTotalExcludingGifts(cart);
+          const cartTotalInRupees = cartTotalInCents / 100;
           const shopDomain = (config == null ? void 0 : config.shop) || ((_l = window.Shopify) == null ? void 0 : _l.shop) || window.location.hostname;
           return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
             MilestonesWidget,
@@ -12951,7 +13004,8 @@
         const appUrl = (_a2 = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a2.dataset.upsellityAppUrl;
         if (!appUrl)
           return;
-        const cartTotal = this.cart ? this.cart.total_price / 100 : 0;
+        const cartTotalInCents = calculateCartTotalExcludingGifts(this.cart);
+        const cartTotal = cartTotalInCents / 100;
         const cartItemsJson = this.cart ? JSON.stringify(this.cart.items) : "[]";
         const timestamp = (/* @__PURE__ */ new Date()).getTime();
         const response = await fetch(
@@ -13642,8 +13696,8 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
-  var CART_DRAWER_VERSION = true ? "1.0.5" : "dev";
+  var APP_URL = true ? "https://deaths-memories-roots-evening.trycloudflare.com" : "https://app.upsellity.com";
+  var CART_DRAWER_VERSION = true ? "1.0.9" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {
       window.UPSELLITY_APP_URL = APP_URL;

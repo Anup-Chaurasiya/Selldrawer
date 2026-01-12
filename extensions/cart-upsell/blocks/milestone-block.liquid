@@ -28,8 +28,19 @@
     </div>
   </div>
 
-  <!-- Load the milestone block JavaScript -->
-  <script src="{{ 'milestone-block.js' | asset_url }}" defer></script>
+  <!-- Load the milestone block JavaScript with cache busting -->
+  <script>
+    (function() {
+      var version = '1.0.9'; // Update this to match config.js VERSION
+      var timestamp = new Date().getTime();
+      var cacheParam = '?v=' + version + '&t=' + Math.floor(timestamp / 60000);
+      
+      var script = document.createElement('script');
+      script.src = '{{ 'milestone-block.js' | asset_url }}' + cacheParam;
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  </script>
 {% endif %}
 
 {% schema %}

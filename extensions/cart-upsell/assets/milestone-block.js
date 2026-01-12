@@ -1,6 +1,6 @@
 /**
- * Upsellity Milestone Block v1.0.5
- * Built: 2026-01-10T14:02:24.145Z
+ * Upsellity Milestone Block v1.0.9
+ * Built: 2026-01-12T12:46:16.910Z
  */
 "use strict";
 (() => {
@@ -9175,7 +9175,7 @@
     for (const item of cart.items) {
       const isGift = item.properties && (item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
       if (!isGift) {
-        total += item.final_line_price || item.line_price || item.price * item.quantity;
+        total += item.original_line_price || item.price * item.quantity;
       }
     }
     return total;
@@ -9407,7 +9407,7 @@
 
   // extensions/cart-upsell/assets/modules/milestone-block-entry.js
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://deaths-memories-roots-evening.trycloudflare.com" : "https://app.upsellity.com";
   function initMilestoneBlocks() {
     const containers = document.querySelectorAll(".upsellity-milestone-container");
     if (containers.length === 0) {
@@ -9459,7 +9459,10 @@
       };
       const fetchCartTotal = async () => {
         const cart = await fetchCart();
-        return cart.total_price / 100;
+        const cartTotalInCents = calculateCartTotalExcludingGifts(cart);
+        const cartTotalInRupees = cartTotalInCents / 100;
+        console.log("\u{1F527} MILESTONE FIX LOADED v1.0.9 - Using original cart total:", cartTotalInRupees, "rupees");
+        return cartTotalInRupees;
       };
       const replacePlaceholders = (message, milestone, remaining) => {
         if (!message)
@@ -9540,7 +9543,8 @@
             try {
               isProcessingRewards = true;
               const cart = await fetchCart();
-              const newCartTotal = cart.total_price / 100;
+              const cartTotalInCents = calculateCartTotalExcludingGifts(cart);
+              const newCartTotal = cartTotalInCents / 100;
               const updatedMilestones = processMilestones(data.milestones, newCartTotal);
               renderMilestones(updatedMilestones, newCartTotal);
               if (skipRewardSync) {
@@ -9585,7 +9589,8 @@
               return;
             }
             const cart = await fetchCart();
-            const currentTotal = cart.total_price / 100;
+            const cartTotalInCents = calculateCartTotalExcludingGifts(cart);
+            const currentTotal = cartTotalInCents / 100;
             if (Math.abs(currentTotal - lastCartTotal) > 0.01) {
               lastCartTotal = currentTotal;
               await handleCartUpdate();

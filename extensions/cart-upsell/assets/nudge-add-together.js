@@ -1,6 +1,6 @@
 /**
- * Upsellity Nudge Add Together v1.0.5
- * Built: 2026-01-10T14:02:24.111Z
+ * Upsellity Nudge Add Together v1.0.9
+ * Built: 2026-01-12T12:46:16.841Z
  */
 "use strict";
 (() => {
@@ -9311,7 +9311,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/nudge-add-together-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://deaths-memories-roots-evening.trycloudflare.com" : "https://app.upsellity.com";
   var NudgeAddTogether = class {
     constructor() {
       this.shop = null;

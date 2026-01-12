@@ -1,6 +1,6 @@
 /**
- * Upsellity FBT Widget v1.0.5
- * Built: 2026-01-10T14:02:24.075Z
+ * Upsellity FBT Widget v1.0.9
+ * Built: 2026-01-12T12:46:16.772Z
  */
 "use strict";
 (() => {
@@ -10013,7 +10013,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://deaths-memories-roots-evening.trycloudflare.com" : "https://app.upsellity.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;
