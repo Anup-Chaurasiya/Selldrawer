@@ -475,10 +475,65 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "toggle-milestone") {
     const milestoneId = formData.get("milestoneId") as string;
     const isActive = formData.get("isActive") === "true";
-    await prisma.cartMilestone.update({
+
+    // Get full milestone data including gift products
+    const milestone = await prisma.cartMilestone.findUnique({
       where: { id: milestoneId },
-      data: { isActive }
+      include: {
+        giftProducts: {
+          orderBy: { position: 'asc' },
+        },
+      }
     });
+
+    if (!milestone) {
+      return json({ error: "Milestone not found" }, { status: 404 });
+    }
+
+    // If disabling milestone, delete the Shopify automatic discount
+    if (!isActive && milestone.shopifyDiscountId) {
+      await deleteShopifyDiscount(admin, milestone.shopifyDiscountId);
+    }
+
+    // If enabling milestone, create a new Shopify automatic discount
+    if (isActive) {
+      // Delete old discount if it exists (cleanup)
+      if (milestone.shopifyDiscountId) {
+        await deleteShopifyDiscount(admin, milestone.shopifyDiscountId);
+      }
+
+      // Create new discount with milestone configuration
+      const discountResult = await createMilestoneDiscount(admin, {
+        title: milestone.title,
+        rewardType: milestone.rewardType,
+        rewardValue: milestone.rewardValue ? parseFloat(milestone.rewardValue.toString()) : null,
+        giftProducts: milestone.giftProducts.map((gp: any) => ({
+          shopifyVariantId: gp.shopifyVariantId
+        })),
+        minimumSubtotal: parseFloat(milestone.targetAmount.toString()),
+      });
+
+      if (!discountResult) {
+        return json({ error: "Failed to create Shopify discount when enabling milestone" }, { status: 500 });
+      }
+
+      // Update milestone with new discount ID and active status
+      await prisma.cartMilestone.update({
+        where: { id: milestoneId },
+        data: {
+          isActive: true,
+          shopifyDiscountId: discountResult.discountId,
+          discountCode: discountResult.code,
+        }
+      });
+    } else {
+      // Just update isActive to false
+      await prisma.cartMilestone.update({
+        where: { id: milestoneId },
+        data: { isActive: false }
+      });
+    }
+
     return json({ success: true });
   }
 
