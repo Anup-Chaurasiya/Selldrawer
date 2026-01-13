@@ -57,7 +57,7 @@ const getYouTubeEmbedUrl = (url: string): string | null => {
   // Get origin for iframe API
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
 
-  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&enablejsapi=1&origin=${encodeURIComponent(origin)}`;
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&enablejsapi=1&origin=${encodeURIComponent(origin)}&playsinline=1&widget_referrer=${encodeURIComponent(origin)}`;
 };
 
 // Helper function to get Vimeo embed URL
@@ -187,6 +187,93 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
 
     return () => clearInterval(interval);
   }, [slides.length, carouselSettings?.autoRotate, carouselSettings?.rotationSpeed, isBlockContext]);
+
+  // Pause and mute all non-visible videos when carousel changes
+  useEffect(() => {
+    if (!slides || slides.length <= 1) return;
+
+    slides.forEach((slide, index) => {
+      const videoElement = videoRefs.current[index];
+      if (!videoElement || !slide.videoUrl) return;
+
+      if (index === currentIndex) {
+        // Current slide: Resume playback with user's saved mute preference
+        if (slide.videoType === 'mp4' && videoElement instanceof HTMLVideoElement) {
+          // MP4: resume playback and apply saved mute state
+          videoElement.muted = isMuted[index];
+          videoElement.play().catch(err => {
+            console.error('[PromotionalBanner] MP4 play error:', err);
+          });
+        } else if (slide.videoType === 'youtube' && videoElement instanceof HTMLIFrameElement) {
+          // YouTube: play and apply saved mute state
+          try {
+            videoElement.contentWindow?.postMessage(
+              JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
+              '*'
+            );
+            const muteCommand = isMuted[index] ? 'mute' : 'unMute';
+            videoElement.contentWindow?.postMessage(
+              JSON.stringify({ event: 'command', func: muteCommand, args: [] }),
+              '*'
+            );
+          } catch (error) {
+            console.error('[PromotionalBanner] YouTube play/mute error:', error);
+          }
+        } else if (slide.videoType === 'vimeo' && videoElement instanceof HTMLIFrameElement) {
+          // Vimeo: play and apply saved mute state
+          try {
+            videoElement.contentWindow?.postMessage(
+              JSON.stringify({ method: 'play' }),
+              '*'
+            );
+            const volume = isMuted[index] ? 0 : 1;
+            videoElement.contentWindow?.postMessage(
+              JSON.stringify({ method: 'setVolume', value: volume }),
+              '*'
+            );
+          } catch (error) {
+            console.error('[PromotionalBanner] Vimeo play/mute error:', error);
+          }
+        }
+      } else {
+        // Non-visible slides: Pause and mute (but preserve user's mute preference in state)
+        if (slide.videoType === 'mp4' && videoElement instanceof HTMLVideoElement) {
+          // MP4: pause and mute
+          videoElement.pause();
+          videoElement.muted = true;
+        } else if (slide.videoType === 'youtube' && videoElement instanceof HTMLIFrameElement) {
+          // YouTube: pause and mute
+          try {
+            videoElement.contentWindow?.postMessage(
+              JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }),
+              '*'
+            );
+            videoElement.contentWindow?.postMessage(
+              JSON.stringify({ event: 'command', func: 'mute', args: [] }),
+              '*'
+            );
+          } catch (error) {
+            console.error('[PromotionalBanner] YouTube pause/mute error:', error);
+          }
+        } else if (slide.videoType === 'vimeo' && videoElement instanceof HTMLIFrameElement) {
+          // Vimeo: pause and mute
+          try {
+            videoElement.contentWindow?.postMessage(
+              JSON.stringify({ method: 'pause' }),
+              '*'
+            );
+            videoElement.contentWindow?.postMessage(
+              JSON.stringify({ method: 'setVolume', value: 0 }),
+              '*'
+            );
+          } catch (error) {
+            console.error('[PromotionalBanner] Vimeo pause/mute error:', error);
+          }
+        }
+        // DON'T reset the mute state - preserve user's preference
+      }
+    });
+  }, [currentIndex, slides, isMuted]);
 
   if (!slides || slides.length === 0) {
     return (
@@ -446,7 +533,8 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              borderRadius: '12px'
+              borderRadius: '12px',
+              position: 'relative'
             }}>
               <iframe
                 ref={(el) => { videoRefs.current[slideIndex] = el; }}
@@ -463,6 +551,17 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
                 allow="autoplay; encrypted-media"
                 allowFullScreen
               />
+              {/* Overlay to block YouTube's "More videos" suggestions */}
+              <div style={{
+                position: 'absolute',
+                bottom: '0',
+                left: '0',
+                width: '100%',
+                height: '80px',
+                background: 'transparent',
+                pointerEvents: 'auto',
+                zIndex: 10
+              }} />
             </div>
           );
         }

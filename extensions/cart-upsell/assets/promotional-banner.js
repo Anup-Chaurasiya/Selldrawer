@@ -1,6 +1,6 @@
 /**
  * Upsellity Promotional Banner Block v1.0.9
- * Built: 2026-01-12T14:31:51.547Z
+ * Built: 2026-01-13T07:33:06.086Z
  */
 "use strict";
 (() => {
@@ -7903,7 +7903,7 @@
     if (!videoId)
       return null;
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&enablejsapi=1&origin=${encodeURIComponent(origin)}`;
+    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&enablejsapi=1&origin=${encodeURIComponent(origin)}&playsinline=1&widget_referrer=${encodeURIComponent(origin)}`;
   };
   var getVimeoEmbedUrl = (url) => {
     const regExp = /(?:vimeo)\.com.*(?:videos|video|channels|)\/([\d]+)/i;
@@ -8002,6 +8002,83 @@
       }, (carouselSettings == null ? void 0 : carouselSettings.rotationSpeed) || 5e3);
       return () => clearInterval(interval);
     }, [slides.length, carouselSettings == null ? void 0 : carouselSettings.autoRotate, carouselSettings == null ? void 0 : carouselSettings.rotationSpeed, isBlockContext]);
+    (0, import_react.useEffect)(() => {
+      if (!slides || slides.length <= 1)
+        return;
+      slides.forEach((slide, index) => {
+        var _a2, _b, _c, _d, _e, _f, _g, _h;
+        const videoElement = videoRefs.current[index];
+        if (!videoElement || !slide.videoUrl)
+          return;
+        if (index === currentIndex) {
+          if (slide.videoType === "mp4" && videoElement instanceof HTMLVideoElement) {
+            videoElement.muted = isMuted[index];
+            videoElement.play().catch((err) => {
+              console.error("[PromotionalBanner] MP4 play error:", err);
+            });
+          } else if (slide.videoType === "youtube" && videoElement instanceof HTMLIFrameElement) {
+            try {
+              (_a2 = videoElement.contentWindow) == null ? void 0 : _a2.postMessage(
+                JSON.stringify({ event: "command", func: "playVideo", args: [] }),
+                "*"
+              );
+              const muteCommand = isMuted[index] ? "mute" : "unMute";
+              (_b = videoElement.contentWindow) == null ? void 0 : _b.postMessage(
+                JSON.stringify({ event: "command", func: muteCommand, args: [] }),
+                "*"
+              );
+            } catch (error) {
+              console.error("[PromotionalBanner] YouTube play/mute error:", error);
+            }
+          } else if (slide.videoType === "vimeo" && videoElement instanceof HTMLIFrameElement) {
+            try {
+              (_c = videoElement.contentWindow) == null ? void 0 : _c.postMessage(
+                JSON.stringify({ method: "play" }),
+                "*"
+              );
+              const volume = isMuted[index] ? 0 : 1;
+              (_d = videoElement.contentWindow) == null ? void 0 : _d.postMessage(
+                JSON.stringify({ method: "setVolume", value: volume }),
+                "*"
+              );
+            } catch (error) {
+              console.error("[PromotionalBanner] Vimeo play/mute error:", error);
+            }
+          }
+        } else {
+          if (slide.videoType === "mp4" && videoElement instanceof HTMLVideoElement) {
+            videoElement.pause();
+            videoElement.muted = true;
+          } else if (slide.videoType === "youtube" && videoElement instanceof HTMLIFrameElement) {
+            try {
+              (_e = videoElement.contentWindow) == null ? void 0 : _e.postMessage(
+                JSON.stringify({ event: "command", func: "pauseVideo", args: [] }),
+                "*"
+              );
+              (_f = videoElement.contentWindow) == null ? void 0 : _f.postMessage(
+                JSON.stringify({ event: "command", func: "mute", args: [] }),
+                "*"
+              );
+            } catch (error) {
+              console.error("[PromotionalBanner] YouTube pause/mute error:", error);
+            }
+          } else if (slide.videoType === "vimeo" && videoElement instanceof HTMLIFrameElement) {
+            try {
+              (_g = videoElement.contentWindow) == null ? void 0 : _g.postMessage(
+                JSON.stringify({ method: "pause" }),
+                "*"
+              );
+              (_h = videoElement.contentWindow) == null ? void 0 : _h.postMessage(
+                JSON.stringify({ method: "setVolume", value: 0 }),
+                "*"
+              );
+            } catch (error) {
+              console.error("[PromotionalBanner] Vimeo pause/mute error:", error);
+            }
+          }
+        }
+      });
+    }, [currentIndex, slides, isMuted]);
     if (!slides || slides.length === 0) {
       return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
         borderRadius: "12px",
@@ -8215,31 +8292,44 @@
         if (slide.videoType === "youtube") {
           const embedUrl = getYouTubeEmbedUrl(slide.videoUrl);
           if (embedUrl) {
-            return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+            return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
               width: "100%",
               height: "100%",
               objectFit: "cover",
-              borderRadius: "12px"
-            }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              "iframe",
-              {
-                ref: (el) => {
-                  videoRefs.current[slideIndex] = el;
-                },
-                src: embedUrl,
-                style: {
-                  position: "absolute",
-                  top: "-60px",
-                  left: "0",
-                  width: "100%",
-                  height: "calc(100% + 120px)",
-                  border: "none",
-                  pointerEvents: "none"
-                },
-                allow: "autoplay; encrypted-media",
-                allowFullScreen: true
-              }
-            ) });
+              borderRadius: "12px",
+              position: "relative"
+            }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "iframe",
+                {
+                  ref: (el) => {
+                    videoRefs.current[slideIndex] = el;
+                  },
+                  src: embedUrl,
+                  style: {
+                    position: "absolute",
+                    top: "-60px",
+                    left: "0",
+                    width: "100%",
+                    height: "calc(100% + 120px)",
+                    border: "none",
+                    pointerEvents: "none"
+                  },
+                  allow: "autoplay; encrypted-media",
+                  allowFullScreen: true
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                position: "absolute",
+                bottom: "0",
+                left: "0",
+                width: "100%",
+                height: "80px",
+                background: "transparent",
+                pointerEvents: "auto",
+                zIndex: 10
+              } })
+            ] });
           }
         } else if (slide.videoType === "vimeo") {
           const embedUrl = getVimeoEmbedUrl(slide.videoUrl);
@@ -8839,7 +8929,7 @@
 
   // extensions/cart-upsell/assets/modules/promotional-banner-entry.js
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://nuke-commission-adopted-housewives.trycloudflare.com" : "https://app.upsellity.com";
   function initPromotionalBannerBlocks() {
     const containers = document.querySelectorAll(".upsellity-promotional-banner-container");
     if (containers.length === 0) {
