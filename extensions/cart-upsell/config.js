@@ -4,7 +4,7 @@
  */
 
 // App URL - Update this with your deployment URL
-export const APP_URL = 'https://nuke-commission-adopted-housewives.trycloudflare.com';
+export const APP_URL = 'https://exams-ministry-deals-terms.trycloudflare.com';
 
 // Version - Update this to force cache invalidation across all components
 export const VERSION = '1.0.9';

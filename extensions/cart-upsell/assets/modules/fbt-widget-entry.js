@@ -180,13 +180,11 @@ class FrequentlyBoughtTogether {
             aiRecommendations = await fetchRecommendationsByIntent('related');
           }
 
-          // Filter final recommendations
+          // Filter final recommendations - hard maximum of 4 (parent + 4 = 5 total)
           if (aiRecommendations && aiRecommendations.length > 0) {
-            const maxUpsells = this.config.limitUpsellsInCart && this.config.maxUpsellsInCart
-              ? this.config.maxUpsellsInCart
-              : null;
-            if (maxUpsells && aiRecommendations.length > maxUpsells) {
-              aiRecommendations = aiRecommendations.slice(0, maxUpsells);
+            const maxRecommendations = 4;
+            if (aiRecommendations.length > maxRecommendations) {
+              aiRecommendations = aiRecommendations.slice(0, maxRecommendations);
             }
           } else {
             aiRecommendations = [];
@@ -214,17 +212,14 @@ class FrequentlyBoughtTogether {
     const currentProductHandle = this.productHandle;
     this.recommendations = allRecommendations.filter(rec => rec.handle !== currentProductHandle);
 
-    // Limit displayed recommendations
-    const maxUpsells = this.config.limitUpsellsInCart && this.config.maxUpsellsInCart
-      ? this.config.maxUpsellsInCart
-      : null;
-
-    if (maxUpsells && this.recommendations.length > maxUpsells) {
-      this.recommendations = this.recommendations.slice(0, maxUpsells);
+    // Hard maximum of 4 recommendations (parent + 4 = 5 total products)
+    const maxRecommendations = 4;
+    if (this.recommendations.length > maxRecommendations) {
+      this.recommendations = this.recommendations.slice(0, maxRecommendations);
     }
 
     // Auto-select recommendations
-    const limitToSelect = maxUpsells || this.recommendations.length;
+    const limitToSelect = Math.min(maxRecommendations, this.recommendations.length);
 
     // Auto-select parent product first
     if (this.parentProduct) {

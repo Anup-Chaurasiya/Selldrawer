@@ -114,10 +114,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             };
           });
 
-          // Limit recommendations if limitUpsellsInCart is enabled
-          if (fbtConfig.limitUpsellsInCart && fbtConfig.maxUpsellsInCart) {
-            recommendations = recommendations.slice(0, fbtConfig.maxUpsellsInCart);
-          }
+          // Hard maximum of 4 recommendations (parent + 4 = 5 total products)
+          const maxRecommendations = 4;
+          recommendations = recommendations.slice(0, maxRecommendations);
 
         }
       }

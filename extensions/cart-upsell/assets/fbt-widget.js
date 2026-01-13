@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.9
- * Built: 2026-01-13T10:48:54.068Z
+ * Built: 2026-01-13T13:08:06.802Z
  */
 "use strict";
 (() => {
@@ -10013,7 +10013,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://nuke-commission-adopted-housewives.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://exams-ministry-deals-terms.trycloudflare.com" : "https://app.upsellity.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;
@@ -10146,9 +10146,9 @@
               aiRecommendations = await fetchRecommendationsByIntent("related");
             }
             if (aiRecommendations && aiRecommendations.length > 0) {
-              const maxUpsells2 = this.config.limitUpsellsInCart && this.config.maxUpsellsInCart ? this.config.maxUpsellsInCart : null;
-              if (maxUpsells2 && aiRecommendations.length > maxUpsells2) {
-                aiRecommendations = aiRecommendations.slice(0, maxUpsells2);
+              const maxRecommendations2 = 4;
+              if (aiRecommendations.length > maxRecommendations2) {
+                aiRecommendations = aiRecommendations.slice(0, maxRecommendations2);
               }
             } else {
               aiRecommendations = [];
@@ -10170,11 +10170,11 @@
       }
       const currentProductHandle = this.productHandle;
       this.recommendations = allRecommendations.filter((rec) => rec.handle !== currentProductHandle);
-      const maxUpsells = this.config.limitUpsellsInCart && this.config.maxUpsellsInCart ? this.config.maxUpsellsInCart : null;
-      if (maxUpsells && this.recommendations.length > maxUpsells) {
-        this.recommendations = this.recommendations.slice(0, maxUpsells);
+      const maxRecommendations = 4;
+      if (this.recommendations.length > maxRecommendations) {
+        this.recommendations = this.recommendations.slice(0, maxRecommendations);
       }
-      const limitToSelect = maxUpsells || this.recommendations.length;
+      const limitToSelect = Math.min(maxRecommendations, this.recommendations.length);
       if (this.parentProduct) {
         this.selectedProducts.add(this.parentProduct.variantId || this.parentProduct.id);
       }

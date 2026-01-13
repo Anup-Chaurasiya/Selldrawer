@@ -249,18 +249,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   if (intent === "add-rule") {
-    // Check if merchant already has 5 rules (limit)
-    const existingRulesCount = await prisma.fBTRule.count({
-      where: { fbtId: fbtConfig.id }
-    });
-
-    if (existingRulesCount >= 5) {
-      return json({
-        success: false,
-        error: "You have reached the maximum limit of 5 manual rules. Please delete an existing rule to add a new one."
-      }, { status: 400 });
-    }
-
     const triggerType = formData.get("triggerType") as string;
     const triggerValue = formData.get("triggerValue") as string;
     const triggerProductId = formData.get("triggerProductId") as string;
@@ -612,12 +600,7 @@ export default function FrequentlyBoughtTogether() {
     prevSubmittingIntent.current = submittingIntent;
   }, [actionData, submittingIntent, isSubmitting]);
 
-  // Handle rule limit errors from backend
-  useEffect(() => {
-    if (actionData && 'error' in actionData && actionData.error) {
-      setRuleLimitError(actionData.error as string);
-    }
-  }, [actionData]);
+
 
   const [formState, setFormState] = useState(() => {
     const recommendationType = fbtConfig?.recommendationType || "manual";
@@ -645,7 +628,6 @@ export default function FrequentlyBoughtTogether() {
 
   const [showManualModal, setShowManualModal] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
-  const [ruleLimitError, setRuleLimitError] = useState<string | null>(null);
 
   // State for managing multiple upsell rows
   interface UpsellRow {
@@ -1350,18 +1332,12 @@ export default function FrequentlyBoughtTogether() {
                               setEditingRuleId(null);
                               setShowManualModal(true);
                             }}
-                            disabled={fbtConfig?.rules && fbtConfig.rules.length >= 5}
                           >
                             Add Rule
                           </Button>
                         </InlineStack>
 
-                        {/* Show banner when limit is reached */}
-                        {fbtConfig?.rules && fbtConfig.rules.length >= 5 && (
-                          <Banner tone="warning">
-                            You have reached the maximum limit of 5 manual rules. Please delete an existing rule to add a new one.
-                          </Banner>
-                        )}
+
 
                         {/* Display existing rules */}
                         {fbtConfig?.rules && fbtConfig.rules.length > 0 ? (
@@ -1618,7 +1594,6 @@ export default function FrequentlyBoughtTogether() {
         onClose={() => {
           setShowManualModal(false);
           setEditingRuleId(null);
-          setRuleLimitError(null);
           setUpsellRows([
             {
               id: '1',
@@ -1649,7 +1624,6 @@ export default function FrequentlyBoughtTogether() {
             content: "Cancel",
             onAction: () => {
               setShowManualModal(false);
-              setRuleLimitError(null);
             },
           },
         ]}
@@ -1657,12 +1631,7 @@ export default function FrequentlyBoughtTogether() {
       >
         <Modal.Section>
           <BlockStack gap="400">
-            {/* Show error banner if rule limit exceeded */}
-            {ruleLimitError && (
-              <Banner tone="critical" onDismiss={() => setRuleLimitError(null)}>
-                {ruleLimitError}
-              </Banner>
-            )}
+
 
             {/* Header Row */}
             <div style={{
