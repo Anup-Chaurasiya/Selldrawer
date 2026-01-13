@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Add Together v1.0.9
- * Built: 2026-01-13T07:52:00.872Z
+ * Built: 2026-01-13T10:48:54.148Z
  */
 "use strict";
 (() => {
@@ -9698,7 +9698,21 @@
       try {
         const itemsToAdd = [];
         const failedProducts = [];
+        let normalizedOriginalVariantId = null;
+        if (this.originalProductVariantId) {
+          const originalIdStr = String(this.originalProductVariantId);
+          normalizedOriginalVariantId = originalIdStr.replace("gid://shopify/ProductVariant/", "").replace(/\D/g, "");
+        }
+        console.log("\u{1F50D} Original product variant ID (normalized):", normalizedOriginalVariantId);
         for (const product of selectedProducts) {
+          if (normalizedOriginalVariantId && product.variantId) {
+            const selectedVariantIdStr = String(product.variantId);
+            const normalizedSelectedVariantId = selectedVariantIdStr.replace("gid://shopify/ProductVariant/", "").replace(/\D/g, "");
+            if (normalizedSelectedVariantId === normalizedOriginalVariantId) {
+              console.log(`\u23ED\uFE0F Skipping product "${product.title}" - already added as original product`);
+              continue;
+            }
+          }
           try {
             const productData = await cartOps.fetchProductData(product.handle);
             if (!productData) {
