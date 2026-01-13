@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.9
- * Built: 2026-01-13T07:52:00.825Z
+ * Built: 2026-01-13T08:54:59.225Z
  */
 "use strict";
 (() => {
@@ -9554,8 +9554,36 @@
           window.location.href = checkoutUrl;
         } else {
           console.log(`\u2795 Nudge: ADD_TO_CART trigger - Adding selected product to cart`);
+          const selectedVariantId = cartOps.normalizeVariantId(product.variantId || product.id);
+          const originalVariantId = this.originalProductVariantId ? cartOps.normalizeVariantId(this.originalProductVariantId) : null;
+          if (originalVariantId && selectedVariantId === originalVariantId) {
+            console.log(`\u23ED\uFE0F Nudge: Selected product matches original - skipping duplicate addition`);
+            this.cleanupPopup();
+            if (this.originalAddToCartButton) {
+              const form = this.originalAddToCartButton.closest("form");
+              if (form) {
+                const formData = new FormData(form);
+                try {
+                  const response = await fetch("/cart/add.js", {
+                    method: "POST",
+                    body: formData
+                  });
+                  if (response.ok) {
+                    cartOps.triggerCartUpdated();
+                    this.openCartDrawer();
+                  } else {
+                    throw new Error("Failed to add original product");
+                  }
+                } catch (error) {
+                  console.error("Error adding original product:", error);
+                  showNotification("Failed to add product to cart. Please try again.", "error", 5e3);
+                }
+              }
+            }
+            return;
+          }
           const newItem = {
-            id: cartOps.normalizeVariantId(product.variantId || product.id),
+            id: selectedVariantId,
             quantity: 1,
             properties: {
               "_upsell_source": "nudge"
@@ -9624,7 +9652,19 @@
         }
         const itemsToAdd = [];
         const failedProducts = [];
+        let normalizedOriginalVariantId = null;
+        if (this.originalProductVariantId) {
+          normalizedOriginalVariantId = cartOps.normalizeVariantId(this.originalProductVariantId);
+        }
+        console.log("\u{1F50D} Nudge: Original product variant ID (normalized):", normalizedOriginalVariantId);
         for (const product of products) {
+          if (normalizedOriginalVariantId && product.variantId) {
+            const selectedVariantId = cartOps.normalizeVariantId(product.variantId || product.id);
+            if (selectedVariantId === normalizedOriginalVariantId) {
+              console.log(`\u23ED\uFE0F Nudge: Skipping product "${product.title}" - matches original product`);
+              continue;
+            }
+          }
           try {
             const productData = await cartOps.fetchProductData(product.handle);
             if (!productData) {

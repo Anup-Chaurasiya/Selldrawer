@@ -521,8 +521,46 @@ class NudgePopup {
         // Add to cart trigger - just add the selected product (do NOT replace)
         console.log(`➕ Nudge: ADD_TO_CART trigger - Adding selected product to cart`);
 
+        // Check if selected product is the same as original product
+        // If so, we don't need to add it again (user clicked "Continue with original")
+        const selectedVariantId = cartOps.normalizeVariantId(product.variantId || product.id);
+        const originalVariantId = this.originalProductVariantId ?
+          cartOps.normalizeVariantId(this.originalProductVariantId) : null;
+
+        if (originalVariantId && selectedVariantId === originalVariantId) {
+          console.log(`⏭️ Nudge: Selected product matches original - skipping duplicate addition`);
+
+          // Product will be added via continueWithOriginal, just close popup
+          this.cleanupPopup();
+
+          // Add original product to cart
+          if (this.originalAddToCartButton) {
+            const form = this.originalAddToCartButton.closest('form');
+            if (form) {
+              const formData = new FormData(form);
+              try {
+                const response = await fetch('/cart/add.js', {
+                  method: 'POST',
+                  body: formData
+                });
+
+                if (response.ok) {
+                  cartOps.triggerCartUpdated();
+                  this.openCartDrawer();
+                } else {
+                  throw new Error('Failed to add original product');
+                }
+              } catch (error) {
+                console.error('Error adding original product:', error);
+                showNotification('Failed to add product to cart. Please try again.', 'error', 5000);
+              }
+            }
+          }
+          return;
+        }
+
         const newItem = {
-          id: cartOps.normalizeVariantId(product.variantId || product.id),
+          id: selectedVariantId,
           quantity: 1,
           properties: {
             '_upsell_source': 'nudge'
@@ -622,7 +660,24 @@ class NudgePopup {
       const itemsToAdd = [];
       const failedProducts = [];
 
+      // Filter out the original product to prevent duplicate additions
+      let normalizedOriginalVariantId = null;
+      if (this.originalProductVariantId) {
+        normalizedOriginalVariantId = cartOps.normalizeVariantId(this.originalProductVariantId);
+      }
+
+      console.log('🔍 Nudge: Original product variant ID (normalized):', normalizedOriginalVariantId);
+
       for (const product of products) {
+        // Check if this product matches the original product
+        if (normalizedOriginalVariantId && product.variantId) {
+          const selectedVariantId = cartOps.normalizeVariantId(product.variantId || product.id);
+
+          if (selectedVariantId === normalizedOriginalVariantId) {
+            console.log(`⏭️ Nudge: Skipping product "${product.title}" - matches original product`);
+            continue; // Skip this product, it will be added via continueWithOriginal or is already in cart
+          }
+        }
         try {
           // Fetch fresh product data
           const productData = await cartOps.fetchProductData(product.handle);

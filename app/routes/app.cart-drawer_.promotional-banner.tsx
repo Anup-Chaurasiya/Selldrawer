@@ -533,7 +533,7 @@ function SlideEditor({
             value={formData.mediaUrl}
             onChange={(value) => setFormData({ ...formData, mediaUrl: value })}
             placeholder="https://... (jpg, png, mp4, YouTube, Vimeo)"
-            helpText="Paste an image URL or a video URL (MP4/YouTube/Vimeo). Pixel size for single/multi banner is (360x200px)/(300x170px)."
+            helpText="Images: 360×200px or 720×400px. Videos: 1280×720 or 1920×1080, 5-10 sec, under 3MB. Use 16:9 ratio for best results."
             autoComplete="off"
             requiredIndicator
           />
@@ -908,6 +908,57 @@ export default function PromotionalBanner() {
                 <Text as="p" variant="bodyMd" tone="subdued">
                   Create a stunning carousel with per-slide content, video support, and customizable controls.
                 </Text>
+
+                {/* Image Size Recommendations */}
+                <Banner tone="info">
+                  <BlockStack gap="200">
+                    <Text as="p" variant="bodyMd" fontWeight="semibold">
+                      📐 Recommended Sizes for Cart Drawer
+                    </Text>
+                    <Text as="p" variant="bodyMd">
+                      For optimal display in the cart drawer, use these dimensions:
+                    </Text>
+
+                    {/* Image Sizes */}
+                    <BlockStack gap="100">
+                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                        Images:
+                      </Text>
+                      <Text as="p" variant="bodySm">
+                        • <strong>Recommended</strong>: 360×200px (16:9 aspect ratio)
+                      </Text>
+                      <Text as="p" variant="bodySm">
+                        • <strong>Retina displays</strong>: 720×400px or 540×300px (same 16:9 ratio)
+                      </Text>
+                      <Text as="p" variant="bodySm">
+                        • <strong>Format</strong>: JPG or PNG, optimized for web
+                      </Text>
+                    </BlockStack>
+
+                    {/* Video Recommendations */}
+                    <BlockStack gap="100">
+                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                        Videos (MP4, YouTube, Vimeo):
+                      </Text>
+                      <Text as="p" variant="bodySm">
+                        • <strong>Standard</strong>: 640×360px (matches 360×200 container)
+                      </Text>
+                      <Text as="p" variant="bodySm">
+                        • <strong>High quality</strong>: 1280×720 (HD) or 720×405px
+                      </Text>
+                      <Text as="p" variant="bodySm">
+                        • <strong>Retina displays</strong>: 1920×1080 (Full HD)
+                      </Text>
+                      <Text as="p" variant="bodySm">
+                        • <strong>Format</strong>: MP4 (H.264) for best compatibility
+                      </Text>
+                    </BlockStack>
+
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      💡 Pro Tips: Videos auto-play muted in cart drawer. Keep videos short and engaging. Higher resolution images (720×400px) look sharper on retina displays.
+                    </Text>
+                  </BlockStack>
+                </Banner>
               </BlockStack>
             </Card>
 

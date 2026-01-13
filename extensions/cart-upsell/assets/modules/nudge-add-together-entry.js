@@ -513,8 +513,28 @@ class NudgeAddTogether {
       // NOTE: Original product is already in cart (added immediately when "Add to Cart" was clicked)
       // So we only add the selected popup products here
 
+      // IMPORTANT: Filter out the original product to prevent duplicate additions
+      // Normalize the original variant ID for comparison
+      let normalizedOriginalVariantId = null;
+      if (this.originalProductVariantId) {
+        const originalIdStr = String(this.originalProductVariantId);
+        normalizedOriginalVariantId = originalIdStr.replace('gid://shopify/ProductVariant/', '').replace(/\D/g, '');
+      }
+
+      console.log('🔍 Original product variant ID (normalized):', normalizedOriginalVariantId);
+
       // Fetch each product and prepare items
       for (const product of selectedProducts) {
+        // Check if this product matches the original product already in cart
+        if (normalizedOriginalVariantId && product.variantId) {
+          const selectedVariantIdStr = String(product.variantId);
+          const normalizedSelectedVariantId = selectedVariantIdStr.replace('gid://shopify/ProductVariant/', '').replace(/\D/g, '');
+
+          if (normalizedSelectedVariantId === normalizedOriginalVariantId) {
+            console.log(`⏭️ Skipping product "${product.title}" - already added as original product`);
+            continue; // Skip this product, it's already in cart
+          }
+        }
         try {
           // Fetch fresh product data
           const productData = await cartOps.fetchProductData(product.handle);

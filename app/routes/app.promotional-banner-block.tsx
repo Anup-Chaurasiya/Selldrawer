@@ -439,7 +439,7 @@ function SlideEditor({
           value={formData.mediaUrl}
           onChange={(value) => setFormData({ ...formData, mediaUrl: value })}
           placeholder="https://... (jpg, png, mp4, YouTube, Vimeo)"
-          helpText="Paste an image URL or a video URL (MP4/YouTube/Vimeo). Pixel size for single/multi banner is (360x200px)/(300x170px)."
+          helpText="Images: 1920×400px (full-width) or 750×300px (mobile). Videos: 1920×1080 or 1280×720, 5-15 sec, under 5MB. Use 16:9 ratio."
           autoComplete="off"
           requiredIndicator
         />
@@ -884,6 +884,63 @@ export default function PromotionalBannerBlockPage() {
                   <Text as="p" variant="bodyMd">
                     To use this configuration on your storefront, add the Promotional Banner block and set the <strong>Configuration ID</strong> to: <code>{currentConfig.configId}</code>
                   </Text>
+                </Banner>
+
+                {/* Image Size Recommendations */}
+                <Banner tone="info">
+                  <BlockStack gap="200">
+                    <Text as="p" variant="bodyMd" fontWeight="semibold">
+                      📐 Image & Video Size Recommendations
+                    </Text>
+                    <Text as="p" variant="bodyMd">
+                      Choose the right size based on where you'll place this banner in your theme:
+                    </Text>
+
+                    {/* Image Sizes */}
+                    <BlockStack gap="100">
+                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                        Images:
+                      </Text>
+                      <Text as="p" variant="bodySm">
+                        • <strong>Full-width sections</strong> (homepage hero, above footer): 1920×400px to 1920×600px
+                      </Text>
+                      <Text as="p" variant="bodySm">
+                        • <strong>Standard content areas</strong> (product pages, collection pages): 1200×400px
+                      </Text>
+                      <Text as="p" variant="bodySm">
+                        • <strong>Narrow sidebars or columns</strong>: 800×350px to 600×300px
+                      </Text>
+                      <Text as="p" variant="bodySm">
+                        • <strong>Mobile-first designs</strong>: 750×300px (scales well on all devices)
+                      </Text>
+                    </BlockStack>
+
+                    {/* Video Recommendations */}
+                    <BlockStack gap="100">
+                      <Text as="p" variant="bodySm" fontWeight="semibold">
+                        Videos (MP4, YouTube, Vimeo):
+                      </Text>
+                      <Text as="p" variant="bodySm">
+                        • <strong>Full-width sections</strong>: 1920×1080 (Full HD) or 1920×600px
+                      </Text>
+                      <Text as="p" variant="bodySm">
+                        • <strong>Standard content areas</strong>: 1280×720 (HD) or 1200×675px
+                      </Text>
+                      <Text as="p" variant="bodySm">
+                        • <strong>Narrow sidebars</strong>: 800×450px or 640×360px
+                      </Text>
+                      <Text as="p" variant="bodySm">
+                        • <strong>Mobile-first</strong>: 750×422px or 640×360px
+                      </Text>
+                      <Text as="p" variant="bodySm">
+                        • <strong>Format</strong>: MP4 (H.264 codec) for best compatibility
+                      </Text>
+                    </BlockStack>
+
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      💡 Pro Tips: Use 16:9 aspect ratio for all media. Videos create more engagement than static images. For YouTube/Vimeo, use short, high-quality clips without intros/outros.
+                    </Text>
+                  </BlockStack>
                 </Banner>
               </BlockStack>
             </Tabs>
