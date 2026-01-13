@@ -30,7 +30,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const cartDrawer = await prisma.cartDrawer.findUnique({
     where: { shop },
     include: {
-      promotionalBanners: { 
+      promotionalBanners: {
         where: { isActive: true },
         include: {
           images: { orderBy: { order: 'asc' } },
@@ -60,7 +60,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const cartDrawer = await prisma.cartDrawer.findUnique({
         where: { shop },
         include: {
-          promotionalBanners: { 
+          promotionalBanners: {
             where: { isActive: true },
             include: {
               images: { orderBy: { order: 'asc' } },
@@ -70,27 +70,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
 
       if (!cartDrawer) {
-        return json({ 
-          success: false, 
-          error: "Configuration required. Please save the configuration first before enabling." 
+        return json({
+          success: false,
+          error: "Configuration required. Please save the configuration first before enabling."
         }, { status: 400 });
       }
 
-      const hasBannerData = cartDrawer.promotionalBanners.length > 0 && 
-        cartDrawer.promotionalBanners.some(banner => 
-          (banner.images && banner.images.length > 0) || 
-          (banner.imageUrls && banner.imageUrls.length > 0) || 
+      const hasBannerData = cartDrawer.promotionalBanners.length > 0 &&
+        cartDrawer.promotionalBanners.some(banner =>
+          (banner.images && banner.images.length > 0) ||
+          (banner.imageUrls && banner.imageUrls.length > 0) ||
           banner.title
         );
 
       if (!hasBannerData) {
-        return json({ 
-          success: false, 
-          error: "Configuration required. Please add at least one slide or configure the banner before enabling." 
+        return json({
+          success: false,
+          error: "Configuration required. Please add at least one slide or configure the banner before enabling."
         }, { status: 400 });
       }
     }
-    
+
     await prisma.cartDrawer.update({
       where: { shop },
       data: { promotionalBannerEnabled: enabled },
@@ -102,10 +102,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "save-banner") {
     const cartDrawer = await prisma.cartDrawer.findUnique({
       where: { shop },
-      include: { 
-        promotionalBanners: { 
+      include: {
+        promotionalBanners: {
           where: { isActive: true },
-        } 
+        }
       },
     });
 
@@ -114,7 +114,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     const bannerType = formData.get("bannerType") as string || "carousel";
-    
+
     const existingBanner = cartDrawer.promotionalBanners[0];
 
     if (existingBanner) {
@@ -183,30 +183,30 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const description = formData.get("description") as string || null;
     const ctaText = formData.get("ctaText") as string || null;
     const ctaUrl = formData.get("ctaUrl") as string || null;
-    
+
     // Validate character limits
     const MIN_TITLE_LENGTH = 10;
     const MAX_TITLE_LENGTH = 25;
     const MIN_DESCRIPTION_LENGTH = 15;
     const MAX_DESCRIPTION_LENGTH = 35;
     const MAX_CTA_TEXT_LENGTH = 12;
-    
+
     if (title && (title.length < MIN_TITLE_LENGTH || title.length > MAX_TITLE_LENGTH)) {
-      return json({ 
-        error: `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters` 
+      return json({
+        error: `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters`
       }, { status: 400 });
     }
     if (description && (description.length < MIN_DESCRIPTION_LENGTH || description.length > MAX_DESCRIPTION_LENGTH)) {
-      return json({ 
-        error: `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters` 
+      return json({
+        error: `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters`
       }, { status: 400 });
     }
     if (ctaText && ctaText.length > MAX_CTA_TEXT_LENGTH) {
-      return json({ 
-        error: `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less` 
+      return json({
+        error: `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less`
       }, { status: 400 });
     }
-    
+
     const maxOrder = await prisma.promotionalBannerImage.findFirst({
       where: { bannerId },
       orderBy: { order: 'desc' },
@@ -275,27 +275,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (!slideId) {
       return json({ error: "Slide ID is required" }, { status: 400 });
     }
-    
+
     // Validate character limits
     const MIN_TITLE_LENGTH = 10;
     const MAX_TITLE_LENGTH = 23;
     const MIN_DESCRIPTION_LENGTH = 15;
     const MAX_DESCRIPTION_LENGTH = 35;
     const MAX_CTA_TEXT_LENGTH = 10;
-    
+
     if (title && (title.length < MIN_TITLE_LENGTH || title.length > MAX_TITLE_LENGTH)) {
-      return json({ 
-        error: `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters` 
+      return json({
+        error: `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters`
       }, { status: 400 });
     }
     if (description && (description.length < MIN_DESCRIPTION_LENGTH || description.length > MAX_DESCRIPTION_LENGTH)) {
-      return json({ 
-        error: `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters` 
+      return json({
+        error: `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters`
       }, { status: 400 });
     }
     if (ctaText && ctaText.length > MAX_CTA_TEXT_LENGTH) {
-      return json({ 
-        error: `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less` 
+      return json({
+        error: `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less`
       }, { status: 400 });
     }
 
@@ -332,7 +332,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "delete-slide") {
     const slideId = formData.get("slideId") as string;
-    
+
     if (!slideId) {
       return json({ error: "Slide ID is required" }, { status: 400 });
     }
@@ -410,7 +410,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "save") {
     const bannerId = formData.get("bannerId") as string;
-    
+
     if (!bannerId) {
       return json({ error: "Banner ID is required" }, { status: 400 });
     }
@@ -474,15 +474,15 @@ interface SlideFormData {
   ctaUrl: string;
 }
 
-function SlideEditor({ 
-  slide, 
-  onSave, 
-  onCancel, 
-  isLoading 
-}: { 
-  slide?: any; 
-  onSave: (data: SlideFormData) => void; 
-  onCancel: () => void; 
+function SlideEditor({
+  slide,
+  onSave,
+  onCancel,
+  isLoading
+}: {
+  slide?: any;
+  onSave: (data: SlideFormData) => void;
+  onCancel: () => void;
   isLoading: boolean;
 }) {
   const [formData, setFormData] = useState<SlideFormData>({
@@ -506,16 +506,16 @@ function SlideEditor({
   // Validation errors
   const titleError = formData.title.length > 0 && formData.title.length < MIN_TITLE_LENGTH
     ? `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters`
-    : formData.title.length > MAX_TITLE_LENGTH 
-    ? `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters` 
-    : undefined;
+    : formData.title.length > MAX_TITLE_LENGTH
+      ? `Title must be between ${MIN_TITLE_LENGTH}-${MAX_TITLE_LENGTH} characters`
+      : undefined;
   const descriptionError = formData.description.length > 0 && formData.description.length < MIN_DESCRIPTION_LENGTH
     ? `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters`
-    : formData.description.length > MAX_DESCRIPTION_LENGTH 
-    ? `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters` 
-    : undefined;
-  const ctaTextError = formData.ctaText.length > MAX_CTA_TEXT_LENGTH 
-    ? `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less` 
+    : formData.description.length > MAX_DESCRIPTION_LENGTH
+      ? `Description must be between ${MIN_DESCRIPTION_LENGTH}-${MAX_DESCRIPTION_LENGTH} characters`
+      : undefined;
+  const ctaTextError = formData.ctaText.length > MAX_CTA_TEXT_LENGTH
+    ? `CTA text must be ${MAX_CTA_TEXT_LENGTH} characters or less`
     : undefined;
 
   const hasValidationErrors = !!(titleError || descriptionError || ctaTextError);
@@ -526,7 +526,7 @@ function SlideEditor({
         <Text as="h3" variant="headingMd">
           {slide ? `Edit Slide ${slide.order + 1}` : "Add New Slide"}
         </Text>
-        
+
         <FormLayout>
           <TextField
             label="Media URL (Image or Video)"
@@ -584,8 +584,8 @@ function SlideEditor({
 
         <InlineStack gap="200" align="end">
           <Button onClick={onCancel}>Cancel</Button>
-          <Button 
-            variant="primary" 
+          <Button
+            variant="primary"
             onClick={() => onSave(formData)}
             loading={isLoading}
             disabled={!formData.mediaUrl || hasValidationErrors}
@@ -599,16 +599,16 @@ function SlideEditor({
 }
 
 // Carousel Preview Component - using the shared PromotionalBannerCard
-function CarouselPreview({ 
-  slides, 
+function CarouselPreview({
+  slides,
   carouselSettings,
   titleColor,
   descriptionColor,
   ctaTextColor,
   ctaBackgroundColor,
   borderColor
-}: { 
-  slides: any[]; 
+}: {
+  slides: any[];
   carouselSettings: any;
   titleColor?: string;
   descriptionColor?: string;
@@ -618,7 +618,7 @@ function CarouselPreview({
 }) {
   if (!slides || slides.length === 0) {
     return (
-      <div style={{ 
+      <div style={{
         padding: '60px 20px',
         borderRadius: '12px',
         backgroundColor: '#f8f9fa',
@@ -631,9 +631,9 @@ function CarouselPreview({
       </div>
     );
   }
-  
+
   return (
-    <PromotionalBannerCard 
+    <PromotionalBannerCard
       slides={slides}
       carouselSettings={carouselSettings}
       titleColor={titleColor}
@@ -641,7 +641,7 @@ function CarouselPreview({
       ctaTextColor={ctaTextColor}
       ctaBackgroundColor={ctaBackgroundColor}
       borderColor={borderColor}
-      onCtaClick={() => {}}
+      onCtaClick={() => { }}
       isPreview={true}
     />
   );
@@ -653,7 +653,7 @@ export default function PromotionalBanner() {
   const navigation = useNavigation();
   const actionData = useActionData<typeof action>();
   const isLoading = navigation.state === "submitting";
-  
+
   // Check which action is being submitted
   const formData = navigation.formData;
   const submittingIntent = formData?.get("intent") as string | null;
@@ -666,8 +666,8 @@ export default function PromotionalBanner() {
   // Show toast notification when settings are saved successfully
   useEffect(() => {
     // Check if we just finished submitting a save action
-    const justFinishedSave = 
-      prevIsSubmitting.current && 
+    const justFinishedSave =
+      prevIsSubmitting.current &&
       prevSubmittingIntent.current === "save" &&
       !isLoading;
 
@@ -704,6 +704,26 @@ export default function PromotionalBanner() {
 
   const slides = promotionalBanner?.images || [];
 
+  // Close slide editor after successful add/update
+  useEffect(() => {
+    const justFinishedSlideAction =
+      prevIsSubmitting.current &&
+      (prevSubmittingIntent.current === "add-slide" || prevSubmittingIntent.current === "update-slide") &&
+      !isLoading &&
+      actionData &&
+      'success' in actionData &&
+      actionData.success;
+
+    if (justFinishedSlideAction) {
+      setIsAddingSlide(false);
+      setEditingSlide(null);
+    }
+
+    // Update refs for next render
+    prevIsSubmitting.current = isLoading;
+    prevSubmittingIntent.current = submittingIntent;
+  }, [submittingIntent, isLoading, actionData]);
+
   const handleToggle = useCallback(() => {
     const formData = new FormData();
     formData.append("intent", "toggle");
@@ -731,7 +751,7 @@ export default function PromotionalBanner() {
     formData.append("ctaText", data.ctaText);
     formData.append("ctaUrl", data.ctaUrl);
     submit(formData, { method: "post", replace: true });
-    setIsAddingSlide(false);
+    // Don't close immediately - let useEffect handle it after success
   }, [promotionalBanner?.id, submit]);
 
   const handleUpdateSlide = useCallback((data: SlideFormData) => {
@@ -746,7 +766,7 @@ export default function PromotionalBanner() {
     formData.append("ctaText", data.ctaText);
     formData.append("ctaUrl", data.ctaUrl);
     submit(formData, { method: "post", replace: true });
-    setEditingSlide(null);
+    // Don't close immediately - let useEffect handle it after success
   }, [editingSlide, submit]);
 
   const handleDeleteSlide = useCallback((slideId: string) => {
@@ -820,7 +840,7 @@ export default function PromotionalBanner() {
               flexShrink: 0,
             }}>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <div style={{ flex: 1 }}>
@@ -844,7 +864,7 @@ export default function PromotionalBanner() {
               aria-label="Close"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </button>
           </div>
@@ -863,7 +883,7 @@ export default function PromotionalBanner() {
           }
         }
       `}</style>
-      
+
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
@@ -878,7 +898,7 @@ export default function PromotionalBanner() {
                     {cartDrawer?.promotionalBannerEnabled ? "Disable" : "Enable"}
                   </Button>
                 </InlineStack>
-                
+
                 {!cartDrawer?.promotionalBannerEnabled && (
                   <Banner tone="warning">
                     This feature is currently disabled. Enable it to show the carousel in your cart.
@@ -926,10 +946,10 @@ export default function PromotionalBanner() {
                                   <Icon source={PlayIcon} tone="base" />
                                 </div>
                               ) : (
-                                <Thumbnail 
-                                  source={slide.imageUrl || slide.videoUrl} 
-                                  alt={`Slide ${index + 1}`} 
-                                  size="small" 
+                                <Thumbnail
+                                  source={slide.imageUrl || slide.videoUrl}
+                                  alt={`Slide ${index + 1}`}
+                                  size="small"
                                 />
                               )}
                               <BlockStack gap="100">
@@ -1081,9 +1101,9 @@ export default function PromotionalBanner() {
               <Text as="h3" variant="headingMd">
                 Live Preview
               </Text>
-              
-              <CarouselPreview 
-                slides={slides} 
+
+              <CarouselPreview
+                slides={slides}
                 carouselSettings={carouselSettings}
                 titleColor={colorSettings.titleColor}
                 descriptionColor={colorSettings.descriptionColor}

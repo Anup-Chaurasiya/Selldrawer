@@ -619,6 +619,22 @@ export default function PromotionalBannerBlockPage() {
 
   const slides = currentConfig?.images || [];
 
+  // Close slide editor after successful add/update
+  useEffect(() => {
+    const justFinishedSlideAction =
+      prevIsSubmitting.current &&
+      (prevSubmittingIntent.current === "add-slide" || prevSubmittingIntent.current === "update-slide") &&
+      !isLoading &&
+      actionData &&
+      'success' in actionData &&
+      actionData.success;
+
+    if (justFinishedSlideAction) {
+      setIsAddingSlide(false);
+      setEditingSlide(null);
+    }
+  }, [actionData, submittingIntent, isLoading]);
+
   const handleCreateConfig = useCallback(() => {
     const formData = new FormData();
     formData.append("intent", "create-config");
@@ -671,7 +687,7 @@ export default function PromotionalBannerBlockPage() {
     formData.append("ctaText", data.ctaText);
     formData.append("ctaUrl", data.ctaUrl);
     submit(formData, { method: "post", replace: true });
-    setIsAddingSlide(false);
+    // Don't close immediately - let useEffect handle it after success
   }, [currentConfig, submit]);
 
   const handleUpdateSlide = useCallback((data: SlideFormData) => {
@@ -687,7 +703,7 @@ export default function PromotionalBannerBlockPage() {
     formData.append("ctaText", data.ctaText);
     formData.append("ctaUrl", data.ctaUrl);
     submit(formData, { method: "post", replace: true });
-    setEditingSlide(null);
+    // Don't close immediately - let useEffect handle it after success
   }, [editingSlide, currentConfig, submit]);
 
   const handleDeleteSlide = useCallback((slideId: string) => {
