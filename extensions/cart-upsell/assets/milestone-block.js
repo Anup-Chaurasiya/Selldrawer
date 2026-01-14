@@ -1,6 +1,6 @@
 /**
  * Upsellity Milestone Block v1.0.9
- * Built: 2026-01-14T08:15:42.010Z
+ * Built: 2026-01-14T08:37:29.697Z
  */
 "use strict";
 (() => {
@@ -8189,7 +8189,7 @@
             children: "\u203A"
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
           "div",
           {
             ref: carouselRef,
@@ -8207,131 +8207,216 @@
             },
             role: "list",
             "aria-label": "Product recommendations",
-            children: products.map((product) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-              "div",
-              {
-                style: {
-                  minWidth: "100px",
-                  maxWidth: "100px",
-                  flexShrink: 0,
-                  scrollSnapAlign: "start",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "4px",
-                  padding: "6px",
-                  backgroundColor: "#ffffff",
-                  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                  cursor: "pointer"
-                },
-                role: "listitem",
-                onMouseEnter: (e) => {
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.1)";
-                  e.currentTarget.style.borderColor = "#d1d5db";
-                },
-                onMouseLeave: (e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.05)";
-                  e.currentTarget.style.borderColor = "#e5e7eb";
-                },
-                children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { position: "relative", marginBottom: "4px", overflow: "hidden", borderRadius: "4px" }, children: [
-                    product.featuredImage ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                      "img",
+            children: [
+              products.map((product) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "div",
+                {
+                  style: {
+                    minWidth: "100px",
+                    maxWidth: "100px",
+                    flexShrink: 0,
+                    scrollSnapAlign: "start",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "4px",
+                    padding: "6px",
+                    backgroundColor: "#ffffff",
+                    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+                    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                    cursor: "pointer"
+                  },
+                  role: "listitem",
+                  onMouseEnter: (e) => {
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.1)";
+                    e.currentTarget.style.borderColor = "#d1d5db";
+                  },
+                  onMouseLeave: (e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.05)";
+                    e.currentTarget.style.borderColor = "#e5e7eb";
+                  },
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { position: "relative", marginBottom: "4px", overflow: "hidden", borderRadius: "4px" }, children: [
+                      product.featuredImage ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                        "img",
+                        {
+                          src: product.featuredImage.url,
+                          alt: product.featuredImage.altText || product.title,
+                          style: {
+                            width: "100%",
+                            height: "88px",
+                            objectFit: "cover",
+                            borderRadius: "4px",
+                            display: "block"
+                          },
+                          loading: "lazy"
+                        }
+                      ) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                        width: "100%",
+                        height: "88px",
+                        background: "#f3f4f6",
+                        borderRadius: "4px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#9ca3af",
+                        fontSize: "20px"
+                      }, children: "\u{1F4E6}" }),
+                      !product.availableForSale && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                        position: "absolute",
+                        top: "3px",
+                        right: "3px",
+                        background: "#ef4444",
+                        color: "white",
+                        padding: "2px 4px",
+                        borderRadius: "3px",
+                        fontSize: "7px",
+                        fontWeight: 600
+                      }, children: "Out" })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                      fontSize: "9px",
+                      fontWeight: 500,
+                      marginBottom: "2px",
+                      lineHeight: "1.2",
+                      color: "#111827",
+                      minHeight: "22px",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      letterSpacing: "-0.01em"
+                    }, children: product.title }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+                      marginBottom: "4px",
+                      fontSize: "10px",
+                      fontWeight: 700,
+                      color: "#111827",
+                      letterSpacing: "-0.01em"
+                    }, children: [
+                      "\u20B9",
+                      Math.round(product.price)
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                      "button",
                       {
-                        src: product.featuredImage.url,
-                        alt: product.featuredImage.altText || product.title,
+                        onClick: () => onAddToCart(product.handle, 1),
+                        disabled: !product.availableForSale,
                         style: {
                           width: "100%",
-                          height: "88px",
-                          objectFit: "cover",
-                          borderRadius: "4px",
-                          display: "block"
+                          padding: "4px 6px",
+                          background: product.availableForSale ? "#111827" : "#e5e7eb",
+                          color: product.availableForSale ? "white" : "#9ca3af",
+                          border: "none",
+                          borderRadius: "3px",
+                          cursor: product.availableForSale ? "pointer" : "not-allowed",
+                          fontSize: "8px",
+                          fontWeight: 600,
+                          transition: "all 0.2s",
+                          letterSpacing: "0.2px"
                         },
-                        loading: "lazy"
+                        onMouseEnter: (e) => {
+                          if (product.availableForSale) {
+                            e.currentTarget.style.background = "#1f2937";
+                          }
+                        },
+                        onMouseLeave: (e) => {
+                          if (product.availableForSale) {
+                            e.currentTarget.style.background = "#111827";
+                          }
+                        },
+                        children: product.availableForSale ? "ADD" : "N/A"
                       }
-                    ) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                    )
+                  ]
+                },
+                product.id
+              )),
+              products.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "a",
+                {
+                  href: collectionUrl || "/collections/all",
+                  style: {
+                    minWidth: "100px",
+                    maxWidth: "100px",
+                    flexShrink: 0,
+                    scrollSnapAlign: "start",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "4px",
+                    padding: "6px",
+                    backgroundColor: "#ffffff",
+                    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+                    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                    cursor: "pointer",
+                    textDecoration: "none",
+                    display: "flex",
+                    flexDirection: "column"
+                  },
+                  onMouseEnter: (e) => {
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.1)";
+                    e.currentTarget.style.borderColor = "#d1d5db";
+                  },
+                  onMouseLeave: (e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.05)";
+                    e.currentTarget.style.borderColor = "#e5e7eb";
+                  },
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+                      position: "relative",
+                      marginBottom: "4px",
+                      overflow: "hidden",
+                      borderRadius: "4px",
                       width: "100%",
                       height: "88px",
-                      background: "#f3f4f6",
-                      borderRadius: "4px",
+                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "#9ca3af",
-                      fontSize: "20px"
-                    }, children: "\u{1F4E6}" }),
-                    !product.availableForSale && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-                      position: "absolute",
-                      top: "3px",
-                      right: "3px",
-                      background: "#ef4444",
-                      color: "white",
-                      padding: "2px 4px",
-                      borderRadius: "3px",
-                      fontSize: "7px",
-                      fontWeight: 600
-                    }, children: "Out" })
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-                    fontSize: "9px",
-                    fontWeight: 500,
-                    marginBottom: "2px",
-                    lineHeight: "1.2",
-                    color: "#111827",
-                    minHeight: "22px",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    letterSpacing: "-0.01em"
-                  }, children: product.title }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-                    marginBottom: "4px",
-                    fontSize: "10px",
-                    fontWeight: 700,
-                    color: "#111827",
-                    letterSpacing: "-0.01em"
-                  }, children: [
-                    "\u20B9",
-                    Math.round(product.price)
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                    "button",
-                    {
-                      onClick: () => onAddToCart(product.handle, 1),
-                      disabled: !product.availableForSale,
-                      style: {
-                        width: "100%",
-                        padding: "4px 6px",
-                        background: product.availableForSale ? "#111827" : "#e5e7eb",
-                        color: product.availableForSale ? "white" : "#9ca3af",
-                        border: "none",
-                        borderRadius: "3px",
-                        cursor: product.availableForSale ? "pointer" : "not-allowed",
-                        fontSize: "8px",
+                      flexDirection: "column",
+                      gap: "6px"
+                    }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                        fontSize: "32px",
+                        filter: "brightness(0) invert(1)",
+                        lineHeight: 1
+                      }, children: "\u2192" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                        fontSize: "10px",
                         fontWeight: 600,
-                        transition: "all 0.2s",
-                        letterSpacing: "0.2px"
-                      },
-                      onMouseEnter: (e) => {
-                        if (product.availableForSale) {
-                          e.currentTarget.style.background = "#1f2937";
-                        }
-                      },
-                      onMouseLeave: (e) => {
-                        if (product.availableForSale) {
-                          e.currentTarget.style.background = "#111827";
-                        }
-                      },
-                      children: product.availableForSale ? "ADD" : "N/A"
-                    }
-                  )
-                ]
-              },
-              product.id
-            ))
+                        color: "#ffffff",
+                        textAlign: "center",
+                        letterSpacing: "0.3px",
+                        textTransform: "uppercase",
+                        padding: "0 8px"
+                      }, children: viewAllLinkText })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { marginBottom: "4px", minHeight: "26px" } }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                      "div",
+                      {
+                        style: {
+                          width: "100%",
+                          padding: "4px 6px",
+                          background: "#111827",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "3px",
+                          fontSize: "8px",
+                          fontWeight: 600,
+                          transition: "all 0.2s",
+                          letterSpacing: "0.2px",
+                          textAlign: "center"
+                        },
+                        children: "VIEW ALL"
+                      }
+                    )
+                  ]
+                }
+              )
+            ]
           }
         )
       ] }),

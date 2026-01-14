@@ -526,8 +526,97 @@ export const MilestoneUpsellCarousel: React.FC<MilestoneUpsellCarouselProps> = (
                                 {product.availableForSale ? 'ADD' : 'N/A'}
                             </button>
                         </div>
-                    ))
-                    }
+                    ))}
+
+                    {/* View All Card - with button matching product cards */}
+                    {products.length > 0 && (
+                        <a
+                            href={collectionUrl || '/collections/all'}
+                            style={{
+                                minWidth: '100px',
+                                maxWidth: '100px',
+                                flexShrink: 0,
+                                scrollSnapAlign: 'start',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '4px',
+                                padding: '6px',
+                                backgroundColor: '#ffffff',
+                                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                cursor: 'pointer',
+                                textDecoration: 'none',
+                                display: 'flex',
+                                flexDirection: 'column',
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
+                                e.currentTarget.style.borderColor = '#d1d5db';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+                                e.currentTarget.style.borderColor = '#e5e7eb';
+                            }}
+                        >
+                            {/* Gradient area with arrow and text */}
+                            <div style={{
+                                position: 'relative',
+                                marginBottom: '4px',
+                                overflow: 'hidden',
+                                borderRadius: '4px',
+                                width: '100%',
+                                height: '88px',
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexDirection: 'column',
+                                gap: '6px',
+                            }}>
+                                <div style={{
+                                    fontSize: '32px',
+                                    filter: 'brightness(0) invert(1)',
+                                    lineHeight: 1,
+                                }}>
+                                    →
+                                </div>
+                                <div style={{
+                                    fontSize: '10px',
+                                    fontWeight: 600,
+                                    color: '#ffffff',
+                                    textAlign: 'center',
+                                    letterSpacing: '0.3px',
+                                    textTransform: 'uppercase',
+                                    padding: '0 8px',
+                                }}>
+                                    {viewAllLinkText}
+                                </div>
+                            </div>
+
+                            {/* Spacer to match product info height */}
+                            <div style={{ marginBottom: '4px', minHeight: '26px' }}></div>
+
+                            {/* Button matching ADD button */}
+                            <div
+                                style={{
+                                    width: '100%',
+                                    padding: '4px 6px',
+                                    background: '#111827',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '3px',
+                                    fontSize: '8px',
+                                    fontWeight: 600,
+                                    transition: 'all 0.2s',
+                                    letterSpacing: '0.2px',
+                                    textAlign: 'center',
+                                }}
+                            >
+                                VIEW ALL
+                            </div>
+                        </a>
+                    )}
                 </div>
             </div>
 
