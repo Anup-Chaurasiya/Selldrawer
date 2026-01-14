@@ -87,11 +87,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       upsellHeaderText: milestone.upsellHeaderText,
       viewAllLinkText: milestone.viewAllLinkText,
       unlockButtonText: milestone.unlockButtonText,
-      canShowUpsell: Boolean(
-        milestone.eligibleCollectionHandle ||
-        (milestone.eligibleProductIds && milestone.eligibleProductIds.length > 0) ||
-        milestone.eligibleTag
-      ),
+      // Show upsell if ANY eligibility is configured (collection, products, tag, or "all products")
+      // "All Products" means no specific eligibility fields are set, but upsell should still show
+      // We can't distinguish between "none" and "all products" from the DB alone,
+      // so we'll show upsell for all milestones and let the component handle it
+      canShowUpsell: true,
       targets: milestone.targets || [],
       giftProducts: (milestone.giftProducts || []).map((product: any) => ({
         id: product.id,

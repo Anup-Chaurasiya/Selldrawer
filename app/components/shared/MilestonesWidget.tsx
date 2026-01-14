@@ -257,18 +257,10 @@ export function MilestonesWidget({
           const isUnlocked = milestone.status === 'unlocked';
           const isInProgress = milestone.status === 'in_progress';
 
-          // Check if milestone has eligibility config for upsell
-          // For "All Products", all specific fields are empty but canShowUpsell is true
-          const hasEligibilityConfig = Boolean(
-            milestone.canShowUpsell &&
-            (milestone.eligibleCollectionHandle ||
-              (milestone.eligibleProductIds && milestone.eligibleProductIds.length > 0) ||
-              milestone.eligibleTag ||
-              // If canShowUpsell is true but no specific eligibility, it's "All Products"
-              (!milestone.eligibleCollectionHandle &&
-                (!milestone.eligibleProductIds || milestone.eligibleProductIds.length === 0) &&
-                !milestone.eligibleTag))
-          );
+          // Check if milestone has upsell enabled
+          // The API sets canShowUpsell based on eligibility configuration
+          // If true, show the unlock button regardless of specific eligibility fields
+          const hasEligibilityConfig = Boolean(milestone.canShowUpsell);
 
           return (
             <div

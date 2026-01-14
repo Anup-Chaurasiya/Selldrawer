@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.9
- * Built: 2026-01-13T13:08:06.802Z
+ * Built: 2026-01-14T07:42:29.792Z
  */
 "use strict";
 (() => {
@@ -10013,7 +10013,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://exams-ministry-deals-terms.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://emails-nam-power-pros.trycloudflare.com" : "https://app.upsellity.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;

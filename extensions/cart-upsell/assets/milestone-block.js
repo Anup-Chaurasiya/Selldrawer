@@ -1,6 +1,6 @@
 /**
  * Upsellity Milestone Block v1.0.9
- * Built: 2026-01-13T13:08:06.804Z
+ * Built: 2026-01-14T07:42:29.939Z
  */
 "use strict";
 (() => {
@@ -8526,10 +8526,7 @@
           const position = getPosition(milestone.targetAmount);
           const isUnlocked = milestone.status === "unlocked";
           const isInProgress = milestone.status === "in_progress";
-          const hasEligibilityConfig = Boolean(
-            milestone.canShowUpsell && (milestone.eligibleCollectionHandle || milestone.eligibleProductIds && milestone.eligibleProductIds.length > 0 || milestone.eligibleTag || // If canShowUpsell is true but no specific eligibility, it's "All Products"
-            !milestone.eligibleCollectionHandle && (!milestone.eligibleProductIds || milestone.eligibleProductIds.length === 0) && !milestone.eligibleTag)
-          );
+          const hasEligibilityConfig = Boolean(milestone.canShowUpsell);
           return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
             "div",
             {
@@ -9407,7 +9404,7 @@
 
   // extensions/cart-upsell/assets/modules/milestone-block-entry.js
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://exams-ministry-deals-terms.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://emails-nam-power-pros.trycloudflare.com" : "https://app.upsellity.com";
   function initMilestoneBlocks() {
     const containers = document.querySelectorAll(".upsellity-milestone-container");
     if (containers.length === 0) {
