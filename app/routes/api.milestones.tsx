@@ -137,7 +137,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
         eligibleCollectionHandle: (milestone as any).eligibleCollectionHandle || null,
         eligibleTag: (milestone as any).eligibleTag || null,
         eligibleProductIds: (milestone as any).eligibleProductIds || [],
-        canShowUpsell: status === "locked" || status === "in_progress",
+        eligibilitySource: (milestone as any).eligibilitySource || 'none',
+        canShowUpsell: (milestone as any).eligibilitySource !== 'none' && (status === "locked" || status === "in_progress"),
         // Upsell text customization
         upsellHeaderText: (milestone as any).upsellHeaderText || "Unlock Your Reward",
         viewAllLinkText: (milestone as any).viewAllLinkText || "View All",

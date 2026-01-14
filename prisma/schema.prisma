@@ -600,6 +600,7 @@ model CartMilestone {
   eligibleCollectionHandle String?
   eligibleTag             String?
   eligibleProductIds      String[]               @default([])
+  eligibilitySource       String?                @default("none") // "none" | "collection" | "products" | "all_products"
   upsellHeaderText        String?                @default("Unlock Your Reward")
   viewAllLinkText         String?                @default("View All")
   unlockButtonText        String?                @default("Unlock Reward")
@@ -778,6 +779,7 @@ model BlockMilestone {
   eligibleCollectionHandle String?
   eligibleTag              String?
   eligibleProductIds       String[]                    @default([])
+  eligibilitySource        String?                     @default("none") // "none" | "collection" | "products" | "all_products"
   upsellHeaderText         String?                     @default("Unlock Your Reward")
   viewAllLinkText          String?                     @default("View All")
   unlockButtonText         String?                     @default("Unlock Reward")

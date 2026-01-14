@@ -293,6 +293,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           eligibleCollectionHandle,
           eligibleTag,
           eligibleProductIds,
+          eligibilitySource: formData.get("eligibilitySource") as string || 'none',
           upsellHeaderText: formData.get("upsellHeaderText") as string || "Unlock Your Reward",
           viewAllLinkText: formData.get("viewAllLinkText") as string || "View All",
           unlockButtonText: formData.get("unlockButtonText") as string || "Unlock Reward",
@@ -417,6 +418,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         eligibleCollectionHandle,
         eligibleTag,
         eligibleProductIds,
+        eligibilitySource: formData.get("eligibilitySource") as string || 'none',
         upsellHeaderText: formData.get("upsellHeaderText") as string || "Unlock Your Reward",
         viewAllLinkText: formData.get("viewAllLinkText") as string || "View All",
         unlockButtonText: formData.get("unlockButtonText") as string || "Unlock Reward",
@@ -665,22 +667,40 @@ export default function CartMilestones() {
       setLivePreviewMilestone(initialState);
 
       // Set eligibility fields
-      const hasCollection = Boolean((milestone as any).eligibleCollectionHandle);
-      const hasProducts = Boolean((milestone as any).eligibleProductIds?.length > 0);
-      const hasTag = Boolean((milestone as any).eligibleTag);
+      // First, try to use the explicit eligibilitySource field if it exists
+      const milestoneEligibilitySource = (milestone as any).eligibilitySource;
 
-      if (hasCollection) {
-        setEligibilitySource('collection');
-        setEligibleCollectionHandle((milestone as any).eligibleCollectionHandle);
-      } else if (hasProducts) {
-        setEligibilitySource('products');
-        setEligibleProductIds((milestone as any).eligibleProductIds);
-      } else if (hasTag) {
-        // Legacy support for tag - treat as all_products
-        setEligibilitySource('all_products');
-        setEligibleTag((milestone as any).eligibleTag);
+      if (milestoneEligibilitySource) {
+        // Use the stored eligibilitySource value
+        setEligibilitySource(milestoneEligibilitySource);
+
+        // Set the corresponding fields based on the source
+        if (milestoneEligibilitySource === 'collection') {
+          setEligibleCollectionHandle((milestone as any).eligibleCollectionHandle || '');
+        } else if (milestoneEligibilitySource === 'products') {
+          setEligibleProductIds((milestone as any).eligibleProductIds || []);
+        } else if (milestoneEligibilitySource === 'all_products') {
+          setEligibleTag((milestone as any).eligibleTag || '');
+        }
       } else {
-        setEligibilitySource('none');
+        // Fallback: infer from fields for old milestones without eligibilitySource
+        const hasCollection = Boolean((milestone as any).eligibleCollectionHandle);
+        const hasProducts = Boolean((milestone as any).eligibleProductIds?.length > 0);
+        const hasTag = Boolean((milestone as any).eligibleTag);
+
+        if (hasCollection) {
+          setEligibilitySource('collection');
+          setEligibleCollectionHandle((milestone as any).eligibleCollectionHandle);
+        } else if (hasProducts) {
+          setEligibilitySource('products');
+          setEligibleProductIds((milestone as any).eligibleProductIds);
+        } else if (hasTag) {
+          // Legacy support for tag - treat as all_products
+          setEligibilitySource('all_products');
+          setEligibleTag((milestone as any).eligibleTag);
+        } else {
+          setEligibilitySource('none');
+        }
       }
     } else {
       setEditingMilestone(null);
@@ -740,12 +760,13 @@ export default function CartMilestones() {
     }
 
     // Add product eligibility fields based on selected source
+    formData.append("eligibilitySource", eligibilitySource);
     if (eligibilitySource === 'collection' && eligibleCollectionHandle) {
       formData.append("eligibleCollectionHandle", eligibleCollectionHandle);
     } else if (eligibilitySource === 'products' && eligibleProductIds.length > 0) {
       formData.append("eligibleProductIds", JSON.stringify(eligibleProductIds));
     }
-    // For 'all_products', no specific eligibility data needed
+    // For 'all_products' and 'none', no specific eligibility data needed
 
     submit(formData, { method: "post" });
     setShowMilestoneModal(false);
@@ -1430,10 +1451,10 @@ export default function CartMilestones() {
               <ChoiceList
                 title="Eligibility Source"
                 choices={[
-                  { label: 'None (No product recommendations)', value: 'none' },
                   { label: 'Collection', value: 'collection' },
                   { label: 'Specific Products', value: 'products' },
                   { label: 'All Products', value: 'all_products' },
+                  { label: 'None (No product recommendations)', value: 'none' },
                 ]}
                 selected={[eligibilitySource]}
                 onChange={(selected: string[]) => {

@@ -52,6 +52,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
                 eligibleCollectionHandle: true,
                 eligibleTag: true,
                 eligibleProductIds: true,
+                eligibilitySource: true,
                 upsellHeaderText: true,
                 viewAllLinkText: true,
                 milestoneBlock: {
@@ -66,6 +67,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
         if (!milestone.isActive) return cors(request, json({ error: "Milestone is not active" }, { status: 403 }));
         if (!milestone.milestoneBlock?.isActive) return cors(request, json({ error: "Milestone Block feature is disabled" }, { status: 403 }));
         if (milestone.shop !== shop) return cors(request, json({ error: "Shop mismatch" }, { status: 403 }));
+
+        // Check if upsell is disabled for this milestone
+        if (milestone.eligibilitySource === 'none') {
+            return cors(request, json({
+                products: [],
+                collectionUrl: null,
+                totalCount: 0,
+                message: "Product recommendations disabled for this milestone",
+            }));
+        }
 
         // Get Storefront Access Token for this shop
         const storefrontAccessToken = await getStorefrontAccessToken(shop);
