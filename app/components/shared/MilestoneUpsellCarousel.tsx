@@ -528,7 +528,7 @@ export const MilestoneUpsellCarousel: React.FC<MilestoneUpsellCarouselProps> = (
                         </div>
                     ))}
 
-                    {/* View All Card - with button matching product cards */}
+                    {/* View All Card - full gradient covering entire card */}
                     {products.length > 0 && (
                         <a
                             href={collectionUrl || '/collections/all'}
@@ -559,30 +559,28 @@ export const MilestoneUpsellCarousel: React.FC<MilestoneUpsellCarouselProps> = (
                                 e.currentTarget.style.borderColor = '#e5e7eb';
                             }}
                         >
-                            {/* Gradient area with arrow and text */}
+                            {/* Full height gradient with centered text */}
                             <div style={{
                                 position: 'relative',
-                                marginBottom: '4px',
                                 overflow: 'hidden',
                                 borderRadius: '4px',
                                 width: '100%',
-                                height: '88px',
+                                height: '118px',
                                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 flexDirection: 'column',
-                                gap: '6px',
                             }}>
                                 <div style={{
-                                    fontSize: '32px',
+                                    fontSize: '36px',
                                     filter: 'brightness(0) invert(1)',
                                     lineHeight: 1,
                                 }}>
                                     →
                                 </div>
                                 <div style={{
-                                    fontSize: '10px',
+                                    fontSize: '11px',
                                     fontWeight: 600,
                                     color: '#ffffff',
                                     textAlign: 'center',
@@ -592,28 +590,6 @@ export const MilestoneUpsellCarousel: React.FC<MilestoneUpsellCarouselProps> = (
                                 }}>
                                     {viewAllLinkText}
                                 </div>
-                            </div>
-
-                            {/* Spacer to match product info height */}
-                            <div style={{ marginBottom: '4px', minHeight: '26px' }}></div>
-
-                            {/* Button matching ADD button */}
-                            <div
-                                style={{
-                                    width: '100%',
-                                    padding: '4px 6px',
-                                    background: '#111827',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '3px',
-                                    fontSize: '8px',
-                                    fontWeight: 600,
-                                    transition: 'all 0.2s',
-                                    letterSpacing: '0.2px',
-                                    textAlign: 'center',
-                                }}
-                            >
-                                VIEW ALL
                             </div>
                         </a>
                     )}

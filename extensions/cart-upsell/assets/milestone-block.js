@@ -1,6 +1,6 @@
 /**
  * Upsellity Milestone Block v1.0.9
- * Built: 2026-01-14T08:40:36.778Z
+ * Built: 2026-01-14T12:47:52.196Z
  */
 "use strict";
 (() => {
@@ -8333,7 +8333,7 @@
                 },
                 product.id
               )),
-              products.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              products.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                 "a",
                 {
                   href: collectionUrl || "/collections/all",
@@ -8363,57 +8363,33 @@
                     e.currentTarget.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.05)";
                     e.currentTarget.style.borderColor = "#e5e7eb";
                   },
-                  children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-                      position: "relative",
-                      marginBottom: "4px",
-                      overflow: "hidden",
-                      borderRadius: "4px",
-                      width: "100%",
-                      height: "88px",
-                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexDirection: "column",
-                      gap: "6px"
-                    }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-                        fontSize: "32px",
-                        filter: "brightness(0) invert(1)",
-                        lineHeight: 1
-                      }, children: "\u2192" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-                        fontSize: "10px",
-                        fontWeight: 600,
-                        color: "#ffffff",
-                        textAlign: "center",
-                        letterSpacing: "0.3px",
-                        textTransform: "uppercase",
-                        padding: "0 8px"
-                      }, children: viewAllLinkText })
-                    ] }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { marginBottom: "4px", minHeight: "26px" } }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                      "div",
-                      {
-                        style: {
-                          width: "100%",
-                          padding: "4px 6px",
-                          background: "#111827",
-                          color: "white",
-                          border: "none",
-                          borderRadius: "3px",
-                          fontSize: "8px",
-                          fontWeight: 600,
-                          transition: "all 0.2s",
-                          letterSpacing: "0.2px",
-                          textAlign: "center"
-                        },
-                        children: "VIEW ALL"
-                      }
-                    )
-                  ]
+                  children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+                    position: "relative",
+                    overflow: "hidden",
+                    borderRadius: "4px",
+                    width: "100%",
+                    height: "118px",
+                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexDirection: "column"
+                  }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                      fontSize: "36px",
+                      filter: "brightness(0) invert(1)",
+                      lineHeight: 1
+                    }, children: "\u2192" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      color: "#ffffff",
+                      textAlign: "center",
+                      letterSpacing: "0.3px",
+                      textTransform: "uppercase",
+                      padding: "0 8px"
+                    }, children: viewAllLinkText })
+                  ] })
                 }
               )
             ]
@@ -9489,7 +9465,7 @@
 
   // extensions/cart-upsell/assets/modules/milestone-block-entry.js
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://airport-nil-resolution-completion.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://spanking-lamb-continually-weekend.trycloudflare.com" : "https://app.upsellity.com";
   function initMilestoneBlocks() {
     const containers = document.querySelectorAll(".upsellity-milestone-container");
     if (containers.length === 0) {
