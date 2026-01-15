@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.9
- * Built: 2026-01-14T12:47:52.002Z
+ * Built: 2026-01-15T02:33:52.543Z
  */
 "use strict";
 (() => {
@@ -13844,7 +13844,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://spanking-lamb-continually-weekend.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.9" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {
