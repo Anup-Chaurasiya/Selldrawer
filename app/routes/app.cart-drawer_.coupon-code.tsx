@@ -25,10 +25,12 @@ import { CouponCodeField as CouponCodeFieldComponent } from "../components/share
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
+  const url = new URL(request.url);
+  const editingVersion = url.searchParams.get("version") || "default";
 
   // Ensure CartDrawer exists
   let cartDrawer = await prisma.cartDrawer.findUnique({
-    where: { shop },
+    where: { shop_version: { shop, version: editingVersion } },
   });
 
   if (!cartDrawer) {
@@ -38,7 +40,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   let couponCodeField = await prisma.couponCodeField.findUnique({
-    where: { shop },
+    where: { shop_version: { shop, version: editingVersion } },
   });
 
   // Create default if doesn't exist
@@ -54,6 +56,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
+  const url = new URL(request.url);
+  const editingVersion = url.searchParams.get("version") || "default";
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -63,13 +67,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     
     // Ensure CartDrawer exists
     await prisma.cartDrawer.upsert({
-      where: { shop },
+      where: { shop_version: { shop, version: editingVersion } },
       update: { couponCodeFieldEnabled: enabled },
       create: { shop, couponCodeFieldEnabled: enabled, isActive: true },
     });
 
     await prisma.couponCodeField.upsert({
-      where: { shop },
+      where: { shop_version: { shop, version: editingVersion } },
       update: { isActive: enabled },
       create: { shop, isActive: enabled },
     });
@@ -97,13 +101,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Ensure CartDrawer exists and enable coupon code field
     await prisma.cartDrawer.upsert({
-      where: { shop },
+      where: { shop_version: { shop, version: editingVersion } },
       update: { couponCodeFieldEnabled: true },
       create: { shop, couponCodeFieldEnabled: true, isActive: true },
     });
 
     await prisma.couponCodeField.upsert({
-      where: { shop },
+      where: { shop_version: { shop, version: editingVersion } },
       update: data,
       create: { ...data, shop },
     });

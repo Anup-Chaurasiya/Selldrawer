@@ -1,11 +1,17 @@
 export const Analytics = {
   shop: window.Shopify?.shop || window.location.hostname,
   appUrl: null,
-  
+  version: 'default',  // Track cart drawer version
+
   init(appUrl) {
     this.appUrl = appUrl;
   },
-  
+
+  setVersion(version) {
+    this.version = version || 'default';
+    console.log('[Upsellity Analytics] Version set to:', this.version);
+  },
+
   getSessionId() {
     try {
       let sessionId = sessionStorage.getItem('upsellity_session_id');
@@ -25,7 +31,7 @@ export const Analytics = {
       console.warn('[Upsellity Analytics] Shop not detected, skipping tracking');
       return;
     }
-    
+
     if (!this.appUrl) {
       console.warn('[Upsellity Analytics] App URL not configured, skipping tracking');
       return;
@@ -35,6 +41,7 @@ export const Analytics = {
       shop: this.shop,
       events: [{
         ...event,
+        version: this.version,  // Include cart drawer version
         sessionId: this.getSessionId(),
         url: window.location.href
       }]

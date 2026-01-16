@@ -725,6 +725,7 @@ model NudgeAddTogetherProduct {
 model AnalyticsEvent {
   id          String   @id @default(cuid())
   shop        String
+  version     String   @default("default")  // Track which cart drawer version
   eventType   String
   component   String
   productId   String?
@@ -740,6 +741,7 @@ model AnalyticsEvent {
   @@index([shop, createdAt])
   @@index([shop, component, eventType])
   @@index([shop, productId])
+  @@index([shop, version])  // For version queries
 }
 
 model MilestoneBlock {

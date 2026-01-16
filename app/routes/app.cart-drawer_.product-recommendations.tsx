@@ -29,9 +29,11 @@ import { ProductRecommendations as ProductRecommendationsComponent } from "../co
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
+  const url = new URL(request.url);
+  const editingVersion = url.searchParams.get("version") || "default";
 
   const cartDrawer = await prisma.cartDrawer.findUnique({
-    where: { shop },
+    where: { shop_version: { shop, version: editingVersion } },
     include: {
       productRecommendations: { 
         where: { isActive: true },
@@ -139,6 +141,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
+  const url = new URL(request.url);
+  const editingVersion = url.searchParams.get("version") || "default";
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -149,7 +153,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Check if data exists before enabling
     if (enabled) {
       const cartDrawer = await prisma.cartDrawer.findUnique({
-        where: { shop },
+        where: { shop_version: { shop, version: editingVersion } },
         include: {
           productRecommendations: { 
             where: { isActive: true },
@@ -181,7 +185,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
     
     await prisma.cartDrawer.update({
-      where: { shop },
+      where: { shop_version: { shop, version: editingVersion } },
       data: { productRecommendationsEnabled: enabled },
     });
 
@@ -196,7 +200,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "save") {
     const cartDrawer = await prisma.cartDrawer.findUnique({
-      where: { shop },
+      where: { shop_version: { shop, version: editingVersion } },
       include: { productRecommendations: { where: { isActive: true } } },
     });
 
@@ -333,7 +337,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Auto-enable the feature after saving configuration (only if products were added)
     if (selectedProducts.length > 0) {
       await prisma.cartDrawer.update({
-        where: { shop },
+        where: { shop_version: { shop, version: editingVersion } },
         data: { productRecommendationsEnabled: true },
       });
     }

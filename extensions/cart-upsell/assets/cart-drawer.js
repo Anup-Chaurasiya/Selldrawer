@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.9
- * Built: 2026-01-15T02:33:52.543Z
+ * Built: 2026-01-16T13:47:42.541Z
  */
 "use strict";
 (() => {
@@ -12989,8 +12989,14 @@
   var Analytics = {
     shop: ((_a = window.Shopify) == null ? void 0 : _a.shop) || window.location.hostname,
     appUrl: null,
+    version: "default",
+    // Track cart drawer version
     init(appUrl) {
       this.appUrl = appUrl;
+    },
+    setVersion(version) {
+      this.version = version || "default";
+      console.log("[Upsellity Analytics] Version set to:", this.version);
     },
     getSessionId() {
       try {
@@ -13016,6 +13022,8 @@
       const payload = {
         shop: this.shop,
         events: [__spreadProps(__spreadValues({}, event), {
+          version: this.version,
+          // Include cart drawer version
           sessionId: this.getSessionId(),
           url: window.location.href
         })]
@@ -13097,6 +13105,9 @@
           }
         });
         this.config = await response.json();
+        if (this.config._version) {
+          Analytics.setVersion(this.config._version);
+        }
         if ((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.milestonesEnabled) {
           await this.loadMilestones();
         }

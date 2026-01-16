@@ -1357,9 +1357,8 @@ export default function CartDrawerIndex() {
         onClose={() => setShowVersionModal(false)}
         currentVersion={currentVersion}
         onVersionSwitch={(versionKey) => {
-          // Just close the modal - no need to reload page
           setShowVersionModal(false);
-          // User can manually refresh if they want to edit the new version
+          window.location.href = `/app/cart-drawer?version=${versionKey}`;
         }}
       />
     </Page>

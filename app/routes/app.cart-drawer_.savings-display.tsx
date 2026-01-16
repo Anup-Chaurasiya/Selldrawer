@@ -24,9 +24,11 @@ import { SavingsDisplay as SavingsDisplayComponent } from "../components/shared/
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
+  const url = new URL(request.url);
+  const editingVersion = url.searchParams.get("version") || "default";
 
   const cartDrawer = await prisma.cartDrawer.findUnique({
-    where: { shop },
+    where: { shop_version: { shop, version: editingVersion } },
     include: {
       savingsDisplays: { where: { isActive: true } },
     },
@@ -40,6 +42,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
+  const url = new URL(request.url);
+  const editingVersion = url.searchParams.get("version") || "default";
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -50,7 +54,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Check if data exists before enabling
     if (enabled) {
       const cartDrawer = await prisma.cartDrawer.findUnique({
-        where: { shop },
+        where: { shop_version: { shop, version: editingVersion } },
         include: {
           savingsDisplays: { where: { isActive: true } },
         },
@@ -65,7 +69,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
     
     await prisma.cartDrawer.update({
-      where: { shop },
+      where: { shop_version: { shop, version: editingVersion } },
       data: { savingsDisplayEnabled: enabled },
     });
 
@@ -74,7 +78,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "save") {
     const cartDrawer = await prisma.cartDrawer.findUnique({
-      where: { shop },
+      where: { shop_version: { shop, version: editingVersion } },
       include: { savingsDisplays: { where: { isActive: true } } },
     });
 
@@ -111,7 +115,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Auto-enable the feature after saving configuration
     await prisma.cartDrawer.update({
-      where: { shop },
+      where: { shop_version: { shop, version: editingVersion } },
       data: { savingsDisplayEnabled: true },
     });
 

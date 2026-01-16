@@ -9,9 +9,11 @@ import prisma from "../db.server";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
+  const url = new URL(request.url);
+  const editingVersion = url.searchParams.get("version") || "default";
 
   const cartDrawer = await prisma.cartDrawer.findUnique({
-    where: { shop },
+    where: { shop_version: { shop, version: editingVersion } },
     include: {
       freeShippingBars: { where: { isActive: true }, orderBy: { priority: 'desc' } },
       promotionalBanners: { 

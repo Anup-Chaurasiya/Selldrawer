@@ -4,7 +4,7 @@ import prisma from "../db.server";
 // Get CORS headers based on request origin
 function getCorsHeaders(request: Request) {
   const origin = request.headers.get("Origin") || "*";
-  
+
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -16,14 +16,14 @@ function getCorsHeaders(request: Request) {
 // Handle OPTIONS preflight request
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const corsHeaders = getCorsHeaders(request);
-  
+
   if (request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
       headers: corsHeaders,
     });
   }
-  
+
   // Return 405 for GET requests
   return new Response(JSON.stringify({ error: "Method not allowed" }), {
     status: 405,
@@ -65,6 +65,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Validate and prepare events
     const validEvents = events.map((event: any) => ({
       shop,
+      version: event.version || 'default',  // Track version (backward compatible)
       eventType: event.eventType,
       component: event.component,
       productId: event.productId ? String(event.productId) : null,

@@ -31,10 +31,12 @@ import { createMilestoneDiscount, updateMilestoneDiscount, deleteShopifyDiscount
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
+  const url = new URL(request.url);
+  const editingVersion = url.searchParams.get("version") || "default";
 
   // Get cart drawer configuration
   let cartDrawer = await prisma.cartDrawer.findUnique({
-    where: { shop },
+    where: { shop_version: { shop, version: editingVersion } },
     include: {
       freeGifts: {
         include: {
@@ -174,13 +176,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
+  const url = new URL(request.url);
+  const editingVersion = url.searchParams.get("version") || "default";
 
   const formData = await request.formData();
   const intent = formData.get("intent");
 
   // Get or create cart drawer
   let cartDrawer = await prisma.cartDrawer.findUnique({
-    where: { shop }
+    where: { shop_version: { shop, version: editingVersion } }
   });
 
   if (!cartDrawer) {

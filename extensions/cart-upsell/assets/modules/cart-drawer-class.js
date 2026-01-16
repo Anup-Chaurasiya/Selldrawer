@@ -69,6 +69,11 @@ export class UpsellityCartDrawer {
       });
       this.config = await response.json();
 
+      // Set analytics version from config response
+      if (this.config._version) {
+        Analytics.setVersion(this.config._version);
+      }
+
       // Load milestones if enabled
       if (this.config?.features?.milestonesEnabled) {
         await this.loadMilestones();
