@@ -60,7 +60,8 @@ model CartConfigurationTarget {
 
 model CartDrawer {
   id                             String                    @id @default(cuid())
-  shop                           String                    @unique
+  shop                           String
+  version                        String                    @default("default")
   isActive                       Boolean                   @default(true)
   theme                          String                    @default("light")
   primaryColor                   String                    @default("#4F46E5")
@@ -88,7 +89,9 @@ model CartDrawer {
   milestones                     CartMilestone[]
   freeGifts                      FreeGift[]
 
+  @@unique([shop, version])
   @@index([shop])
+  @@index([version])
 }
 
 model FreeShippingProgressBar {
@@ -877,3 +880,34 @@ model FreeGiftTarget {
   @@index([freeGiftId])
 }
 
+// Cart Drawer Version Management for A/B Testing and Rollout
+model CartDrawerVersion {
+  id                String                          @id @default(cuid())
+  key               String                          @unique // e.g., "default", "v2", "v3"
+  name              String                          // e.g., "Version 1 - Original", "Version 2 - Carousel"
+  description       String?
+  isActive          Boolean                         @default(false)
+  isDefault         Boolean                         @default(false)
+  rolloutPercentage Int                             @default(0) // 0-100
+  priority          Int                             @default(0) // Higher priority = newer version
+  createdAt         DateTime                        @default(now())
+  updatedAt         DateTime                        @updatedAt
+  assignments       ShopCartDrawerVersionAssignment[]
+
+  @@index([isActive])
+  @@index([isDefault])
+  @@index([key])
+}
+
+// Shop assignment to cart drawer version
+model ShopCartDrawerVersionAssignment {
+  id         String            @id @default(cuid())
+  shop       String            @unique
+  versionId  String
+  assignedAt DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  version    CartDrawerVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([shop])
+  @@index([versionId])
+}

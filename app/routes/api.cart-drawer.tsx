@@ -4,6 +4,7 @@ import { cors } from "remix-utils/cors";
 import prisma from "../db.server";
 import { normalizeFeatureOrder } from "../utils/featureOrder";
 import { checkPlanAccess } from "../utils/planAccess.server";
+import { getShopCartDrawerVersion } from "../services/cartDrawerVersions.server";
 
 /**
  * Public API endpoint for cart drawer data
@@ -41,9 +42,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       return cors(request, response);
     }
 
-    // Get cart drawer configuration
-    const cartDrawer = await prisma.cartDrawer.findUnique({
-      where: { shop },
+    // Determine which version this shop should see
+    const assignedVersion = await getShopCartDrawerVersion(shop);
+
+    // Get cart drawer configuration for this version
+    let cartDrawer = await prisma.cartDrawer.findUnique({
+      where: {
+        shop_version: {
+          shop,
+          version: assignedVersion
+        }
+      },
       include: {
         freeShippingBars: {
           where: { isActive: true },
@@ -93,6 +102,67 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       },
     });
 
+    // Fallback to default version if assigned version config doesn't exist
+    let fallbackUsed = false;
+    if (!cartDrawer && assignedVersion !== 'default') {
+      fallbackUsed = true;
+      cartDrawer = await prisma.cartDrawer.findUnique({
+        where: {
+          shop_version: {
+            shop,
+            version: 'default'
+          }
+        },
+        include: {
+          freeShippingBars: {
+            where: { isActive: true },
+            orderBy: { priority: 'desc' },
+            take: 1,
+          },
+          promotionalBanners: {
+            where: { isActive: true },
+            orderBy: { priority: 'desc' },
+            include: {
+              images: {
+                orderBy: { order: 'asc' },
+              },
+              carouselSettings: true,
+            },
+          },
+          productRecommendations: {
+            where: { isActive: true },
+            orderBy: { priority: 'desc' },
+            take: 1,
+            include: {
+              products: {
+                orderBy: { position: 'asc' },
+              },
+            },
+          },
+          savingsDisplays: {
+            where: { isActive: true },
+            take: 1,
+          },
+          freeShippingMessages: {
+            where: { isActive: true },
+            take: 1,
+          },
+          cartTotals: {
+            where: { isActive: true },
+            take: 1,
+          },
+          milestones: {
+            where: { isActive: true },
+            include: {
+              targets: true,
+            },
+            orderBy: { priority: 'asc' },
+            take: 3,
+          },
+        },
+      });
+    }
+
     const featureOrder = cartDrawer ? normalizeFeatureOrder(cartDrawer.featureOrder) : undefined;
 
     const couponCodeField = await prisma.couponCodeField.findUnique({
@@ -104,6 +174,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       const response = json({
         enabled: false,
         features: {},
+        _version: assignedVersion,
+        _versionMeta: {
+          assignedVersion,
+          fallbackUsed: false,
+          configExists: false,
+        }
       });
       return cors(request, response);
     }
@@ -171,6 +247,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       featureOrder: featureOrder ?? [],
       shop, // Add shop domain for milestone upsell API calls
       features,
+      _version: assignedVersion,
+      _versionMeta: {
+        assignedVersion,
+        fallbackUsed,
+        configExists: true,
+        loadedVersion: cartDrawer.version,
+      }
     }, {
       headers: {
         "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",

@@ -17,7 +17,7 @@ import {
   Banner,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import { 
+import {
   ChartVerticalIcon,
   MegaphoneIcon,
   ProductIcon,
@@ -49,18 +49,19 @@ import { CartTotals } from "../components/shared/CartTotals";
 import { CartItems } from "../components/shared/CartItems";
 import { MilestonesWidget } from "../components/shared/MilestonesWidget";
 import { FreeGiftSelector } from "../components/shared/FreeGiftSelector";
+import { VersionManagementModal } from "../components/shared/VersionManagementModal";
 
 // Wrapper component for the preview with state management
-function PromotionalBannerPreview({ 
-  slides, 
+function PromotionalBannerPreview({
+  slides,
   carouselSettings,
   promotionalBanner
-}: { 
-  slides: any[]; 
+}: {
+  slides: any[];
   carouselSettings?: any;
   promotionalBanner?: any;
 }) {
-    return (
+  return (
     <PromotionalBannerCard
       slides={slides}
       carouselSettings={carouselSettings}
@@ -69,7 +70,7 @@ function PromotionalBannerPreview({
       ctaTextColor={promotionalBanner?.ctaTextColor || '#374151'}
       ctaBackgroundColor={promotionalBanner?.ctaBackgroundColor || '#f3f4f6'}
       borderColor={promotionalBanner?.borderColor || '#e5e7eb'}
-      onCtaClick={() => {}}
+      onCtaClick={() => { }}
       isPreview={true}
     />
   );
@@ -80,6 +81,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shop = session.shop;
   const url = new URL(request.url);
   const error = url.searchParams.get("error");
+
+  // Get version parameter from URL (default to "default")
+  const editingVersion = url.searchParams.get("version") || "default";
 
   // Check billing - if no active payment, return redirect URL
   const billingRedirectUrl = await requireBilling(billing);
@@ -93,19 +97,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Check if app embed is enabled
   const appEmbedEnabled = await checkAppEmbedEnabled(admin, session);
 
-  // Get or create cart drawer configuration
+  // Get or create cart drawer configuration for this version
   let cartDrawer = await prisma.cartDrawer.findUnique({
-    where: { shop },
+    where: {
+      shop_version: {
+        shop,
+        version: editingVersion
+      }
+    },
     include: {
       freeShippingBars: { where: { isActive: true } },
-      promotionalBanners: { 
+      promotionalBanners: {
         where: { isActive: true },
         include: {
           images: { orderBy: { order: 'asc' } },
           carouselSettings: true,
         }
       },
-      productRecommendations: { 
+      productRecommendations: {
         where: { isActive: true },
         include: {
           products: {
@@ -116,7 +125,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       savingsDisplays: { where: { isActive: true } },
       freeShippingMessages: { where: { isActive: true } },
       cartTotals: { where: { isActive: true } },
-      milestones: { 
+      milestones: {
         where: { isActive: true },
         include: {
           targets: true,
@@ -140,6 +149,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     cartDrawer = await prisma.cartDrawer.create({
       data: {
         shop,
+        version: editingVersion,
         isActive: true,
       },
       include: {
@@ -152,10 +162,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         },
         productRecommendations: {
           include: {
-            products: {
-              orderBy: { position: 'asc' }
-            }
-          }
+            products: { orderBy: { position: 'asc' } },
+          },
         },
         savingsDisplays: true,
         freeShippingMessages: true,
@@ -168,9 +176,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         },
         freeGifts: {
           include: {
-            giftProducts: {
-              orderBy: { position: 'asc' },
-            },
+            giftProducts: { orderBy: { position: 'asc' } },
             targets: true,
           },
           orderBy: { priority: 'asc' }
@@ -181,43 +187,43 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Auto-disable features if no data exists
   const updateData: any = {};
-  
+
   if (cartDrawer.freeShippingProgressBarEnabled && cartDrawer.freeShippingBars.length === 0) {
     updateData.freeShippingProgressBarEnabled = false;
   }
-  
+
   // Check promotional banner: needs to have either images or at least a banner record
-  const hasPromotionalBannerData = cartDrawer.promotionalBanners.length > 0 && 
-    cartDrawer.promotionalBanners.some(banner => 
+  const hasPromotionalBannerData = cartDrawer.promotionalBanners.length > 0 &&
+    cartDrawer.promotionalBanners.some(banner =>
       (banner.images && banner.images.length > 0) || (banner.imageUrls && banner.imageUrls.length > 0) || banner.title
     );
   if (cartDrawer.promotionalBannerEnabled && !hasPromotionalBannerData) {
     updateData.promotionalBannerEnabled = false;
   }
-  
+
   // Check product recommendations: needs to have products
-  const hasProductRecommendationsData = cartDrawer.productRecommendations.length > 0 && 
+  const hasProductRecommendationsData = cartDrawer.productRecommendations.length > 0 &&
     cartDrawer.productRecommendations.some(rec => rec.products && rec.products.length > 0);
   if (cartDrawer.productRecommendationsEnabled && !hasProductRecommendationsData) {
     updateData.productRecommendationsEnabled = false;
   }
-  
+
   if (cartDrawer.savingsDisplayEnabled && cartDrawer.savingsDisplays.length === 0) {
     updateData.savingsDisplayEnabled = false;
   }
-  
+
   if (cartDrawer.freeShippingMessageEnabled && cartDrawer.freeShippingMessages.length === 0) {
     updateData.freeShippingMessageEnabled = false;
   }
-  
+
   if (cartDrawer.cartTotalsEnabled && cartDrawer.cartTotals.length === 0) {
     updateData.cartTotalsEnabled = false;
   }
-  
+
   if (cartDrawer.milestonesEnabled && cartDrawer.milestones.length === 0) {
     updateData.milestonesEnabled = false;
   }
-  
+
   if (cartDrawer.freeGiftsEnabled && cartDrawer.freeGifts.length === 0) {
     updateData.freeGiftsEnabled = false;
   }
@@ -228,14 +234,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       data: updateData,
       include: {
         freeShippingBars: { where: { isActive: true } },
-        promotionalBanners: { 
+        promotionalBanners: {
           where: { isActive: true },
           include: {
             images: { orderBy: { order: 'asc' } },
             carouselSettings: true,
           }
         },
-        productRecommendations: { 
+        productRecommendations: {
           where: { isActive: true },
           include: {
             products: {
@@ -246,7 +252,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         savingsDisplays: { where: { isActive: true } },
         freeShippingMessages: { where: { isActive: true } },
         cartTotals: { where: { isActive: true } },
-        milestones: { 
+        milestones: {
           where: { isActive: true },
           include: {
             targets: true,
@@ -274,14 +280,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     where: { shop },
   });
 
-  return json({ 
-    cartDrawer, 
-    couponCodeField, 
-    shop, 
+  return json({
+    cartDrawer,
+    couponCodeField,
+    shop,
     appEmbedEnabled,
     shopDomain: process.env.SHOPIFY_SHOP_DOMAIN || shop,
     error,
     planAccess,
+    editingVersion, // Which version is being edited
   });
 };
 
@@ -302,13 +309,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         where: { shop },
         include: {
           freeShippingBars: { where: { isActive: true } },
-          promotionalBanners: { 
+          promotionalBanners: {
             where: { isActive: true },
             include: {
               images: { orderBy: { order: 'asc' } },
             }
           },
-          productRecommendations: { 
+          productRecommendations: {
             where: { isActive: true },
             include: {
               products: {
@@ -319,7 +326,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           savingsDisplays: { where: { isActive: true } },
           freeShippingMessages: { where: { isActive: true } },
           cartTotals: { where: { isActive: true } },
-          milestones: { 
+          milestones: {
             where: { isActive: true },
             include: {
               targets: true,
@@ -343,39 +350,39 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       if (featureId === 'free-shipping-bar' && cartDrawer.freeShippingBars.length === 0) {
         return redirect("/app/cart-drawer?error=free-shipping-bar-not-configured");
       }
-      
+
       // Check promotional banner: needs to have images or banner data
       if (featureId === 'promotional-banner') {
-        const hasBannerData = cartDrawer.promotionalBanners.length > 0 && 
-          cartDrawer.promotionalBanners.some(banner => 
+        const hasBannerData = cartDrawer.promotionalBanners.length > 0 &&
+          cartDrawer.promotionalBanners.some(banner =>
             (banner.images && banner.images.length > 0) || (banner.imageUrls && banner.imageUrls.length > 0) || banner.title
           );
         if (!hasBannerData) {
           return redirect("/app/cart-drawer?error=promotional-banner-not-configured");
         }
       }
-      
+
       // Check product recommendations: needs to have products
       if (featureId === 'product-recommendations') {
-        const hasProducts = cartDrawer.productRecommendations.length > 0 && 
+        const hasProducts = cartDrawer.productRecommendations.length > 0 &&
           cartDrawer.productRecommendations.some(rec => rec.products && rec.products.length > 0);
         if (!hasProducts) {
           return redirect("/app/cart-drawer?error=product-recommendations-not-configured");
         }
       }
-      
+
       if (featureId === 'savings-display' && cartDrawer.savingsDisplays.length === 0) {
         return redirect("/app/cart-drawer?error=savings-display-not-configured");
       }
-      
+
       if (featureId === 'free-shipping-message' && cartDrawer.freeShippingMessages.length === 0) {
         return redirect("/app/cart-drawer?error=free-shipping-message-not-configured");
       }
-      
+
       if (featureId === 'cart-totals' && cartDrawer.cartTotals.length === 0) {
         return redirect("/app/cart-drawer?error=cart-totals-not-configured");
       }
-      
+
       if (featureId === 'coupon-code') {
         const couponCodeField = await prisma.couponCodeField.findUnique({
           where: { shop },
@@ -384,11 +391,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           return redirect("/app/cart-drawer?error=coupon-code-not-configured");
         }
       }
-      
+
       if (featureId === 'milestones' && cartDrawer.milestones.length === 0) {
         return redirect("/app/cart-drawer?error=milestones-not-configured");
       }
-      
+
       if (featureId === 'free-gifts' && cartDrawer.freeGifts.length === 0) {
         return redirect("/app/cart-drawer?error=free-gifts-not-configured");
       }
@@ -462,7 +469,7 @@ function MiniCartDrawerPreview({
   const savingsDisplay = cartDrawer?.savingsDisplays?.[0];
   const freeShippingMessage = cartDrawer?.freeShippingMessages?.[0];
   const cartTotalsConfig = cartDrawer?.cartTotals?.[0];
-  
+
 
   // Dynamic sample cart data based on configuration
   const getSampleCart = () => {
@@ -490,7 +497,7 @@ function MiniCartDrawerPreview({
 
     // Create realistic sample data based on configuration
     let sampleTotal, sampleItemCount;
-    
+
     if (freeShippingBar.thresholdMode === "amount") {
       const threshold = Number(freeShippingBar.thresholdAmount);
       // Show 60% progress for mini preview
@@ -531,7 +538,7 @@ function MiniCartDrawerPreview({
   const renderFeature = (featureId: string) => {
     switch (featureId) {
       case 'free-shipping-bar':
-  return (
+        return (
           cartDrawer?.freeShippingProgressBarEnabled && freeShippingBar && (
             <FreeShippingBar
               thresholdMode={freeShippingBar.thresholdMode || 'amount'}
@@ -553,7 +560,7 @@ function MiniCartDrawerPreview({
       case 'promotional-banner':
         return (
           cartDrawer?.promotionalBannerEnabled && (
-            <PromotionalBannerPreview 
+            <PromotionalBannerPreview
               slides={promotionalBanner?.images || []}
               carouselSettings={promotionalBanner?.carouselSettings}
               promotionalBanner={promotionalBanner}
@@ -566,25 +573,25 @@ function MiniCartDrawerPreview({
           cartDrawer?.productRecommendationsEnabled && (
             <ProductRecommendations
               title={productRecommendation?.title || "You may also like"}
-              products={productRecommendation?.products && productRecommendation.products.length > 0 
-                ? productRecommendation.products 
+              products={productRecommendation?.products && productRecommendation.products.length > 0
+                ? productRecommendation.products
                 : [
-                    { id: 'sample1', title: 'Sample Product 1', price: 999, imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=60&h=60&fit=crop&crop=center' },
-                    { id: 'sample2', title: 'Sample Product 2', price: 1299, imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=60&h=60&fit=crop&crop=center' },
-                    { id: 'sample3', title: 'Sample Product 3', price: 1599, imageUrl: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=60&h=60&fit=crop&crop=center' },
-                    { id: 'sample4', title: 'Sample Product 4', price: 899, imageUrl: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=60&h=60&fit=crop&crop=center' }
-                  ]}
+                  { id: 'sample1', title: 'Sample Product 1', price: 999, imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=60&h=60&fit=crop&crop=center' },
+                  { id: 'sample2', title: 'Sample Product 2', price: 1299, imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=60&h=60&fit=crop&crop=center' },
+                  { id: 'sample3', title: 'Sample Product 3', price: 1599, imageUrl: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=60&h=60&fit=crop&crop=center' },
+                  { id: 'sample4', title: 'Sample Product 4', price: 899, imageUrl: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=60&h=60&fit=crop&crop=center' }
+                ]}
               layout={productRecommendation?.layout || 'carousel'}
               maxProducts={productRecommendation?.maxProducts || 4}
               showDiscount={productRecommendation?.showDiscount ?? true}
               showDiscountBadge={productRecommendation?.showDiscountBadge ?? true}
               showAddButton={productRecommendation?.showAddButton ?? true}
-              onAddToCart={() => {}}
+              onAddToCart={() => { }}
               isPreview={true}
             />
           )
         );
-        
+
       case 'savings-display':
         return (
           cartDrawer?.savingsDisplayEnabled && savingsDisplay && (
@@ -615,7 +622,7 @@ function MiniCartDrawerPreview({
             />
           ));
 
-        {/* Coupon Code Field */}
+        {/* Coupon Code Field */ }
       case 'coupon-code':
         return (cartDrawer?.couponCodeFieldEnabled && couponCodeField && (
           <CouponCodeField
@@ -642,9 +649,9 @@ function MiniCartDrawerPreview({
             couponCodeColor={(couponCodeField as any)?.couponCodeColor || ''}
             borderColor={(couponCodeField as any)?.borderColor || '#059669'}
             appliedDiscountText={(couponCodeField as any)?.appliedDiscountText || ''}
-            onApplyCoupon={() => {}}
-            onRemoveDiscount={() => {}}
-            onSwitchDiscount={() => {}}
+            onApplyCoupon={() => { }}
+            onRemoveDiscount={() => { }}
+            onSwitchDiscount={() => { }}
             isPreview={true}
           />
         ));
@@ -658,16 +665,16 @@ function MiniCartDrawerPreview({
                 const progress = Math.min((sampleCart.total / targetAmount) * 100, 100);
                 const remaining = Math.max(targetAmount - sampleCart.total, 0);
                 const status = sampleCart.total >= targetAmount ? 'unlocked' : sampleCart.total > 0 ? 'in_progress' : 'locked';
-                
+
                 const rewardText = m.title;
                 const remainingFormatted = `₹${remaining.toFixed(2)}`;
-                
+
                 const message =
                   status === 'unlocked'
                     ? m.unlockedMessage?.replace('{reward}', rewardText) || `🎉 You've unlocked ${rewardText}!`
                     : status === 'in_progress'
-                    ? m.inProgressMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Only ${remainingFormatted} away from ${rewardText}!`
-                    : m.lockedMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Add ${remainingFormatted} to unlock ${rewardText}`;
+                      ? m.inProgressMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Only ${remainingFormatted} away from ${rewardText}!`
+                      : m.lockedMessage?.replace('{remaining}', remainingFormatted).replace('{reward}', rewardText) || `Add ${remainingFormatted} to unlock ${rewardText}`;
 
                 return {
                   id: m.id,
@@ -719,7 +726,7 @@ function MiniCartDrawerPreview({
                 qualified: true,
               }))}
               selectedGiftId={null}
-              onSelectGift={() => {}}
+              onSelectGift={() => { }}
               isPreview={true}
             />
           )
@@ -731,7 +738,7 @@ function MiniCartDrawerPreview({
   };
 
   return (
-    <div style={{ 
+    <div style={{
       width: '100%',
       maxWidth: '380px',
       border: '1px solid #e5e7eb',
@@ -743,8 +750,8 @@ function MiniCartDrawerPreview({
       transformOrigin: 'top center',
     }}>
       {/* Header */}
-      <div style={{ 
-        padding: '8px 12px', 
+      <div style={{
+        padding: '8px 12px',
         borderBottom: '1px solid #e5e7eb',
         display: 'flex',
         justifyContent: 'space-between',
@@ -753,19 +760,19 @@ function MiniCartDrawerPreview({
         position: 'relative'
       }}>
         <div>
-          <h3 style={{ 
-            fontSize: '18px', 
-            fontWeight: '700', 
-            margin: 0, 
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '700',
+            margin: 0,
             color: '#111827',
             lineHeight: '1.2'
           }}>
             Cart Drawer Preview
           </h3>
         </div>
-        <button style={{ 
-          background: 'none', 
-          border: 'none', 
+        <button style={{
+          background: 'none',
+          border: 'none',
           fontSize: '24px',
           cursor: 'pointer',
           color: '#6b7280',
@@ -805,8 +812,8 @@ function MiniCartDrawerPreview({
               }))}
               productCompareAtPrices={{}}
               appliedDiscount={null}
-              onUpdateQuantity={() => {}}
-              onRemoveItem={() => {}}
+              onUpdateQuantity={() => { }}
+              onRemoveItem={() => { }}
               isPreview={true}
             />
           </div>
@@ -894,6 +901,8 @@ export default function CartDrawerIndex() {
   );
   const [draggedFeatureId, setDraggedFeatureId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [showVersionModal, setShowVersionModal] = useState(false);
+  const [currentVersion] = useState('default'); // TODO: Get from URL or session
 
   React.useEffect(() => {
     setFeatureOrder(normalizeFeatureOrder(cartDrawer.featureOrder));
@@ -1004,12 +1013,12 @@ export default function CartDrawerIndex() {
       enabled: cartDrawer.promotionalBannerEnabled,
       count: cartDrawer.promotionalBanners.length,
       path: '/app/cart-drawer/promotional-banner',
-      isConfigured: cartDrawer.promotionalBanners.length > 0 && 
-                    cartDrawer.promotionalBanners.some(banner => 
-                      (banner.images && banner.images.length > 0) || 
-                      (banner.imageUrls && banner.imageUrls.length > 0) || 
-                      banner.title
-                    ),
+      isConfigured: cartDrawer.promotionalBanners.length > 0 &&
+        cartDrawer.promotionalBanners.some(banner =>
+          (banner.images && banner.images.length > 0) ||
+          (banner.imageUrls && banner.imageUrls.length > 0) ||
+          banner.title
+        ),
     },
     {
       id: 'product-recommendations',
@@ -1019,10 +1028,10 @@ export default function CartDrawerIndex() {
       enabled: cartDrawer.productRecommendationsEnabled,
       count: cartDrawer.productRecommendations.length,
       path: '/app/cart-drawer/product-recommendations',
-      isConfigured: cartDrawer.productRecommendations.length > 0 && 
-                    cartDrawer.productRecommendations.some(rec => 
-                      rec.products && rec.products.length > 0
-                    ),
+      isConfigured: cartDrawer.productRecommendations.length > 0 &&
+        cartDrawer.productRecommendations.some(rec =>
+          rec.products && rec.products.length > 0
+        ),
     },
     {
       id: 'coupon-code',
@@ -1092,16 +1101,16 @@ export default function CartDrawerIndex() {
   return (
     <Page>
       <TitleBar title="Cart Drawer Customization" />
-      
-      <div style={{ 
-        display: 'flex', 
-        gap: '24px', 
+
+      <div style={{
+        display: 'flex',
+        gap: '24px',
         minHeight: 'calc(100vh - 200px)',
         padding: '0'
       }}>
         {/* LEFT SIDE - Configuration Options */}
-        <div style={{ 
-          flex: '0 0 60%', 
+        <div style={{
+          flex: '0 0 60%',
           minWidth: '500px',
           paddingRight: '12px'
         }}>
@@ -1132,7 +1141,7 @@ export default function CartDrawerIndex() {
                       View Installation Instructions
                     </Button>
                   }
-                  </InlineStack>
+                </InlineStack>
               </BlockStack>
             </Card>
 
@@ -1187,7 +1196,7 @@ export default function CartDrawerIndex() {
 
             {/* Feature Configuration Cards */}
             <BlockStack gap="400">
-              <div style={{
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
@@ -1199,16 +1208,15 @@ export default function CartDrawerIndex() {
               }}>
                 <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style={{ opacity: 0.7 }}>
-                    <circle cx="5" cy="5" r="1.5"/>
-                    <circle cx="10" cy="5" r="1.5"/>
-                    <circle cx="15" cy="5" r="1.5"/>
-                    <circle cx="5" cy="10" r="1.5"/>
-                    <circle cx="10" cy="10" r="1.5"/>
-                    <circle cx="15" cy="10" r="1.5"/>
+                    <circle cx="5" cy="5" r="1.5" />
+                    <circle cx="10" cy="5" r="1.5" />
+                    <circle cx="15" cy="5" r="1.5" />
+                    <circle cx="5" cy="10" r="1.5" />
+                    <circle cx="10" cy="10" r="1.5" />
+                    <circle cx="15" cy="10" r="1.5" />
                   </svg>
                 </span>
-                <span>Drag to reorder features</span>
-              </div>
+                <span>Drag to reorder features</span></div><Button onClick={() => setShowVersionModal(true)} icon={ChartVerticalIcon} size="slim">Manage Versions</Button></div>
               {orderedFeatureCards.map((item) => {
                 const isCartItems = 'isCartItems' in item && item.isCartItems;
                 const feature = isCartItems ? null : item as (typeof features)[number];
@@ -1256,12 +1264,12 @@ export default function CartDrawerIndex() {
                                 }}
                               >
                                 <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
-                                  <circle cx="3" cy="3" r="1.3"/>
-                                  <circle cx="9" cy="3" r="1.3"/>
-                                  <circle cx="3" cy="8" r="1.3"/>
-                                  <circle cx="9" cy="8" r="1.3"/>
-                                  <circle cx="3" cy="13" r="1.3"/>
-                                  <circle cx="9" cy="13" r="1.3"/>
+                                  <circle cx="3" cy="3" r="1.3" />
+                                  <circle cx="9" cy="3" r="1.3" />
+                                  <circle cx="3" cy="8" r="1.3" />
+                                  <circle cx="9" cy="8" r="1.3" />
+                                  <circle cx="3" cy="13" r="1.3" />
+                                  <circle cx="9" cy="13" r="1.3" />
                                 </svg>
                               </div>
                             </Box>
@@ -1274,12 +1282,12 @@ export default function CartDrawerIndex() {
                                   {isCartItems ? 'Selected Items' : feature!.title}
                                 </Text>
                                 {!isCartItems && !feature!.isConfigured && (
-                                  <span style={{ 
-                                    fontSize: '9px', 
-                                    color: '#92400e', 
-                                    backgroundColor: '#fef3c7', 
-                                    padding: '2px 10px', 
-                                    borderRadius: '10px', 
+                                  <span style={{
+                                    fontSize: '9px',
+                                    color: '#92400e',
+                                    backgroundColor: '#fef3c7',
+                                    padding: '2px 10px',
+                                    borderRadius: '10px',
                                     fontWeight: 600,
                                     lineHeight: '1.4',
                                     whiteSpace: 'nowrap',
@@ -1325,15 +1333,15 @@ export default function CartDrawerIndex() {
         </div>
 
         {/* RIGHT SIDE - Live Preview */}
-        <div style={{ 
-          flex: '0 0 40%', 
+        <div style={{
+          flex: '0 0 40%',
           minWidth: '350px',
           paddingLeft: '12px',
           position: 'sticky',
           top: '0',
           height: 'fit-content',
           maxHeight: 'calc(100vh)',
-          overflowY: 'auto' 
+          overflowY: 'auto'
         }}>
           <MiniCartDrawerPreview
             cartDrawer={cartDrawer}
@@ -1342,6 +1350,18 @@ export default function CartDrawerIndex() {
           />
         </div>
       </div>
+
+      {/* Version Management Modal */}
+      <VersionManagementModal
+        open={showVersionModal}
+        onClose={() => setShowVersionModal(false)}
+        currentVersion={currentVersion}
+        onVersionSwitch={(versionKey) => {
+          // Just close the modal - no need to reload page
+          setShowVersionModal(false);
+          // User can manually refresh if they want to edit the new version
+        }}
+      />
     </Page>
   );
 }
