@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
-import { useLoaderData, useSubmit, useFetcher } from "@remix-run/react";
+import { useLoaderData, useActionData, useSubmit, useNavigate, useFetcher } from "@remix-run/react";
 import { useState } from "react";
 import React from "react";
 import {
@@ -230,7 +230,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (Object.keys(updateData).length > 0) {
     cartDrawer = await prisma.cartDrawer.update({
-      where: { shop },
+      where: { shop_version: { shop, version: editingVersion } },
       data: updateData,
       include: {
         freeShippingBars: { where: { isActive: true } },
@@ -296,6 +296,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
 
+  // Get version from URL or formData
+  const url = new URL(request.url);
+  const editingVersion = url.searchParams.get("version") || "default";
+
   const formData = await request.formData();
   const intent = formData.get("intent");
 
@@ -306,7 +310,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Check if data exists before enabling any feature
     if (enabled) {
       const cartDrawer = await prisma.cartDrawer.findUnique({
-        where: { shop },
+        where: { shop_version: { shop, version: editingVersion } },
         include: {
           freeShippingBars: { where: { isActive: true } },
           promotionalBanners: {
@@ -343,12 +347,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
 
       if (!cartDrawer) {
-        return redirect("/app/cart-drawer?error=feature-not-configured");
+        return redirect(`/app/cart-drawer?version=${editingVersion}&error=feature-not-configured`);
       }
 
       // Check each feature for required data
       if (featureId === 'free-shipping-bar' && cartDrawer.freeShippingBars.length === 0) {
-        return redirect("/app/cart-drawer?error=free-shipping-bar-not-configured");
+        return redirect(`/app/cart-drawer?version=${editingVersion}&error=free-shipping-bar-not-configured`);
       }
 
       // Check promotional banner: needs to have images or banner data
@@ -358,7 +362,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             (banner.images && banner.images.length > 0) || (banner.imageUrls && banner.imageUrls.length > 0) || banner.title
           );
         if (!hasBannerData) {
-          return redirect("/app/cart-drawer?error=promotional-banner-not-configured");
+          return redirect(`/app/cart-drawer?version=${editingVersion}&error=promotional-banner-not-configured`);
         }
       }
 
@@ -367,20 +371,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const hasProducts = cartDrawer.productRecommendations.length > 0 &&
           cartDrawer.productRecommendations.some(rec => rec.products && rec.products.length > 0);
         if (!hasProducts) {
-          return redirect("/app/cart-drawer?error=product-recommendations-not-configured");
+          return redirect(`/app/cart-drawer?version=${editingVersion}&error=product-recommendations-not-configured`);
         }
       }
 
       if (featureId === 'savings-display' && cartDrawer.savingsDisplays.length === 0) {
-        return redirect("/app/cart-drawer?error=savings-display-not-configured");
+        return redirect(`/app/cart-drawer?version=${editingVersion}&error=savings-display-not-configured`);
       }
 
       if (featureId === 'free-shipping-message' && cartDrawer.freeShippingMessages.length === 0) {
-        return redirect("/app/cart-drawer?error=free-shipping-message-not-configured");
+        return redirect(`/app/cart-drawer?version=${editingVersion}&error=free-shipping-message-not-configured`);
       }
 
       if (featureId === 'cart-totals' && cartDrawer.cartTotals.length === 0) {
-        return redirect("/app/cart-drawer?error=cart-totals-not-configured");
+        return redirect(`/app/cart-drawer?version=${editingVersion}&error=cart-totals-not-configured`);
       }
 
       if (featureId === 'coupon-code') {
@@ -388,16 +392,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           where: { shop },
         });
         if (!couponCodeField) {
-          return redirect("/app/cart-drawer?error=coupon-code-not-configured");
+          return redirect(`/app/cart-drawer?version=${editingVersion}&error=coupon-code-not-configured`);
         }
       }
 
       if (featureId === 'milestones' && cartDrawer.milestones.length === 0) {
-        return redirect("/app/cart-drawer?error=milestones-not-configured");
+        return redirect(`/app/cart-drawer?version=${editingVersion}&error=milestones-not-configured`);
       }
 
       if (featureId === 'free-gifts' && cartDrawer.freeGifts.length === 0) {
-        return redirect("/app/cart-drawer?error=free-gifts-not-configured");
+        return redirect(`/app/cart-drawer?version=${editingVersion}&error=free-gifts-not-configured`);
       }
     }
 
@@ -417,10 +421,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const updateData = featureFieldMap[featureId];
     if (updateData) {
       await prisma.cartDrawer.update({
-        where: { shop },
+        where: { shop_version: { shop, version: editingVersion } },
         data: updateData,
       });
-      return redirect("/app/cart-drawer");
+      return redirect(`/app/cart-drawer?version=${editingVersion}`);
     }
   }
 
@@ -439,7 +443,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const normalized = normalizeFeatureOrder(parsed as string[]);
 
       await prisma.cartDrawer.update({
-        where: { shop },
+        where: { shop_version: { shop, version: editingVersion } },
         data: { featureOrder: normalized },
       });
 
@@ -667,7 +671,7 @@ function MiniCartDrawerPreview({
                 const status = sampleCart.total >= targetAmount ? 'unlocked' : sampleCart.total > 0 ? 'in_progress' : 'locked';
 
                 const rewardText = m.title;
-                const remainingFormatted = `₹${remaining.toFixed(2)}`;
+                const remainingFormatted = `₹${remaining.toFixed(2)} `;
 
                 const message =
                   status === 'unlocked'
@@ -882,19 +886,20 @@ function MiniCartDrawerPreview({
 }
 
 export default function CartDrawerIndex() {
-  const data = useLoaderData<typeof loader>();
+  const loaderData = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const fetcher = useFetcher();
+  const navigate = useNavigate();
 
   // Check if we need to redirect for billing
-  if ('billingRedirectUrl' in data) {
+  if ('billingRedirectUrl' in loaderData) {
     if (typeof window !== 'undefined') {
-      window.top!.location.href = data.billingRedirectUrl;
+      window.top!.location.href = loaderData.billingRedirectUrl;
     }
     return null;
   }
 
-  const { cartDrawer, couponCodeField, appEmbedEnabled, shopDomain, error } = data as Exclude<typeof data, { billingRedirectUrl: string }>;
+  const { cartDrawer, couponCodeField, appEmbedEnabled, shopDomain, error, planAccess, editingVersion } = loaderData as Exclude<typeof loaderData, { billingRedirectUrl: string }>;
 
   const [featureOrder, setFeatureOrder] = useState<string[]>(() =>
     normalizeFeatureOrder(cartDrawer.featureOrder)
@@ -902,7 +907,10 @@ export default function CartDrawerIndex() {
   const [draggedFeatureId, setDraggedFeatureId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [showVersionModal, setShowVersionModal] = useState(false);
-  const [currentVersion] = useState('default'); // TODO: Get from URL or session
+  const [showManualAssignModal, setShowManualAssignModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const currentVersion = editingVersion; // Alias for clarity in UI
 
   React.useEffect(() => {
     setFeatureOrder(normalizeFeatureOrder(cartDrawer.featureOrder));
@@ -1358,7 +1366,7 @@ export default function CartDrawerIndex() {
         currentVersion={currentVersion}
         onVersionSwitch={(versionKey) => {
           setShowVersionModal(false);
-          window.location.href = `/app/cart-drawer?version=${versionKey}`;
+          navigate(`/app/cart-drawer?version=${versionKey}`);
         }}
       />
     </Page>

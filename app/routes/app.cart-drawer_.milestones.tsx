@@ -55,7 +55,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (!cartDrawer) {
     cartDrawer = await prisma.cartDrawer.create({
-      data: { shop },
+      data: { shop, version: editingVersion },
       include: {
         milestones: {
           include: {
@@ -192,7 +192,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (!cartDrawer) {
     cartDrawer = await prisma.cartDrawer.create({
-      data: { shop }
+      data: { shop, version: editingVersion }
     });
   }
 
@@ -588,7 +588,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       } as any
     });
 
-    return redirect("/app/cart-drawer");
+    return redirect(`/app/cart-drawer?version=${editingVersion}`);
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
@@ -772,7 +772,7 @@ export default function CartMilestones() {
     }
     // For 'all_products' and 'none', no specific eligibility data needed
 
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/milestones?version=${editingVersion}` });
     setShowMilestoneModal(false);
   }, [formState, selectedTargets, selectedGiftProducts, editingMilestone, eligibilitySource, eligibleCollectionHandle, eligibleProductIds, eligibleTag, submit]);
 
@@ -781,7 +781,7 @@ export default function CartMilestones() {
       const formData = new FormData();
       formData.append("intent", "delete-milestone");
       formData.append("milestoneId", milestoneId);
-      submit(formData, { method: "post" });
+      submit(formData, { method: "post", action: `/app/cart-drawer/milestones?version=${editingVersion}` });
     }
   }, [submit]);
 
@@ -790,7 +790,7 @@ export default function CartMilestones() {
     formData.append("intent", "toggle-milestone");
     formData.append("milestoneId", milestoneId);
     formData.append("isActive", (!isActive).toString());
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/milestones?version=${editingVersion}` });
   }, [submit]);
 
   const getRewardTypeLabel = (type: string) => {
@@ -956,12 +956,12 @@ export default function CartMilestones() {
     formData.append("intent", "save-global-settings");
     formData.append("progressBarColor", globalSettings.progressBarColor);
     formData.append("allUnlockedMessage", globalSettings.allUnlockedMessage);
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/milestones?version=${editingVersion}` });
   }, [globalSettings, submit]);
 
   return (
     <Page
-      backAction={{ url: "/app/cart-drawer" }}
+      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
       title="Cart Milestones"
       primaryAction={{
         content: "Save",

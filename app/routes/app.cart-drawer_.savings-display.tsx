@@ -36,7 +36,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const savingsDisplay = cartDrawer?.savingsDisplays[0] || null;
 
-  return json({ cartDrawer, savingsDisplay });
+  return json({ cartDrawer, savingsDisplay, editingVersion });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -61,13 +61,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
 
       if (!cartDrawer || cartDrawer.savingsDisplays.length === 0) {
-        return json({ 
-          success: false, 
-          error: "Configuration required. Please save the configuration first before enabling." 
+        return json({
+          success: false,
+          error: "Configuration required. Please save the configuration first before enabling."
         }, { status: 400 });
       }
     }
-    
+
     await prisma.cartDrawer.update({
       where: { shop_version: { shop, version: editingVersion } },
       data: { savingsDisplayEnabled: enabled },
@@ -119,19 +119,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       data: { savingsDisplayEnabled: true },
     });
 
-    return redirect("/app/cart-drawer");
+    return redirect(`/app/cart-drawer?version=${editingVersion}`);
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
 export default function SavingsDisplay() {
-  const { cartDrawer, savingsDisplay } = useLoaderData<typeof loader>();
+  const { cartDrawer, savingsDisplay, editingVersion } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const actionData = useActionData<typeof action>();
   const isLoading = navigation.state === "submitting";
-  
+
   // Check which action is being submitted
   const formData = navigation.formData;
   const submittingIntent = formData?.get("intent") as string | null;
@@ -144,8 +144,8 @@ export default function SavingsDisplay() {
   // Show toast notification when settings are saved successfully
   useEffect(() => {
     // Check if we just finished submitting a save action
-    const justFinishedSave = 
-      prevIsSubmitting.current && 
+    const justFinishedSave =
+      prevIsSubmitting.current &&
       prevSubmittingIntent.current === "save" &&
       !isLoading;
 
@@ -176,7 +176,7 @@ export default function SavingsDisplay() {
     const formData = new FormData();
     formData.append("intent", "toggle");
     formData.append("enabled", (!cartDrawer?.savingsDisplayEnabled).toString());
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/savings-display?version=${editingVersion}` });
   }, [cartDrawer?.savingsDisplayEnabled, submit]);
 
   const handleSubmit = useCallback(() => {
@@ -185,12 +185,12 @@ export default function SavingsDisplay() {
     Object.entries(formState).forEach(([key, value]) => {
       formData.append(key, value.toString());
     });
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/savings-display?version=${editingVersion}` });
   }, [formState, submit]);
 
   return (
     <Page
-      backAction={{ url: "/app/cart-drawer" }}
+      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
       title="Savings Display"
       primaryAction={{
         content: "Save",
@@ -231,7 +231,7 @@ export default function SavingsDisplay() {
               flexShrink: 0,
             }}>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <div style={{ flex: 1 }}>
@@ -255,7 +255,7 @@ export default function SavingsDisplay() {
               aria-label="Close"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </button>
           </div>
@@ -274,7 +274,7 @@ export default function SavingsDisplay() {
           }
         }
       `}</style>
-      
+
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
@@ -288,7 +288,7 @@ export default function SavingsDisplay() {
                     {cartDrawer?.savingsDisplayEnabled ? "Disable" : "Enable"}
                   </Button>
                 </InlineStack>
-                
+
                 {!cartDrawer?.savingsDisplayEnabled && (
                   <Banner tone="warning">
                     This feature is currently disabled. Enable it to show savings in your cart.
@@ -350,7 +350,7 @@ export default function SavingsDisplay() {
               <Text as="h3" variant="headingMd">
                 Preview
               </Text>
-              
+
               <SavingsDisplayComponent
                 message={formState.message}
                 amount={330000} // Sample amount in cents (₹3300)

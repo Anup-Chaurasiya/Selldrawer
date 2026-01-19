@@ -35,12 +35,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (!cartDrawer) {
     cartDrawer = await prisma.cartDrawer.create({
-      data: { shop, isActive: true },
+      data: { shop, version: editingVersion, isActive: true },
     });
   }
 
   let couponCodeField = await prisma.couponCodeField.findUnique({
-    where: { shop_version: { shop, version: editingVersion } },
+    where: { shop },
   });
 
   // Create default if doesn't exist
@@ -50,7 +50,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
   }
 
-  return json({ cartDrawer, couponCodeField });
+  return json({ cartDrawer, couponCodeField, editingVersion });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -64,7 +64,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "toggle") {
     const enabled = formData.get("enabled") === "true";
-    
+
     // Ensure CartDrawer exists
     await prisma.cartDrawer.upsert({
       where: { shop_version: { shop, version: editingVersion } },
@@ -73,7 +73,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
 
     await prisma.couponCodeField.upsert({
-      where: { shop_version: { shop, version: editingVersion } },
+      where: { shop },
       update: { isActive: enabled },
       create: { shop, isActive: enabled },
     });
@@ -107,24 +107,24 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
 
     await prisma.couponCodeField.upsert({
-      where: { shop_version: { shop, version: editingVersion } },
+      where: { shop },
       update: data,
       create: { ...data, shop },
     });
 
-    return redirect("/app/cart-drawer");
+    return redirect(`/app/cart-drawer?version=${editingVersion}`);
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
 export default function CouponCode() {
-  const { cartDrawer, couponCodeField } = useLoaderData<typeof loader>();
+  const { cartDrawer, couponCodeField, editingVersion } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const actionData = useActionData<typeof action>();
   const isLoading = navigation.state === "submitting";
-  
+
   // Check which action is being submitted
   const formData = navigation.formData;
   const submittingIntent = formData?.get("intent") as string | null;
@@ -137,8 +137,8 @@ export default function CouponCode() {
   // Show toast notification when settings are saved successfully
   useEffect(() => {
     // Check if we just finished submitting a save action
-    const justFinishedSave = 
-      prevIsSubmitting.current && 
+    const justFinishedSave =
+      prevIsSubmitting.current &&
       prevSubmittingIntent.current === "save" &&
       !isLoading;
 
@@ -176,7 +176,7 @@ export default function CouponCode() {
     const formData = new FormData();
     formData.append("intent", "toggle");
     formData.append("enabled", (!cartDrawer?.couponCodeFieldEnabled).toString());
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/coupon-code?version=${editingVersion}` });
   }, [cartDrawer?.couponCodeFieldEnabled, submit]);
 
   const handleSubmit = useCallback(() => {
@@ -185,12 +185,12 @@ export default function CouponCode() {
     Object.entries(formState).forEach(([key, value]) => {
       formData.append(key, value.toString());
     });
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/coupon-code?version=${editingVersion}` });
   }, [formState, submit]);
 
   return (
     <Page
-      backAction={{ url: "/app/cart-drawer" }}
+      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
       title="Coupon Code Field"
       primaryAction={{
         content: "Save",
@@ -231,7 +231,7 @@ export default function CouponCode() {
               flexShrink: 0,
             }}>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <div style={{ flex: 1 }}>
@@ -255,7 +255,7 @@ export default function CouponCode() {
               aria-label="Close"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </button>
           </div>
@@ -274,7 +274,7 @@ export default function CouponCode() {
           }
         }
       `}</style>
-      
+
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
@@ -288,7 +288,7 @@ export default function CouponCode() {
                     {cartDrawer?.couponCodeFieldEnabled ? "Disable" : "Enable"}
                   </Button>
                 </InlineStack>
-                
+
                 {!cartDrawer?.couponCodeFieldEnabled && (
                   <Banner tone="warning">
                     This feature is currently disabled. Enable it to show the coupon field in your cart.
@@ -332,7 +332,7 @@ export default function CouponCode() {
                     <Text as="h3" variant="headingMd">
                       Auto-Apply Best Offer
                     </Text>
-                    
+
                     <Checkbox
                       label="Automatically apply best qualifying discount"
                       checked={formState.enableAutoApply}
@@ -361,7 +361,7 @@ export default function CouponCode() {
                     <Text as="h3" variant="headingMd">
                       Show All Offers
                     </Text>
-                    
+
                     <Checkbox
                       label="Show 'Show all offers' button"
                       checked={formState.showAllOffers}
@@ -386,7 +386,7 @@ export default function CouponCode() {
                     <Text as="h3" variant="headingMd">
                       Applied Discount Styling
                     </Text>
-                    
+
                     <TextField
                       label="Applied Discount Text"
                       value={formState.appliedDiscountText}
@@ -441,7 +441,7 @@ export default function CouponCode() {
               <Text as="h3" variant="headingMd">
                 Preview
               </Text>
-              
+
               <CouponCodeFieldComponent
                 id="upsellity-coupon-field-preview"
                 placeholder={formState.placeholder}
@@ -466,9 +466,9 @@ export default function CouponCode() {
                 couponCodeColor={formState.couponCodeColor}
                 borderColor={formState.borderColor}
                 appliedDiscountText={formState.appliedDiscountText}
-                onApplyCoupon={() => {}}
-                onRemoveDiscount={() => {}}
-                onSwitchDiscount={() => {}}
+                onApplyCoupon={() => { }}
+                onRemoveDiscount={() => { }}
+                onSwitchDiscount={() => { }}
                 isPreview={true}
               />
 

@@ -470,7 +470,7 @@ export default function ProductRecommendations() {
       formData.append(key, value.toString());
     });
     formData.append("selectedProducts", JSON.stringify(selectedProducts));
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/product-recommendations?version=${editingVersion}` });
   }, [formState, selectedProducts, submit]);
 
   // Filter products based on search query
@@ -481,7 +481,7 @@ export default function ProductRecommendations() {
 
   return (
     <Page
-      backAction={{ url: "/app/cart-drawer" }}
+      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
       title="Product Recommendations"
       primaryAction={{
         content: "Save",

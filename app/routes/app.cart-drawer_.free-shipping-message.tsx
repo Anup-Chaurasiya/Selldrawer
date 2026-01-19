@@ -35,7 +35,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const freeShippingMessage = cartDrawer?.freeShippingMessages[0] || null;
 
-  return json({ cartDrawer, freeShippingMessage });
+  return json({ cartDrawer, freeShippingMessage, editingVersion });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -121,14 +121,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       data: { freeShippingMessageEnabled: true },
     });
 
-    return redirect("/app/cart-drawer");
+    return redirect(`/app/cart-drawer?version=${editingVersion}`);
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
 export default function FreeShippingMessage() {
-  const { cartDrawer, freeShippingMessage } = useLoaderData<typeof loader>();
+  const { cartDrawer, freeShippingMessage, editingVersion } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const actionData = useActionData<typeof action>();
@@ -181,7 +181,7 @@ export default function FreeShippingMessage() {
     const formData = new FormData();
     formData.append("intent", "toggle");
     formData.append("enabled", (!cartDrawer?.freeShippingMessageEnabled).toString());
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/free-shipping-message?version=${editingVersion}` });
   }, [cartDrawer?.freeShippingMessageEnabled, submit]);
 
   const handleSubmit = useCallback(() => {
@@ -190,12 +190,12 @@ export default function FreeShippingMessage() {
     Object.entries(formState).forEach(([key, value]) => {
       formData.append(key, value.toString());
     });
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/free-shipping-message?version=${editingVersion}` });
   }, [formState, submit]);
 
   return (
     <Page
-      backAction={{ url: "/app/cart-drawer" }}
+      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
       title="Free Shipping Message"
       primaryAction={{
         content: "Save",

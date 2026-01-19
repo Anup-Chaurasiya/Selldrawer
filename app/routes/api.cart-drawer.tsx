@@ -102,62 +102,46 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       },
     });
 
-    // Fallback to default version if assigned version config doesn't exist
-    let fallbackUsed = false;
-    if (!cartDrawer && assignedVersion !== 'default') {
-      fallbackUsed = true;
-      cartDrawer = await prisma.cartDrawer.findUnique({
-        where: {
-          shop_version: {
-            shop,
-            version: 'default'
-          }
+    // If config doesn't exist, create with defaults
+    if (!cartDrawer) {
+      console.log(`[API] No config found for shop ${shop}, version ${assignedVersion}. Creating with defaults...`);
+
+      cartDrawer = await prisma.cartDrawer.create({
+        data: {
+          shop,
+          version: assignedVersion,
+          isActive: true,
         },
         include: {
-          freeShippingBars: {
-            where: { isActive: true },
-            orderBy: { priority: 'desc' },
-            take: 1,
-          },
+          freeShippingBars: { where: { isActive: true } },
           promotionalBanners: {
             where: { isActive: true },
-            orderBy: { priority: 'desc' },
             include: {
-              images: {
-                orderBy: { order: 'asc' },
-              },
+              images: { orderBy: { order: 'asc' } },
               carouselSettings: true,
             },
           },
           productRecommendations: {
             where: { isActive: true },
-            orderBy: { priority: 'desc' },
-            take: 1,
             include: {
-              products: {
-                orderBy: { position: 'asc' },
-              },
+              products: { orderBy: { position: 'asc' } },
             },
           },
-          savingsDisplays: {
-            where: { isActive: true },
-            take: 1,
-          },
-          freeShippingMessages: {
-            where: { isActive: true },
-            take: 1,
-          },
-          cartTotals: {
-            where: { isActive: true },
-            take: 1,
-          },
+          savingsDisplays: { where: { isActive: true } },
+          freeShippingMessages: { where: { isActive: true } },
+          cartTotals: { where: { isActive: true } },
           milestones: {
             where: { isActive: true },
+            include: { targets: true },
+            orderBy: { priority: 'asc' },
+          },
+          freeGifts: {
+            where: { isActive: true },
             include: {
+              giftProducts: { orderBy: { position: 'asc' } },
               targets: true,
             },
             orderBy: { priority: 'asc' },
-            take: 3,
           },
         },
       });
@@ -177,7 +161,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         _version: assignedVersion,
         _versionMeta: {
           assignedVersion,
-          fallbackUsed: false,
           configExists: false,
         }
       });
@@ -250,7 +233,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       _version: assignedVersion,
       _versionMeta: {
         assignedVersion,
-        fallbackUsed,
         configExists: true,
         loadedVersion: cartDrawer.version,
       }

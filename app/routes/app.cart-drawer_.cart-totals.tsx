@@ -35,7 +35,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const cartTotals = cartDrawer?.cartTotals[0] || null;
 
-  return json({ cartDrawer, cartTotals });
+  return json({ cartDrawer, cartTotals, editingVersion });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -60,13 +60,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
 
       if (!cartDrawer || cartDrawer.cartTotals.length === 0) {
-        return json({ 
-          success: false, 
-          error: "Configuration required. Please save the configuration first before enabling." 
+        return json({
+          success: false,
+          error: "Configuration required. Please save the configuration first before enabling."
         }, { status: 400 });
       }
     }
-    
+
     await prisma.cartDrawer.update({
       where: { shop_version: { shop, version: editingVersion } },
       data: { cartTotalsEnabled: enabled },
@@ -127,19 +127,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       data: { cartTotalsEnabled: true },
     });
 
-    return redirect("/app/cart-drawer");
+    return redirect(`/app/cart-drawer?version=${editingVersion}`);
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
 export default function CartTotals() {
-  const { cartDrawer, cartTotals } = useLoaderData<typeof loader>();
+  const { cartDrawer, cartTotals, editingVersion } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const actionData = useActionData<typeof action>();
   const isLoading = navigation.state === "submitting";
-  
+
   // Check which action is being submitted
   const formData = navigation.formData;
   const submittingIntent = formData?.get("intent") as string | null;
@@ -152,8 +152,8 @@ export default function CartTotals() {
   // Show toast notification when settings are saved successfully
   useEffect(() => {
     // Check if we just finished submitting a save action
-    const justFinishedSave = 
-      prevIsSubmitting.current && 
+    const justFinishedSave =
+      prevIsSubmitting.current &&
       prevSubmittingIntent.current === "save" &&
       !isLoading;
 
@@ -193,7 +193,7 @@ export default function CartTotals() {
     const formData = new FormData();
     formData.append("intent", "toggle");
     formData.append("enabled", (!cartDrawer?.cartTotalsEnabled).toString());
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/cart-totals?version=${editingVersion}` });
   }, [cartDrawer?.cartTotalsEnabled, submit]);
 
   const handleSubmit = useCallback(() => {
@@ -202,7 +202,7 @@ export default function CartTotals() {
     Object.entries(formState).forEach(([key, value]) => {
       formData.append(key, value.toString());
     });
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/cart-totals?version=${editingVersion}` });
   }, [formState, submit]);
 
   // Sample cart data for preview
@@ -219,7 +219,7 @@ export default function CartTotals() {
     }
   ];
 
-  const sampleTotalPrice = sampleCartItems.reduce((sum, item) => 
+  const sampleTotalPrice = sampleCartItems.reduce((sum, item) =>
     sum + (item.final_price * item.quantity), 0
   );
 
@@ -231,7 +231,7 @@ export default function CartTotals() {
 
   return (
     <Page
-      backAction={{ url: "/app/cart-drawer" }}
+      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
       title="Cart Totals"
       primaryAction={{
         content: "Save",
@@ -272,7 +272,7 @@ export default function CartTotals() {
               flexShrink: 0,
             }}>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <div style={{ flex: 1 }}>
@@ -296,7 +296,7 @@ export default function CartTotals() {
               aria-label="Close"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </button>
           </div>
@@ -315,7 +315,7 @@ export default function CartTotals() {
           }
         }
       `}</style>
-      
+
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
@@ -329,7 +329,7 @@ export default function CartTotals() {
                     {cartDrawer?.cartTotalsEnabled ? "Disable" : "Enable"}
                   </Button>
                 </InlineStack>
-                
+
                 {!cartDrawer?.cartTotalsEnabled && (
                   <Banner tone="warning">
                     This feature is currently disabled. Enable it to show customized cart totals.
@@ -478,8 +478,8 @@ export default function CartTotals() {
               <Text as="h3" variant="headingMd">
                 Preview
               </Text>
-              
-              <div style={{ 
+
+              <div style={{
                 backgroundColor: formState.backgroundColor,
                 padding: '16px',
                 borderRadius: '8px'

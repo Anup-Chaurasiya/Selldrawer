@@ -460,7 +460,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
 
-    return redirect("/app/cart-drawer");
+    return redirect(`/app/cart-drawer?version=${editingVersion}`);
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
@@ -732,7 +732,7 @@ export default function PromotionalBanner() {
     const formData = new FormData();
     formData.append("intent", "toggle");
     formData.append("enabled", (!cartDrawer?.promotionalBannerEnabled).toString());
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/promotional-banner?version=${editingVersion}` });
   }, [cartDrawer?.promotionalBannerEnabled, submit]);
 
   const handleAddSlide = useCallback((data: SlideFormData) => {
@@ -798,12 +798,12 @@ export default function PromotionalBanner() {
     formData.append("ctaTextColor", colorSettings.ctaTextColor);
     formData.append("ctaBackgroundColor", colorSettings.ctaBackgroundColor);
     formData.append("borderColor", colorSettings.borderColor);
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/promotional-banner?version=${editingVersion}` });
   }, [promotionalBanner?.id, carouselSettings, colorSettings, submit]);
 
   return (
     <Page
-      backAction={{ url: "/app/cart-drawer" }}
+      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
       title="Promotional Banner - Carousel Mode"
       primaryAction={{
         content: "Save",

@@ -52,7 +52,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (!cartDrawer) {
     cartDrawer = await prisma.cartDrawer.create({
-      data: { shop },
+      data: { shop, version: editingVersion },
       include: {
         freeGifts: {
           include: {
@@ -189,7 +189,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (!cartDrawer) {
     cartDrawer = await prisma.cartDrawer.create({
-      data: { shop }
+      data: { shop, version: editingVersion }
     });
   }
 
@@ -453,7 +453,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       where: { id: cartDrawer.id },
       data: { freeGiftsEnabled: true }
     });
-    return redirect("/app/cart-drawer");
+    return redirect(`/app/cart-drawer?version=${editingVersion}`);
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
@@ -527,7 +527,7 @@ export default function FreeGifts() {
     formData.append("giftProducts", JSON.stringify(selectedGiftProducts));
     formData.append("targets", JSON.stringify(selectedTargets));
 
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/free-gifts?version=${editingVersion}` });
     setShowModal(false);
   }, [formState, selectedGiftProducts, selectedTargets, editingFreeGift, submit]);
 
@@ -536,7 +536,7 @@ export default function FreeGifts() {
       const formData = new FormData();
       formData.append("intent", "delete-free-gift");
       formData.append("freeGiftId", freeGiftId);
-      submit(formData, { method: "post" });
+      submit(formData, { method: "post", action: `/app/cart-drawer/free-gifts?version=${editingVersion}` });
     }
   }, [submit]);
 
@@ -545,7 +545,7 @@ export default function FreeGifts() {
     formData.append("intent", "toggle-free-gift");
     formData.append("freeGiftId", freeGiftId);
     formData.append("isActive", (!isActive).toString());
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/free-gifts?version=${editingVersion}` });
   }, [submit]);
 
   const getFilteredProducts = () => {
@@ -628,12 +628,12 @@ export default function FreeGifts() {
   const handleEnableFreeGifts = () => {
     const formData = new FormData();
     formData.append("intent", "enable-free-gifts");
-    submit(formData, { method: "post" });
+    submit(formData, { method: "post", action: `/app/cart-drawer/free-gifts?version=${editingVersion}` });
   };
 
   return (
     <Page
-      backAction={{ url: "/app/cart-drawer" }}
+      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
       title="Free Gifts"
       primaryAction={{
         content: "Save",
