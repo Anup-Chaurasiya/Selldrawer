@@ -1323,7 +1323,7 @@ export default function CartDrawerIndex() {
                                 {feature!.enabled ? "Disable" : "Enable"}
                               </Button>
                               <Button
-                                url={feature!.path}
+                                url={`${feature!.path}?version=${editingVersion}`}
                                 variant="primary"
                               >
                                 Configure

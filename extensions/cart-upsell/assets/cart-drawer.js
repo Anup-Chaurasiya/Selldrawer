@@ -1,6 +1,6 @@
 /**
- * Upsellity Cart Drawer v1.0.9
- * Built: 2026-01-19T13:36:21.670Z
+ * Upsellity Cart Drawer v1.0.10
+ * Built: 2026-01-20T08:26:44.637Z
  */
 "use strict";
 (() => {
@@ -13855,8 +13855,8 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://ethnic-school-herein-witness.trycloudflare.com" : "https://app.upsellity.com";
-  var CART_DRAWER_VERSION = true ? "1.0.9" : "dev";
+  var APP_URL = true ? "https://acquire-express-volumes-fought.trycloudflare.com" : "https://app.upsellity.com";
+  var CART_DRAWER_VERSION = true ? "1.0.10" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {
       window.UPSELLITY_APP_URL = APP_URL;

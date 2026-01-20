@@ -44,7 +44,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const promotionalBanner = cartDrawer?.promotionalBanners[0] || null;
 
-  return json({ cartDrawer, promotionalBanner });
+  return json({ cartDrawer, promotionalBanner, editingVersion });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -652,7 +652,7 @@ function CarouselPreview({
 }
 
 export default function PromotionalBanner() {
-  const { cartDrawer, promotionalBanner } = useLoaderData<typeof loader>();
+  const { cartDrawer, promotionalBanner, editingVersion } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const actionData = useActionData<typeof action>();
@@ -733,7 +733,7 @@ export default function PromotionalBanner() {
     formData.append("intent", "toggle");
     formData.append("enabled", (!cartDrawer?.promotionalBannerEnabled).toString());
     submit(formData, { method: "post", action: `/app/cart-drawer/promotional-banner?version=${editingVersion}` });
-  }, [cartDrawer?.promotionalBannerEnabled, submit]);
+  }, [cartDrawer?.promotionalBannerEnabled, editingVersion, submit]);
 
   const handleAddSlide = useCallback((data: SlideFormData) => {
     if (!promotionalBanner?.id) {
@@ -799,7 +799,7 @@ export default function PromotionalBanner() {
     formData.append("ctaBackgroundColor", colorSettings.ctaBackgroundColor);
     formData.append("borderColor", colorSettings.borderColor);
     submit(formData, { method: "post", action: `/app/cart-drawer/promotional-banner?version=${editingVersion}` });
-  }, [promotionalBanner?.id, carouselSettings, colorSettings, submit]);
+  }, [promotionalBanner?.id, carouselSettings, colorSettings, editingVersion, submit]);
 
   return (
     <Page

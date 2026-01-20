@@ -460,7 +460,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function FreeGifts() {
-  const { cartDrawer, shopProducts, shopCollections } = useLoaderData<typeof loader>();
+  const { cartDrawer, shopProducts, shopCollections, editingVersion } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
 
@@ -529,7 +529,7 @@ export default function FreeGifts() {
 
     submit(formData, { method: "post", action: `/app/cart-drawer/free-gifts?version=${editingVersion}` });
     setShowModal(false);
-  }, [formState, selectedGiftProducts, selectedTargets, editingFreeGift, submit]);
+  }, [formState, selectedGiftProducts, selectedTargets, editingFreeGift, editingVersion, submit]);
 
   const handleDelete = useCallback((freeGiftId: string) => {
     if (confirm("Are you sure you want to delete this free gift?")) {

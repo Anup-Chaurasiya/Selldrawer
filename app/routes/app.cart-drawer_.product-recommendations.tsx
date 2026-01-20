@@ -353,7 +353,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function ProductRecommendations() {
-  const { cartDrawer, productRecommendation, shopProducts } = useLoaderData<typeof loader>();
+  const { cartDrawer, productRecommendation, shopProducts, editingVersion } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const revalidator = useRevalidator();

@@ -1,6 +1,6 @@
 /**
- * Upsellity Nudge Popup v1.0.9
- * Built: 2026-01-19T13:36:21.742Z
+ * Upsellity Nudge Popup v1.0.10
+ * Built: 2026-01-20T08:26:44.710Z
  */
 "use strict";
 (() => {
@@ -9180,7 +9180,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
-  var APP_URL = true ? "https://ethnic-school-herein-witness.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://acquire-express-volumes-fought.trycloudflare.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;

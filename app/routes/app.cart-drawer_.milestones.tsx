@@ -595,7 +595,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function CartMilestones() {
-  const { cartDrawer, shopProducts, shopCollections } = useLoaderData<typeof loader>();
+  const { cartDrawer, shopProducts, shopCollections, editingVersion } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
 
@@ -774,7 +774,7 @@ export default function CartMilestones() {
 
     submit(formData, { method: "post", action: `/app/cart-drawer/milestones?version=${editingVersion}` });
     setShowMilestoneModal(false);
-  }, [formState, selectedTargets, selectedGiftProducts, editingMilestone, eligibilitySource, eligibleCollectionHandle, eligibleProductIds, eligibleTag, submit]);
+  }, [formState, selectedTargets, selectedGiftProducts, editingMilestone, eligibilitySource, eligibleCollectionHandle, eligibleProductIds, eligibleTag, editingVersion, submit]);
 
   const handleDeleteMilestone = useCallback((milestoneId: string) => {
     if (confirm("Are you sure you want to delete this milestone?")) {
