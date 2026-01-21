@@ -39,6 +39,7 @@ import {
 import { checkAppEmbedEnabled } from "../utils/appEmbed.server";
 import { checkPlanAccess } from "../utils/planAccess.server";
 import { requireBilling } from "../utils/billing.server";
+import { initializeDefaultVersion } from "../services/cartDrawerVersions.server";
 import { PromotionalBannerCard } from "../components/shared/PromotionalBannerCard";
 import { ProductRecommendations } from "../components/shared/ProductRecommendations";
 import { FreeShippingBar } from "../components/shared/FreeShippingBar";
@@ -84,6 +85,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Get version parameter from URL (default to "default")
   const editingVersion = url.searchParams.get("version") || "default";
+
+  // CRITICAL: Initialize default version in database if it doesn't exist
+  await initializeDefaultVersion();
+
+  // If no version parameter in URL, redirect to include it
+  // This ensures the URL always shows which version you're editing
+  if (!url.searchParams.has("version")) {
+    const params = new URLSearchParams(url.search);
+    params.set("version", "default");
+    if (error) params.set("error", error);
+    return redirect(`/app/cart-drawer?${params.toString()}`);
+  }
 
   // Check billing - if no active payment, return redirect URL
   const billingRedirectUrl = await requireBilling(billing);
@@ -1365,6 +1378,12 @@ export default function CartDrawerIndex() {
         onClose={() => setShowVersionModal(false)}
         currentVersion={currentVersion}
         onVersionSwitch={(versionKey) => {
+          // Validate versionKey before navigation to prevent version=undefined
+          if (!versionKey || versionKey === 'undefined') {
+            console.error('Invalid version key:', versionKey);
+            setShowVersionModal(false);
+            return;
+          }
           setShowVersionModal(false);
           navigate(`/app/cart-drawer?version=${versionKey}`);
         }}

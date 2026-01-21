@@ -4,7 +4,7 @@ import { cors } from "remix-utils/cors";
 import prisma from "../db.server";
 import { normalizeFeatureOrder } from "../utils/featureOrder";
 import { checkPlanAccess } from "../utils/planAccess.server";
-import { getShopCartDrawerVersion } from "../services/cartDrawerVersions.server";
+import { getShopCartDrawerVersion, initializeDefaultVersion } from "../services/cartDrawerVersions.server";
 
 /**
  * Public API endpoint for cart drawer data
@@ -41,6 +41,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       const response = json({ error: planAccess.reason, hasAccess: false }, { status: 403 });
       return cors(request, response);
     }
+
+    // CRITICAL: Initialize default version to ensure it exists
+    await initializeDefaultVersion();
 
     // Determine which version this shop should see
     const assignedVersion = await getShopCartDrawerVersion(shop);

@@ -173,7 +173,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.error('Error fetching collections:', error);
   }
 
-  return json({ cartDrawer, shopProducts, shopCollections });
+  return json({ cartDrawer, shopProducts, shopCollections, editingVersion });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -1456,7 +1456,6 @@ export default function CartMilestones() {
                 title="Eligibility Source"
                 choices={[
                   { label: 'Collection', value: 'collection' },
-                  { label: 'Specific Products', value: 'products' },
                   { label: 'All Products', value: 'all_products' },
                   { label: 'None (No product recommendations)', value: 'none' },
                 ]}
@@ -1465,7 +1464,7 @@ export default function CartMilestones() {
                   setEligibilitySource(selected[0] as any);
                   // Reset other fields when changing source
                   if (selected[0] !== 'collection') setEligibleCollectionHandle('');
-                  if (selected[0] !== 'products') setEligibleProductIds([]);
+                  setEligibleProductIds([]);
                   setEligibleTag(''); // Always reset tag as it's no longer used
                 }}
               />
@@ -1486,30 +1485,7 @@ export default function CartMilestones() {
                 />
               )}
 
-              {eligibilitySource === 'products' && (
-                <BlockStack gap="200">
-                  <Button
-                    onClick={() => setShowEligibilityProductModal(true)}
-                    variant="secondary"
-                  >
-                    {eligibleProductIds.length > 0
-                      ? `${eligibleProductIds.length} product(s) selected`
-                      : 'Select products'}
-                  </Button>
-                  {eligibleProductIds.length > 0 && (
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      {eligibleProductIds.length} product(s) will be recommended
-                    </Text>
-                  )}
-                </BlockStack>
-              )}
-
-
-              {eligibilitySource !== 'none' && eligibilitySource !== 'all_products' && (
-                <Banner tone="warning">
-                  <p><strong>Priority:</strong> If multiple sources are configured, only the highest priority will be used: Collection → Specific Products</p>
-                </Banner>
-              )}
+              {/* Specific Products option removed - not supported due to inability to generate dynamic View All URLs */}
 
               <Divider />
 

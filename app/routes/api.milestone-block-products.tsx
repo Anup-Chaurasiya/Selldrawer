@@ -84,7 +84,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
             return cors(request, json({ error: "Storefront access token not configured for this shop" }, { status: 500 }));
         }
 
-        // Determine eligibility source (priority: collection > productIds > tag > all products)
+        // Determine eligibility source (priority: collection > all products)
+        // Note: productIds (Specific Products) is no longer supported due to lack of dynamic URL support
         let products: any[] = [];
         let collectionUrl: string | null = null;
         let eligibilitySource: string | null = null;
@@ -94,16 +95,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
             eligibilitySource = "collection";
             products = await fetchProductsByCollection(shop, storefrontAccessToken, milestone.eligibleCollectionHandle);
             collectionUrl = `/collections/${milestone.eligibleCollectionHandle}`;
-        } else if (milestone.eligibleProductIds && milestone.eligibleProductIds.length > 0) {
-            // Priority 2: Product IDs
-            eligibilitySource = "productIds";
-            products = await fetchProductsByHandles(shop, storefrontAccessToken, milestone.eligibleProductIds);
         } else if (milestone.eligibleTag) {
-            // Priority 3: Tag
+            // Priority 2: Tag (deprecated but kept for backward compatibility)
             eligibilitySource = "tag";
             products = await fetchProductsByTag(shop, storefrontAccessToken, milestone.eligibleTag);
         } else {
-            // Priority 4: All Products (no specific eligibility configured)
+            // Priority 3: All Products (no specific eligibility configured)
             eligibilitySource = "all_products";
             products = await fetchAllProducts(shop, storefrontAccessToken);
         }
@@ -122,22 +119,22 @@ export async function loader({ request }: LoaderFunctionArgs) {
         if (!availableProducts.length) {
             return cors(request, json({
                 products: [],
-                collectionUrl,
+                collectionUrl: null,
                 totalCount: 0,
                 message: "No eligible items found",
             }));
         }
 
-        // Filter by price >= remaining
+        // Filter by price > remaining (strictly greater to help unlock milestone)
         const thresholdMatches = availableProducts.filter((product) => {
             const variant = product.variants.edges[0]?.node;
             if (!variant) return false;
             const price = parseFloat(variant.price.amount);
-            return price >= remaining;
+            return price > remaining;
         });
 
-        // Fallback if < 5 products match
-        const finalPool = thresholdMatches.length >= 5 ? thresholdMatches : availableProducts;
+        // Use only products that meet the threshold (no fallback to all products)
+        const finalPool = thresholdMatches;
 
         // Rank products by price relevance
         const ranked = rankProductsByPriceDifference(finalPool, remaining);
@@ -145,11 +142,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
         // Limit to max 12 variants
         const limited = ranked.slice(0, 12);
 
-        // Build "Show All" link if using a collection + enough above-threshold
-        const filteredCollectionUrl =
-            collectionUrl && thresholdMatches.length >= 5
-                ? `${collectionUrl}?filter.v.price.gte=${Math.floor(remaining)}`
-                : collectionUrl;
+        // Build dynamic "View All" link with price filter
+        let filteredCollectionUrl: string | null = null;
+        if (eligibilitySource === "collection" && collectionUrl) {
+            // Collection eligibility: filter collection by price
+            filteredCollectionUrl = `${collectionUrl}?filter.v.price.gte=${Math.floor(remaining)}`;
+        } else if (eligibilitySource === "all_products") {
+            // All products: filter all products collection by price
+            filteredCollectionUrl = `/collections/all?filter.v.price.gte=${Math.floor(remaining)}`;
+        }
+        // Note: tag and productIds don't get View All links as they can't be properly filtered
 
         // Transform response
         const responseProducts = limited.map((p) => ({

@@ -170,7 +170,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.error('Error fetching collections:', error);
   }
 
-  return json({ cartDrawer, shopProducts, shopCollections });
+  return json({ cartDrawer, shopProducts, shopCollections, editingVersion });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {

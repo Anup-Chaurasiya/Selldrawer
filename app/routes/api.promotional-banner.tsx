@@ -1,6 +1,7 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import prisma from "../db.server";
+import { getShopCartDrawerVersion } from "../services/cartDrawerVersions.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
@@ -53,8 +54,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
 
     // Fallback: Get cart drawer configuration with promotional banner
+    // Determine which version this shop should see
+    const assignedVersion = await getShopCartDrawerVersion(normalizedShop);
+
     const cartDrawer = await prisma.cartDrawer.findUnique({
-      where: { shop: normalizedShop },
+      where: {
+        shop_version: {
+          shop: normalizedShop,
+          version: assignedVersion
+        }
+      },
       include: {
         promotionalBanners: {
           where: { isActive: true },

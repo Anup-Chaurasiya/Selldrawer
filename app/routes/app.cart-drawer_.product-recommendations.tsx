@@ -35,7 +35,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const cartDrawer = await prisma.cartDrawer.findUnique({
     where: { shop_version: { shop, version: editingVersion } },
     include: {
-      productRecommendations: { 
+      productRecommendations: {
         where: { isActive: true },
         include: {
           products: {
@@ -50,7 +50,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Fetch real products from Shopify store using GraphQL
   let shopProducts: any[] = [];
-  
+
   try {
     const response = await admin.graphql(`
       query getProducts($first: Int!, $query: String!) {
@@ -89,7 +89,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
 
     const responseJson = await response.json() as any;
-    
+
     // Check for GraphQL errors
     if (responseJson.errors) {
       throw new Error('Failed to fetch products from Shopify. Please check your Shopify connection.');
@@ -100,14 +100,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           const product = edge.node;
           const image = product.images.edges[0]?.node;
           const variant = product.variants.edges[0]?.node;
-          
+
           // Check if product is available (variant available and has inventory if tracked)
           const isAvailable = variant ? (
-            variant.availableForSale && 
-            (variant.inventoryQuantity === null || 
-             variant.inventoryQuantity > 0)
+            variant.availableForSale &&
+            (variant.inventoryQuantity === null ||
+              variant.inventoryQuantity > 0)
           ) : false;
-          
+
           return {
             id: product.handle, // Use handle as ID for frontend compatibility
             shopifyProductId: product.id.replace('gid://shopify/Product/', ''), // Keep numeric ID for reference
@@ -124,7 +124,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           };
         })
         .filter((product: any) => product.available); // Filter out out-of-stock products
-      
+
     } else {
       console.error('No products found in GraphQL response:', responseJson);
     }
@@ -134,8 +134,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // This allows the page to load even if product fetching fails
   }
 
-  
-  return json({ cartDrawer, productRecommendation, shopProducts });
+
+  return json({ cartDrawer, productRecommendation, shopProducts, editingVersion });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -155,7 +155,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const cartDrawer = await prisma.cartDrawer.findUnique({
         where: { shop_version: { shop, version: editingVersion } },
         include: {
-          productRecommendations: { 
+          productRecommendations: {
             where: { isActive: true },
             include: {
               products: {
@@ -167,23 +167,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
 
       if (!cartDrawer) {
-        return json({ 
-          success: false, 
-          error: "Configuration required. Please save the configuration first before enabling." 
+        return json({
+          success: false,
+          error: "Configuration required. Please save the configuration first before enabling."
         }, { status: 400 });
       }
 
-      const hasProducts = cartDrawer.productRecommendations.length > 0 && 
+      const hasProducts = cartDrawer.productRecommendations.length > 0 &&
         cartDrawer.productRecommendations.some(rec => rec.products && rec.products.length > 0);
 
       if (!hasProducts) {
-        return json({ 
-          success: false, 
-          error: "Configuration required. Please add at least one product before enabling." 
+        return json({
+          success: false,
+          error: "Configuration required. Please add at least one product before enabling."
         }, { status: 400 });
       }
     }
-    
+
     await prisma.cartDrawer.update({
       where: { shop_version: { shop, version: editingVersion } },
       data: { productRecommendationsEnabled: enabled },
@@ -278,39 +278,39 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               }
             }
           `, {
-            variables: { 
-              handle: productId 
+            variables: {
+              handle: productId
             }
           });
 
           const responseJson = await response.json() as any;
-          
+
           // Check for GraphQL errors
           if (responseJson.errors) {
             console.error(`GraphQL errors for product ${productId}:`, responseJson.errors);
             continue; // Skip this product and continue with the next one
           }
-          
+
           if (responseJson.data && responseJson.data.productByHandle) {
             const product = responseJson.data.productByHandle;
             const image = product.images.edges[0]?.node;
             const variant = product.variants.edges[0]?.node;
-            
+
             // Check if product is available before saving
             const isAvailable = variant ? (
-              variant.availableForSale && 
-              (variant.inventoryQuantity === null || 
-               variant.inventoryQuantity > 0)
+              variant.availableForSale &&
+              (variant.inventoryQuantity === null ||
+                variant.inventoryQuantity > 0)
             ) : false;
-            
+
             // Only save if product is available
             if (variant && isAvailable) {
               const variantId = variant.id.replace('gid://shopify/ProductVariant/', '');
-              
+
               // Shopify GraphQL returns prices in cents, convert to rupees for storage
               const priceInRupees = parseFloat(variant.price);
-              const compareAtPriceInRupees = variant.compareAtPrice ? parseFloat(variant.compareAtPrice): null;
-              
+              const compareAtPriceInRupees = variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null;
+
               await prisma.recommendedProduct.create({
                 data: {
                   recommendationId: recommendation.id,
@@ -342,7 +342,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
     }
 
-    return redirect("/app/cart-drawer", {
+    return redirect(`/app/cart-drawer?version=${editingVersion}`, {
       headers: {
         "Cache-Control": "no-cache, no-store, must-revalidate",
       }
@@ -359,7 +359,7 @@ export default function ProductRecommendations() {
   const revalidator = useRevalidator();
   const actionData = useActionData<typeof action>();
   const isLoading = navigation.state === "submitting";
-  
+
   // Check which action is being submitted
   const formData = navigation.formData;
   const submittingIntent = formData?.get("intent") as string | null;
@@ -372,8 +372,8 @@ export default function ProductRecommendations() {
   // Show toast notification when settings are saved successfully
   useEffect(() => {
     // Check if we just finished submitting a save action
-    const justFinishedSave = 
-      prevIsSubmitting.current && 
+    const justFinishedSave =
+      prevIsSubmitting.current &&
       prevSubmittingIntent.current === "save" &&
       !isLoading;
 
@@ -425,12 +425,12 @@ export default function ProductRecommendations() {
       const savedProducts = productRecommendation.products.map(p => {
         // Match by shopifyProductId (which is the handle) instead of title
         // shopifyProductId in RecommendedProduct is the product handle
-        const matchingProduct = shopProducts.find(sp => 
+        const matchingProduct = shopProducts.find(sp =>
           sp.handle === p.shopifyProductId || sp.id === p.shopifyProductId
         );
         return matchingProduct?.id || matchingProduct?.handle || '';
       }).filter(id => id !== '');
-      
+
       setSelectedProducts(savedProducts);
     } else if (!productRecommendation?.products || productRecommendation.products.length === 0) {
       // Clear selection if no products are saved
@@ -442,15 +442,16 @@ export default function ProductRecommendations() {
     const formData = new FormData();
     formData.append("intent", "toggle");
     formData.append("enabled", (!cartDrawer?.productRecommendationsEnabled).toString());
-    submit(formData, { 
+    submit(formData, {
       method: "post",
+      action: `/app/cart-drawer/product-recommendations?version=${editingVersion}`
       // Revalidate after submission to update UI instantly
     });
     // Revalidate immediately after toggle to ensure UI updates
     setTimeout(() => {
       revalidator.revalidate();
     }, 100);
-  }, [cartDrawer?.productRecommendationsEnabled, submit, revalidator]);
+  }, [cartDrawer?.productRecommendationsEnabled, submit, revalidator, editingVersion]);
 
   const handleProductToggle = useCallback((productId: string) => {
     setSelectedProducts(prev => {
@@ -471,7 +472,7 @@ export default function ProductRecommendations() {
     });
     formData.append("selectedProducts", JSON.stringify(selectedProducts));
     submit(formData, { method: "post", action: `/app/cart-drawer/product-recommendations?version=${editingVersion}` });
-  }, [formState, selectedProducts, submit]);
+  }, [formState, selectedProducts, submit, editingVersion]);
 
   // Filter products based on search query
   const filteredProducts = shopProducts.filter((product: any) =>
@@ -522,7 +523,7 @@ export default function ProductRecommendations() {
               flexShrink: 0,
             }}>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <div style={{ flex: 1 }}>
@@ -546,7 +547,7 @@ export default function ProductRecommendations() {
               aria-label="Close"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </button>
           </div>
@@ -565,7 +566,7 @@ export default function ProductRecommendations() {
           }
         }
       `}</style>
-      
+
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
@@ -579,7 +580,7 @@ export default function ProductRecommendations() {
                     {cartDrawer?.productRecommendationsEnabled ? "Disable" : "Enable"}
                   </Button>
                 </InlineStack>
-                
+
                 {!cartDrawer?.productRecommendationsEnabled && (
                   <Banner tone="warning">
                     This feature is currently disabled. Enable it to show product recommendations in your cart.
@@ -655,7 +656,7 @@ export default function ProductRecommendations() {
                       <Text as="p" variant="bodyMd" tone="subdued">
                         Choose which products to show as recommendations. You can select up to {formState.maxProducts} products.
                       </Text>
-                      
+
                       <TextField
                         label="Search Products"
                         value={searchQuery}
@@ -663,12 +664,12 @@ export default function ProductRecommendations() {
                         placeholder="Search for products..."
                         autoComplete="off"
                       />
-                      
+
                       {/* Product count info */}
-                      <div style={{ 
-                        padding: '8px 12px', 
-                        backgroundColor: '#f0f9ff', 
-                        border: '1px solid #bae6fd', 
+                      <div style={{
+                        padding: '8px 12px',
+                        backgroundColor: '#f0f9ff',
+                        border: '1px solid #bae6fd',
                         borderRadius: '4px',
                         fontSize: '12px',
                         color: '#0c4a6e'
@@ -687,11 +688,11 @@ export default function ProductRecommendations() {
                               const price = variant ? parseFloat(variant.price) : 0;
                               const comparePrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null;
                               const discountPercent = comparePrice && comparePrice > price ? Math.round(((comparePrice - price) / comparePrice) * 100) : 0;
-                              
+
                               return (
-                                <div 
-                                  key={product.id} 
-                                  style={{ 
+                                <div
+                                  key={product.id}
+                                  style={{
                                     border: isSelected ? '2px solid #3b82f6' : '1px solid #e5e7eb',
                                     borderRadius: '8px',
                                     padding: '16px',
@@ -704,21 +705,21 @@ export default function ProductRecommendations() {
                                   <div style={{ display: 'flex', gap: '12px' }}>
                                     <div style={{ flexShrink: 0 }}>
                                       {product.images?.[0]?.src ? (
-                                        <img 
-                                          src={product.images[0].src} 
+                                        <img
+                                          src={product.images[0].src}
                                           alt={product.title}
-                                          style={{ 
-                                            width: '80px', 
-                                            height: '80px', 
+                                          style={{
+                                            width: '80px',
+                                            height: '80px',
                                             objectFit: 'cover',
                                             borderRadius: '6px',
                                             border: '1px solid #e5e7eb'
                                           }}
                                         />
                                       ) : (
-                                        <div style={{ 
-                                          width: '80px', 
-                                          height: '80px', 
+                                        <div style={{
+                                          width: '80px',
+                                          height: '80px',
                                           backgroundColor: '#f3f4f6',
                                           borderRadius: '6px',
                                           border: '1px solid #e5e7eb',
@@ -733,10 +734,10 @@ export default function ProductRecommendations() {
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                                        <h4 style={{ 
-                                          fontSize: '14px', 
-                                          fontWeight: '600', 
-                                          margin: 0, 
+                                        <h4 style={{
+                                          fontSize: '14px',
+                                          fontWeight: '600',
+                                          margin: 0,
                                           color: '#111827',
                                           lineHeight: '1.4'
                                         }}>
@@ -748,20 +749,20 @@ export default function ProductRecommendations() {
                                           onChange={() => handleProductToggle(product.id)}
                                         />
                                       </div>
-                                      
+
                                       <div style={{ marginBottom: '8px' }}>
                                         {comparePrice && comparePrice > price ? (
                                           <div>
-                                            <span style={{ 
-                                              textDecoration: 'line-through', 
+                                            <span style={{
+                                              textDecoration: 'line-through',
                                               color: '#9ca3af',
                                               fontSize: '12px',
                                               marginRight: '6px'
                                             }}>
                                               ₹{Math.round(comparePrice)}
                                             </span>
-                                            <span style={{ 
-                                              fontWeight: '600', 
+                                            <span style={{
+                                              fontWeight: '600',
                                               fontSize: '14px',
                                               color: '#111827'
                                             }}>
@@ -769,8 +770,8 @@ export default function ProductRecommendations() {
                                             </span>
                                           </div>
                                         ) : (
-                                          <span style={{ 
-                                            fontWeight: '600', 
+                                          <span style={{
+                                            fontWeight: '600',
                                             fontSize: '14px',
                                             color: '#111827'
                                           }}>
@@ -778,7 +779,7 @@ export default function ProductRecommendations() {
                                           </span>
                                         )}
                                       </div>
-                                      
+
                                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                         <Badge tone={product.status === 'active' ? 'success' : 'warning'}>
                                           {product.status}
@@ -797,9 +798,9 @@ export default function ProductRecommendations() {
                           </div>
                         ) : (
                           <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-                            <div style={{ 
-                              width: '80px', 
-                              height: '80px', 
+                            <div style={{
+                              width: '80px',
+                              height: '80px',
                               backgroundColor: '#f3f4f6',
                               borderRadius: '50%',
                               display: 'flex',
@@ -822,23 +823,23 @@ export default function ProductRecommendations() {
 
                       {selectedProducts.length > 0 && (
                         <div>
-                      <div style={{ marginBottom: '12px' }}>
-                        <Text as="p" variant="bodyMd" fontWeight="semibold">
-                          Selected Products ({selectedProducts.length}/{formState.maxProducts})
-                        </Text>
-                      </div>
+                          <div style={{ marginBottom: '12px' }}>
+                            <Text as="p" variant="bodyMd" fontWeight="semibold">
+                              Selected Products ({selectedProducts.length}/{formState.maxProducts})
+                            </Text>
+                          </div>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
                             {selectedProducts.map((productId, index) => {
                               const product = shopProducts.find((p: any) => p.id === productId);
                               if (!product) return null;
-                              
+
                               const variant = product.variants?.[0];
                               const price = variant ? parseFloat(variant.price) : 0;
                               const comparePrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null;
                               const discountPercent = comparePrice && comparePrice > price ? Math.round(((comparePrice - price) / comparePrice) * 100) : 0;
-                              
+
                               return (
-                                <div key={productId} style={{ 
+                                <div key={productId} style={{
                                   border: '1px solid #e5e7eb',
                                   borderRadius: '8px',
                                   padding: '12px',
@@ -848,21 +849,21 @@ export default function ProductRecommendations() {
                                   <div style={{ display: 'flex', gap: '8px' }}>
                                     <div style={{ flexShrink: 0 }}>
                                       {product.images?.[0]?.src ? (
-                                        <img 
-                                          src={product.images[0].src} 
+                                        <img
+                                          src={product.images[0].src}
                                           alt={product.title}
-                                          style={{ 
-                                            width: '60px', 
-                                            height: '60px', 
+                                          style={{
+                                            width: '60px',
+                                            height: '60px',
                                             objectFit: 'cover',
                                             borderRadius: '4px',
                                             border: '1px solid #e5e7eb'
                                           }}
                                         />
                                       ) : (
-                                        <div style={{ 
-                                          width: '60px', 
-                                          height: '60px', 
+                                        <div style={{
+                                          width: '60px',
+                                          height: '60px',
                                           backgroundColor: '#f3f4f6',
                                           borderRadius: '4px',
                                           border: '1px solid #e5e7eb',
@@ -876,29 +877,29 @@ export default function ProductRecommendations() {
                                       )}
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                      <h5 style={{ 
-                                        fontSize: '12px', 
-                                        fontWeight: '600', 
-                                        margin: '0 0 4px', 
+                                      <h5 style={{
+                                        fontSize: '12px',
+                                        fontWeight: '600',
+                                        margin: '0 0 4px',
                                         color: '#111827',
                                         lineHeight: '1.3'
                                       }}>
                                         {product.title.length > 20 ? product.title.substring(0, 20) + '...' : product.title}
                                       </h5>
-                                      
+
                                       <div style={{ marginBottom: '4px' }}>
                                         {comparePrice && comparePrice > price ? (
                                           <div>
-                                            <span style={{ 
-                                              textDecoration: 'line-through', 
+                                            <span style={{
+                                              textDecoration: 'line-through',
                                               color: '#9ca3af',
                                               fontSize: '10px',
                                               marginRight: '4px'
                                             }}>
                                               ₹{Math.round(comparePrice)}
                                             </span>
-                                            <span style={{ 
-                                              fontWeight: '600', 
+                                            <span style={{
+                                              fontWeight: '600',
                                               fontSize: '12px',
                                               color: '#111827'
                                             }}>
@@ -906,8 +907,8 @@ export default function ProductRecommendations() {
                                             </span>
                                           </div>
                                         ) : (
-                                          <span style={{ 
-                                            fontWeight: '600', 
+                                          <span style={{
+                                            fontWeight: '600',
                                             fontSize: '12px',
                                             color: '#111827'
                                           }}>
@@ -915,7 +916,7 @@ export default function ProductRecommendations() {
                                           </span>
                                         )}
                                       </div>
-                                      
+
                                       {discountPercent > 0 && (
                                         <Badge tone="info" size="small">
                                           {`${discountPercent}% off`}
@@ -923,24 +924,24 @@ export default function ProductRecommendations() {
                                       )}
                                     </div>
                                   </div>
-                                  
-                                  <div style={{ 
-                                    position: 'absolute', 
-                                    top: '8px', 
+
+                                  <div style={{
+                                    position: 'absolute',
+                                    top: '8px',
                                     right: '8px',
                                     display: 'flex',
                                     gap: '4px'
                                   }}>
-                             <span style={{
-                               fontSize: '10px',
-                               color: '#6b7280',
-                               backgroundColor: '#f3f4f6',
-                               padding: '2px 6px',
-                               borderRadius: '4px',
-                               fontWeight: '600'
-                             }}>
-                               #{String(index + 1)}
-                             </span>
+                                    <span style={{
+                                      fontSize: '10px',
+                                      color: '#6b7280',
+                                      backgroundColor: '#f3f4f6',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      fontWeight: '600'
+                                    }}>
+                                      #{String(index + 1)}
+                                    </span>
                                     <button
                                       onClick={() => handleProductToggle(productId)}
                                       style={{
@@ -976,8 +977,8 @@ export default function ProductRecommendations() {
                     <BlockStack gap="400">
                       <Banner tone="info">
                         <Text as="p" variant="bodyMd">
-                          {formState.recommendationType === "related" 
-                            ? "Related Products" 
+                          {formState.recommendationType === "related"
+                            ? "Related Products"
                             : "Complementary Products"} will be automatically fetched from Shopify's recommendation engine based on the products in the customer's cart. No manual product selection is needed.
                         </Text>
                       </Banner>
@@ -996,34 +997,34 @@ export default function ProductRecommendations() {
               <Text as="h3" variant="headingMd">
                 Preview
               </Text>
-              
+
               {/* Preview using shared component */}
               {(() => {
                 // Prepare products for the shared component
                 const previewProducts = selectedProducts.length > 0
                   ? selectedProducts.slice(0, parseInt(formState.maxProducts)).map((productId) => {
-                      const product = shopProducts.find((p: any) => p.id === productId);
-                      if (!product) return null;
-                      
-                      const variant = product.variants?.[0];
-                      const price = variant ? parseFloat(variant.price) : 0;
-                      const comparePrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null;
-                      
-                      return {
-                        id: product.id,
-                        title: product.title,
-                        price: price ? parseFloat(price.toString()) : 0,
-                        compareAtPrice: comparePrice ? parseFloat(comparePrice.toString()) : null,
-                        imageUrl: product.images?.[0]?.src || null,
-                        variantId: product.shopifyProductId || product.id,
-                      };
-                    }).filter(Boolean)
+                    const product = shopProducts.find((p: any) => p.id === productId);
+                    if (!product) return null;
+
+                    const variant = product.variants?.[0];
+                    const price = variant ? parseFloat(variant.price) : 0;
+                    const comparePrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null;
+
+                    return {
+                      id: product.id,
+                      title: product.title,
+                      price: price ? parseFloat(price.toString()) : 0,
+                      compareAtPrice: comparePrice ? parseFloat(comparePrice.toString()) : null,
+                      imageUrl: product.images?.[0]?.src || null,
+                      variantId: product.shopifyProductId || product.id,
+                    };
+                  }).filter(Boolean)
                   : [
-                      { id: 'sample1', title: 'Sample Product 1', price: 99900, compareAtPrice: 149900, imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=60&h=60&fit=crop&crop=center', variantId: 'sample1' },
-                      { id: 'sample2', title: 'Sample Product 2', price: 129900, compareAtPrice: null, imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=60&h=60&fit=crop&crop=center', variantId: 'sample2' },
-                      { id: 'sample3', title: 'Sample Product 3', price: 159900, compareAtPrice: 199900, imageUrl: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=60&h=60&fit=crop&crop=center', variantId: 'sample3' },
-                      { id: 'sample4', title: 'Sample Product 4', price: 89900, compareAtPrice: null, imageUrl: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=60&h=60&fit=crop&crop=center', variantId: 'sample4' }
-                    ];
+                    { id: 'sample1', title: 'Sample Product 1', price: 99900, compareAtPrice: 149900, imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=60&h=60&fit=crop&crop=center', variantId: 'sample1' },
+                    { id: 'sample2', title: 'Sample Product 2', price: 129900, compareAtPrice: null, imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=60&h=60&fit=crop&crop=center', variantId: 'sample2' },
+                    { id: 'sample3', title: 'Sample Product 3', price: 159900, compareAtPrice: 199900, imageUrl: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=60&h=60&fit=crop&crop=center', variantId: 'sample3' },
+                    { id: 'sample4', title: 'Sample Product 4', price: 89900, compareAtPrice: null, imageUrl: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=60&h=60&fit=crop&crop=center', variantId: 'sample4' }
+                  ];
 
                 return (
                   <ProductRecommendationsComponent
@@ -1034,7 +1035,7 @@ export default function ProductRecommendations() {
                     showDiscount={formState.showDiscount}
                     showDiscountBadge={formState.showDiscountBadge}
                     showAddButton={formState.showAddButton}
-                    onAddToCart={() => {}}
+                    onAddToCart={() => { }}
                     isPreview={true}
                   />
                 );
