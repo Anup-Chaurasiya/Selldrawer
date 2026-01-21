@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.9
- * Built: 2026-01-21T09:56:38.722Z
+ * Built: 2026-01-21T10:53:18.622Z
  */
 "use strict";
 (() => {
@@ -13224,8 +13224,7 @@
       }
     }
     async loadCart(cartData = null, skipRender = false, skipGiftSync = false) {
-      var _a2, _b, _c, _d, _e, _f, _g, _h, _i;
-      console.log("This is fucking loadCart");
+      var _a2, _b, _c, _d, _e;
       try {
         if (cartData) {
           this.cart = cartData;
@@ -13236,35 +13235,20 @@
         if (!skipRender) {
           this.render();
         }
+        if (!skipGiftSync) {
+          this.loadSecondaryDataAsync();
+        }
         const promises = [
           loadProductCompareAtPrices(this.cart),
           loadAvailableDiscounts(this.appUrl, this.shop, this.config),
           loadShopifyRecommendations(this.cart, this.config)
         ];
-        console.log("loading promises now");
         const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
-        if (!skipGiftSync) {
-          if ((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.milestonesEnabled) {
-            await this.loadMilestones();
-          } else {
-            console.log("Upsellity: Milestones disabled, cleaning up milestone gifts");
-            const allGifts = getAllGiftsInCart(this.cart);
-            for (const giftItem of allGifts) {
-              await removeGiftFromCart(giftItem.key);
-            }
-            const response = await fetch("/cart.js");
-            this.cart = await response.json();
-          }
-          if ((_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.freeGiftsEnabled) {
-            await this.loadFreeGifts();
-          }
-        }
         this.productCompareAtPrices = productCompareAtPrices;
         this.availableDiscounts = availableDiscounts;
-        if (((_f = (_e = this.config) == null ? void 0 : _e.features) == null ? void 0 : _f.couponCodeField) && ((_i = (_h = (_g = this.config) == null ? void 0 : _g.features) == null ? void 0 : _h.couponCodeField) == null ? void 0 : _i.enableAutoApply) && !this.getDiscountFromCart() && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
+        if (((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.couponCodeField) && ((_e = (_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.couponCodeField) == null ? void 0 : _e.enableAutoApply) && !this.getDiscountFromCart() && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
           await autoApplyBestDiscount(this.availableDiscounts, this.config, this.loadCart.bind(this));
         }
-        console.log("loaded");
         if (!skipRender) {
           this.render();
         }
@@ -13278,6 +13262,30 @@
         if (!skipRender) {
           this.render();
         }
+      }
+    }
+    // OPTIMIZATION: Load milestones and gifts asynchronously without blocking
+    async loadSecondaryDataAsync() {
+      var _a2, _b, _c, _d;
+      try {
+        if ((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.milestonesEnabled) {
+          await this.loadMilestones();
+        } else {
+          const allGifts = getAllGiftsInCart(this.cart);
+          if (allGifts.length > 0) {
+            for (const giftItem of allGifts) {
+              await removeGiftFromCart(giftItem.key);
+            }
+            const response = await fetch("/cart.js");
+            this.cart = await response.json();
+          }
+        }
+        if ((_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.freeGiftsEnabled) {
+          await this.loadFreeGifts();
+        }
+        this.render();
+      } catch (error) {
+        console.error("Upsellity: Failed to load secondary data", error);
       }
     }
     interceptAddToCart() {
@@ -13502,7 +13510,7 @@
       }
     }
     async loadSecondaryData() {
-      var _a2, _b, _c, _d, _e, _f, _g, _h, _i;
+      var _a2, _b, _c, _d, _e;
       try {
         const promises = [
           loadProductCompareAtPrices(this.cart),
@@ -13512,13 +13520,8 @@
         const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
         this.productCompareAtPrices = productCompareAtPrices;
         this.availableDiscounts = availableDiscounts;
-        if ((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.milestonesEnabled) {
-          await this.loadMilestones();
-        }
-        if ((_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.freeGiftsEnabled) {
-          await this.loadFreeGifts();
-        }
-        if (((_f = (_e = this.config) == null ? void 0 : _e.features) == null ? void 0 : _f.couponCodeField) && ((_i = (_h = (_g = this.config) == null ? void 0 : _g.features) == null ? void 0 : _h.couponCodeField) == null ? void 0 : _i.enableAutoApply) && !this.getDiscountFromCart() && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
+        this.loadSecondaryDataAsync();
+        if (((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.couponCodeField) && ((_e = (_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.couponCodeField) == null ? void 0 : _e.enableAutoApply) && !this.getDiscountFromCart() && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
           await autoApplyBestDiscount(this.availableDiscounts, this.config, this.loadCart.bind(this));
         }
         this.render();
@@ -13873,7 +13876,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://initial-spray-controlling-harvey.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://university-bike-yoga-destinations.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.9" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {
