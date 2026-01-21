@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.9
- * Built: 2026-01-15T02:33:52.543Z
+ * Built: 2026-01-21T09:56:38.722Z
  */
 "use strict";
 (() => {
@@ -10409,6 +10409,7 @@
   var CartItemRow = ({
     item,
     productCompareAtPrices,
+    isPending = false,
     onUpdateQuantity,
     onRemoveItem,
     isPreview,
@@ -10611,22 +10612,23 @@
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                     "button",
                     {
-                      onClick: () => !isPreview && !isUpdating && onUpdateQuantity(item.key, item.quantity - 1),
-                      disabled: isPreview || item.quantity <= 1 || isUpdating,
+                      onClick: () => !isPreview && !isUpdating && !isPending && onUpdateQuantity(item.key, item.quantity - 1),
+                      disabled: isPreview || item.quantity <= 1 || isUpdating || isPending,
                       style: {
                         width: "24px",
                         height: "24px",
                         border: "none",
-                        backgroundColor: isPreview || item.quantity <= 1 || isUpdating ? "#f3f4f6" : "#ffffff",
-                        color: isPreview || item.quantity <= 1 || isUpdating ? "#9ca3af" : "#374151",
+                        backgroundColor: isPreview || item.quantity <= 1 || isUpdating || isPending ? "#f3f4f6" : "#ffffff",
+                        color: isPreview || item.quantity <= 1 || isUpdating || isPending ? "#9ca3af" : "#374151",
                         borderRadius: "4px",
-                        cursor: isPreview || item.quantity <= 1 || isUpdating ? "not-allowed" : "pointer",
+                        cursor: isPreview || item.quantity <= 1 || isUpdating || isPending ? "not-allowed" : "pointer",
                         fontSize: "16px",
                         fontWeight: "700",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        transition: "background-color 0.2s"
+                        transition: "background-color 0.2s",
+                        opacity: isPending ? 0.6 : 1
                       },
                       children: "\u2212"
                     }
@@ -10641,7 +10643,7 @@
                       onBlur: handleBlur,
                       onFocus: handleFocus,
                       onKeyDown: handleKeyDown,
-                      disabled: isPreview || isUpdating,
+                      disabled: isPreview || isUpdating || isPending,
                       style: {
                         minWidth: "32px",
                         maxWidth: "48px",
@@ -10652,32 +10654,34 @@
                         border: "none",
                         outline: "none",
                         backgroundColor: "transparent",
-                        cursor: isPreview || isUpdating ? "not-allowed" : "text",
+                        cursor: isPreview || isUpdating || isPending ? "not-allowed" : "text",
                         padding: "2px 4px",
                         borderRadius: "2px",
-                        transition: "background-color 0.2s"
+                        transition: "background-color 0.2s",
+                        opacity: isPending ? 0.6 : 1
                       }
                     }
                   ),
                   /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                     "button",
                     {
-                      onClick: () => !isPreview && !isUpdating && onUpdateQuantity(item.key, item.quantity + 1),
-                      disabled: isPreview || isUpdating,
+                      onClick: () => !isPreview && !isUpdating && !isPending && onUpdateQuantity(item.key, item.quantity + 1),
+                      disabled: isPreview || isUpdating || isPending,
                       style: {
                         width: "24px",
                         height: "24px",
                         border: "none",
-                        backgroundColor: isPreview || isUpdating ? "#f3f4f6" : "#ffffff",
-                        color: isPreview || isUpdating ? "#9ca3af" : "#374151",
+                        backgroundColor: isPreview || isUpdating || isPending ? "#f3f4f6" : "#ffffff",
+                        color: isPreview || isUpdating || isPending ? "#9ca3af" : "#374151",
                         borderRadius: "4px",
-                        cursor: isPreview || isUpdating ? "not-allowed" : "pointer",
+                        cursor: isPreview || isUpdating || isPending ? "not-allowed" : "pointer",
                         fontSize: "16px",
                         fontWeight: "700",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        transition: "background-color 0.2s"
+                        transition: "background-color 0.2s",
+                        opacity: isPending ? 0.6 : 1
                       },
                       children: "+"
                     }
@@ -10686,8 +10690,8 @@
                 /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                   "button",
                   {
-                    onClick: () => !isPreview && onRemoveItem(item.key),
-                    disabled: isPreview,
+                    onClick: () => !isPreview && !isPending && onRemoveItem(item.key),
+                    disabled: isPreview || isPending,
                     title: "Remove item",
                     style: {
                       width: "32px",
@@ -10695,12 +10699,13 @@
                       border: "none",
                       backgroundColor: "transparent",
                       color: "#4a4a4a",
-                      cursor: "pointer",
+                      cursor: isPreview || isPending ? "not-allowed" : "pointer",
                       borderRadius: "6px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      transition: "background-color 0.2s"
+                      transition: "background-color 0.2s",
+                      opacity: isPending ? 0.6 : 1
                     },
                     children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
                       /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("polyline", { points: "3,6 5,6 21,6" }),
@@ -10720,6 +10725,7 @@
   var CartItems = ({
     items,
     productCompareAtPrices,
+    pendingOperations,
     onUpdateQuantity = () => {
     },
     onRemoveItem = () => {
@@ -10767,6 +10773,7 @@
       {
         item,
         productCompareAtPrices,
+        isPending: pendingOperations == null ? void 0 : pendingOperations.has(item.key),
         onUpdateQuantity,
         onRemoveItem,
         isPreview,
@@ -12662,6 +12669,7 @@
     productCompareAtPrices,
     freeGifts,
     selectedGiftId,
+    pendingOperations,
     onClose,
     onCheckout,
     onAddProductToCart,
@@ -12920,6 +12928,7 @@
         {
           items: cart.items,
           productCompareAtPrices,
+          pendingOperations,
           onUpdateQuantity,
           onRemoveItem,
           isPreview: false
@@ -13067,6 +13076,7 @@
       this.isSyncingGifts = false;
       this.freeGifts = [];
       this.selectedGiftId = null;
+      this.pendingOperations = /* @__PURE__ */ new Set();
       this.init();
     }
     async init() {
@@ -13215,6 +13225,7 @@
     }
     async loadCart(cartData = null, skipRender = false, skipGiftSync = false) {
       var _a2, _b, _c, _d, _e, _f, _g, _h, _i;
+      console.log("This is fucking loadCart");
       try {
         if (cartData) {
           this.cart = cartData;
@@ -13230,6 +13241,7 @@
           loadAvailableDiscounts(this.appUrl, this.shop, this.config),
           loadShopifyRecommendations(this.cart, this.config)
         ];
+        console.log("loading promises now");
         const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
         if (!skipGiftSync) {
           if ((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.milestonesEnabled) {
@@ -13252,6 +13264,7 @@
         if (((_f = (_e = this.config) == null ? void 0 : _e.features) == null ? void 0 : _f.couponCodeField) && ((_i = (_h = (_g = this.config) == null ? void 0 : _g.features) == null ? void 0 : _h.couponCodeField) == null ? void 0 : _i.enableAutoApply) && !this.getDiscountFromCart() && this.availableDiscounts.length > 0 && !wasDiscountRemoved()) {
           await autoApplyBestDiscount(this.availableDiscounts, this.config, this.loadCart.bind(this));
         }
+        console.log("loaded");
         if (!skipRender) {
           this.render();
         }
@@ -13433,6 +13446,7 @@
           unlockedMilestone: this.unlockedMilestone,
           freeGifts: this.freeGifts,
           selectedGiftId: this.selectedGiftId,
+          pendingOperations: this.pendingOperations,
           onClose: () => this.close(),
           onCheckout: () => this.handleCheckout(),
           onAddProductToCart: (variantId) => this.addProductToCart(variantId, 1, { "_upsell_source": "cart_drawer_recommendation" }),
@@ -13623,6 +13637,11 @@
       await addProductToCartByHandle(productHandle, variantId, quantity, this.loadCart.bind(this), properties);
     }
     async updateQuantity(itemKey, newQuantity) {
+      if (this.pendingOperations.has(itemKey)) {
+        console.log("Upsellity: Operation already pending for item", itemKey);
+        return;
+      }
+      this.pendingOperations.add(itemKey);
       try {
         await updateQuantity(itemKey, newQuantity, async (updatedCart) => {
           await this.loadCart(updatedCart);
@@ -13631,14 +13650,24 @@
         await this.loadCart();
         this.render();
       } finally {
+        this.pendingOperations.delete(itemKey);
         document.dispatchEvent(new CustomEvent("cart:updated"));
       }
     }
     async removeItem(itemKey) {
-      await removeItem(itemKey, async (updatedCart) => {
-        await this.loadCart(updatedCart);
-        document.dispatchEvent(new CustomEvent("cart:updated"));
-      }, this.render.bind(this));
+      if (this.pendingOperations.has(itemKey)) {
+        console.log("Upsellity: Operation already pending for item", itemKey);
+        return;
+      }
+      this.pendingOperations.add(itemKey);
+      try {
+        await removeItem(itemKey, async (updatedCart) => {
+          await this.loadCart(updatedCart);
+          document.dispatchEvent(new CustomEvent("cart:updated"));
+        }, this.render.bind(this));
+      } finally {
+        this.pendingOperations.delete(itemKey);
+      }
     }
     // Get discount from Shopify cart
     getDiscountFromCart() {
@@ -13844,7 +13873,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://initial-spray-controlling-harvey.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.9" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

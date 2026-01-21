@@ -1,6 +1,6 @@
 /**
  * Upsellity Milestone Block v1.0.9
- * Built: 2026-01-15T02:33:52.644Z
+ * Built: 2026-01-21T09:56:38.719Z
  */
 "use strict";
 (() => {
@@ -9465,7 +9465,7 @@
 
   // extensions/cart-upsell/assets/modules/milestone-block-entry.js
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://initial-spray-controlling-harvey.trycloudflare.com" : "https://app.upsellity.com";
   function initMilestoneBlocks() {
     const containers = document.querySelectorAll(".upsellity-milestone-container");
     if (containers.length === 0) {
