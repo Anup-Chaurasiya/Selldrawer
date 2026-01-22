@@ -913,3 +913,70 @@ model ShopCartDrawerVersionAssignment {
   @@index([shop])
   @@index([versionId])
 }
+
+// Gifting Block - Standalone free gifts feature for theme extension
+model GiftingBlock {
+  id        String          @id @default(cuid())
+  shop      String          @unique
+  isActive  Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  gifts     BlockFreeGift[]
+
+  @@index([shop])
+  @@index([shop, isActive])
+}
+
+model BlockFreeGift {
+  id                String                 @id @default(cuid())
+  giftingBlockId    String
+  shop              String
+  name              String
+  isActive          Boolean                @default(true)
+  triggerType       String                 @default("spend") // spend, quantity, products, collections
+  triggerValue      Decimal                @default(0)
+  customerLimit     Int                    @default(1) // How many gifts customer can choose
+  priority          Int                    @default(0)
+  shopifyDiscountId String?
+  discountCode      String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  giftingBlock      GiftingBlock           @relation(fields: [giftingBlockId], references: [id], onDelete: Cascade)
+  giftProducts      BlockFreeGiftProduct[]
+  targets           BlockFreeGiftTarget[]
+
+  @@index([giftingBlockId])
+  @@index([shop, isActive])
+  @@index([priority])
+}
+
+model BlockFreeGiftProduct {
+  id               String        @id @default(cuid())
+  freeGiftId       String
+  shopifyProductId String
+  shopifyVariantId String?
+  title            String
+  price            Decimal
+  compareAtPrice   Decimal?
+  imageUrl         String?
+  handle           String
+  position         Int           @default(0)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  freeGift         BlockFreeGift @relation(fields: [freeGiftId], references: [id], onDelete: Cascade)
+
+  @@index([freeGiftId])
+  @@index([position])
+}
+
+model BlockFreeGiftTarget {
+  id         String        @id @default(cuid())
+  freeGiftId String
+  shopifyId  String        // Product or Collection ID
+  type       String        // "product" or "collection"
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  freeGift   BlockFreeGift @relation(fields: [freeGiftId], references: [id], onDelete: Cascade)
+
+  @@index([freeGiftId])
+}

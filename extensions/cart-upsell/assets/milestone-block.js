@@ -1,6 +1,6 @@
 /**
  * Upsellity Milestone Block v1.0.11
- * Built: 2026-01-21T11:02:03.000Z
+ * Built: 2026-01-22T14:50:07.458Z
  */
 "use strict";
 (() => {
@@ -9473,7 +9473,7 @@
 
   // extensions/cart-upsell/assets/modules/milestone-block-entry.js
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://tions-counted-dpi-promote.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://ask-frozen-coastal-sean.trycloudflare.com" : "https://app.upsellity.com";
   function initMilestoneBlocks() {
     const containers = document.querySelectorAll(".upsellity-milestone-container");
     if (containers.length === 0) {

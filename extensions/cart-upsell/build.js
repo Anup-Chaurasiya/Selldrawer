@@ -12,7 +12,7 @@ function getConfig() {
     const configContent = readFileSync(join(__dirname, 'config.js'), 'utf-8');
     const versionMatch = configContent.match(/export const VERSION = ['"](.+)['"]/);
     const appUrlMatch = configContent.match(/export const APP_URL = ['"](.+)['"]/);
-    
+
     return {
       version: versionMatch ? versionMatch[1] : '1.0.0',
       appUrl: appUrlMatch ? appUrlMatch[1] : 'https://app.upsellity.com'
@@ -30,9 +30,9 @@ async function build() {
   try {
     const config = getConfig();
     const { version, appUrl } = config;
-    
+
     console.log(`📦 Building with VERSION: ${version}, APP_URL: ${appUrl}`);
-    
+
     // Build Cart Drawer
     await esbuild.build({
       entryPoints: [join(__dirname, 'assets/modules/cart-drawer-entry.js')],
@@ -59,14 +59,14 @@ async function build() {
       },
       external: [],
     });
-    
+
     // Add version banner to cart-drawer
     const cartDrawerFile = join(__dirname, 'assets/cart-drawer.js');
     const cartDrawerContent = readFileSync(cartDrawerFile, 'utf-8');
     const cartDrawerBanner = `/**\n * Upsellity Cart Drawer v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
     writeFileSync(cartDrawerFile, cartDrawerBanner + cartDrawerContent);
-    
-    
+
+
     // Build FBT Widget
     await esbuild.build({
       entryPoints: [join(__dirname, 'assets/modules/fbt-widget-entry.js')],
@@ -93,14 +93,14 @@ async function build() {
       },
       external: [],
     });
-    
+
     // Add version banner to fbt-widget
     const fbtWidgetFile = join(__dirname, 'assets/fbt-widget.js');
     const fbtWidgetContent = readFileSync(fbtWidgetFile, 'utf-8');
     const fbtWidgetBanner = `/**\n * Upsellity FBT Widget v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
     writeFileSync(fbtWidgetFile, fbtWidgetBanner + fbtWidgetContent);
-    
-    
+
+
     // Build Nudge Popup
     await esbuild.build({
       entryPoints: [join(__dirname, 'assets/modules/nudge-popup-entry.js')],
@@ -127,14 +127,14 @@ async function build() {
       },
       external: [],
     });
-    
+
     // Add version banner to nudge-popup
     const nudgePopupFile = join(__dirname, 'assets/nudge-popup.js');
     const nudgePopupContent = readFileSync(nudgePopupFile, 'utf-8');
     const nudgePopupBanner = `/**\n * Upsellity Nudge Popup v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
     writeFileSync(nudgePopupFile, nudgePopupBanner + nudgePopupContent);
-    
-    
+
+
     // Build Nudge Add Together
     await esbuild.build({
       entryPoints: [join(__dirname, 'assets/modules/nudge-add-together-entry.js')],
@@ -161,14 +161,14 @@ async function build() {
       },
       external: [],
     });
-    
+
     // Add version banner to nudge-add-together
     const nudgeAddTogetherFile = join(__dirname, 'assets/nudge-add-together.js');
     const nudgeAddTogetherContent = readFileSync(nudgeAddTogetherFile, 'utf-8');
     const nudgeAddTogetherBanner = `/**\n * Upsellity Nudge Add Together v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
     writeFileSync(nudgeAddTogetherFile, nudgeAddTogetherBanner + nudgeAddTogetherContent);
-    
-    
+
+
     // Build Promotional Banner Block
     await esbuild.build({
       entryPoints: [join(__dirname, 'assets/modules/promotional-banner-entry.js')],
@@ -195,14 +195,14 @@ async function build() {
       },
       external: [],
     });
-    
+
     // Add version banner to promotional-banner
     const promotionalBannerFile = join(__dirname, 'assets/promotional-banner.js');
     const promotionalBannerContent = readFileSync(promotionalBannerFile, 'utf-8');
     const promotionalBannerBanner = `/**\n * Upsellity Promotional Banner Block v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
     writeFileSync(promotionalBannerFile, promotionalBannerBanner + promotionalBannerContent);
-    
-    
+
+
     // Build Milestone Block
     await esbuild.build({
       entryPoints: [join(__dirname, 'assets/modules/milestone-block-entry.js')],
@@ -229,13 +229,47 @@ async function build() {
       },
       external: [],
     });
-    
+
     // Add version banner to milestone-block
     const milestoneBlockFile = join(__dirname, 'assets/milestone-block.js');
     const milestoneBlockContent = readFileSync(milestoneBlockFile, 'utf-8');
     const milestoneBlockBanner = `/**\n * Upsellity Milestone Block v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
     writeFileSync(milestoneBlockFile, milestoneBlockBanner + milestoneBlockContent);
-    
+
+
+    // Build Gifting Block
+    await esbuild.build({
+      entryPoints: [join(__dirname, 'assets/modules/gift-block-entry.js')],
+      bundle: true,
+      outfile: join(__dirname, 'assets/gift-block.js'),
+      format: 'iife',
+      target: 'es2017',
+      minify: false,
+      sourcemap: false,
+      platform: 'browser',
+      logLevel: 'info',
+      jsx: 'automatic',
+      jsxImportSource: 'react',
+      loader: {
+        '.tsx': 'tsx',
+        '.ts': 'ts',
+        '.jsx': 'jsx',
+        '.js': 'jsx',
+      },
+      define: {
+        'process.env.NODE_ENV': '"production"',
+        '__GIFT_BLOCK_VERSION__': `"${version}"`,
+        '__APP_URL__': `"${appUrl}"`
+      },
+      external: [],
+    });
+
+    // Add version banner to gift-block
+    const giftBlockFile = join(__dirname, 'assets/gift-block.js');
+    const giftBlockContent = readFileSync(giftBlockFile, 'utf-8');
+    const giftBlockBanner = `/**\\n * Upsellity Gifting Block v${version}\\n * Built: ${new Date().toISOString()}\\n */\\n`;
+    writeFileSync(giftBlockFile, giftBlockBanner + giftBlockContent);
+
   } catch (error) {
     console.error('❌ Build failed:', error);
     process.exit(1);
