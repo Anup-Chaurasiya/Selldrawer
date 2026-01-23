@@ -15,61 +15,19 @@
     id="upsellity-gifting-{{ block.id }}"
     style="margin: {{ block.settings.margin_top }}px {{ block.settings.margin_right }}px {{ block.settings.margin_bottom }}px {{ block.settings.margin_left }}px; padding: {{ block.settings.padding_top }}px {{ block.settings.padding_right }}px {{ block.settings.padding_bottom }}px {{ block.settings.padding_left }}px; background-color: {{ block.settings.background_color }}; border-radius: {{ block.settings.border_radius }}px; {% if block.settings.custom_css %}{{ block.settings.custom_css }}{% endif %}"
   >
-    <!-- VISIBLE LOADING STATE - Will be replaced by JavaScript -->
-    <div style="
-      padding: 24px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 12px;
-      color: white;
-      text-align: center;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    ">
-      <div style="font-size: 32px; margin-bottom: 12px;">🎁</div>
-      <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">
-        Gifting Block Loading...
-      </div>
-      <div style="font-size: 14px; opacity: 0.9;">
-        Shop: {{ shop.permanent_domain }}
-      </div>
-      <div style="font-size: 12px; opacity: 0.7; margin-top: 8px;">
-        If this message persists, JavaScript hasn't loaded
-      </div>
-    </div>
+    <!-- JavaScript will mount the React component here -->
   </div>
 
   <!-- Load the gifting block JavaScript with cache busting -->
   <script>
-    console.log('🎁 GIFTING BLOCK: Liquid template rendered!');
-    console.log('🎁 GIFTING BLOCK: Shop =', '{{ shop.permanent_domain }}');
-    console.log('🎁 GIFTING BLOCK: Block ID =', 'upsellity-gifting-{{ block.id }}');
-    
     (function() {
-      var version = '1.0.11'; // Update this to match config.js VERSION
+      var version = '1.0.11';
       var timestamp = new Date().getTime();
       var cacheParam = '?v=' + version + '&t=' + Math.floor(timestamp / 60000);
       
-      var scriptUrl = '{{ 'gift-block.js' | asset_url }}' + cacheParam;
-      console.log('🎁 GIFTING BLOCK: Loading script from:', scriptUrl);
-      
       var script = document.createElement('script');
-      script.src = scriptUrl;
+      script.src = '{{ 'gift-block.js' | asset_url }}' + cacheParam;
       script.defer = true;
-      
-      script.onload = function() {
-        console.log('🎁 GIFTING BLOCK: ✓ Script loaded successfully!');
-      };
-      
-      script.onerror = function(e) {
-        console.error('🎁 GIFTING BLOCK: ✗ Script failed to load!', e);
-        console.error('🎁 GIFTING BLOCK: URL was:', scriptUrl);
-        // Show error in the container
-        var container = document.getElementById('upsellity-gifting-{{ block.id }}');
-        if (container) {
-          container.innerHTML = '<div style="padding:20px;background:#fee;border:2px solid #fcc;border-radius:8px;color:#c00;text-align:center;"><strong>⚠️ Gifting Block Error</strong><br>Script failed to load. Check console for details.</div>';
-        }
-      };
-      
       document.head.appendChild(script);
     })();
   </script>
