@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.11
- * Built: 2026-01-22T14:50:07.279Z
+ * Built: 2026-01-23T07:22:57.777Z
  */
 "use strict";
 (() => {
@@ -13855,7 +13855,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://ask-frozen-coastal-sean.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://tyler-applications-step-tires.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.11" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

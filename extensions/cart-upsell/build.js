@@ -267,7 +267,11 @@ async function build() {
     // Add version banner to gift-block
     const giftBlockFile = join(__dirname, 'assets/gift-block.js');
     const giftBlockContent = readFileSync(giftBlockFile, 'utf-8');
-    const giftBlockBanner = `/**\\n * Upsellity Gifting Block v${version}\\n * Built: ${new Date().toISOString()}\\n */\\n`;
+    const giftBlockBanner = `/**
+ * Upsellity Gifting Block v${version}
+ * Built: ${new Date().toISOString()}
+ */
+`;
     writeFileSync(giftBlockFile, giftBlockBanner + giftBlockContent);
 
   } catch (error) {
