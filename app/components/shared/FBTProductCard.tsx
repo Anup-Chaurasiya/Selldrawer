@@ -75,11 +75,10 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
       className={`upsellity-fbt-product ${isDisabled ? 'upsellity-fbt-product-disabled' : ''}`}
       data-variant-id={variantId}
       style={{
-        flex: 1,
-        minWidth: '100px',
+        width: '100%',
         border: '1px solid #e5e7eb',
-        borderRadius: '4px',
-        padding: '0.5rem',
+        borderRadius: '6px',
+        padding: '0.625em',
         background: '#ffffff',
         position: 'relative',
         transition: 'transform 0.2s, box-shadow 0.2s',
@@ -95,8 +94,8 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
           onChange={handleCheckboxChange}
           style={{
             position: 'absolute',
-            top: '0.25rem',
-            left: '0.25rem',
+            top: '0.25em',
+            left: '0.25em',
             width: '16px',
             height: '16px',
             cursor: isDisabled ? 'not-allowed' : 'pointer',
@@ -105,7 +104,7 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
         />
       )}
 
-      <div className="upsellity-fbt-product-image-wrapper" style={{ position: 'relative', marginBottom: '0.375rem' }}>
+      <div className="upsellity-fbt-product-image-wrapper" style={{ position: 'relative', marginBottom: '0.5em' }}>
         <a
           href={`/products/${product.handle}`}
           onClick={handleProductClick}
@@ -144,13 +143,13 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
             className="upsellity-fbt-discount-badge"
             style={{
               position: 'absolute',
-              top: '0.25rem',
-              right: '0.25rem',
+              top: '0.25em',
+              right: '0.25em',
               background: '#10b981',
               color: 'white',
-              padding: '0.125rem 0.375rem',
+              padding: '0.125em 0.375em',
               borderRadius: '3px',
-              fontSize: '0.6875rem',
+              fontSize: '0.6875em',
               fontWeight: '500',
               zIndex: 5,
               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
@@ -169,12 +168,12 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
         <h3
           className="upsellity-fbt-product-title"
           style={{
-            fontSize: '0.75rem',
+            fontSize: '0.75em',
             fontWeight: '500',
-            marginBottom: '0.25rem',
+            marginBottom: '0.25em',
             color: '#111827',
             lineHeight: 1.2,
-            minHeight: '1.75rem',
+            minHeight: '1.75em',
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
@@ -190,7 +189,7 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
         <div
           className="upsellity-fbt-product-price"
           style={{
-            fontSize: '0.8125rem',
+            fontSize: '0.8125em',
             fontWeight: '600',
             color: '#111827',
             marginTop: 'auto'
@@ -202,8 +201,8 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
               style={{
                 textDecoration: 'line-through',
                 color: '#9ca3af',
-                marginRight: '0.5rem',
-                fontSize: '0.75rem',
+                marginRight: '0.5em',
+                fontSize: '0.75em',
                 fontWeight: '400'
               }}
             >
@@ -218,9 +217,9 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
         <div
           className="upsellity-fbt-reviews"
           style={{
-            fontSize: '0.75rem',
+            fontSize: '0.75em',
             color: '#f59e0b',
-            marginTop: '0.25rem'
+            marginTop: '0.25em'
           }}
         >
           ★★★★★ (0)

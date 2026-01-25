@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Add Together v1.0.9
- * Built: 2026-01-21T10:53:17.226Z
+ * Built: 2026-01-25T08:39:10.769Z
  */
 "use strict";
 (() => {
@@ -9311,7 +9311,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/nudge-add-together-entry.js
-  var APP_URL = true ? "https://university-bike-yoga-destinations.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://carter-swap-tool-nutrition.trycloudflare.com" : "https://app.upsellity.com";
   var NudgeAddTogether = class {
     constructor() {
       this.shop = null;

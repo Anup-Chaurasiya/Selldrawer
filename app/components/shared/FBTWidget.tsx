@@ -5,14 +5,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { FBTProductCard, FBTProduct } from './FBTProductCard';
-import { FBTTemplateCompact } from './FBTTemplateCompact';
 import { FBTTemplateMinimal } from './FBTTemplateMinimal';
 import { FBTTemplateClassic } from './FBTTemplateClassic';
 
 interface FBTConfig {
   title?: string;
-  layout?: 'horizontal' | 'carousel';
-  templateType?: 'classic' | 'compact' | 'minimal';
+  templateType?: 'classic' | 'minimal';
   buttonText?: string;
   buttonColor?: string;
   buttonTextColor?: string;
@@ -324,7 +322,6 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
   };
 
 
-  const layout = config.layout || 'horizontal';
   const templateType = config.templateType || 'classic';
 
   // Calculate totals
@@ -362,141 +359,12 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
 
   // Render template based on type
   const renderTemplate = () => {
-    // Check if carousel layout should be used
-    const useCarousel = layout === 'carousel' || (isMobileCarousel && recommendations.length > 1);
-
-    // Render Compact Template
-    if (templateType === 'compact') {
-      if (useCarousel) {
-        // Carousel layout for compact template
-        return (
-          <div style={{ position: 'relative' }}>
-            <div
-              ref={carouselRef}
-              className="upsellity-fbt-carousel"
-              onMouseDown={handleMouseDown}
-              onMouseLeave={handleMouseLeave}
-              onMouseUp={handleMouseUp}
-              onMouseMove={handleMouseMove}
-              style={{
-                display: 'flex',
-                overflow: 'auto',
-                scrollSnapType: 'x mandatory',
-                gap: '0.75rem',
-                marginBottom: '1rem',
-                cursor: 'grab',
-                scrollbarWidth: 'none',
-                msOverflowStyle: 'none',
-                WebkitOverflowScrolling: 'touch',
-                userSelect: 'none'
-              }}
-            >
-              <FBTTemplateCompact
-                recommendations={recommendations}
-                parentProduct={parentProduct}
-                selectedProducts={selectedProducts}
-                config={config}
-                handleToggle={handleToggle}
-                isPreview={isPreview}
-                isAtLimit={isAtLimit}
-                total={total}
-                originalTotal={displayOriginalPrice}
-                bundleTotal={bundleTotal}
-                hasDiscount={hasDiscount}
-                hasFBTDiscount={hasFBTDiscount}
-                selectedCount={selectedCount}
-                onAddToCart={handleAddToCart}
-                isAdding={isAdding}
-              />
-            </div>
-
-            {/* Carousel Navigation Controls */}
-            {!isMobileCarousel && recommendations.length > 2 && (
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <button
-                  onClick={handlePrevSlide}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    background: '#3b82f6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#2563eb'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = '#3b82f6'}
-                >
-                  ← Prev
-                </button>
-                <button
-                  onClick={handleNextSlide}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    background: '#3b82f6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#2563eb'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = '#3b82f6'}
-                >
-                  Next →
-                </button>
-              </div>
-            )}
-
-            {/* Mobile Carousel Indicators */}
-            {isMobileCarousel && (
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.25rem', marginBottom: '0.75rem' }}>
-                {recommendations.map((_, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '4px',
-                      background: '#d1d5db',
-                      transition: 'all 0.2s'
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      }
-
-      // Horizontal layout for compact template
-      return (
-        <FBTTemplateCompact
-          recommendations={recommendations}
-          parentProduct={parentProduct}
-          selectedProducts={selectedProducts}
-          config={config}
-          handleToggle={handleToggle}
-          isPreview={isPreview}
-          isAtLimit={isAtLimit}
-          total={total}
-          originalTotal={displayOriginalPrice}
-          bundleTotal={bundleTotal}
-          hasDiscount={hasDiscount}
-          hasFBTDiscount={hasFBTDiscount}
-          selectedCount={selectedCount}
-          onAddToCart={handleAddToCart}
-          isAdding={isAdding}
-        />
-      );
-    }
+    // For minimal template: use carousel on mobile
+    // For classic template: never use carousel, just stack with flexWrap
+    const useCarousel = templateType === 'minimal' && isMobileCarousel && recommendations.length > 1;
 
     // Render Minimal Template
-    else if (templateType === 'minimal') {
+    if (templateType === 'minimal') {
       if (useCarousel) {
         // Carousel layout for minimal template
         return (
@@ -764,9 +632,9 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
       <h2
         className="upsellity-fbt-title"
         style={{
-          fontSize: '1rem',
+          fontSize: '1em',
           fontWeight: '600',
-          marginBottom: '0.75rem',
+          marginBottom: '0.75em',
           color: '#111827',
           lineHeight: 1.2
         }}
@@ -777,24 +645,26 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
       <div
         className="upsellity-fbt-layout"
         style={{
-          display: (templateType === 'compact' || templateType === 'minimal') ? 'block' : 'grid',
-          gridTemplateColumns: (templateType === 'compact' || templateType === 'minimal') ? '1fr' : (isMobileCarousel ? '1fr' : '1fr 220px'),
-          gap: '0.75rem',
-          alignItems: 'center'
+          display: 'flex',
+          flexDirection: templateType === 'minimal' ? 'column' : 'row',
+          flexWrap: 'wrap',
+          gap: '1em',
+          alignItems: templateType === 'minimal' ? 'stretch' : 'center',
+          width: '100%'
         }}
       >
         {renderTemplate()}
 
-        {templateType !== 'compact' && templateType !== 'minimal' && (
+        {templateType !== 'minimal' && (
           <div
-            className="upsellity-fbt-sidebar"
+            className="upsellity-fbt-actions"
             style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: '0.5rem',
-              alignItems: 'stretch',
-              justifyContent: 'center',
-              minHeight: '100%'
+              gap: '0.75em',
+              alignItems: 'center',
+              maxWidth: '350px',
+              width: '100%'
             }}
           >
             {config.showTotalPrice && (
@@ -802,34 +672,35 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                 className="upsellity-fbt-total"
                 style={{
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.25rem',
-                  padding: '0.5rem 0.625rem',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5em',
+                  padding: '0.625em 1em',
                   background: '#f9fafb',
-                  borderRadius: '4px',
-                  marginBottom: '0.25rem',
-                  border: '1px solid #e5e7eb'
+                  borderRadius: '6px',
+                  border: '1px solid #e5e7eb',
+                  width: '100%'
                 }}
               >
                 <span
                   className="upsellity-fbt-total-label"
                   style={{
-                    fontSize: '0.8125rem',
+                    fontSize: '0.8125em',
                     fontWeight: '600',
-                    color: '#111827'
+                    color: '#6b7280'
                   }}
                 >
-                  Total price:
+                  Total:
                 </span>
-                <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375em' }}>
                   {hasDiscount && (
                     <span
                       className="upsellity-fbt-total-original"
                       style={{
                         textDecoration: 'line-through',
                         color: '#9ca3af',
-                        marginRight: '0.375rem',
-                        fontSize: '0.8125rem',
+                        fontSize: '0.8125em',
                         fontWeight: '400'
                       }}
                     >
@@ -839,7 +710,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                   <span
                     className="upsellity-fbt-total-price"
                     style={{
-                      fontSize: '1rem',
+                      fontSize: '1em',
                       fontWeight: '700',
                       color: hasDiscount ? '#059669' : '#111827'
                     }}
@@ -856,14 +727,14 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
               disabled={selectedCount === 0 || isAdding || isPreview}
               style={{
                 width: '100%',
-                padding: '0.75rem 0.625rem',
+                padding: '0.75em 1.25em',
                 border: 'none',
-                borderRadius: '4px',
-                fontSize: '0.8125rem',
+                borderRadius: '6px',
+                fontSize: '0.875em',
                 fontWeight: '600',
                 cursor: (selectedCount === 0 || isAdding || isPreview) ? 'not-allowed' : 'pointer',
                 transition: 'opacity 0.2s, transform 0.1s',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
                 backgroundColor: config.buttonColor || '#000000',
                 color: config.buttonTextColor || '#FFFFFF',
                 opacity: (selectedCount === 0 || isAdding) ? 0.5 : 1,

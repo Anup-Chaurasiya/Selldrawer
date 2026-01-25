@@ -31,10 +31,11 @@ export const FBTTemplateClassic: React.FC<FBTTemplateClassicProps> = ({
       style={{
         display: 'flex',
         flexDirection: 'row',
-        gap: '0.5rem',
-        width: '100%',
-        alignItems: 'stretch',
-        flexWrap: 'wrap'
+        gap: '0.25em',
+        flex: 1,
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        minWidth: 350
       }}
     >
       {/* Render Parent Product First */}
@@ -44,7 +45,7 @@ export const FBTTemplateClassic: React.FC<FBTTemplateClassicProps> = ({
 
         return (
           <React.Fragment key={`parent-${variantId}`}>
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', flex: '0 0 140px' }}>
               <FBTProductCard
                 product={parentProduct}
                 isSelected={isSelected}
@@ -60,18 +61,19 @@ export const FBTTemplateClassic: React.FC<FBTTemplateClassicProps> = ({
               <div
                 style={{
                   position: 'absolute',
-                  top: '-8px',
+                  top: '-6px',
                   left: '50%',
                   transform: 'translateX(-50%)',
                   background: '#3b82f6',
                   color: 'white',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  fontSize: '0.65rem',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  fontSize: '0.5625rem',
                   fontWeight: '600',
-                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
                   whiteSpace: 'nowrap',
-                  zIndex: 20
+                  zIndex: 20,
+                  letterSpacing: '0.3px'
                 }}
               >
                 THIS ITEM
@@ -104,17 +106,19 @@ export const FBTTemplateClassic: React.FC<FBTTemplateClassicProps> = ({
 
         return (
           <React.Fragment key={variantId}>
-            <FBTProductCard
-              product={product}
-              isSelected={isSelected}
-              isDisabled={isDisabled}
-              showCheckbox={config.showCheckboxes ?? true}
-              showDiscount={config.showDiscount ?? true}
-              showIndividualPrices={config.showIndividualPrices ?? true}
-              showReviews={config.showProductReviews ?? false}
-              onToggle={handleToggle}
-              isPreview={isPreview}
-            />
+            <div style={{ position: 'relative', flex: '0 0 140px' }}>
+              <FBTProductCard
+                product={product}
+                isSelected={isSelected}
+                isDisabled={isDisabled}
+                showCheckbox={config.showCheckboxes ?? true}
+                showDiscount={config.showDiscount ?? true}
+                showIndividualPrices={config.showIndividualPrices ?? true}
+                showReviews={config.showProductReviews ?? false}
+                onToggle={handleToggle}
+                isPreview={isPreview}
+              />
+            </div>
             {index < recommendations.length - 1 && (
               <div
                 className="upsellity-fbt-plus"
