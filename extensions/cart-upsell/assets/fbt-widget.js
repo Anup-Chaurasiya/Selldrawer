@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.9
- * Built: 2026-01-25T08:39:12.714Z
+ * Built: 2026-01-25T13:12:21.945Z
  */
 "use strict";
 (() => {
@@ -8124,11 +8124,12 @@
               style: {
                 display: "flex",
                 flexDirection: "row",
-                gap: "0.75rem",
+                gap: "0rem",
                 padding: "1rem",
                 background: "#ffffff",
                 borderRadius: "10px",
-                border: "1px solid #e5e7eb"
+                overflowX: "auto",
+                maxWidth: "100%"
               },
               children: [
                 parentProduct && (() => {
@@ -8286,7 +8287,7 @@
                           fontSize: "1.5rem",
                           color: "#6b7280",
                           fontWeight: "600",
-                          minWidth: "32px",
+                          minWidth: "20px",
                           flexShrink: 0
                         },
                         children: "+"
@@ -8451,7 +8452,7 @@
                           fontSize: "1.5rem",
                           color: "#6b7280",
                           fontWeight: "600",
-                          minWidth: "32px",
+                          minWidth: "20px",
                           flexShrink: 0
                         },
                         children: "+"
@@ -8471,7 +8472,6 @@
                 justifyContent: "space-between",
                 alignItems: "center",
                 paddingTop: "1rem",
-                borderTop: "1px solid #e5e7eb",
                 gap: "1rem"
               },
               children: [
@@ -8958,7 +8958,7 @@
       const useCarousel = templateType === "minimal" && isMobileCarousel && recommendations.length > 1;
       if (templateType === "minimal") {
         if (useCarousel) {
-          return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { position: "relative" }, children: [
+          return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { position: "relative", width: "100%" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
               "div",
               {
@@ -9406,7 +9406,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://carter-swap-tool-nutrition.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://casa-champagne-woods-faculty.trycloudflare.com" : "https://app.upsellity.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;

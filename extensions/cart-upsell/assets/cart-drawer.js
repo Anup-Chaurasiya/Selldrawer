@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.9
- * Built: 2026-01-25T08:39:12.714Z
+ * Built: 2026-01-25T13:03:35.403Z
  */
 "use strict";
 (() => {
@@ -13876,7 +13876,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://carter-swap-tool-nutrition.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://casa-champagne-woods-faculty.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.9" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

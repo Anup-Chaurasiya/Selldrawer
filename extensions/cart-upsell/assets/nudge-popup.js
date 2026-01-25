@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.9
- * Built: 2026-01-25T08:39:12.711Z
+ * Built: 2026-01-25T13:03:35.415Z
  */
 "use strict";
 (() => {
@@ -9172,7 +9172,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
-  var APP_URL = true ? "https://carter-swap-tool-nutrition.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://casa-champagne-woods-faculty.trycloudflare.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;

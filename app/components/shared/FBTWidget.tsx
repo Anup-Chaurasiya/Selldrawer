@@ -368,7 +368,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
       if (useCarousel) {
         // Carousel layout for minimal template
         return (
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', width: '100%' }}>
             <div
               ref={carouselRef}
               className="upsellity-fbt-carousel"
