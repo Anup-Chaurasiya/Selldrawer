@@ -151,7 +151,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         buttonText: fbtConfig.buttonText,
         buttonColor: fbtConfig.buttonColor,
         buttonTextColor: fbtConfig.buttonTextColor,
-        showDiscount: fbtConfig.showDiscount,
         showTotalPrice: fbtConfig.showTotalPrice,
         showIndividualPrices: fbtConfig.showIndividualPrices,
         showCheckboxes: fbtConfig.showCheckboxes,
@@ -166,7 +165,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         showOfferIfInCart: fbtConfig.showOfferIfInCart,
         limitUpsellsInCart: fbtConfig.limitUpsellsInCart,
         maxUpsellsInCart: fbtConfig.maxUpsellsInCart,
-        discountCode: matchingRule?.discountCode ? `FBT_RULE_${matchingRule.id}` : null,
+        // Bundle metadata for Discount Function
+        bundleMetadata: matchingRule ? {
+          ruleId: matchingRule.id,
+          discountType: matchingRule.discountType,
+          discountValue: matchingRule.discountValue ? parseFloat(matchingRule.discountValue.toString()) : null,
+          hasDiscount: !!(matchingRule.discountType && matchingRule.discountValue && matchingRule.discountValue > 0)
+        } : null
       },
       recommendations,
       parentProduct

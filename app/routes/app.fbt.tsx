@@ -283,29 +283,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     console.log("Discount validation:", { hasValidDiscount, showDiscount, discountType, discountValue });
 
-    if (hasValidDiscount) {
-      const discountCode = `FBT_RULE_${rule.id}`;
-      const discountResult = await createOrUpdateFBTDiscount(
-        admin,
-        discountCode,
-        discountType as "percentage" | "fixed",
-        discountValue
-      );
+    // Collect product IDs for discount targeting
+    const productIds: string[] = [];
 
-      if (discountResult) {
-        // Update rule with discount info
-        await prisma.fBTRule.update({
-          where: { id: rule.id },
-          data: {
-            discountType,
-            discountValue,
-            discountCode: discountResult.discountId
-          }
-        });
-      }
+    // Add trigger product ID if this is a specific product trigger
+    if (triggerType === "specific_product" && triggerProductId) {
+      productIds.push(triggerProductId);
     }
 
-    // Add upsell products
+    // Add upsell products and collect their product IDs
     for (let i = 0; i < upsellProducts.length; i++) {
       const productHandle = upsellProducts[i];
 
@@ -354,6 +340,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           const image = product.images.edges[0]?.node;
 
           if (variant) {
+            const productId = product.id.replace('gid://shopify/Product/', '');
+            productIds.push(productId);
+
             await prisma.fBTProduct.create({
               data: {
                 ruleId: rule.id,
@@ -372,6 +361,36 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       } catch (error) {
         console.error(`Error fetching product ${productHandle}:`, error);
       }
+    }
+
+    // Create discount code AFTER products are added (so we have product IDs)
+    console.log('Discount check:', { hasValidDiscount, productIdsLength: productIds.length, productIds });
+
+    if (hasValidDiscount && productIds.length > 0) {
+      const discountCode = `FBT_RULE_${rule.id}`;
+      console.log('Creating FBT discount with product IDs:', productIds);
+
+      const discountResult = await createOrUpdateFBTDiscount(
+        admin,
+        discountCode,
+        discountType as "percentage" | "fixed",
+        discountValue,
+        productIds
+      );
+
+      if (discountResult) {
+        // Update rule with discount info
+        await prisma.fBTRule.update({
+          where: { id: rule.id },
+          data: {
+            discountType,
+            discountValue,
+            discountCode: discountResult.discountId
+          }
+        });
+      }
+    } else if (hasValidDiscount) {
+      console.warn('FBT discount requested but no product IDs collected');
     }
 
     return json({ success: true });
@@ -428,7 +447,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       where: { ruleId }
     });
 
-    // Add updated upsell products
+    // Collect product IDs for discount targeting
+    const productIds: string[] = [];
+
+    // Add trigger product ID if this is a specific product trigger
+    if (triggerType === "specific_product" && triggerProductId) {
+      productIds.push(triggerProductId);
+    }
+
+    // Add updated upsell products and collect their product IDs
     for (let i = 0; i < upsellProducts.length; i++) {
       const productHandle = upsellProducts[i];
 
@@ -477,6 +504,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           const image = product.images.edges[0]?.node;
 
           if (variant) {
+            const productId = product.id.replace('gid://shopify/Product/', '');
+            productIds.push(productId);
+
             await prisma.fBTProduct.create({
               data: {
                 ruleId: ruleId,
@@ -508,14 +538,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       await deleteFBTDiscount(admin, existingRule.discountCode);
     }
 
-    // Create new discount if enabled
-    if (showDiscount && discountType && discountValue && discountValue > 0) {
+    // Create new discount if enabled and we have product IDs
+    console.log('Update-rule discount check:', { showDiscount, discountType, discountValue, productIdsLength: productIds.length, productIds });
+
+    if (showDiscount && discountType && discountValue && discountValue > 0 && productIds.length > 0) {
       const discountCode = `FBT_RULE_${ruleId}`;
+      console.log('Updating FBT discount with product IDs:', productIds);
+
       const discountResult = await createOrUpdateFBTDiscount(
         admin,
         discountCode,
         discountType as "percentage" | "fixed",
-        discountValue
+        discountValue,
+        productIds
       );
 
       if (discountResult) {
@@ -528,6 +563,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         });
       }
+    } else if (showDiscount && discountType && discountValue && discountValue > 0) {
+      console.warn('Update-rule: FBT discount requested but no product IDs collected');
     } else {
       // Clear discount fields if disabled
       await prisma.fBTRule.update({

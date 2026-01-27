@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.11
- * Built: 2026-01-27T07:23:21.574Z
+ * Built: 2026-01-27T14:51:22.317Z
  */
 "use strict";
 (() => {
@@ -9180,7 +9180,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
-  var APP_URL = true ? "https://proven-charm-mills-participants.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://protest-trend-leather-capital.trycloudflare.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;

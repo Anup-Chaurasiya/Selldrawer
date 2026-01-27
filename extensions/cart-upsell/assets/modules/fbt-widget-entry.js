@@ -288,56 +288,61 @@ class FrequentlyBoughtTogether {
 
   async addToCart(selectedIds) {
     try {
-      const items = [];
+      // Check if bundle has discount configuration
+      const bundleMetadata = this.config?.bundleMetadata;
+      const hasDiscount = bundleMetadata?.hasDiscount;
 
-      // Add parent product first if selected
+      // Generate unique bundle ID for this transaction
+      const bundleId = hasDiscount && bundleMetadata?.ruleId
+        ? `fbt_${bundleMetadata.ruleId}_${Date.now()}`
+        : null;
+
+      const items = [];
+      const allProducts = [];
+
+      // Collect parent product if selected
       if (this.parentProduct) {
         const parentVariantId = this.parentProduct.variantId || this.parentProduct.id;
         if (selectedIds.has(parentVariantId)) {
-          try {
-            const response = await fetch(`/products/${this.parentProduct.handle}.js`);
-            if (response.ok) {
-              const productData = await response.json();
-              items.push({
-                id: productData.variants?.[0]?.id,
-                quantity: 1,
-                properties: {
-                  '_upsell_source': 'fbt',
-                  '_fbt_parent': 'true',
-                  '_fbt_discount_code': this.config?.discountCode || ''
-                }
-              });
-
-              // Track Add to Cart for parent
-              Analytics.track({
-                eventType: 'add_to_cart',
-                component: 'fbt',
-                productId: this.parentProduct.id,
-                variantId: productData.variants?.[0]?.id?.toString(),
-                value: typeof this.parentProduct.price === 'number' ? this.parentProduct.price : parseFloat(this.parentProduct.price)
-              });
-            }
-          } catch (error) {
-            console.error('Error fetching parent product:', error);
-          }
+          allProducts.push(this.parentProduct);
         }
       }
 
-      // Add selected recommendations
+      // Collect selected recommendations
       for (const product of this.recommendations) {
         const variantId = product.variantId || product.id;
         if (selectedIds.has(variantId)) {
-          try {
-            const response = await fetch(`/products/${product.handle}.js`);
-            if (response.ok) {
-              const productData = await response.json();
+          allProducts.push(product);
+        }
+      }
+
+      // Add all selected products with bundle properties
+      for (const product of allProducts) {
+        try {
+          const response = await fetch(`/products/${product.handle}.js`);
+          if (response.ok) {
+            const productData = await response.json();
+            const variantId = productData.variants?.[0]?.id;
+
+            if (variantId) {
+              // Base properties
+              const properties = {
+                '_upsell_source': 'fbt'
+              };
+
+              // Add bundle properties if discount is configured
+              if (bundleId && hasDiscount) {
+                properties['_fbt_bundle_id'] = bundleId;
+                properties['_fbt_rule_id'] = bundleMetadata.ruleId;
+                properties['_fbt_discount_type'] = bundleMetadata.discountType?.toUpperCase() || 'PERCENTAGE';
+                properties['_fbt_discount_value'] = bundleMetadata.discountValue?.toString() || '0';
+                properties['_fbt_product_count'] = selectedIds.size.toString();
+              }
+
               items.push({
-                id: productData.variants?.[0]?.id,
+                id: variantId,
                 quantity: 1,
-                properties: {
-                  '_upsell_source': 'fbt',
-                  '_fbt_discount_code': this.config?.discountCode || ''
-                }
+                properties: properties
               });
 
               // Track Add to Cart
@@ -345,17 +350,18 @@ class FrequentlyBoughtTogether {
                 eventType: 'add_to_cart',
                 component: 'fbt',
                 productId: product.id,
-                variantId: productData.variants?.[0]?.id?.toString(),
+                variantId: variantId.toString(),
                 value: typeof product.price === 'number' ? product.price : parseFloat(product.price)
               });
             }
-          } catch (error) {
-            console.error('Error fetching product:', error);
           }
+        } catch (error) {
+          console.error(`Error fetching product ${product.handle}:`, error);
         }
       }
 
       if (items.length > 0) {
+        // Add all items in ONE request (critical for bundle grouping)
         const response = await fetch('/cart/add.js', {
           method: 'POST',
           headers: {
@@ -368,34 +374,24 @@ class FrequentlyBoughtTogether {
           document.dispatchEvent(new CustomEvent('cart:updated'));
 
           console.log('=== FBT: Items added to cart successfully ===');
-          console.log('FBT Config:', this.config);
-          console.log('Discount code:', this.config?.discountCode);
+          if (bundleId) {
+            console.log('FBT Bundle ID:', bundleId);
+            console.log('Bundle Discount:', {
+              type: bundleMetadata.discountType,
+              value: bundleMetadata.discountValue
+            });
+            console.log('✅ Discount will be applied automatically by Shopify Function');
+          } else {
+            console.log('No discount configured for this bundle');
+          }
 
+          // Open cart drawer
           if (window.upsellityDrawer && typeof window.upsellityDrawer.open === 'function') {
             console.log('FBT: Opening cart drawer...');
             setTimeout(() => {
               window.upsellityDrawer.open();
               console.log('FBT: Cart drawer opened');
-
-              // Apply discount code if available
-              if (this.config?.discountCode && window.upsellityDrawer.applyCouponWithCode) {
-                console.log('=== FBT: Applying discount code:', this.config.discountCode);
-                setTimeout(() => {
-                  try {
-                    window.upsellityDrawer.applyCouponWithCode(this.config.discountCode);
-                    console.log('=== FBT: Discount applied successfully! ===');
-                  } catch (error) {
-                    console.error('=== FBT: Failed to apply discount ===', error);
-                  }
-                }, 1000);
-              } else {
-                console.warn('FBT: No discount code or applyCouponWithCode not available', {
-                  hasDiscountCode: !!this.config?.discountCode,
-                  discountCode: this.config?.discountCode,
-                  hasMethod: !!window.upsellityDrawer?.applyCouponWithCode
-                });
-              }
-            }, 1500);
+            }, 500);
           }
 
           return true;

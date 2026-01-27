@@ -1,0 +1,17 @@
+# Learn more at https://shopify.dev/docs/apps/build/functions
+api_version = "2025-01"
+
+[[extensions]]
+uid = "734461de-79c3-8274-cfa9-2245c1b349a491aef736"
+type = "function"
+name = "fbt-discount"
+handle = "fbt-bundle-discount"
+
+[[extensions.targeting]]
+target = "purchase.order-discount.run"
+input_query = "src/run.graphql"
+export = "run"
+
+[extensions.build]
+command = "cargo wasi build --release"
+path = "target/wasm32-wasi/release/fbt_discount.wasm"
