@@ -439,13 +439,93 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   if (intent === "toggle-free-gift") {
-    const freeGiftId = formData.get("freeGiftId") as string;
-    const isActive = formData.get("isActive") === "true";
-    await prisma.blockFreeGift.update({
-      where: { id: freeGiftId },
-      data: { isActive }
-    });
-    return json({ success: true });
+    try {
+      const freeGiftId = formData.get("freeGiftId") as string;
+      // The frontend sends the NEW desired state (already toggled)
+      const newIsActive = formData.get("isActive") === "true";
+
+      // Get the full free gift record with all related data
+      const freeGift = await prisma.blockFreeGift.findUnique({
+        where: { id: freeGiftId },
+        include: {
+          giftProducts: {
+            orderBy: { position: 'asc' },
+          },
+          targets: true,
+        },
+      });
+
+      if (!freeGift) {
+        return json({ error: "Free gift not found" }, { status: 404 });
+      }
+
+      if (newIsActive) {
+        // ENABLING: Create a new Shopify discount
+        const giftProducts = freeGift.giftProducts.map(p => ({
+          shopifyProductId: p.shopifyProductId,
+          shopifyVariantId: p.shopifyVariantId,
+          title: p.title,
+          price: p.price,
+          compareAtPrice: p.compareAtPrice,
+          imageUrl: p.imageUrl,
+          handle: p.handle,
+        }));
+
+        const targetIds = freeGift.targets.map(t => t.shopifyId);
+
+        const discountResult = await createMilestoneDiscount(admin, {
+          title: `Free Gift: ${freeGift.name}`,
+          rewardType: "gift_wrapping",
+          rewardValue: null,
+          giftProducts,
+          triggerType: freeGift.triggerType,
+          triggerValue: parseFloat(freeGift.triggerValue.toString()),
+          targetIds: (freeGift.triggerType === "products" || freeGift.triggerType === "collections") ? targetIds : [],
+        });
+
+        if (!discountResult) {
+          return json({
+            error: "Failed to create Shopify discount. Please check your Shopify settings and try again."
+          }, { status: 500 });
+        }
+
+        // Update the database with new discount info and active status
+        await prisma.blockFreeGift.update({
+          where: { id: freeGiftId },
+          data: {
+            isActive: true,
+            shopifyDiscountId: discountResult.discountId,
+            discountCode: discountResult.code,
+          },
+        });
+      } else {
+        // DISABLING: Delete the Shopify discount
+        if (freeGift.shopifyDiscountId) {
+          const deleted = await deleteShopifyDiscount(admin, freeGift.shopifyDiscountId);
+
+          if (!deleted) {
+            console.warn(`Failed to delete Shopify discount ${freeGift.shopifyDiscountId}, but continuing to disable gift`);
+          }
+        }
+
+        // Update the database to clear discount info and set inactive
+        await prisma.blockFreeGift.update({
+          where: { id: freeGiftId },
+          data: {
+            isActive: false,
+            shopifyDiscountId: null,
+            discountCode: null,
+          },
+        });
+      }
+
+      return json({ success: true });
+    } catch (error) {
+      console.error("Error in toggle-free-gift:", error);
+      return json({
+        error: error instanceof Error ? error.message : "An error occurred while toggling the gift status"
+      }, { status: 500 });
+    }
   }
 
   if (intent === "enable-free-gifts") {
@@ -460,7 +540,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function GiftingBlock() {
-  const { giftingBlock, shopProducts, shopCollections, editingVersion } = useLoaderData<typeof loader>();
+  const { giftingBlock, shopProducts, shopCollections } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
 
@@ -529,7 +609,7 @@ export default function GiftingBlock() {
 
     submit(formData, { method: "post", action: `/app/gifting-block` });
     setShowModal(false);
-  }, [formState, selectedGiftProducts, selectedTargets, editingFreeGift, editingVersion, submit]);
+  }, [formState, selectedGiftProducts, selectedTargets, editingFreeGift, submit]);
 
   const handleDelete = useCallback((freeGiftId: string) => {
     if (confirm("Are you sure you want to delete this free gift?")) {

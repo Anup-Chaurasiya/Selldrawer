@@ -1,6 +1,6 @@
 /**
  * Upsellity Gifting Block v1.0.11
- * Built: 2026-01-23T07:55:05.544Z
+ * Built: 2026-01-27T07:23:20.019Z
  */
 "use strict";
 (() => {
@@ -8530,7 +8530,7 @@
 
   // extensions/cart-upsell/assets/modules/gift-block-entry.js
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://tyler-applications-step-tires.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://proven-charm-mills-participants.trycloudflare.com" : "https://app.upsellity.com";
   var VERSION = true ? "1.0.11" : "1.0.0";
   function initGiftingBlocks() {
     const containers = document.querySelectorAll(".upsellity-gifting-container");

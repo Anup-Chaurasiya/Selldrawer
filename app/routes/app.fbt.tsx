@@ -230,7 +230,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       limitUpsellsInCart: formData.get("limitUpsellsInCart") === "true",
       maxUpsellsInCart: parseInt(formData.get("maxUpsellsInCart") as string || "3"),
       showProductReviews: formData.get("showProductReviews") === "true",
-      layout: formData.get("layout") as string,
       templateType: formData.get("templateType") as string,
       buttonText: formData.get("buttonText") as string,
       buttonColor: formData.get("buttonColor") as string,
@@ -615,7 +614,6 @@ export default function FrequentlyBoughtTogether() {
       limitUpsellsInCart: fbtConfig?.limitUpsellsInCart ?? false,
       maxUpsellsInCart: fbtConfig?.maxUpsellsInCart?.toString() || "3",
       showProductReviews: fbtConfig?.showProductReviews ?? false,
-      layout: fbtConfig?.layout || "horizontal",
       templateType: (fbtConfig as any)?.templateType || "classic",
       buttonText: fbtConfig?.buttonText || "Add selected items",
       buttonColor: fbtConfig?.buttonColor || "#000000",
@@ -1199,23 +1197,11 @@ export default function FrequentlyBoughtTogether() {
                     label="Template Type"
                     options={[
                       { label: "Classic - Traditional Layout", value: "classic" },
-                      { label: "Compact - Card Style", value: "compact" },
                       { label: "Minimal - Single Row", value: "minimal" },
                     ]}
                     value={formState.templateType}
                     onChange={(value) => setFormState({ ...formState, templateType: value })}
                     helpText="Choose the visual style of your FBT widget"
-                  />
-
-                  <Select
-                    label="Layout"
-                    options={[
-                      { label: "Horizontal - Side by side", value: "horizontal" },
-                      { label: "Carousel - Swipeable slider", value: "carousel" },
-                    ]}
-                    value={formState.layout}
-                    onChange={(value) => setFormState({ ...formState, layout: value })}
-                    helpText="Carousel layout allows smooth mouse/touch dragging for better user experience"
                   />
 
                   <TextField
@@ -1524,8 +1510,7 @@ export default function FrequentlyBoughtTogether() {
                   <FBTWidget
                     config={{
                       title: formState.title,
-                      layout: formState.layout as 'horizontal' | 'carousel',
-                      templateType: formState.templateType as 'classic' | 'compact' | 'minimal',
+                      templateType: formState.templateType as 'classic' | 'minimal',
                       buttonText: formState.buttonText,
                       buttonColor: formState.buttonColor,
                       buttonTextColor: formState.buttonTextColor,
