@@ -1144,7 +1144,7 @@ export default function NudgeAddTogether() {
 
         {/* Preview Section */}
         <div style={{
-          flex: '0 0 40%',
+          flex: '0 0 45%',
           minWidth: '350px',
           paddingLeft: '12px',
           position: 'sticky',
