@@ -536,9 +536,9 @@ export default function NudgePopup() {
       subtitleColor: nudgeConfig?.subtitleColor || "#666666",
       continueButtonText: nudgeConfig?.continueButtonText || "Continue with original",
       continueButtonColor: nudgeConfig?.continueButtonColor || "#000000",
-      continueButtonTextColor: nudgeConfig?.continueButtonTextColor || "#FFFFFF",
+      continueButtonTextColor: nudgeConfig?.continueButtonTextColor || "#000000",
       selectButtonText: nudgeConfig?.selectButtonText || "Select this product",
-      selectButtonColor: nudgeConfig?.selectButtonColor || "#4F46E5",
+      selectButtonColor: nudgeConfig?.selectButtonColor || "#000000",
       selectButtonTextColor: nudgeConfig?.selectButtonTextColor || "#FFFFFF",
       closeButtonColor: nudgeConfig?.closeButtonColor || "#999999",
       showProductImage: nudgeConfig?.showProductImage ?? true,
@@ -905,7 +905,6 @@ export default function NudgePopup() {
                     label="Layout"
                     options={[
                       { label: "Grid", value: "grid" },
-                      { label: "List", value: "list" },
                       { label: "Carousel", value: "carousel" },
                     ]}
                     value={formState.layout}
@@ -1058,13 +1057,6 @@ export default function NudgePopup() {
                     autoComplete="off"
                   />
                   <TextField
-                    label="Continue Button Background Color"
-                    value={formState.continueButtonColor}
-                    onChange={(value) => setFormState({ ...formState, continueButtonColor: value })}
-                    autoComplete="off"
-                    {...({ type: "color" } as any)}
-                  />
-                  <TextField
                     label="Continue Button Text Color"
                     value={formState.continueButtonTextColor}
                     onChange={(value) => setFormState({ ...formState, continueButtonTextColor: value })}
@@ -1211,9 +1203,7 @@ export default function NudgePopup() {
                     Live Preview
                   </Text>
                   <Badge tone={previewProducts.length === 0 ? 'info' : 'success'}>
-                    {formState.layout === 'grid' ? 'Grid' :
-                      formState.layout === 'list' ? 'List' :
-                        'Carousel'}
+                    {formState.layout === 'grid' ? 'Grid' : 'Carousel'}
                   </Badge>
                 </div>
 
@@ -1242,7 +1232,7 @@ export default function NudgePopup() {
                         config={{
                           title: formState.title,
                           subtitle: formState.subtitle,
-                          layout: formState.layout as 'grid' | 'list' | 'carousel',
+                          layout: (formState.layout === 'list' ? 'grid' : formState.layout) as 'grid' | 'carousel',
                           maxProducts: parseInt(formState.maxProducts),
                           showProductImage: formState.showProductImage,
                           showProductDescription: formState.showProductDescription,

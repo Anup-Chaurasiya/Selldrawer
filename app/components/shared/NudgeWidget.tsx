@@ -19,7 +19,7 @@ export interface NudgeProduct {
 interface NudgeConfig {
   title: string;
   subtitle: string;
-  layout: 'grid' | 'list' | 'carousel';
+  layout: 'grid' | 'carousel';
   maxProducts: number;
   showProductImage: boolean;
   showProductDescription: boolean;
@@ -234,7 +234,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
             right: '1rem',
             background: 'none',
             border: 'none',
-            fontSize: '2rem',
+            fontSize: '1.5em',
             cursor: isPreview ? 'not-allowed' : 'pointer',
             lineHeight: 1,
             padding: '0.25rem 0.5rem',
@@ -250,7 +250,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
         <h2
           className="upsellity-nudge-title"
           style={{
-            fontSize: '1.75rem',
+            fontSize: '1.25em',
             fontWeight: 600,
             margin: '0 0 0.5rem 0',
             paddingRight: '1rem',
@@ -266,7 +266,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
         <p
           className="upsellity-nudge-subtitle"
           style={{
-            fontSize: '1rem',
+            fontSize: '0.875em',
             margin: '0 0 1.5rem 0',
             opacity: 0.8,
             textAlign: 'center',
@@ -307,28 +307,31 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                 }}
               />
             )}
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
-                fontSize: '0.75rem',
+                fontSize: '0.625em',
                 fontWeight: 600,
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
                 color: '#6B7280',
                 marginBottom: '0.25rem'
               }}>
-                ✨ Replacing
+                Replacing
               </div>
               <div style={{
-                fontSize: '1rem',
+                fontSize: '0.875em',
                 fontWeight: 600,
                 color: '#111827',
-                lineHeight: 1.3
+                lineHeight: 1.3,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
               }}>
                 {replacingProduct.title}
               </div>
               {replacingProduct.price && (
                 <div style={{
-                  fontSize: '0.875rem',
+                  fontSize: '0.75em',
                   color: '#6B7280',
                   marginTop: '0.25rem'
                 }}>
@@ -337,7 +340,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
               )}
             </div>
             <div style={{
-              fontSize: '2rem',
+              fontSize: '1.5em',
               color: '#9CA3AF',
               lineHeight: 1
             }}>
@@ -352,7 +355,6 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
           style={{
             display: config.layout === 'grid' ? 'grid' : 'flex',
             gridTemplateColumns: config.layout === 'grid' ? 'repeat(auto-fit, minmax(220px, 280px))' : undefined,
-            flexDirection: config.layout === 'list' ? 'column' : undefined,
             gap: '1.5rem',
             marginBottom: '1.5rem',
             justifyContent: 'center',
@@ -452,11 +454,16 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                   <h3
                     className="upsellity-nudge-product-title"
                     style={{
-                      fontSize: '1rem',
+                      fontSize: '0.875em',
                       fontWeight: 600,
                       margin: '0 0 0.5rem 0',
                       lineHeight: 1.4,
-                      paddingRight: checkboxMode ? '2rem' : '0'
+                      paddingRight: checkboxMode ? '2rem' : '0',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical' as const
                     }}
                   >
                     {product.title}
@@ -466,7 +473,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                     <p
                       className="upsellity-nudge-product-description"
                       style={{
-                        fontSize: '0.875rem',
+                        fontSize: '0.75em',
                         color: '#6b7280',
                         margin: '0 0 0.75rem 0',
                         lineHeight: 1.5
@@ -491,7 +498,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                         <span
                           className="upsellity-nudge-product-compare-price"
                           style={{
-                            fontSize: '0.875rem',
+                            fontSize: '0.75em',
                             color: '#9ca3af',
                             textDecoration: 'line-through'
                           }}
@@ -502,7 +509,7 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                       <span
                         className="upsellity-nudge-product-price"
                         style={{
-                          fontSize: '1.125rem',
+                          fontSize: '0.9375em',
                           fontWeight: 600,
                           color: '#111827'
                         }}
@@ -522,127 +529,104 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
           className="upsellity-nudge-bottom-section"
           style={{
             display: 'flex',
-            gap: '1rem',
+            flexDirection: 'column',
+            gap: '0rem',
             marginTop: '1.5rem',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             width: '100%',
             maxWidth: '100%'
           }}
         >
-          {/* Continue Button - Always show when onContinue is provided */}
-          {onContinue && (
-            <div
-              className="upsellity-nudge-continue-section"
-              style={{
-                flex: 1,
-                minWidth: 0
-              }}
-            >
-              <button
-                type="button"
-                className="upsellity-nudge-continue-btn"
-                onClick={onContinue}
-                disabled={isPreview}
-                style={{
-                  width: '100%',
-                  padding: '1rem 1.5rem',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  cursor: isPreview ? 'not-allowed' : 'pointer',
-                  transition: 'opacity 0.2s ease',
-                  backgroundColor: config.continueButtonColor,
-                  color: config.continueButtonTextColor,
-                  opacity: isPreview ? 0.6 : 1
-                }}
-                onMouseEnter={(e) => {
-                  if (!isPreview) e.currentTarget.style.opacity = '0.9';
-                }}
-                onMouseLeave={(e) => {
-                  if (!isPreview) e.currentTarget.style.opacity = '1';
-                }}
-              >
-                {config.continueButtonText}
-              </button>
-            </div>
-          )}
-
           {/* Select All Button - Show only if not in checkbox mode or if checkbox mode, show as "Add Selected" */}
           {productsToShow.length > 0 && !checkboxMode && (
-            <div
-              className="upsellity-nudge-selection-section"
+            <button
+              type="button"
+              className="upsellity-nudge-select-all-btn"
+              onClick={() => !isPreview && onSelectAll && onSelectAll(productsToShow)}
+              disabled={isPreview}
               style={{
-                flex: 1,
-                minWidth: 0
+                width: '100%',
+                padding: '1rem 1.5rem',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '0.875em',
+                fontWeight: 600,
+                cursor: isPreview ? 'not-allowed' : 'pointer',
+                transition: 'opacity 0.2s ease',
+                backgroundColor: config.selectButtonColor,
+                color: config.selectButtonTextColor,
+                opacity: isPreview ? 0.6 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!isPreview) e.currentTarget.style.opacity = '0.9';
+              }}
+              onMouseLeave={(e) => {
+                if (!isPreview) e.currentTarget.style.opacity = '1';
               }}
             >
-              <button
-                type="button"
-                className="upsellity-nudge-select-all-btn"
-                onClick={() => !isPreview && onSelectAll && onSelectAll(productsToShow)}
-                disabled={isPreview}
-                style={{
-                  width: '100%',
-                  padding: '1rem 1.5rem',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  cursor: isPreview ? 'not-allowed' : 'pointer',
-                  transition: 'opacity 0.2s ease',
-                  backgroundColor: config.selectButtonColor,
-                  color: config.selectButtonTextColor,
-                  opacity: isPreview ? 0.6 : 1
-                }}
-                onMouseEnter={(e) => {
-                  if (!isPreview) e.currentTarget.style.opacity = '0.9';
-                }}
-                onMouseLeave={(e) => {
-                  if (!isPreview) e.currentTarget.style.opacity = '1';
-                }}
-              >
-                {config.selectButtonText}
-              </button>
-            </div>
+              {config.selectButtonText}
+            </button>
           )}
           {/* Add Selected Button for checkbox mode */}
           {checkboxMode && productsToShow.length > 0 && (
-            <div
-              className="upsellity-nudge-selection-section"
+            <button
+              type="button"
+              className="upsellity-nudge-add-selected-btn"
+              onClick={() => !isPreview && onSelectAll && onSelectAll(productsToShow.filter(p => selectedIds.has(p.id)))}
+              disabled={isPreview || selectedIds.size === 0}
               style={{
-                flex: 1,
-                minWidth: 0
+                width: '100%',
+                maxWidth: '300px',
+                padding: '1rem 1.5rem',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '0.875em',
+                fontWeight: 600,
+                cursor: (isPreview || selectedIds.size === 0) ? 'not-allowed' : 'pointer',
+                transition: 'opacity 0.2s ease',
+                backgroundColor: config.selectButtonColor,
+                color: config.selectButtonTextColor,
+                opacity: (isPreview || selectedIds.size === 0) ? 0.6 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!isPreview && selectedIds.size > 0) e.currentTarget.style.opacity = '0.9';
+              }}
+              onMouseLeave={(e) => {
+                if (!isPreview && selectedIds.size > 0) e.currentTarget.style.opacity = '1';
               }}
             >
-              <button
-                type="button"
-                className="upsellity-nudge-add-selected-btn"
-                onClick={() => !isPreview && onSelectAll && onSelectAll(productsToShow.filter(p => selectedIds.has(p.id)))}
-                disabled={isPreview || selectedIds.size === 0}
-                style={{
-                  width: '100%',
-                  padding: '1rem 1.5rem',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  cursor: (isPreview || selectedIds.size === 0) ? 'not-allowed' : 'pointer',
-                  transition: 'opacity 0.2s ease',
-                  backgroundColor: config.selectButtonColor,
-                  color: config.selectButtonTextColor,
-                  opacity: (isPreview || selectedIds.size === 0) ? 0.6 : 1
-                }}
-                onMouseEnter={(e) => {
-                  if (!isPreview && selectedIds.size > 0) e.currentTarget.style.opacity = '0.9';
-                }}
-                onMouseLeave={(e) => {
-                  if (!isPreview && selectedIds.size > 0) e.currentTarget.style.opacity = '1';
-                }}
-              >
-                {config.selectButtonText} {selectedIds.size > 0 && `(${selectedIds.size})`}
-              </button>
-            </div>
+              {config.selectButtonText} {selectedIds.size > 0 && `(${selectedIds.size})`}
+            </button>
+          )}
+
+          {/* Continue Button - Text-only link style */}
+          {onContinue && (
+            <button
+              type="button"
+              className="upsellity-nudge-continue-btn"
+              onClick={onContinue}
+              disabled={isPreview}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '0.5rem 1rem',
+                fontSize: '0.8em',
+                fontWeight: 400,
+                cursor: isPreview ? 'not-allowed' : 'pointer',
+                transition: 'opacity 0.2s ease',
+                color: config.continueButtonTextColor,
+                opacity: isPreview ? 0.6 : 1,
+                textDecoration: 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (!isPreview) e.currentTarget.style.opacity = '0.7';
+              }}
+              onMouseLeave={(e) => {
+                if (!isPreview) e.currentTarget.style.opacity = '1';
+              }}
+            >
+              {config.continueButtonText}
+            </button>
           )}
         </div>
       </div>
