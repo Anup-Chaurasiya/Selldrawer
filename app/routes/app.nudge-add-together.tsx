@@ -894,7 +894,6 @@ export default function NudgeAddTogether() {
                     label="Layout"
                     options={[
                       { label: "Grid", value: "grid" },
-                      { label: "List", value: "list" },
                       { label: "Carousel", value: "carousel" },
                     ]}
                     value={formState.layout}
@@ -1145,7 +1144,7 @@ export default function NudgeAddTogether() {
 
         {/* Preview Section */}
         <div style={{
-          flex: '0 0 40%',
+          flex: '0 0 45%',
           minWidth: '350px',
           paddingLeft: '12px',
           position: 'sticky',
@@ -1163,9 +1162,7 @@ export default function NudgeAddTogether() {
                     Live Preview
                   </Text>
                   <Badge tone={previewProducts.length === 0 ? 'info' : 'success'}>
-                    {formState.layout === 'grid' ? 'Grid' :
-                      formState.layout === 'list' ? 'List' :
-                        'Carousel'}
+                    {formState.layout === 'grid' ? 'Grid' : 'Carousel'}
                   </Badge>
                 </div>
 
@@ -1191,7 +1188,7 @@ export default function NudgeAddTogether() {
                         config={{
                           title: formState.title,
                           subtitle: formState.subtitle,
-                          layout: formState.layout as 'grid' | 'list' | 'carousel',
+                          layout: (formState.layout === 'list' ? 'grid' : formState.layout) as 'grid' | 'carousel',
                           maxProducts: parseInt(formState.maxProducts),
                           showProductImage: formState.showProductImage,
                           showProductDescription: formState.showProductDescription,

@@ -62,11 +62,12 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
         style={{
           display: 'flex',
           flexDirection: 'row',
-          gap: '0.75rem',
+          gap: '0rem',
           padding: '1rem',
           background: '#ffffff',
           borderRadius: '10px',
-          border: '1px solid #e5e7eb'
+          overflowX: 'auto',
+          maxWidth: '100%'
         }}
       >
         {/* Render Parent Product First */}
@@ -226,7 +227,7 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
                   fontSize: '1.5rem',
                   color: '#6b7280',
                   fontWeight: '600',
-                  minWidth: '32px',
+                  minWidth: '20px',
                   flexShrink: 0
                 }}
               >
@@ -397,7 +398,7 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
                     fontSize: '1.5rem',
                     color: '#6b7280',
                     fontWeight: '600',
-                    minWidth: '32px',
+                    minWidth: '20px',
                     flexShrink: 0
                   }}
                 >
@@ -417,7 +418,6 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
           justifyContent: 'space-between',
           alignItems: 'center',
           paddingTop: '1rem',
-          borderTop: '1px solid #e5e7eb',
           gap: '1rem'
         }}
       >

@@ -23,6 +23,7 @@ export const UnifiedCartDrawer = ({
   productCompareAtPrices,
   freeGifts,
   selectedGiftId,
+  pendingOperations,
   onClose,
   onCheckout,
   onAddProductToCart,
@@ -317,6 +318,7 @@ export const UnifiedCartDrawer = ({
         <CartItems
           items={cart.items}
           productCompareAtPrices={productCompareAtPrices}
+          pendingOperations={pendingOperations}
           onUpdateQuantity={onUpdateQuantity}
           onRemoveItem={onRemoveItem}
           isPreview={false}

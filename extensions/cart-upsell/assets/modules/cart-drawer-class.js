@@ -32,6 +32,7 @@ export class UpsellityCartDrawer {
     this.isSyncingGifts = false; // Prevent concurrent gift syncing
     this.freeGifts = []; // Free gift offers
     this.selectedGiftId = null; // Currently selected gift
+    this.pendingOperations = new Set(); // Track pending cart operations by item key
 
     this.init();
   }
@@ -232,21 +233,30 @@ export class UpsellityCartDrawer {
 
   async loadCart(cartData = null, skipRender = false, skipGiftSync = false) {
     try {
-      // Load cart data first (required for rendering)
+      // OPTIMIZATION 1: Use provided cart data instead of fetching
+      // When cart operations return updated cart data, we use it directly
       if (cartData) {
         this.cart = cartData;
       } else {
+        // Only fetch if we don't have cart data
         const response = await fetch('/cart.js');
         this.cart = await response.json();
       }
 
-      // Render immediately if we're not skipping render
-      // This ensures drawer opens as soon as we have cart + config
+      // OPTIMIZATION 2: Render immediately with cart data we have
+      // This gives instant feedback to the user
       if (!skipRender) {
         this.render();
       }
 
-      // Load all secondary data in parallel (can complete after drawer is open)
+      // OPTIMIZATION 3: Load secondary data in background (non-blocking)
+      // Fire and forget - these will update the UI when ready
+      if (!skipGiftSync) {
+        // Load milestones and gifts asynchronously without blocking
+        this.loadSecondaryDataAsync();
+      }
+
+      // Load product data in parallel
       const promises = [
         ProductLoader.loadProductCompareAtPrices(this.cart),
         DiscountManager.loadAvailableDiscounts(this.appUrl, this.shop, this.config),
@@ -255,35 +265,10 @@ export class UpsellityCartDrawer {
 
       const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
 
-      // Load milestones and free gifts SEQUENTIALLY to handle priority correctly
-      // Skip if we're already syncing to prevent infinite loops
-      if (!skipGiftSync) {
-        if (this.config?.features?.milestonesEnabled) {
-          await this.loadMilestones();
-        } else {
-          // If milestones are disabled, remove any milestone gifts from cart
-          console.log('Upsellity: Milestones disabled, cleaning up milestone gifts');
-          const allGifts = MilestoneRewardManager.getAllGiftsInCart(this.cart);
-          for (const giftItem of allGifts) {
-            // Remove all gifts (they're either milestone or free gift gifts)
-            // Free gifts will be re-added by loadFreeGifts if qualified
-            await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
-          }
-          // Reload cart after cleanup
-          const response = await fetch('/cart.js');
-          this.cart = await response.json();
-        }
-
-        if (this.config?.features?.freeGiftsEnabled) {
-          await this.loadFreeGifts();
-        }
-      }
-
       this.productCompareAtPrices = productCompareAtPrices;
       this.availableDiscounts = availableDiscounts;
 
       // Auto-apply best discount only if user hasn't removed it recently
-      // AND if coupon field is enabled (not null)
       if (this.config?.features?.couponCodeField &&
         this.config?.features?.couponCodeField?.enableAutoApply &&
         !this.getDiscountFromCart() &&
@@ -306,6 +291,35 @@ export class UpsellityCartDrawer {
       if (!skipRender) {
         this.render();
       }
+    }
+  }
+
+  // OPTIMIZATION: Load milestones and gifts asynchronously without blocking
+  async loadSecondaryDataAsync() {
+    try {
+      if (this.config?.features?.milestonesEnabled) {
+        await this.loadMilestones();
+      } else {
+        // If milestones are disabled, remove any milestone gifts from cart
+        const allGifts = MilestoneRewardManager.getAllGiftsInCart(this.cart);
+        if (allGifts.length > 0) {
+          for (const giftItem of allGifts) {
+            await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
+          }
+          // Reload cart after cleanup
+          const response = await fetch('/cart.js');
+          this.cart = await response.json();
+        }
+      }
+
+      if (this.config?.features?.freeGiftsEnabled) {
+        await this.loadFreeGifts();
+      }
+
+      // Re-render after milestones/gifts are loaded
+      this.render();
+    } catch (error) {
+      console.error('Upsellity: Failed to load secondary data', error);
     }
   }
 
@@ -537,6 +551,7 @@ export class UpsellityCartDrawer {
         unlockedMilestone: this.unlockedMilestone,
         freeGifts: this.freeGifts,
         selectedGiftId: this.selectedGiftId,
+        pendingOperations: this.pendingOperations,
         onClose: () => this.close(),
         onCheckout: () => this.handleCheckout(),
         onAddProductToCart: (variantId) => this.addProductToCart(variantId, 1, { '_upsell_source': 'cart_drawer_recommendation' }),
@@ -607,7 +622,7 @@ export class UpsellityCartDrawer {
 
   async loadSecondaryData() {
     try {
-      // Load all secondary data in parallel
+      // Load all product-related secondary data in parallel
       const promises = [
         ProductLoader.loadProductCompareAtPrices(this.cart),
         DiscountManager.loadAvailableDiscounts(this.appUrl, this.shop, this.config),
@@ -619,17 +634,10 @@ export class UpsellityCartDrawer {
       this.productCompareAtPrices = productCompareAtPrices;
       this.availableDiscounts = availableDiscounts;
 
-      // Load milestones and free gifts SEQUENTIALLY to handle priority correctly
-      if (this.config?.features?.milestonesEnabled) {
-        await this.loadMilestones();
-      }
-
-      if (this.config?.features?.freeGiftsEnabled) {
-        await this.loadFreeGifts();
-      }
+      // Load milestones and free gifts asynchronously (non-blocking)
+      this.loadSecondaryDataAsync();
 
       // Auto-apply best discount only if user hasn't removed it recently
-      // AND if coupon field is enabled (not null)
       if (this.config?.features?.couponCodeField &&
         this.config?.features?.couponCodeField?.enableAutoApply &&
         !this.getDiscountFromCart() &&
@@ -795,6 +803,15 @@ export class UpsellityCartDrawer {
   }
 
   async updateQuantity(itemKey, newQuantity) {
+    // Check if there's already a pending operation for this item
+    if (this.pendingOperations.has(itemKey)) {
+      console.log('Upsellity: Operation already pending for item', itemKey);
+      return;
+    }
+
+    // Mark this item as having a pending operation
+    this.pendingOperations.add(itemKey);
+
     try {
       await CartOps.updateQuantity(itemKey, newQuantity, async (updatedCart) => {
         // Update cart and reload free gifts to check qualification
@@ -806,19 +823,36 @@ export class UpsellityCartDrawer {
       await this.loadCart();
       this.render();
     } finally {
+      // Remove the item from pending operations
+      this.pendingOperations.delete(itemKey);
+
       // Trigger cart:updated event for FBT monitor
       document.dispatchEvent(new CustomEvent('cart:updated'));
     }
   }
 
   async removeItem(itemKey) {
-    await CartOps.removeItem(itemKey, async (updatedCart) => {
-      // Update cart and reload free gifts to check qualification
-      await this.loadCart(updatedCart);
+    // Check if there's already a pending operation for this item
+    if (this.pendingOperations.has(itemKey)) {
+      console.log('Upsellity: Operation already pending for item', itemKey);
+      return;
+    }
 
-      // Trigger cart:updated event for FBT monitor
-      document.dispatchEvent(new CustomEvent('cart:updated'));
-    }, this.render.bind(this));
+    // Mark this item as having a pending operation
+    this.pendingOperations.add(itemKey);
+
+    try {
+      await CartOps.removeItem(itemKey, async (updatedCart) => {
+        // Update cart and reload free gifts to check qualification
+        await this.loadCart(updatedCart);
+
+        // Trigger cart:updated event for FBT monitor
+        document.dispatchEvent(new CustomEvent('cart:updated'));
+      }, this.render.bind(this));
+    } finally {
+      // Remove the item from pending operations
+      this.pendingOperations.delete(itemKey);
+    }
   }
 
   // Get discount from Shopify cart
