@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.11
- * Built: 2026-01-27T14:51:22.280Z
+ * Built: 2026-01-29T10:10:57.449Z
  */
 "use strict";
 (() => {
@@ -9414,7 +9414,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://protest-trend-leather-capital.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://vii-children-italic-couple.trycloudflare.com" : "https://app.upsellity.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;
@@ -9635,6 +9635,12 @@
       try {
         const bundleMetadata = (_a2 = this.config) == null ? void 0 : _a2.bundleMetadata;
         const hasDiscount = bundleMetadata == null ? void 0 : bundleMetadata.hasDiscount;
+        console.log("[FBT] addToCart called:", {
+          selectedProducts: selectedIds.size,
+          bundleMetadata,
+          hasDiscount,
+          fullConfig: this.config
+        });
         const bundleId = hasDiscount && (bundleMetadata == null ? void 0 : bundleMetadata.ruleId) ? `fbt_${bundleMetadata.ruleId}_${Date.now()}` : null;
         const items = [];
         const allProducts = [];
@@ -9661,11 +9667,27 @@
                   "_upsell_source": "fbt"
                 };
                 if (bundleId && hasDiscount) {
+                  console.log("[FBT] Adding discount properties:", {
+                    bundleId,
+                    discountType: bundleMetadata.discountType,
+                    discountValue: bundleMetadata.discountValue,
+                    hasDiscount
+                  });
                   properties["_fbt_bundle_id"] = bundleId;
                   properties["_fbt_rule_id"] = bundleMetadata.ruleId;
+                  properties["_fbt_discount_type"] = bundleMetadata.discountType;
+                  properties["_fbt_discount_value"] = bundleMetadata.discountValue;
+                  properties["_fbt_bundle_size"] = allProducts.length.toString();
                   properties["_fbt_discount_type"] = ((_d = bundleMetadata.discountType) == null ? void 0 : _d.toUpperCase()) || "PERCENTAGE";
                   properties["_fbt_discount_value"] = ((_e = bundleMetadata.discountValue) == null ? void 0 : _e.toString()) || "0";
                   properties["_fbt_product_count"] = selectedIds.size.toString();
+                  console.log("[FBT] Final properties:", properties);
+                } else {
+                  console.warn("[FBT] Not adding discount properties:", {
+                    hasBundleId: !!bundleId,
+                    hasDiscount,
+                    bundleMetadata
+                  });
                 }
                 items.push({
                   id: variantId,

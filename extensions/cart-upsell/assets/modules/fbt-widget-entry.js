@@ -292,6 +292,13 @@ class FrequentlyBoughtTogether {
       const bundleMetadata = this.config?.bundleMetadata;
       const hasDiscount = bundleMetadata?.hasDiscount;
 
+      console.log('[FBT] addToCart called:', {
+        selectedProducts: selectedIds.size,
+        bundleMetadata,
+        hasDiscount,
+        fullConfig: this.config
+      });
+
       // Generate unique bundle ID for this transaction
       const bundleId = hasDiscount && bundleMetadata?.ruleId
         ? `fbt_${bundleMetadata.ruleId}_${Date.now()}`
@@ -332,11 +339,31 @@ class FrequentlyBoughtTogether {
 
               // Add bundle properties if discount is configured
               if (bundleId && hasDiscount) {
+                console.log('[FBT] Adding discount properties:', {
+                  bundleId,
+                  discountType: bundleMetadata.discountType,
+                  discountValue: bundleMetadata.discountValue,
+                  hasDiscount
+                });
+
                 properties['_fbt_bundle_id'] = bundleId;
                 properties['_fbt_rule_id'] = bundleMetadata.ruleId;
+                properties['_fbt_discount_type'] = bundleMetadata.discountType;
+                properties['_fbt_discount_value'] = bundleMetadata.discountValue;
+
+                // Track total bundle size for integrity check (Product + Recommendations)
+                properties['_fbt_bundle_size'] = allProducts.length.toString();
                 properties['_fbt_discount_type'] = bundleMetadata.discountType?.toUpperCase() || 'PERCENTAGE';
                 properties['_fbt_discount_value'] = bundleMetadata.discountValue?.toString() || '0';
                 properties['_fbt_product_count'] = selectedIds.size.toString();
+
+                console.log('[FBT] Final properties:', properties);
+              } else {
+                console.warn('[FBT] Not adding discount properties:', {
+                  hasBundleId: !!bundleId,
+                  hasDiscount,
+                  bundleMetadata
+                });
               }
 
               items.push({

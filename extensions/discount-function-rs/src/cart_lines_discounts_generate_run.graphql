@@ -1,15 +1,8 @@
-# Learn more about run.graphql at https://shopify.dev/docs/apps/build/functions/input-output
-
-query Input {
+query CartInput {
   cart {
     lines {
       id
       quantity
-      cost {
-        amountPerQuantity {
-          amount
-        }
-      }
       merchandise {
         __typename
         ... on ProductVariant {
@@ -19,10 +12,7 @@ query Input {
           }
         }
       }
-      attribute(key: "_fbt_bundle_id") {
-        value
-      }
-      fbtRuleId: attribute(key: "_fbt_rule_id") {
+      fbtBundleId: attribute(key: "_fbt_bundle_id") {
         value
       }
       fbtDiscountType: attribute(key: "_fbt_discount_type") {
@@ -31,9 +21,17 @@ query Input {
       fbtDiscountValue: attribute(key: "_fbt_discount_value") {
         value
       }
-      fbtProductCount: attribute(key: "_fbt_product_count") {
+      fbtBundleSize: attribute(key: "_fbt_bundle_size") {
         value
       }
+      cost {
+        subtotalAmount {
+          amount
+        }
+      }
     }
+  }
+  discount {
+    discountClasses
   }
 }

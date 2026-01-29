@@ -31,7 +31,6 @@ import { DeleteIcon, PlusIcon, EditIcon } from "@shopify/polaris-icons";
 import { FBTWidget } from "../components/shared/FBTWidget";
 import type { FBTProduct } from "../components/shared/FBTProductCard";
 import { checkPlanAccess } from "../utils/planAccess.server";
-import { createOrUpdateFBTDiscount, deleteFBTDiscount } from "../utils/fbt-discount.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing, session, admin } = await authenticate.admin(request);
@@ -363,34 +362,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
     }
 
-    // Create discount code AFTER products are added (so we have product IDs)
-    console.log('Discount check:', { hasValidDiscount, productIdsLength: productIds.length, productIds });
-
-    if (hasValidDiscount && productIds.length > 0) {
-      const discountCode = `FBT_RULE_${rule.id}`;
-      console.log('Creating FBT discount with product IDs:', productIds);
-
-      const discountResult = await createOrUpdateFBTDiscount(
-        admin,
-        discountCode,
-        discountType as "percentage" | "fixed",
-        discountValue,
-        productIds
-      );
-
-      if (discountResult) {
-        // Update rule with discount info
-        await prisma.fBTRule.update({
-          where: { id: rule.id },
-          data: {
-            discountType,
-            discountValue,
-            discountCode: discountResult.discountId
-          }
-        });
-      }
-    } else if (hasValidDiscount) {
-      console.warn('FBT discount requested but no product IDs collected');
+    // Store discount configuration in the rule
+    // Discounts are now applied via the FBT discount function
+    if (hasValidDiscount) {
+      await prisma.fBTRule.update({
+        where: { id: rule.id },
+        data: {
+          discountType,
+          discountValue
+        }
+      });
+      console.log('FBT discount configuration saved:', { discountType, discountValue });
     }
 
     return json({ success: true });
@@ -398,17 +380,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "delete-rule") {
     const ruleId = formData.get("ruleId") as string;
-
-    // Get rule with discount info before deleting
-    const rule = await prisma.fBTRule.findUnique({
-      where: { id: ruleId },
-      select: { discountCode: true }
-    });
-
-    // Delete discount if exists
-    if (rule?.discountCode) {
-      await deleteFBTDiscount(admin, rule.discountCode);
-    }
 
     // Delete rule (cascade deletes products)
     await prisma.fBTRule.delete({
@@ -527,57 +498,69 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
     }
 
-    // Handle discount: delete old if exists, create new if enabled
-    const existingRule = await prisma.fBTRule.findUnique({
-      where: { id: ruleId },
-      select: { discountCode: true }
-    });
-
-    // Delete old discount if exists
-    if (existingRule?.discountCode) {
-      await deleteFBTDiscount(admin, existingRule.discountCode);
-    }
-
-    // Create new discount if enabled and we have product IDs
-    console.log('Update-rule discount check:', { showDiscount, discountType, discountValue, productIdsLength: productIds.length, productIds });
-
-    if (showDiscount && discountType && discountValue && discountValue > 0 && productIds.length > 0) {
-      const discountCode = `FBT_RULE_${ruleId}`;
-      console.log('Updating FBT discount with product IDs:', productIds);
-
-      const discountResult = await createOrUpdateFBTDiscount(
-        admin,
-        discountCode,
-        discountType as "percentage" | "fixed",
-        discountValue,
-        productIds
-      );
-
-      if (discountResult) {
-        await prisma.fBTRule.update({
-          where: { id: ruleId },
-          data: {
-            discountType,
-            discountValue,
-            discountCode: discountResult.discountId
-          }
-        });
-      }
-    } else if (showDiscount && discountType && discountValue && discountValue > 0) {
-      console.warn('Update-rule: FBT discount requested but no product IDs collected');
+    // Update discount configuration
+    // Discounts are now applied via the FBT discount function
+    if (showDiscount && discountType && discountValue && discountValue > 0) {
+      await prisma.fBTRule.update({
+        where: { id: ruleId },
+        data: {
+          discountType,
+          discountValue
+        }
+      });
+      console.log('FBT discount configuration updated:', { discountType, discountValue });
     } else {
       // Clear discount fields if disabled
       await prisma.fBTRule.update({
         where: { id: ruleId },
         data: {
           discountType: null,
-          discountValue: null,
-          discountCode: null
+          discountValue: null
         }
       });
     }
 
     return json({ success: true });
+  }
+
+  if (intent === "setup-discount") {
+    try {
+      // Import the discount creation utility
+      const { createFBTFunctionDiscount, getFBTFunctionId } = await import("../utils/fbt-discount.server");
+
+      // Check if function exists
+      const functionId = await getFBTFunctionId(admin);
+
+      if (!functionId) {
+        return json({
+          success: false,
+          error: "FBT discount function not found. Please deploy the function first: shopify app deploy"
+        });
+      }
+
+      // Create the automatic discount
+      const discountId = await createFBTFunctionDiscount(admin, shop);
+
+      if (!discountId) {
+        return json({
+          success: false,
+          error: "Failed to create automatic discount. Check server logs for details."
+        });
+      }
+
+      return json({
+        success: true,
+        discountId,
+        functionId,
+        message: "FBT Bundle Discount activated successfully!"
+      });
+    } catch (error) {
+      console.error("Error creating FBT discount:", error);
+      return json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
@@ -1173,6 +1156,91 @@ export default function FrequentlyBoughtTogether() {
                     Enable this feature to show frequently bought together products on your store.
                   </Banner>
                 )}
+              </BlockStack>
+            </Card>
+
+            {/* Discount Function Status Card */}
+            <Card>
+              <BlockStack gap="400">
+                <BlockStack gap="100">
+                  <Text as="h2" variant="headingMd">
+                    FBT Discount Activation
+                  </Text>
+                  <Text as="p" variant="bodyMd" tone="subdued">
+                    Activate automatic checkout discounts for FBT bundles
+                  </Text>
+                </BlockStack>
+
+                <Banner tone="info">
+                  <BlockStack gap="200">
+                    <Text as="p">
+                      <strong>Important:</strong> To apply automatic discounts at checkout, you need to activate the FBT discount function.
+                    </Text>
+                    <Text as="p" variant="bodySm">
+                      This is a one-time setup. Once activated, all FBT bundles will automatically receive discounts at checkout based on your rule configurations.
+                    </Text>
+                  </BlockStack>
+                </Banner>
+
+                {actionData && 'success' in actionData && submittingIntent === 'setup-discount' && (
+                  <>
+                    {actionData.success ? (
+                      <Banner tone="success">
+                        <BlockStack gap="200">
+                          <Text as="p" fontWeight="bold">
+                            🎉 FBT Discount Activated Successfully!
+                          </Text>
+                          {'message' in actionData && <Text as="p">{String(actionData.message)}</Text>}
+                          {'discountId' in actionData && (
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              Discount ID: {String(actionData.discountId)}
+                            </Text>
+                          )}
+                          <Text as="p" variant="bodySm">
+                            ✅ Discounts will now apply automatically at checkout for all FBT bundles!
+                          </Text>
+                        </BlockStack>
+                      </Banner>
+                    ) : (
+                      <Banner tone="critical">
+                        <BlockStack gap="200">
+                          <Text as="p" fontWeight="bold">
+                            ❌ Activation Failed
+                          </Text>
+                          {'error' in actionData && <Text as="p">{String(actionData.error)}</Text>}
+                        </BlockStack>
+                      </Banner>
+                    )}
+                  </>
+                )}
+
+                <InlineStack align="start" gap="200">
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      const formData = new FormData();
+                      formData.append("intent", "setup-discount");
+                      submit(formData, { method: "post" });
+                    }}
+                    loading={isSubmitting && submittingIntent === 'setup-discount'}
+                  >
+                    Activate FBT Discount
+                  </Button>
+                </InlineStack>
+
+                <Banner>
+                  <BlockStack gap="200">
+                    <Text as="p" variant="bodySm">
+                      <strong>After activation:</strong>
+                    </Text>
+                    <Text as="p" variant="bodySm">
+                      • Go to Shopify Admin → Discounts<br />
+                      • You'll see "FBT Bundle Discount" (automatic discount)<br />
+                      • Discounts apply at checkout automatically<br />
+                      • No discount codes needed!
+                    </Text>
+                  </BlockStack>
+                </Banner>
               </BlockStack>
             </Card>
 
