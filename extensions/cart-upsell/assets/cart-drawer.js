@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.11
- * Built: 2026-01-29T13:19:07.484Z
+ * Built: 2026-01-29T14:47:34.092Z
  */
 "use strict";
 (() => {
@@ -13932,7 +13932,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://reprints-work-fold-calculated.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.11" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

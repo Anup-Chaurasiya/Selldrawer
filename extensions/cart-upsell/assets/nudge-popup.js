@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.11
- * Built: 2026-01-29T13:19:07.551Z
+ * Built: 2026-01-29T14:47:34.129Z
  */
 "use strict";
 (() => {
@@ -9164,7 +9164,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
-  var APP_URL = true ? "https://reprints-work-fold-calculated.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;
