@@ -130,19 +130,13 @@ function convertFreeGiftToMilestone(freeGift) {
  * - If 2+ gifts: user must choose, don't auto-add
  */
 export async function syncFreeGiftWithCart(freeGift, cart, loadCartCallback) {
-  console.log('Upsellity Free Gifts: Syncing with cart', {
-    hasFreeGift: !!freeGift,
-    freeGiftId: freeGift?.id,
-    qualified: freeGift?.qualified,
-    giftCount: freeGift?.giftProducts?.length,
-    cartTotal: cart?.total_price / 100
-  });
+
 
   const source = 'gifting_block';
 
   // If no free gift, use syncGiftProducts with null to remove all gifts owned by this source
   if (!freeGift) {
-    console.log('Upsellity Free Gifts: No qualified gift, removing all gifts');
+
     return await MilestoneRewardManager.syncGiftProducts(null, cart, loadCartCallback, source);
   }
 
@@ -150,17 +144,13 @@ export async function syncFreeGiftWithCart(freeGift, cart, loadCartCallback) {
 
   // If only 1 gift product: auto-add (milestone behavior)
   if (giftProducts.length === 1) {
-    console.log('Upsellity Free Gifts: Single gift, using auto-add logic');
+
     const milestone = convertFreeGiftToMilestone(freeGift);
     return await MilestoneRewardManager.syncGiftProducts(milestone, cart, loadCartCallback, source);
   }
 
   // If 2+ gift products: user must choose, DON'T auto-add
-  console.log('Upsellity Free Gifts: Multiple gifts, user must choose', {
-    giftProductCount: giftProducts.length,
-    freeGiftId: freeGift.id,
-    freeGiftName: freeGift.name
-  });
+
 
   // Get all gifts in cart
   const allGifts = MilestoneRewardManager.getAllGiftsInCart(cart);
@@ -212,7 +202,7 @@ export async function syncFreeGiftWithCart(freeGift, cart, loadCartCallback) {
   });
 
   if (selectedGift) {
-    console.log('Upsellity Free Gifts: User has already selected a gift');
+
     // User has selected a gift, keep it
     // Remove any other gifts from this offer/source (keep only the selected one)
     for (const giftItem of allGifts) {
@@ -227,7 +217,7 @@ export async function syncFreeGiftWithCart(freeGift, cart, loadCartCallback) {
       }
     }
   } else {
-    console.log('Upsellity Free Gifts: No gift selected yet, showing selection UI');
+
     // No gift selected yet, user needs to choose
     // Don't auto-add anything
   }

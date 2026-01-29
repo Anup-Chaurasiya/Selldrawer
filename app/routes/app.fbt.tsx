@@ -271,16 +271,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
     });
 
-    // Create discount code if enabled
-    // Check: showDiscount must be true, discountType must exist, discountValue must be valid number > 0
+    // Validate discount configuration
     const hasValidDiscount = showDiscount &&
       discountType &&
-      discountType !== "" && // Ensure discountType is not an empty string
+      discountType !== "" &&
       discountValue !== null &&
       !isNaN(discountValue) &&
       discountValue > 0;
-
-    console.log("Discount validation:", { hasValidDiscount, showDiscount, discountType, discountValue });
 
     // Collect product IDs for discount targeting
     const productIds: string[] = [];
@@ -1022,12 +1019,15 @@ export default function FrequentlyBoughtTogether() {
     }, 0);
 
     let discountedTotal = total;
-    if (formState.discountValue) {
-      const discountValue = parseFloat(formState.discountValue);
-      if (formState.discountType === 'percentage') {
-        discountedTotal = total * (1 - discountValue / 100);
-      } else {
-        discountedTotal = Math.max(0, total - discountValue);
+    const rule = upsellRows[0];
+    if (rule?.showDiscount && rule?.discountValue) {
+      const discountValue = parseFloat(rule.discountValue);
+      if (!isNaN(discountValue)) {
+        if (rule.discountType === 'percentage') {
+          discountedTotal = total * (1 - discountValue / 100);
+        } else {
+          discountedTotal = Math.max(0, total - discountValue);
+        }
       }
     }
 
@@ -1619,13 +1619,13 @@ export default function FrequentlyBoughtTogether() {
                       buttonText: formState.buttonText,
                       buttonColor: formState.buttonColor,
                       buttonTextColor: formState.buttonTextColor,
-                      showDiscount: formState.showDiscount,
+                      showDiscount: upsellRows[0]?.showDiscount || false,
                       showTotalPrice: formState.showTotalPrice,
                       showIndividualPrices: formState.showIndividualPrices,
                       showCheckboxes: formState.showCheckboxes,
                       showProductReviews: formState.showProductReviews,
-                      discountType: formState.discountType as 'percentage' | 'fixed',
-                      discountValue: formState.discountValue ? parseFloat(formState.discountValue) : undefined,
+                      discountType: (upsellRows[0]?.discountType || 'percentage') as 'percentage' | 'fixed',
+                      discountValue: upsellRows[0]?.discountValue ? parseFloat(upsellRows[0].discountValue) : undefined,
                       limitUpsellsInCart: formState.limitUpsellsInCart,
                       maxUpsellsInCart: parseInt(formState.maxUpsellsInCart)
                     }}

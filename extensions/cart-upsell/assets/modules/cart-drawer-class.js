@@ -469,7 +469,7 @@ export class UpsellityCartDrawer {
     // CRITICAL: Listen for cart updates from other modules (like gift-block-entry.js)
     // This ensures UI stays in sync when gifts are added/removed externally
     document.addEventListener('cart:updated', async (e) => {
-      console.log('Upsellity Cart Drawer: Received external update event', e.detail);
+
 
       let cartData = e.detail;
 

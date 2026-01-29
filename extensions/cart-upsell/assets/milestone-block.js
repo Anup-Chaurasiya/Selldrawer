@@ -1,6 +1,6 @@
 /**
  * Upsellity Milestone Block v1.0.11
- * Built: 2026-01-29T12:10:56.600Z
+ * Built: 2026-01-29T13:14:28.521Z
  */
 "use strict";
 (() => {
@@ -9252,7 +9252,6 @@
       return 0;
     }
     let total = 0;
-    console.groupCollapsed("Upsellity: Calculate Cart Total Debug");
     for (const item of cart.items) {
       const props = normalizeProperties(item.properties);
       const isGift = props[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || props["_gift"] === "true" || props["_gift"] === true || // Fallback: Check if source is set (even if _upsellity_gift missing)
@@ -9260,13 +9259,8 @@
       const linePrice = item.original_line_price || item.price * item.quantity;
       if (!isGift) {
         total += linePrice;
-        console.log(`[Item] ${item.title}: +${linePrice} (Paid)`);
-      } else {
-        console.log(`[Item] ${item.title}: +0 (Gift - Excluded)`);
       }
     }
-    console.log(`Total: ${total}`);
-    console.groupEnd();
     return total;
   }
   function findGiftInCart(cart, variantId, milestoneId) {
@@ -9363,24 +9357,15 @@
   }
   async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback, source = "milestone") {
     let cartModified = false;
-    console.log(`[syncGiftProducts] Syncing for source: ${source}`, { unlockedMilestoneId: unlockedMilestone == null ? void 0 : unlockedMilestone.id });
     const currentGifts = getAllGiftsInCart(cart);
     const managedGifts = currentGifts.filter((item) => {
       const props = normalizeProperties(item.properties);
       const itemSource = props["_upsellity_gift_source"];
       const effectiveSource = itemSource || "milestone";
-      if (itemSource !== source && effectiveSource === source) {
-        console.log(`[syncGiftProducts] Claiming gift with MISSING source as '${source}':`, item.variant_id || item.id, item.properties);
-      } else if (itemSource === source) {
-        console.log(`[syncGiftProducts] Found managed gift for '${source}':`, item.variant_id || item.id);
-      } else {
-        console.log(`[syncGiftProducts] Ignoring gift for other source '${effectiveSource}' (me: ${source}):`, item.variant_id || item.id);
-      }
       return effectiveSource === source;
     });
     if (!unlockedMilestone) {
       for (const giftItem of managedGifts) {
-        console.log(`[${source}] Removing gift as no milestone unlocked:`, giftItem.key);
         const removed = await removeGiftFromCart(giftItem.key);
         if (removed) {
           cartModified = true;
@@ -9393,7 +9378,6 @@
     }
     if (unlockedMilestone.rewardType !== "gift_wrapping") {
       for (const giftItem of managedGifts) {
-        console.log(`[${source}] Removing gift as reward type is not gift_wrapping:`, giftItem.key);
         const removed = await removeGiftFromCart(giftItem.key);
         if (removed) {
           cartModified = true;
@@ -9407,7 +9391,6 @@
     const giftProducts = unlockedMilestone.giftProducts || [];
     if (giftProducts.length === 0) {
       for (const giftItem of managedGifts) {
-        console.log(`[${source}] Removing gift as no gift products configured:`, giftItem.key);
         const removed = await removeGiftFromCart(giftItem.key);
         if (removed) {
           cartModified = true;
@@ -9430,17 +9413,6 @@
       const isDuplicate = seenValidGifts.has(itemVariantId);
       const shouldRemove = !belongsToThisMilestone || belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId) || isDuplicate;
       if (shouldRemove) {
-        console.log(`[${source}] Removing invalid/duplicate gift:`, {
-          key: giftItem.key,
-          reason: {
-            notBelong: !belongsToThisMilestone,
-            invalidVariant: belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId),
-            duplicate: isDuplicate
-          },
-          milestoneId: unlockedMilestone.id,
-          itemMilestoneId: giftItem.properties[GIFT_MILESTONE_ID_KEY],
-          validIds: Array.from(validGiftVariantIds)
-        });
         const removed = await removeGiftFromCart(giftItem.key);
         if (removed) {
           cartModified = true;
@@ -9474,7 +9446,6 @@
       }
       const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
       if (!existingGift) {
-        console.log(`[${source}] Adding missing gift:`, variantId);
         const added = await addGiftToCart(giftProduct, unlockedMilestone.id, source);
         if (added) {
           cartModified = true;
@@ -9535,7 +9506,7 @@
 
   // extensions/cart-upsell/assets/modules/milestone-block-entry.js
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://hampshire-existing-lcd-imagine.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://reprints-work-fold-calculated.trycloudflare.com" : "https://app.upsellity.com";
   function initMilestoneBlocks() {
     const containers = document.querySelectorAll(".upsellity-milestone-container");
     if (containers.length === 0) {

@@ -32,11 +32,11 @@ function initGiftingBlocks() {
     const containers = document.querySelectorAll('.upsellity-gifting-container');
 
     if (containers.length === 0) {
-        console.log('Upsellity Gifting Block: No containers found');
+
         return;
     }
 
-    console.log(`Upsellity Gifting Block: Initializing ${containers.length} container(s)`);
+
 
     containers.forEach((container) => {
         const shop = container.getAttribute('data-shop');
@@ -76,7 +76,7 @@ function initGiftingBlocks() {
             const cart = await fetchCart();
             const cartTotalInCents = calculateCartTotalExcludingGifts(cart);
             const cartTotalInRupees = cartTotalInCents / 100;
-            console.log('Upsellity Gifting Block: Cart total (excl. gifts):', cartTotalInRupees);
+
             return cartTotalInRupees;
         };
 
@@ -97,7 +97,7 @@ function initGiftingBlocks() {
                     shop={shop}
                     isPreview={false}
                     onSelectGift={async (giftId, variantId) => {
-                        console.log('Upsellity Gifting Block: User selecting gift', variantId);
+
                         await selectGift(variantId, gift, async () => {
                             // Reload cart after selection
                             await new Promise(resolve => setTimeout(resolve, 500));
@@ -127,7 +127,7 @@ function initGiftingBlocks() {
         // Handle cart updates and gift synchronization
         const handleCartUpdate = async () => {
             if (isProcessingGifts) {
-                console.log('Upsellity Gifting Block: Already processing, skipping');
+
                 return;
             }
 
@@ -157,7 +157,7 @@ function initGiftingBlocks() {
 
                 const newQualifiedGift = updatedGifts[0];
 
-                console.log('Upsellity Gifting Block: Qualified gift:', newQualifiedGift);
+
 
                 // Sync gift with cart (auto-add for single, wait for selection for multiple)
                 await syncFreeGiftWithCart(newQualifiedGift, cart, async () => {
@@ -252,7 +252,7 @@ function initGiftingBlocks() {
                 if (isProcessingGifts) return;
                 const currentTotal = await fetchCartTotal();
                 if (Math.abs(currentTotal - lastCartTotal) > 0.01) {
-                    console.log('Upsellity Gifting Block: Cart total changed via polling');
+
                     lastCartTotal = currentTotal;
                     await handleCartUpdate();
                 }
@@ -296,4 +296,4 @@ if (typeof MutationObserver !== 'undefined') {
     });
 }
 
-console.log(`Upsellity Gifting Block v${VERSION} loaded`);
+

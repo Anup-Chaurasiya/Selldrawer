@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.11
- * Built: 2026-01-29T12:10:56.478Z
+ * Built: 2026-01-29T13:14:28.385Z
  */
 "use strict";
 (() => {
@@ -9180,7 +9180,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
-  var APP_URL = true ? "https://hampshire-existing-lcd-imagine.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://reprints-work-fold-calculated.trycloudflare.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;

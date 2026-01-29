@@ -88,7 +88,6 @@ export function cartLinesDiscountsGenerateRun(input) {
 
       // If items are missing from the bundle, DO NOT apply discount
       if (!isNaN(expectedBundleSize) && currentBundleSize < expectedBundleSize) {
-        console.warn(`[FBT] Integrity check failed for bundle ${bundleId}: Expected ${expectedBundleSize} items, found ${currentBundleSize}. Discount skipped.`);
         continue;
       }
     }

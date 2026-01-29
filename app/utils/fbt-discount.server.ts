@@ -32,8 +32,6 @@ export async function getFBTFunctionId(admin: AdminApiContext): Promise<string |
     const payloadData = await res.json();
     const functions = payloadData?.data?.shopifyFunctions?.nodes || [];
 
-    console.log("📋 All Shopify Functions:", JSON.stringify(functions, null, 2));
-
     // Try to find FBT function by multiple criteria
     const fbtFunction = functions.find((fn: any) => {
       // Check if it's a discount function (can be 'discount' or 'product_discounts')
@@ -52,7 +50,6 @@ export async function getFBTFunctionId(admin: AdminApiContext): Promise<string |
     });
 
     if (fbtFunction) {
-      console.log("✅ Found FBT Function by name:", fbtFunction.id, fbtFunction.title);
       return fbtFunction.id;
     }
 
@@ -61,7 +58,7 @@ export async function getFBTFunctionId(admin: AdminApiContext): Promise<string |
       fn.apiType === "discount" || fn.apiType === "product_discounts"
     );
     if (anyDiscount) {
-      console.log("⚠️ FBT function not found by name, using first discount function:", anyDiscount.id, anyDiscount.title);
+      console.log("⚠️ FBT function not found by name, using first discount function:", anyDiscount.title);
       return anyDiscount.id;
     }
 

@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.11
- * Built: 2026-01-29T12:10:56.441Z
+ * Built: 2026-01-29T13:14:28.344Z
  */
 "use strict";
 (() => {
@@ -9414,7 +9414,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://hampshire-existing-lcd-imagine.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://reprints-work-fold-calculated.trycloudflare.com" : "https://app.upsellity.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;
@@ -9631,16 +9631,10 @@
       }
     }
     async addToCart(selectedIds) {
-      var _a2, _b, _c, _d, _e;
+      var _a2, _b, _c;
       try {
         const bundleMetadata = (_a2 = this.config) == null ? void 0 : _a2.bundleMetadata;
         const hasDiscount = bundleMetadata == null ? void 0 : bundleMetadata.hasDiscount;
-        console.log("[FBT] addToCart called:", {
-          selectedProducts: selectedIds.size,
-          bundleMetadata,
-          hasDiscount,
-          fullConfig: this.config
-        });
         const bundleId = hasDiscount && (bundleMetadata == null ? void 0 : bundleMetadata.ruleId) ? `fbt_${bundleMetadata.ruleId}_${Date.now()}` : null;
         const items = [];
         const allProducts = [];
@@ -9656,7 +9650,8 @@
             allProducts.push(product);
           }
         }
-        for (const product of allProducts) {
+        for (let i = 0; i < allProducts.length; i++) {
+          const product = allProducts[i];
           try {
             const response = await fetch(`/products/${product.handle}.js`);
             if (response.ok) {
@@ -9667,27 +9662,20 @@
                   "_upsell_source": "fbt"
                 };
                 if (bundleId && hasDiscount) {
-                  console.log("[FBT] Adding discount properties:", {
-                    bundleId,
-                    discountType: bundleMetadata.discountType,
-                    discountValue: bundleMetadata.discountValue,
-                    hasDiscount
-                  });
+                  const type = (bundleMetadata.discountType || "PERCENTAGE").toUpperCase();
+                  let value = (bundleMetadata.discountValue || "0").toString();
+                  if (type === "FIXED") {
+                    const totalDiscount = parseFloat(value);
+                    const count = allProducts.length;
+                    if (count > 0 && totalDiscount > 0) {
+                      value = (totalDiscount / count).toFixed(2);
+                    }
+                  }
                   properties["_fbt_bundle_id"] = bundleId;
                   properties["_fbt_rule_id"] = bundleMetadata.ruleId;
-                  properties["_fbt_discount_type"] = bundleMetadata.discountType;
-                  properties["_fbt_discount_value"] = bundleMetadata.discountValue;
+                  properties["_fbt_discount_type"] = type;
+                  properties["_fbt_discount_value"] = value;
                   properties["_fbt_bundle_size"] = allProducts.length.toString();
-                  properties["_fbt_discount_type"] = ((_d = bundleMetadata.discountType) == null ? void 0 : _d.toUpperCase()) || "PERCENTAGE";
-                  properties["_fbt_discount_value"] = ((_e = bundleMetadata.discountValue) == null ? void 0 : _e.toString()) || "0";
-                  properties["_fbt_product_count"] = selectedIds.size.toString();
-                  console.log("[FBT] Final properties:", properties);
-                } else {
-                  console.warn("[FBT] Not adding discount properties:", {
-                    hasBundleId: !!bundleId,
-                    hasDiscount,
-                    bundleMetadata
-                  });
                 }
                 items.push({
                   id: variantId,
@@ -9717,16 +9705,11 @@
           });
           if (response.ok) {
             document.dispatchEvent(new CustomEvent("cart:updated"));
-            console.log("=== FBT: Items added to cart successfully ===");
+            document.dispatchEvent(new CustomEvent("cart:updated"));
             if (bundleId) {
-              console.log("FBT Bundle ID:", bundleId);
-              console.log("Bundle Discount:", {
-                type: bundleMetadata.discountType,
-                value: bundleMetadata.discountValue
-              });
-              console.log("\u2705 Discount will be applied automatically by Shopify Function");
+              console.log("\u2705 FBT Bundle added with discount");
             } else {
-              console.log("No discount configured for this bundle");
+              console.log("\u2705 FBT items added to cart");
             }
             if (window.upsellityDrawer && typeof window.upsellityDrawer.open === "function") {
               console.log("FBT: Opening cart drawer...");

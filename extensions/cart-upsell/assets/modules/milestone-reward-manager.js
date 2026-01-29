@@ -75,7 +75,6 @@ export function calculateCartTotalExcludingGifts(cart) {
   }
 
   let total = 0;
-  console.groupCollapsed('Upsellity: Calculate Cart Total Debug');
 
   for (const item of cart.items) {
     const props = normalizeProperties(item.properties);
@@ -95,14 +94,8 @@ export function calculateCartTotalExcludingGifts(cart) {
     if (!isGift) {
       // Use original prices for milestone calculation (before any discounts)
       total += linePrice;
-      console.log(`[Item] ${item.title}: +${linePrice} (Paid)`);
-    } else {
-      console.log(`[Item] ${item.title}: +0 (Gift - Excluded)`);
     }
   }
-
-  console.log(`Total: ${total}`);
-  console.groupEnd();
 
   return total;
 }
@@ -280,7 +273,7 @@ export async function removeGiftFromCart(itemKey) {
 export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback, source = 'milestone') {
   let cartModified = false;
 
-  console.log(`[syncGiftProducts] Syncing for source: ${source}`, { unlockedMilestoneId: unlockedMilestone?.id });
+
 
   // Get all current gifts in cart
   const currentGifts = getAllGiftsInCart(cart);
@@ -292,14 +285,7 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
     // If itemSource is undefined, assume 'milestone' for backward compatibility
     const effectiveSource = itemSource || 'milestone';
 
-    // LOGGING
-    if (itemSource !== source && effectiveSource === source) {
-      console.log(`[syncGiftProducts] Claiming gift with MISSING source as '${source}':`, item.variant_id || item.id, item.properties);
-    } else if (itemSource === source) {
-      console.log(`[syncGiftProducts] Found managed gift for '${source}':`, item.variant_id || item.id);
-    } else {
-      console.log(`[syncGiftProducts] Ignoring gift for other source '${effectiveSource}' (me: ${source}):`, item.variant_id || item.id);
-    }
+
 
     return effectiveSource === source;
   });
@@ -307,7 +293,7 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
   // If no milestone is unlocked, remove all gifts MANAGED BY THIS SOURCE
   if (!unlockedMilestone) {
     for (const giftItem of managedGifts) {
-      console.log(`[${source}] Removing gift as no milestone unlocked:`, giftItem.key);
+
       const removed = await removeGiftFromCart(giftItem.key);
       if (removed) {
         cartModified = true;
@@ -324,7 +310,7 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
   // If milestone is unlocked but not a gift reward, remove all gifts MANAGED BY THIS SOURCE
   if (unlockedMilestone.rewardType !== 'gift_wrapping') {
     for (const giftItem of managedGifts) {
-      console.log(`[${source}] Removing gift as reward type is not gift_wrapping:`, giftItem.key);
+
       const removed = await removeGiftFromCart(giftItem.key);
       if (removed) {
         cartModified = true;
@@ -344,7 +330,7 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
   // If no gift products configured, remove all gifts MANAGED BY THIS SOURCE
   if (giftProducts.length === 0) {
     for (const giftItem of managedGifts) {
-      console.log(`[${source}] Removing gift as no gift products configured:`, giftItem.key);
+
       const removed = await removeGiftFromCart(giftItem.key);
       if (removed) {
         cartModified = true;
@@ -386,17 +372,7 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
       isDuplicate;
 
     if (shouldRemove) {
-      console.log(`[${source}] Removing invalid/duplicate gift:`, {
-        key: giftItem.key,
-        reason: {
-          notBelong: !belongsToThisMilestone,
-          invalidVariant: (belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId)),
-          duplicate: isDuplicate
-        },
-        milestoneId: unlockedMilestone.id,
-        itemMilestoneId: giftItem.properties[GIFT_MILESTONE_ID_KEY],
-        validIds: Array.from(validGiftVariantIds)
-      });
+
       const removed = await removeGiftFromCart(giftItem.key);
       if (removed) {
         cartModified = true;
@@ -442,7 +418,7 @@ export async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback
     const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
 
     if (!existingGift) {
-      console.log(`[${source}] Adding missing gift:`, variantId);
+
       const added = await addGiftToCart(giftProduct, unlockedMilestone.id, source);
       if (added) {
         cartModified = true;

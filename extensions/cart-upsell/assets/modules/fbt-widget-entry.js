@@ -292,13 +292,6 @@ class FrequentlyBoughtTogether {
       const bundleMetadata = this.config?.bundleMetadata;
       const hasDiscount = bundleMetadata?.hasDiscount;
 
-      console.log('[FBT] addToCart called:', {
-        selectedProducts: selectedIds.size,
-        bundleMetadata,
-        hasDiscount,
-        fullConfig: this.config
-      });
-
       // Generate unique bundle ID for this transaction
       const bundleId = hasDiscount && bundleMetadata?.ruleId
         ? `fbt_${bundleMetadata.ruleId}_${Date.now()}`
@@ -324,7 +317,8 @@ class FrequentlyBoughtTogether {
       }
 
       // Add all selected products with bundle properties
-      for (const product of allProducts) {
+      for (let i = 0; i < allProducts.length; i++) {
+        const product = allProducts[i];
         try {
           const response = await fetch(`/products/${product.handle}.js`);
           if (response.ok) {
@@ -339,31 +333,29 @@ class FrequentlyBoughtTogether {
 
               // Add bundle properties if discount is configured
               if (bundleId && hasDiscount) {
-                console.log('[FBT] Adding discount properties:', {
-                  bundleId,
-                  discountType: bundleMetadata.discountType,
-                  discountValue: bundleMetadata.discountValue,
-                  hasDiscount
-                });
+                // Calculate Discount Value per item
+                // If FIXED, divide the total discount by the number of items in the bundle
+                const type = (bundleMetadata.discountType || 'PERCENTAGE').toUpperCase();
+                let value = (bundleMetadata.discountValue || '0').toString();
 
-                properties['_fbt_bundle_id'] = bundleId;
-                properties['_fbt_rule_id'] = bundleMetadata.ruleId;
-                properties['_fbt_discount_type'] = bundleMetadata.discountType;
-                properties['_fbt_discount_value'] = bundleMetadata.discountValue;
+                if (type === 'FIXED') {
+                  const totalDiscount = parseFloat(value);
+                  const count = allProducts.length;
+                  if (count > 0 && totalDiscount > 0) {
+                    // Calculate split with 2 decimal precision
+                    // We use simple division here. 
+                    // e.g. 200 / 3 = 66.666... -> 66.67
+                    // Shopify will handle the rounding validation
+                    value = (totalDiscount / count).toFixed(2);
+                  }
+                }
 
                 // Track total bundle size for integrity check (Product + Recommendations)
+                properties['_fbt_bundle_id'] = bundleId;
+                properties['_fbt_rule_id'] = bundleMetadata.ruleId;
+                properties['_fbt_discount_type'] = type;
+                properties['_fbt_discount_value'] = value;
                 properties['_fbt_bundle_size'] = allProducts.length.toString();
-                properties['_fbt_discount_type'] = bundleMetadata.discountType?.toUpperCase() || 'PERCENTAGE';
-                properties['_fbt_discount_value'] = bundleMetadata.discountValue?.toString() || '0';
-                properties['_fbt_product_count'] = selectedIds.size.toString();
-
-                console.log('[FBT] Final properties:', properties);
-              } else {
-                console.warn('[FBT] Not adding discount properties:', {
-                  hasBundleId: !!bundleId,
-                  hasDiscount,
-                  bundleMetadata
-                });
               }
 
               items.push({
@@ -400,16 +392,12 @@ class FrequentlyBoughtTogether {
         if (response.ok) {
           document.dispatchEvent(new CustomEvent('cart:updated'));
 
-          console.log('=== FBT: Items added to cart successfully ===');
+          document.dispatchEvent(new CustomEvent('cart:updated'));
+
           if (bundleId) {
-            console.log('FBT Bundle ID:', bundleId);
-            console.log('Bundle Discount:', {
-              type: bundleMetadata.discountType,
-              value: bundleMetadata.discountValue
-            });
-            console.log('✅ Discount will be applied automatically by Shopify Function');
+            console.log('✅ FBT Bundle added with discount');
           } else {
-            console.log('No discount configured for this bundle');
+            console.log('✅ FBT items added to cart');
           }
 
           // Open cart drawer
