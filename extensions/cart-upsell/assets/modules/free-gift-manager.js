@@ -138,26 +138,12 @@ export async function syncFreeGiftWithCart(freeGift, cart, loadCartCallback) {
     cartTotal: cart?.total_price / 100
   });
 
-  // If no free gift, remove all free gift items from cart
+  const source = 'gifting_block';
+
+  // If no free gift, use syncGiftProducts with null to remove all gifts owned by this source
   if (!freeGift) {
     console.log('Upsellity Free Gifts: No qualified gift, removing all gifts');
-    const allGifts = MilestoneRewardManager.getAllGiftsInCart(cart);
-    let cartModified = false;
-
-    for (const giftItem of allGifts) {
-      // Only remove gifts that belong to free gift system (not milestone gifts)
-      // We can identify by checking if the milestone ID matches a free gift ID pattern
-      const removed = await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
-      if (removed) {
-        cartModified = true;
-      }
-    }
-
-    if (cartModified && loadCartCallback) {
-      await loadCartCallback();
-    }
-
-    return cartModified;
+    return await MilestoneRewardManager.syncGiftProducts(null, cart, loadCartCallback, source);
   }
 
   const giftProducts = freeGift.giftProducts || [];
@@ -166,7 +152,7 @@ export async function syncFreeGiftWithCart(freeGift, cart, loadCartCallback) {
   if (giftProducts.length === 1) {
     console.log('Upsellity Free Gifts: Single gift, using auto-add logic');
     const milestone = convertFreeGiftToMilestone(freeGift);
-    return await MilestoneRewardManager.syncGiftProducts(milestone, cart, loadCartCallback);
+    return await MilestoneRewardManager.syncGiftProducts(milestone, cart, loadCartCallback, source);
   }
 
   // If 2+ gift products: user must choose, DON'T auto-add
@@ -187,18 +173,30 @@ export async function syncFreeGiftWithCart(freeGift, cart, loadCartCallback) {
 
   let cartModified = false;
 
-  // Remove gifts that don't belong to this free gift offer
+  // Remove gifts that don't belong to this free gift offer OR don't have the correct source
   for (const giftItem of allGifts) {
     const itemVariantId = (giftItem.variant_id || giftItem.id)?.toString();
-    const belongsToThisOffer = giftItem.properties &&
-      giftItem.properties['_upsellity_milestone_id'] === freeGift.id;
+    const props = MilestoneRewardManager.normalizeProperties(giftItem.properties);
 
-    // Remove if belongs to this offer but is not in the current gift product list
-    if (belongsToThisOffer && !validGiftVariantIds.has(itemVariantId)) {
-      console.log('Upsellity Free Gifts: Removing invalid gift from this offer', itemVariantId);
-      const removed = await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
-      if (removed) {
-        cartModified = true;
+    const belongsToThisOffer = props['_upsellity_milestone_id'] === freeGift.id;
+
+    // Check source
+    const itemSource = props['_upsellity_gift_source'];
+    // Assuming if source is 'gifting_block', it behaves as expected.
+    // If we claim ownership of 'gifting_block' items, we should remove them if they are invalid.
+
+    const isManaged = itemSource === source;
+
+    if (isManaged) {
+      // Remove if belongs to this offer but is not in the current gift product list
+      // OR if it belongs to a DIFFERENT offer (but same source)
+      // If belongsToThisOffer is false, it means it's an OLD gifting_block gift, so we should remove it.
+      if (!belongsToThisOffer || (belongsToThisOffer && !validGiftVariantIds.has(itemVariantId))) {
+        console.log('Upsellity Free Gifts: Removing invalid gift from this offer', itemVariantId);
+        const removed = await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
+        if (removed) {
+          cartModified = true;
+        }
       }
     }
   }
@@ -206,25 +204,25 @@ export async function syncFreeGiftWithCart(freeGift, cart, loadCartCallback) {
   // Check if user has already selected a gift
   const selectedGift = allGifts.find(item => {
     const itemVariantId = (item.variant_id || item.id)?.toString();
-    const belongsToThisOffer = item.properties &&
-      item.properties['_upsellity_milestone_id'] === freeGift.id;
-    return belongsToThisOffer && validGiftVariantIds.has(itemVariantId);
+    const props = MilestoneRewardManager.normalizeProperties(item.properties);
+    const belongsToThisOffer = props['_upsellity_milestone_id'] === freeGift.id;
+
+    const itemSource = props['_upsellity_gift_source'];
+    return itemSource === source && belongsToThisOffer && validGiftVariantIds.has(itemVariantId);
   });
 
   if (selectedGift) {
     console.log('Upsellity Free Gifts: User has already selected a gift');
     // User has selected a gift, keep it
-    // Remove any other gifts from this offer (keep only the selected one)
+    // Remove any other gifts from this offer/source (keep only the selected one)
     for (const giftItem of allGifts) {
-      if (giftItem.key !== selectedGift.key) {
-        const belongsToThisOffer = giftItem.properties &&
-          giftItem.properties['_upsellity_milestone_id'] === freeGift.id;
-        if (belongsToThisOffer) {
-          console.log('Upsellity Free Gifts: Removing duplicate gift');
-          const removed = await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
-          if (removed) {
-            cartModified = true;
-          }
+      const props = MilestoneRewardManager.normalizeProperties(giftItem.properties);
+      const itemSource = props['_upsellity_gift_source'];
+      if (itemSource === source && giftItem.key !== selectedGift.key) {
+        console.log('Upsellity Free Gifts: Removing duplicate gift');
+        const removed = await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
+        if (removed) {
+          cartModified = true;
         }
       }
     }
@@ -258,6 +256,8 @@ export function getSelectedGiftFromCart(cart, freeGift) {
       milestone.id
     );
 
+    // Also check source if possible, but findGiftInCart doesn't check source by default
+    // We can filter here if needed, but existing logic should likely suffice if addGiftToCart sets it correctly
     if (existingGift) {
       // Find matching gift product ID
       const matchingGift = freeGift.giftProducts.find(gp => {
@@ -286,10 +286,14 @@ export async function selectGift(variantId, freeGift, loadCartCallback) {
     const milestone = convertFreeGiftToMilestone(freeGift);
     if (!milestone) return false;
 
-    // Remove all current gifts from this free gift offer
-    const currentGifts = MilestoneRewardManager.getAllGiftsInCart(cart).filter(item =>
-      item.properties && item.properties['_upsellity_milestone_id'] === milestone.id
-    );
+    const source = 'gifting_block';
+
+    // Remove all current gifts from this free gift offer (and source)
+    const currentGifts = MilestoneRewardManager.getAllGiftsInCart(cart).filter(item => {
+      const props = MilestoneRewardManager.normalizeProperties(item.properties);
+      const itemSource = props['_upsellity_gift_source'];
+      return itemSource === source; // aggressively clear old gifts from this source
+    });
 
     for (const giftItem of currentGifts) {
       await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
@@ -307,8 +311,8 @@ export async function selectGift(variantId, freeGift, loadCartCallback) {
       return false;
     }
 
-    // Add the selected gift using milestone logic
-    const added = await MilestoneRewardManager.addGiftToCart(giftProduct, milestone.id);
+    // Add the selected gift using milestone logic WITH SOURCE
+    const added = await MilestoneRewardManager.addGiftToCart(giftProduct, milestone.id, source);
 
     if (added) {
       await loadCartCallback();

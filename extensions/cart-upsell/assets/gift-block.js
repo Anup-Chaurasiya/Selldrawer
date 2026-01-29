@@ -1,6 +1,6 @@
 /**
  * Upsellity Gifting Block v1.0.11
- * Built: 2026-01-29T10:10:57.635Z
+ * Built: 2026-01-29T12:10:56.636Z
  */
 "use strict";
 (() => {
@@ -8133,17 +8133,40 @@
   var GIFT_PROPERTY_KEY = "_upsellity_gift";
   var GIFT_PROPERTY_VALUE = "true";
   var GIFT_MILESTONE_ID_KEY = "_upsellity_milestone_id";
+  function normalizeProperties(properties) {
+    if (!properties)
+      return {};
+    if (Array.isArray(properties)) {
+      const props = {};
+      properties.forEach((p) => {
+        const key = p.name || p.key;
+        if (key)
+          props[key] = p.value;
+      });
+      return props;
+    }
+    return properties;
+  }
   function calculateCartTotalExcludingGifts(cart) {
     if (!cart || !cart.items) {
       return 0;
     }
     let total = 0;
+    console.groupCollapsed("Upsellity: Calculate Cart Total Debug");
     for (const item of cart.items) {
-      const isGift = item.properties && (item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+      const props = normalizeProperties(item.properties);
+      const isGift = props[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || props["_gift"] === "true" || props["_gift"] === true || // Fallback: Check if source is set (even if _upsellity_gift missing)
+      props["_upsellity_gift_source"] === "gifting_block" || props["_upsellity_gift_source"] === "milestone";
+      const linePrice = item.original_line_price || item.price * item.quantity;
       if (!isGift) {
-        total += item.original_line_price || item.price * item.quantity;
+        total += linePrice;
+        console.log(`[Item] ${item.title}: +${linePrice} (Paid)`);
+      } else {
+        console.log(`[Item] ${item.title}: +0 (Gift - Excluded)`);
       }
     }
+    console.log(`Total: ${total}`);
+    console.groupEnd();
     return total;
   }
   function findGiftInCart(cart, variantId, milestoneId) {
@@ -8153,10 +8176,11 @@
     const normalizedVariantId = normalizeVariantId(variantId);
     return cart.items.find((item) => {
       const itemVariantId = normalizeVariantId(item.variant_id || item.id);
-      const isGift = item.properties && (item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+      const props = normalizeProperties(item.properties);
+      const isGift = props[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || props["_gift"] === "true" || props["_gift"] === true || props["_upsellity_gift_source"] === "gifting_block" || props["_upsellity_gift_source"] === "milestone";
       if (isGift && itemVariantId === normalizedVariantId) {
-        if (milestoneId && item.properties[GIFT_MILESTONE_ID_KEY]) {
-          return item.properties[GIFT_MILESTONE_ID_KEY] === milestoneId;
+        if (milestoneId && props[GIFT_MILESTONE_ID_KEY]) {
+          return props[GIFT_MILESTONE_ID_KEY] === milestoneId;
         }
         return true;
       }
@@ -8168,10 +8192,11 @@
       return [];
     }
     return cart.items.filter((item) => {
-      return item.properties && (item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+      const props = normalizeProperties(item.properties);
+      return props[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || props["_gift"] === "true" || props["_gift"] === true || props["_upsellity_gift_source"] === "gifting_block" || props["_upsellity_gift_source"] === "milestone";
     });
   }
-  async function addGiftToCart(giftProduct, milestoneId) {
+  async function addGiftToCart(giftProduct, milestoneId, source = "milestone") {
     if (!giftProduct || !giftProduct.shopifyVariantId) {
       return false;
     }
@@ -8183,15 +8208,19 @@
       formData.append(`properties[${GIFT_PROPERTY_KEY}]`, GIFT_PROPERTY_VALUE);
       formData.append(`properties[${GIFT_MILESTONE_ID_KEY}]`, milestoneId);
       formData.append("properties[_gift_title]", giftProduct.title || "Free Gift");
+      formData.append("properties[_upsellity_gift_source]", source);
       const response = await fetch("/cart/add.js", {
         method: "POST",
         body: formData
       });
       if (response.ok) {
-        const result = await response.json();
+        const cartResponse = await fetch(`/cart.js?v=${(/* @__PURE__ */ new Date()).getTime()}`, {
+          headers: { "Cache-Control": "no-cache", "Pragma": "no-cache" }
+        });
+        const fullCart = await cartResponse.json();
         await new Promise((resolve) => setTimeout(resolve, 100));
-        document.dispatchEvent(new CustomEvent("cart:updated", { detail: result }));
-        document.dispatchEvent(new CustomEvent("cart:change", { detail: result }));
+        document.dispatchEvent(new CustomEvent("cart:updated", { detail: fullCart }));
+        document.dispatchEvent(new CustomEvent("cart:change", { detail: fullCart }));
         return true;
       } else {
         return false;
@@ -8217,10 +8246,13 @@
         })
       });
       if (response.ok) {
-        const result = await response.json();
+        const cartResponse = await fetch(`/cart.js?v=${(/* @__PURE__ */ new Date()).getTime()}`, {
+          headers: { "Cache-Control": "no-cache", "Pragma": "no-cache" }
+        });
+        const fullCart = await cartResponse.json();
         await new Promise((resolve) => setTimeout(resolve, 100));
-        document.dispatchEvent(new CustomEvent("cart:updated", { detail: result }));
-        document.dispatchEvent(new CustomEvent("cart:change", { detail: result }));
+        document.dispatchEvent(new CustomEvent("cart:updated", { detail: fullCart }));
+        document.dispatchEvent(new CustomEvent("cart:change", { detail: fullCart }));
         return true;
       } else {
         return false;
@@ -8229,11 +8261,26 @@
       return false;
     }
   }
-  async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback) {
+  async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback, source = "milestone") {
     let cartModified = false;
+    console.log(`[syncGiftProducts] Syncing for source: ${source}`, { unlockedMilestoneId: unlockedMilestone == null ? void 0 : unlockedMilestone.id });
     const currentGifts = getAllGiftsInCart(cart);
+    const managedGifts = currentGifts.filter((item) => {
+      const props = normalizeProperties(item.properties);
+      const itemSource = props["_upsellity_gift_source"];
+      const effectiveSource = itemSource || "milestone";
+      if (itemSource !== source && effectiveSource === source) {
+        console.log(`[syncGiftProducts] Claiming gift with MISSING source as '${source}':`, item.variant_id || item.id, item.properties);
+      } else if (itemSource === source) {
+        console.log(`[syncGiftProducts] Found managed gift for '${source}':`, item.variant_id || item.id);
+      } else {
+        console.log(`[syncGiftProducts] Ignoring gift for other source '${effectiveSource}' (me: ${source}):`, item.variant_id || item.id);
+      }
+      return effectiveSource === source;
+    });
     if (!unlockedMilestone) {
-      for (const giftItem of currentGifts) {
+      for (const giftItem of managedGifts) {
+        console.log(`[${source}] Removing gift as no milestone unlocked:`, giftItem.key);
         const removed = await removeGiftFromCart(giftItem.key);
         if (removed) {
           cartModified = true;
@@ -8245,7 +8292,8 @@
       return cartModified;
     }
     if (unlockedMilestone.rewardType !== "gift_wrapping") {
-      for (const giftItem of currentGifts) {
+      for (const giftItem of managedGifts) {
+        console.log(`[${source}] Removing gift as reward type is not gift_wrapping:`, giftItem.key);
         const removed = await removeGiftFromCart(giftItem.key);
         if (removed) {
           cartModified = true;
@@ -8258,7 +8306,8 @@
     }
     const giftProducts = unlockedMilestone.giftProducts || [];
     if (giftProducts.length === 0) {
-      for (const giftItem of currentGifts) {
+      for (const giftItem of managedGifts) {
+        console.log(`[${source}] Removing gift as no gift products configured:`, giftItem.key);
         const removed = await removeGiftFromCart(giftItem.key);
         if (removed) {
           cartModified = true;
@@ -8273,13 +8322,25 @@
       giftProducts.map((gp) => normalizeVariantId(gp.shopifyVariantId))
     );
     const seenValidGifts = /* @__PURE__ */ new Set();
-    for (const giftItem of currentGifts) {
+    for (const giftItem of managedGifts) {
       const itemVariantId = normalizeVariantId(giftItem.variant_id || giftItem.id);
-      const belongsToThisMilestone = giftItem.properties && giftItem.properties[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
+      const props = normalizeProperties(giftItem.properties);
+      const belongsToThisMilestone = props[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
       const isValidGift = belongsToThisMilestone && validGiftVariantIds.has(itemVariantId);
       const isDuplicate = seenValidGifts.has(itemVariantId);
       const shouldRemove = !belongsToThisMilestone || belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId) || isDuplicate;
       if (shouldRemove) {
+        console.log(`[${source}] Removing invalid/duplicate gift:`, {
+          key: giftItem.key,
+          reason: {
+            notBelong: !belongsToThisMilestone,
+            invalidVariant: belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId),
+            duplicate: isDuplicate
+          },
+          milestoneId: unlockedMilestone.id,
+          itemMilestoneId: giftItem.properties[GIFT_MILESTONE_ID_KEY],
+          validIds: Array.from(validGiftVariantIds)
+        });
         const removed = await removeGiftFromCart(giftItem.key);
         if (removed) {
           cartModified = true;
@@ -8313,7 +8374,8 @@
       }
       const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
       if (!existingGift) {
-        const added = await addGiftToCart(giftProduct, unlockedMilestone.id);
+        console.log(`[${source}] Adding missing gift:`, variantId);
+        const added = await addGiftToCart(giftProduct, unlockedMilestone.id, source);
         if (added) {
           cartModified = true;
           seenValidGifts.add(variantId);
@@ -8397,26 +8459,16 @@
       giftCount: (_a2 = freeGift == null ? void 0 : freeGift.giftProducts) == null ? void 0 : _a2.length,
       cartTotal: (cart == null ? void 0 : cart.total_price) / 100
     });
+    const source = "gifting_block";
     if (!freeGift) {
       console.log("Upsellity Free Gifts: No qualified gift, removing all gifts");
-      const allGifts2 = getAllGiftsInCart(cart);
-      let cartModified2 = false;
-      for (const giftItem of allGifts2) {
-        const removed = await removeGiftFromCart(giftItem.key);
-        if (removed) {
-          cartModified2 = true;
-        }
-      }
-      if (cartModified2 && loadCartCallback) {
-        await loadCartCallback();
-      }
-      return cartModified2;
+      return await syncGiftProducts(null, cart, loadCartCallback, source);
     }
     const giftProducts = freeGift.giftProducts || [];
     if (giftProducts.length === 1) {
       console.log("Upsellity Free Gifts: Single gift, using auto-add logic");
       const milestone = convertFreeGiftToMilestone(freeGift);
-      return await syncGiftProducts(milestone, cart, loadCartCallback);
+      return await syncGiftProducts(milestone, cart, loadCartCallback, source);
     }
     console.log("Upsellity Free Gifts: Multiple gifts, user must choose", {
       giftProductCount: giftProducts.length,
@@ -8433,32 +8485,38 @@
     let cartModified = false;
     for (const giftItem of allGifts) {
       const itemVariantId = (_b = giftItem.variant_id || giftItem.id) == null ? void 0 : _b.toString();
-      const belongsToThisOffer = giftItem.properties && giftItem.properties["_upsellity_milestone_id"] === freeGift.id;
-      if (belongsToThisOffer && !validGiftVariantIds.has(itemVariantId)) {
-        console.log("Upsellity Free Gifts: Removing invalid gift from this offer", itemVariantId);
-        const removed = await removeGiftFromCart(giftItem.key);
-        if (removed) {
-          cartModified = true;
+      const props = normalizeProperties(giftItem.properties);
+      const belongsToThisOffer = props["_upsellity_milestone_id"] === freeGift.id;
+      const itemSource = props["_upsellity_gift_source"];
+      const isManaged = itemSource === source;
+      if (isManaged) {
+        if (!belongsToThisOffer || belongsToThisOffer && !validGiftVariantIds.has(itemVariantId)) {
+          console.log("Upsellity Free Gifts: Removing invalid gift from this offer", itemVariantId);
+          const removed = await removeGiftFromCart(giftItem.key);
+          if (removed) {
+            cartModified = true;
+          }
         }
       }
     }
     const selectedGift = allGifts.find((item) => {
       var _a3;
       const itemVariantId = (_a3 = item.variant_id || item.id) == null ? void 0 : _a3.toString();
-      const belongsToThisOffer = item.properties && item.properties["_upsellity_milestone_id"] === freeGift.id;
-      return belongsToThisOffer && validGiftVariantIds.has(itemVariantId);
+      const props = normalizeProperties(item.properties);
+      const belongsToThisOffer = props["_upsellity_milestone_id"] === freeGift.id;
+      const itemSource = props["_upsellity_gift_source"];
+      return itemSource === source && belongsToThisOffer && validGiftVariantIds.has(itemVariantId);
     });
     if (selectedGift) {
       console.log("Upsellity Free Gifts: User has already selected a gift");
       for (const giftItem of allGifts) {
-        if (giftItem.key !== selectedGift.key) {
-          const belongsToThisOffer = giftItem.properties && giftItem.properties["_upsellity_milestone_id"] === freeGift.id;
-          if (belongsToThisOffer) {
-            console.log("Upsellity Free Gifts: Removing duplicate gift");
-            const removed = await removeGiftFromCart(giftItem.key);
-            if (removed) {
-              cartModified = true;
-            }
+        const props = normalizeProperties(giftItem.properties);
+        const itemSource = props["_upsellity_gift_source"];
+        if (itemSource === source && giftItem.key !== selectedGift.key) {
+          console.log("Upsellity Free Gifts: Removing duplicate gift");
+          const removed = await removeGiftFromCart(giftItem.key);
+          if (removed) {
+            cartModified = true;
           }
         }
       }
@@ -8500,9 +8558,12 @@
       const milestone = convertFreeGiftToMilestone(freeGift);
       if (!milestone)
         return false;
-      const currentGifts = getAllGiftsInCart(cart).filter(
-        (item) => item.properties && item.properties["_upsellity_milestone_id"] === milestone.id
-      );
+      const source = "gifting_block";
+      const currentGifts = getAllGiftsInCart(cart).filter((item) => {
+        const props = normalizeProperties(item.properties);
+        const itemSource = props["_upsellity_gift_source"];
+        return itemSource === source;
+      });
       for (const giftItem of currentGifts) {
         await removeGiftFromCart(giftItem.key);
       }
@@ -8516,7 +8577,7 @@
         console.error("Gift product not found");
         return false;
       }
-      const added = await addGiftToCart(giftProduct, milestone.id);
+      const added = await addGiftToCart(giftProduct, milestone.id, source);
       if (added) {
         await loadCartCallback();
         return true;
@@ -8530,7 +8591,7 @@
 
   // extensions/cart-upsell/assets/modules/gift-block-entry.js
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://vii-children-italic-couple.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://hampshire-existing-lcd-imagine.trycloudflare.com" : "https://app.upsellity.com";
   var VERSION = true ? "1.0.11" : "1.0.0";
   function initGiftingBlocks() {
     const containers = document.querySelectorAll(".upsellity-gifting-container");
@@ -8545,39 +8606,17 @@
         console.error("Upsellity Gifting Block: Missing data-shop attribute");
         return;
       }
-      container.innerHTML = `
-      <div style="
-        padding: 20px;
-        text-align: center;
-        background: #f9fafb;
-        border-radius: 8px;
-        border: 1px solid #e5e7eb;
-      ">
-        <div style="
-          display: inline-block;
-          width: 20px;
-          height: 20px;
-          border: 2px solid #e5e7eb;
-          border-top-color: #16a34a;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        "></div>
-        <p style="
-          margin-top: 8px;
-          color: #6b7280;
-          font-size: 13px;
-        ">Loading gifts...</p>
-      </div>
-      <style>
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      </style>
-    `;
       Analytics.init(APP_URL);
+      let root = null;
+      let isProcessingGifts = false;
       const fetchCart = async () => {
         try {
-          const response = await fetch("/cart.js");
+          const response = await fetch(`/cart.js?v=${(/* @__PURE__ */ new Date()).getTime()}`, {
+            headers: {
+              "Cache-Control": "no-cache",
+              "Pragma": "no-cache"
+            }
+          });
           const cart = await response.json();
           return cart;
         } catch (error) {
@@ -8592,119 +8631,148 @@
         console.log("Upsellity Gifting Block: Cart total (excl. gifts):", cartTotalInRupees);
         return cartTotalInRupees;
       };
-      const fetchAndRender = async () => {
-        try {
-          const cart = await fetchCart();
-          const cartTotal = await fetchCartTotal();
-          const gifts = await loadGiftingBlockGifts(APP_URL, shop, cart, cartTotal);
-          console.log("Upsellity Gifting Block: Received gifts:", gifts);
+      const renderGiftBlock = (gift, selectedGiftId) => {
+        container.style.display = "block";
+        if (!root) {
           container.innerHTML = "";
-          if (!gifts || gifts.length === 0) {
-            container.style.display = "none";
-            console.log("Upsellity Gifting Block: No qualified gifts, hiding block");
-            return;
-          }
-          const qualifiedGift = gifts[0];
-          console.log("Upsellity Gifting Block: Qualified gift:", qualifiedGift);
-          const root = (0, import_client.createRoot)(container);
-          const renderGiftBlock = (gift, selectedGiftId2) => {
-            container.style.display = "block";
-            root.render(
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                GiftingBlockWrapper,
-                {
-                  gift,
-                  selectedGiftId: selectedGiftId2,
-                  shop,
-                  isPreview: false,
-                  onSelectGift: async (giftId, variantId) => {
-                    console.log("Upsellity Gifting Block: User selecting gift", variantId);
-                    await selectGift(variantId, gift, async () => {
-                      await new Promise((resolve) => setTimeout(resolve, 500));
-                      await handleCartUpdate();
-                    });
-                  },
-                  onImpression: () => {
-                    Analytics.track({
-                      eventType: "impression",
-                      component: "gifting_block",
-                      value: 0
-                    });
-                  }
-                }
-              )
-            );
-          };
-          let isProcessingGifts = false;
-          const handleCartUpdate = async () => {
-            if (isProcessingGifts) {
-              console.log("Upsellity Gifting Block: Already processing, skipping");
-              return;
-            }
-            try {
-              isProcessingGifts = true;
-              const cart2 = await fetchCart();
-              const newCartTotal = await fetchCartTotal();
-              const updatedGifts = await loadGiftingBlockGifts(APP_URL, shop, cart2, newCartTotal);
-              if (!updatedGifts || updatedGifts.length === 0) {
-                container.style.display = "none";
-                container.innerHTML = "";
-                return;
+          root = (0, import_client.createRoot)(container);
+        }
+        root.render(
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+            GiftingBlockWrapper,
+            {
+              gift,
+              selectedGiftId,
+              shop,
+              isPreview: false,
+              onSelectGift: async (giftId, variantId) => {
+                console.log("Upsellity Gifting Block: User selecting gift", variantId);
+                await selectGift(variantId, gift, async () => {
+                  await new Promise((resolve) => setTimeout(resolve, 500));
+                  await handleCartUpdate();
+                });
+              },
+              onImpression: () => {
+                Analytics.track({
+                  eventType: "impression",
+                  component: "gifting_block",
+                  value: 0
+                });
               }
-              const newQualifiedGift = updatedGifts[0];
-              await syncFreeGiftWithCart(newQualifiedGift, cart2, async () => {
-                await new Promise((resolve) => setTimeout(resolve, 500));
-              });
-              const selectedGiftId2 = getSelectedGiftFromCart(cart2, newQualifiedGift);
-              renderGiftBlock(newQualifiedGift, selectedGiftId2);
-            } catch (error) {
-              console.error("Upsellity Gifting Block: Error handling cart update", error);
-            } finally {
-              isProcessingGifts = false;
             }
-          };
-          const selectedGiftId = getSelectedGiftFromCart(cart, qualifiedGift);
-          renderGiftBlock(qualifiedGift, selectedGiftId);
-          await handleCartUpdate();
-          const cartEvents = ["cart:updated", "cart:change", "cart:refresh"];
-          cartEvents.forEach((eventName) => {
-            document.addEventListener(eventName, handleCartUpdate);
-          });
-          if (window.Shopify && window.Shopify.theme) {
-            document.addEventListener("theme:cart:change", handleCartUpdate);
-          }
-          let lastCartTotal = cartTotal;
-          setInterval(async () => {
-            if (isProcessingGifts) {
-              return;
-            }
-            const currentTotal = await fetchCartTotal();
-            if (Math.abs(currentTotal - lastCartTotal) > 0.01) {
-              console.log("Upsellity Gifting Block: Cart total changed via polling");
-              lastCartTotal = currentTotal;
-              await handleCartUpdate();
-            }
-          }, 3e3);
-        } catch (error) {
-          console.error("Upsellity Gifting Block: Failed to load", error);
-          container.innerHTML = `
-          <div style="
-            padding: 16px;
-            text-align: center;
-            background: #fef2f2;
-            border-radius: 8px;
-            border: 1px solid #fecaca;
-          ">
-            <p style="
-              color: #991b1b;
-              font-size: 13px;
-              margin: 0;
-            ">Failed to load gifts</p>
-          </div>
-        `;
+          )
+        );
+      };
+      const clearGiftBlock = () => {
+        container.style.display = "none";
+        if (root) {
+          root.render(null);
+        } else {
+          container.innerHTML = "";
         }
       };
-      fetchAndRender();
+      const handleCartUpdate = async () => {
+        if (isProcessingGifts) {
+          console.log("Upsellity Gifting Block: Already processing, skipping");
+          return;
+        }
+        try {
+          isProcessingGifts = true;
+          const cart = await fetchCart();
+          const newCartTotal = await fetchCartTotal();
+          const updatedGifts = await loadGiftingBlockGifts(APP_URL, shop, cart, newCartTotal);
+          if (!updatedGifts || updatedGifts.length === 0) {
+            console.log("Upsellity Gifting Block: No qualified gifts, hiding block and cleaning up");
+            await syncFreeGiftWithCart(null, cart, async () => {
+              await new Promise((resolve) => setTimeout(resolve, 300));
+            });
+            clearGiftBlock();
+            return;
+          }
+          const newQualifiedGift = updatedGifts[0];
+          console.log("Upsellity Gifting Block: Qualified gift:", newQualifiedGift);
+          await syncFreeGiftWithCart(newQualifiedGift, cart, async () => {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          });
+          const selectedGiftId = getSelectedGiftFromCart(cart, newQualifiedGift);
+          renderGiftBlock(newQualifiedGift, selectedGiftId);
+        } catch (error) {
+          console.error("Upsellity Gifting Block: Error handling cart update", error);
+          if (!root && container.style.display !== "none") {
+            container.innerHTML = `
+                      <div style="
+                        padding: 16px;
+                        text-align: center;
+                        background: #fef2f2;
+                        border-radius: 8px;
+                        border: 1px solid #fecaca;
+                      ">
+                        <p style="
+                          color: #991b1b;
+                          font-size: 13px;
+                          margin: 0;
+                        ">Failed to load gifts</p>
+                      </div>
+                    `;
+          }
+        } finally {
+          isProcessingGifts = false;
+        }
+      };
+      const init = async () => {
+        if (!root) {
+          container.innerHTML = `
+                  <div style="
+                    padding: 20px;
+                    text-align: center;
+                    background: #f9fafb;
+                    border-radius: 8px;
+                    border: 1px solid #e5e7eb;
+                  ">
+                    <div style="
+                      display: inline-block;
+                      width: 20px;
+                      height: 20px;
+                      border: 2px solid #e5e7eb;
+                      border-top-color: #16a34a;
+                      border-radius: 50%;
+                      animation: spin 1s linear infinite;
+                    "></div>
+                    <p style="
+                      margin-top: 8px;
+                      color: #6b7280;
+                      font-size: 13px;
+                    ">Loading gifts...</p>
+                  </div>
+                  <style>
+                    @keyframes spin {
+                      to { transform: rotate(360deg); }
+                    }
+                  </style>
+                `;
+        }
+        await handleCartUpdate();
+        const cartEvents = ["cart:updated", "cart:change", "cart:refresh"];
+        cartEvents.forEach((eventName) => {
+          document.addEventListener(eventName, () => handleCartUpdate());
+        });
+        if (window.Shopify && window.Shopify.theme) {
+          document.addEventListener("theme:cart:change", () => handleCartUpdate());
+        }
+        let lastCartTotal = 0;
+        fetchCartTotal().then((t) => lastCartTotal = t);
+        setInterval(async () => {
+          if (isProcessingGifts)
+            return;
+          const currentTotal = await fetchCartTotal();
+          if (Math.abs(currentTotal - lastCartTotal) > 0.01) {
+            console.log("Upsellity Gifting Block: Cart total changed via polling");
+            lastCartTotal = currentTotal;
+            await handleCartUpdate();
+          }
+        }, 3e3);
+      };
+      init();
     });
   }
   if (document.readyState === "loading") {
