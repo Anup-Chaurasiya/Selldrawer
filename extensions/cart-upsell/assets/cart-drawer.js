@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.11
- * Built: 2026-01-30T10:55:52.297Z
+ * Built: 2026-01-30T15:02:43.140Z
  */
 "use strict";
 (() => {
@@ -13120,11 +13120,18 @@
       await this.loadCart();
     }
     async loadConfig() {
-      var _a2, _b, _c, _d;
+      var _a2, _b, _c, _d, _e;
       try {
         Analytics.init(this.appUrl);
         const timestamp = (/* @__PURE__ */ new Date()).getTime();
-        const response = await fetch(`${this.appUrl}/api/cart-drawer?shop=${this.shop}&_t=${timestamp}`, {
+        let apiUrl = `${this.appUrl}/api/cart-drawer?shop=${this.shop}&_t=${timestamp}`;
+        if ((_a2 = window.upsellity_config) == null ? void 0 : _a2.customerId) {
+          apiUrl += `&customerId=gid://shopify/Customer/${window.upsellity_config.customerId}`;
+          console.log("[Cart Drawer] Using customer ID from config:", window.upsellity_config.customerId);
+        } else {
+          console.log("[Cart Drawer] No customer ID available, using session-based A/B testing");
+        }
+        const response = await fetch(apiUrl, {
           cache: "no-store",
           headers: {
             "Cache-Control": "no-cache",
@@ -13135,10 +13142,10 @@
         if (this.config._version) {
           Analytics.setVersion(this.config._version);
         }
-        if ((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.milestonesEnabled) {
+        if ((_c = (_b = this.config) == null ? void 0 : _b.features) == null ? void 0 : _c.milestonesEnabled) {
           await this.loadMilestones();
         }
-        if ((_d = (_c = this.config) == null ? void 0 : _c.features) == null ? void 0 : _d.freeGiftsEnabled) {
+        if ((_e = (_d = this.config) == null ? void 0 : _d.features) == null ? void 0 : _e.freeGiftsEnabled) {
           await this.loadFreeGifts();
         }
       } catch (error) {
@@ -13932,7 +13939,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://effects-delivering-henry-litigation.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.11" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

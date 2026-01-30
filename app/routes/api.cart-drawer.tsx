@@ -1,15 +1,16 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { cors } from "remix-utils/cors";
+import { createHash } from "crypto";
 import prisma from "../db.server";
 import { normalizeFeatureOrder } from "../utils/featureOrder";
 import { checkPlanAccess } from "../utils/planAccess.server";
-import { getShopCartDrawerVersion, initializeDefaultVersion } from "../services/cartDrawerVersions.server";
+import { getCartDrawerVersionForCustomer, initializeDefaultVersion } from "../services/cartDrawerVersions.server";
 
 /**
  * Public API endpoint for cart drawer data
  * This is called from the theme extension to get configuration
- * URL: /api/cart-drawer?shop=example.myshopify.com
+ * URL: /api/cart-drawer?shop=example.myshopify.com&customerId=gid://shopify/Customer/123
  */
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Handle OPTIONS preflight requests immediately
@@ -27,6 +28,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
+  const customerId = url.searchParams.get("customerId"); // Customer ID for logged-in users
 
   if (!shop) {
     const response = json({ error: "Shop parameter is required" }, { status: 400 });
@@ -45,8 +47,26 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // CRITICAL: Initialize default version to ensure it exists
     await initializeDefaultVersion();
 
-    // Determine which version this shop should see
-    const assignedVersion = await getShopCartDrawerVersion(shop);
+    // Determine which version this customer/session should see
+    let assignedVersion = 'default';
+    let userIdentifier = null;
+
+    if (customerId) {
+      // Customer-based A/B testing (preferred for logged-in users)
+      userIdentifier = customerId;
+      console.log(`[Cart Drawer API] Customer-based version selection for ${customerId}`);
+      assignedVersion = await getCartDrawerVersionForCustomer(customerId);
+    } else {
+      // Generate session ID from request for guest users
+      const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+      const userAgent = request.headers.get('user-agent') || 'unknown';
+      const sessionId = createHash('md5').update(`${ip}-${userAgent}-${shop}`).digest('hex');
+
+      userIdentifier = `session:${sessionId}`;
+      console.log(`[Cart Drawer API] Session-based version selection for session ${sessionId.substring(0, 8)}...`);
+      assignedVersion = await getCartDrawerVersionForCustomer(userIdentifier);
+    }
+
 
     // Get cart drawer configuration for this version
     let cartDrawer = await prisma.cartDrawer.findUnique({

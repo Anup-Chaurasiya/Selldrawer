@@ -7,6 +7,12 @@
 
 <script>
   (function() {
+    // Set config BEFORE loading the script so it's available immediately
+    window.upsellity_config = {
+      customerId: "{{ customer.id | default: '' }}",
+      shop: "{{ shop.permanent_domain }}"
+    };
+    
     // Version number for cache busting (update this when you release new versions)
     var version = '{{ block.settings.version | default: "1.0.4" }}';
     // Add timestamp for additional cache busting during development
