@@ -245,6 +245,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       layout: formData.get("layout") as string,
       enableAnimation: formData.get("enableAnimation") === "true",
       animationType: formData.get("animationType") as string,
+      checkboxMode: formData.get("checkboxMode") === "true",
     };
 
     await prisma.nudgeAddTogether.update({
@@ -539,6 +540,7 @@ export default function NudgeAddTogether() {
       layout: nudgeAddTogetherConfig?.layout || "grid",
       enableAnimation: nudgeAddTogetherConfig?.enableAnimation ?? true,
       animationType: nudgeAddTogetherConfig?.animationType || "fade",
+      checkboxMode: nudgeAddTogetherConfig?.checkboxMode ?? true,
     };
   });
 
@@ -943,6 +945,22 @@ export default function NudgeAddTogether() {
             <Card>
               <BlockStack gap="400">
                 <Text as="h2" variant="headingMd">
+                  Selection Settings
+                </Text>
+                <FormLayout>
+                  <Checkbox
+                    label="Enable Checkbox Mode"
+                    checked={formState.checkboxMode}
+                    onChange={(value) => setFormState({ ...formState, checkboxMode: value })}
+                    helpText="Allow users to select multiple products using checkboxes"
+                  />
+                </FormLayout>
+              </BlockStack>
+            </Card>
+
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
                   Style Settings
                 </Text>
                 <FormLayout>
@@ -1215,7 +1233,7 @@ export default function NudgeAddTogether() {
                         recommendations={previewProducts}
                         isVisible={true}
                         isPreview={true}
-                        checkboxMode={true}
+                        checkboxMode={formState.checkboxMode}
                         selectedProductIds={new Set()}
                         onSelectProduct={() => { }} // No-op for preview
                         onSelectAll={() => { }} // No-op for preview

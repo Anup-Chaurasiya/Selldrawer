@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Add Together v1.0.11
- * Built: 2026-01-30T10:54:37.687Z
+ * Built: 2026-01-30T15:28:29.939Z
  */
 "use strict";
 (() => {
@@ -8181,7 +8181,9 @@
                             background: "#ffffff",
                             transition: "transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease",
                             width: config.layout === "carousel" ? "200px" : "100%",
-                            height: "320px",
+                            // removed fixed height to allow flex stretch to handle height
+                            minHeight: "320px",
+                            height: "100%",
                             display: "flex",
                             flexDirection: "column",
                             cursor: isPreview ? "default" : "pointer",
@@ -8273,25 +8275,29 @@
                                         textOverflow: "ellipsis",
                                         display: "-webkit-box",
                                         WebkitLineClamp: 2,
-                                        WebkitBoxOrient: "vertical"
+                                        WebkitBoxOrient: "vertical",
+                                        marginBottom: "0.25rem"
+                                        // Reduced margin
                                       },
                                       children: product.title
                                     }
                                   ),
-                                  config.showProductDescription && product.description && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                                  config.showProductDescription && product.description && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                                     "p",
                                     {
                                       className: "upsellity-nudge-product-description",
                                       style: {
                                         fontSize: "0.75em",
                                         color: "#6b7280",
-                                        margin: "0 0 0.75rem 0",
-                                        lineHeight: 1.5
+                                        margin: "0 0 0.5rem 0",
+                                        // Reduced margin
+                                        lineHeight: 1.4,
+                                        whiteSpace: "nowrap",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        maxWidth: "100%"
                                       },
-                                      children: [
-                                        stripHtml(product.description).substring(0, 100),
-                                        "..."
-                                      ]
+                                      children: stripHtml(product.description)
                                     }
                                   ),
                                   config.showProductPrice && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
@@ -8303,7 +8309,9 @@
                                         alignItems: "center",
                                         gap: "0.5rem",
                                         marginTop: "auto",
+                                        // Push to bottom for alignment
                                         paddingTop: "0.5rem"
+                                        // Restore some padding
                                       },
                                       children: [
                                         config.showProductComparePrice && product.compareAtPrice && product.compareAtPrice > product.price && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
@@ -8476,16 +8484,21 @@
     isVisible = true
   }) => {
     const [selectedProducts, setSelectedProducts] = (0, import_react2.useState)(/* @__PURE__ */ new Set());
-    const handleProductClick = (product) => {
-      setSelectedProducts((prev) => {
-        const newSet = new Set(prev);
-        if (newSet.has(product.id)) {
-          newSet.delete(product.id);
-        } else {
-          newSet.add(product.id);
-        }
-        return newSet;
-      });
+    const checkboxMode = config.checkboxMode !== false;
+    const handleProductClick = async (product) => {
+      if (checkboxMode) {
+        setSelectedProducts((prev) => {
+          const newSet = new Set(prev);
+          if (newSet.has(product.id)) {
+            newSet.delete(product.id);
+          } else {
+            newSet.add(product.id);
+          }
+          return newSet;
+        });
+      } else {
+        await handleAddSelected([product]);
+      }
     };
     const handleSelectAllCheckbox = () => {
       const allIds = recommendations.map((p) => p.id);
@@ -8539,7 +8552,7 @@
           /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("p", { style: { margin: "0.25rem 0 0 0", fontSize: "0.75rem", color: "#6b7280" }, children: "Included in cart" })
         ] })
       ] }),
-      recommendations.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+      checkboxMode && recommendations.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
         width: "100%",
         marginBottom: "1rem",
         padding: "0.75rem",
@@ -8594,7 +8607,7 @@
           onSelectAll: handleAddSelected,
           isVisible,
           isPreview: false,
-          checkboxMode: true,
+          checkboxMode,
           selectedProductIds: selectedProducts
         }
       )
@@ -9303,7 +9316,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/nudge-add-together-entry.js
-  var APP_URL = true ? "https://lil-comfortable-apparent-wherever.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://twist-attachments-heading-pediatric.trycloudflare.com" : "https://app.upsellity.com";
   var NudgeAddTogether = class {
     constructor() {
       this.shop = null;

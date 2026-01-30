@@ -678,6 +678,7 @@ model NudgeAddTogether {
   layout                  String                    @default("grid")
   enableAnimation         Boolean                   @default(true)
   animationType           String                    @default("fade")
+  checkboxMode            Boolean                   @default(true)
   createdAt               DateTime                  @default(now())
   updatedAt               DateTime                  @updatedAt
   rules                   NudgeAddTogetherRule[]

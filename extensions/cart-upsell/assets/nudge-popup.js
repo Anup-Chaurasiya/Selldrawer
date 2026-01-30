@@ -1,6 +1,6 @@
 /**
  * Upsellity Nudge Popup v1.0.11
- * Built: 2026-01-30T10:54:37.652Z
+ * Built: 2026-01-30T15:28:29.906Z
  */
 "use strict";
 (() => {
@@ -8178,7 +8178,9 @@
                             background: "#ffffff",
                             transition: "transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease",
                             width: config.layout === "carousel" ? "200px" : "100%",
-                            height: "320px",
+                            // removed fixed height to allow flex stretch to handle height
+                            minHeight: "320px",
+                            height: "100%",
                             display: "flex",
                             flexDirection: "column",
                             cursor: isPreview ? "default" : "pointer",
@@ -8270,25 +8272,29 @@
                                         textOverflow: "ellipsis",
                                         display: "-webkit-box",
                                         WebkitLineClamp: 2,
-                                        WebkitBoxOrient: "vertical"
+                                        WebkitBoxOrient: "vertical",
+                                        marginBottom: "0.25rem"
+                                        // Reduced margin
                                       },
                                       children: product.title
                                     }
                                   ),
-                                  config.showProductDescription && product.description && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                                  config.showProductDescription && product.description && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                                     "p",
                                     {
                                       className: "upsellity-nudge-product-description",
                                       style: {
                                         fontSize: "0.75em",
                                         color: "#6b7280",
-                                        margin: "0 0 0.75rem 0",
-                                        lineHeight: 1.5
+                                        margin: "0 0 0.5rem 0",
+                                        // Reduced margin
+                                        lineHeight: 1.4,
+                                        whiteSpace: "nowrap",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        maxWidth: "100%"
                                       },
-                                      children: [
-                                        stripHtml(product.description).substring(0, 100),
-                                        "..."
-                                      ]
+                                      children: stripHtml(product.description)
                                     }
                                   ),
                                   config.showProductPrice && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
@@ -8300,7 +8306,9 @@
                                         alignItems: "center",
                                         gap: "0.5rem",
                                         marginTop: "auto",
+                                        // Push to bottom for alignment
                                         paddingTop: "0.5rem"
+                                        // Restore some padding
                                       },
                                       children: [
                                         config.showProductComparePrice && product.compareAtPrice && product.compareAtPrice > product.price && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
@@ -9164,7 +9172,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/nudge-popup-entry.js
-  var APP_URL = true ? "https://lil-comfortable-apparent-wherever.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://twist-attachments-heading-pediatric.trycloudflare.com" : "https://app.upsellity.com";
   var NudgePopup = class {
     constructor() {
       this.shop = null;
