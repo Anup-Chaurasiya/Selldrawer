@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.11
- * Built: 2026-01-29T13:19:07.484Z
+ * Built: 2026-01-30T10:54:37.584Z
  */
 "use strict";
 (() => {
@@ -11371,51 +11371,92 @@
         )
       ] }),
       appliedDiscount && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
-        backgroundColor,
-        border: `2px solid ${borderColor}`,
-        borderRadius: "10px",
-        padding: "12px 16px",
-        marginBottom: "12px",
+        backgroundColor: "#f0fdf4",
+        // Emerald 50
+        border: "1px solid #bbf7d0",
+        // Emerald 200
+        borderRadius: "8px",
+        padding: "12px",
+        marginBottom: "16px",
+        // Increased margin
         display: "flex",
-        alignItems: "center",
-        gap: "12px"
+        alignItems: "flex-start",
+        // Align to top for better multi-line handling
+        gap: "12px",
+        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
       }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-          width: "24px",
-          height: "24px",
+          width: "20px",
+          height: "20px",
           borderRadius: "50%",
-          backgroundColor: borderColor,
+          backgroundColor: "#16a34a",
+          // Emerald 600
           color: "white",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          flexShrink: 0
-        }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 14, color: "white" }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { flex: 1 }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-          fontSize: "14px",
-          fontWeight: "600",
-          color: couponCodeColor || textColor
-        }, children: appliedDiscount.code }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+          flexShrink: 0,
+          marginTop: "1px"
+          // Align with text
+        }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 12, color: "white" }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { flex: 1 }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
+          display: "flex",
+          alignItems: "baseline",
+          gap: "8px",
+          flexWrap: "wrap"
+        }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: {
+            fontSize: "14px",
+            fontWeight: "700",
+            color: "#15803d",
+            // Emerald 700
+            letterSpacing: "-0.01em"
+          }, children: appliedDiscount.code }),
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: {
+            fontSize: "11px",
+            color: "#166534",
+            // Emerald 800
+            backgroundColor: "#dcfce7",
+            // Emerald 100
+            padding: "1px 6px",
+            borderRadius: "10px",
+            fontWeight: "600"
+          }, children: "APPLIED" })
+        ] }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
           "button",
           {
             onClick: onRemoveDiscount,
             style: {
-              width: "28px",
-              height: "28px",
-              padding: "0",
-              backgroundColor: "transparent",
-              color: "#6b7280",
-              border: "none",
+              padding: "4px 8px",
+              backgroundColor: "white",
+              color: "#dc2626",
+              // Red 600
+              border: "1px solid #fee2e2",
+              // Red 100
               borderRadius: "6px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              fontSize: "11px",
+              fontWeight: "600",
               cursor: "pointer",
               transition: "all 0.2s ease",
-              flexShrink: 0
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              boxShadow: "0 1px 1px rgba(0,0,0,0.05)"
             },
-            children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(XIcon, { size: 16, color: "#6b7280" })
+            onMouseEnter: (e) => {
+              e.currentTarget.style.backgroundColor = "#fef2f2";
+              e.currentTarget.style.borderColor = "#fecaca";
+            },
+            onMouseLeave: (e) => {
+              e.currentTarget.style.backgroundColor = "white";
+              e.currentTarget.style.borderColor = "#fee2e2";
+            },
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { children: "Remove" }),
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(XIcon, { size: 12, color: "#dc2626" })
+            ]
           }
         )
       ] }),
@@ -11458,51 +11499,92 @@
           border: "1px solid #e5e7eb",
           borderRadius: "8px",
           overflow: "hidden",
-          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)"
-        }, children: availableDiscounts.map((discount) => /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
-          "div",
-          {
-            onClick: () => !isPreview && onSwitchDiscount(discount.code),
-            style: {
-              padding: "12px 16px",
-              borderBottom: "1px solid #f3f4f6",
-              cursor: isPreview ? "default" : "pointer",
-              transition: "background-color 0.2s ease",
-              backgroundColor: (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? backgroundColor : "transparent",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px"
-            },
-            children: [
-              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-                width: "20px",
-                height: "20px",
-                borderRadius: "50%",
-                border: `2px solid ${(appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? borderColor : "#d1d5db"}`,
+          marginTop: "4px",
+          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"
+        }, children: availableDiscounts.map((discount, index) => {
+          const isSelected = (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code;
+          const isLast = index === availableDiscounts.length - 1;
+          return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
+            "div",
+            {
+              onClick: () => {
+                if (!isPreview) {
+                  onSwitchDiscount(discount.code);
+                  setShowingAllOffers(false);
+                }
+              },
+              onMouseEnter: (e) => {
+                if (!isSelected)
+                  e.currentTarget.style.backgroundColor = "#f9fafb";
+              },
+              onMouseLeave: (e) => {
+                if (!isSelected)
+                  e.currentTarget.style.backgroundColor = "transparent";
+              },
+              style: {
+                padding: "12px 16px",
+                borderBottom: isLast ? "none" : "1px solid #f3f4f6",
+                cursor: isPreview ? "default" : "pointer",
+                transition: "background-color 0.2s ease",
+                backgroundColor: isSelected ? "#f0fdf4" : "transparent",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0
-              }, children: (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 12, color: borderColor }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { flex: 1 }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  color: "#111827",
-                  marginBottom: "2px"
-                }, children: [
-                  discount.code,
-                  discount.description ? ` - ${discount.description}` : ""
-                ] }),
-                discount.title && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-                  fontSize: "12px",
-                  color: "#6b7280"
-                }, children: discount.title })
-              ] })
-            ]
-          },
-          discount.code
-        )) })
+                gap: "12px"
+              },
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+                  width: "18px",
+                  height: "18px",
+                  borderRadius: "50%",
+                  border: `1.5px solid ${isSelected ? borderColor : "#d1d5db"}`,
+                  backgroundColor: isSelected ? borderColor : "white",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  transition: "all 0.2s ease"
+                }, children: isSelected && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  backgroundColor: "white"
+                } }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { flex: 1 }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
+                    display: "flex",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    gap: "8px",
+                    marginBottom: discount.title && discount.title !== discount.code ? "2px" : "0"
+                  }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: {
+                      fontSize: "14px",
+                      fontWeight: "700",
+                      color: "#111827",
+                      letterSpacing: "-0.01em"
+                    }, children: discount.code }),
+                    discount.description && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: {
+                      fontSize: "10px",
+                      fontWeight: "600",
+                      color: isSelected ? "#065f46" : "#6b7280",
+                      backgroundColor: isSelected ? "#d1fae5" : "#f3f4f6",
+                      padding: "2px 8px",
+                      borderRadius: "12px",
+                      letterSpacing: "0.02em",
+                      textTransform: "uppercase"
+                    }, children: discount.description.replace(/^-\s*/, "") })
+                  ] }),
+                  discount.title && discount.title !== discount.code && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+                    fontSize: "12px",
+                    color: "#6b7280",
+                    lineHeight: "1.4"
+                  }, children: discount.title })
+                ] })
+              ]
+            },
+            discount.code
+          );
+        }) })
       ] })
     ] });
   };
@@ -12144,33 +12226,6 @@
           }
         )
       ] }),
-      collectionUrl && /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-        "a",
-        {
-          href: collectionUrl,
-          style: {
-            display: "block",
-            textAlign: "center",
-            padding: "6px",
-            marginTop: "6px",
-            color: "#6b7280",
-            textDecoration: "none",
-            fontSize: "9px",
-            fontWeight: 500,
-            transition: "color 0.2s"
-          },
-          onMouseEnter: (e) => {
-            e.currentTarget.style.color = "#111827";
-          },
-          onMouseLeave: (e) => {
-            e.currentTarget.style.color = "#6b7280";
-          },
-          children: [
-            viewAllLinkText,
-            " \u2192"
-          ]
-        }
-      ),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("style", { children: `
                 div[role="list"]::-webkit-scrollbar {
                     display: none;
@@ -13932,7 +13987,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://reprints-work-fold-calculated.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://lil-comfortable-apparent-wherever.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.11" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

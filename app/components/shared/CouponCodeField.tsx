@@ -61,9 +61,9 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
   enableAutoApply = false,
   appliedDiscount = null,
   availableDiscounts = [],
-  onApplyCoupon = () => {},
-  onRemoveDiscount = () => {},
-  onSwitchDiscount = () => {},
+  onApplyCoupon = () => { },
+  onRemoveDiscount = () => { },
+  onSwitchDiscount = () => { },
   backgroundColor = '#d1fae5',
   textColor = '#065f46',
   couponCodeColor,
@@ -148,56 +148,90 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
       {/* Applied Discount */}
       {appliedDiscount && (
         <div style={{
-          backgroundColor: backgroundColor,
-          border: `2px solid ${borderColor}`,
-          borderRadius: '10px',
-          padding: '12px 16px',
-          marginBottom: '12px',
+          backgroundColor: '#f0fdf4', // Emerald 50
+          border: '1px solid #bbf7d0', // Emerald 200
+          borderRadius: '8px',
+          padding: '12px',
+          marginBottom: '16px', // Increased margin
           display: 'flex',
-          alignItems: 'center',
-          gap: '12px'
+          alignItems: 'flex-start', // Align to top for better multi-line handling
+          gap: '12px',
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
         }}>
           <div style={{
-            width: '24px',
-            height: '24px',
+            width: '20px',
+            height: '20px',
             borderRadius: '50%',
-            backgroundColor: borderColor,
+            backgroundColor: '#16a34a', // Emerald 600
             color: 'white',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            flexShrink: 0
+            flexShrink: 0,
+            marginTop: '1px' // Align with text
           }}>
-            <CheckIcon size={14} color="white" />
+            <CheckIcon size={12} color="white" />
           </div>
+
           <div style={{ flex: 1 }}>
             <div style={{
-              fontSize: '14px',
-              fontWeight: '600',
-              color: couponCodeColor || textColor
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: '8px',
+              flexWrap: 'wrap'
             }}>
-              {appliedDiscount.code}
+              <span style={{
+                fontSize: '14px',
+                fontWeight: '700',
+                color: '#15803d', // Emerald 700
+                letterSpacing: '-0.01em'
+              }}>
+                {appliedDiscount.code}
+              </span>
+              <span style={{
+                fontSize: '11px',
+                color: '#166534', // Emerald 800
+                backgroundColor: '#dcfce7', // Emerald 100
+                padding: '1px 6px',
+                borderRadius: '10px',
+                fontWeight: '600'
+              }}>
+                APPLIED
+              </span>
             </div>
+
+
           </div>
+
           <button
             onClick={onRemoveDiscount}
             style={{
-              width: '28px',
-              height: '28px',
-              padding: '0',
-              backgroundColor: 'transparent',
-              color: '#6b7280',
-              border: 'none',
+              padding: '4px 8px',
+              backgroundColor: 'white',
+              color: '#dc2626', // Red 600
+              border: '1px solid #fee2e2', // Red 100
               borderRadius: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              fontSize: '11px',
+              fontWeight: '600',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-              flexShrink: 0
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              boxShadow: '0 1px 1px rgba(0,0,0,0.05)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#fef2f2';
+              e.currentTarget.style.borderColor = '#fecaca';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'white';
+              e.currentTarget.style.borderColor = '#fee2e2';
             }}
           >
-            <XIcon size={16} color="#6b7280" />
+            <span>Remove</span>
+            <XIcon size={12} color="#dc2626" />
           </button>
         </div>
       )}
@@ -239,55 +273,107 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
               border: '1px solid #e5e7eb',
               borderRadius: '8px',
               overflow: 'hidden',
-              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)'
+              marginTop: '4px',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
             }}>
-              {availableDiscounts.map((discount) => (
-                <div
-                  key={discount.code}
-                  onClick={() => !isPreview && onSwitchDiscount(discount.code)}
-                  style={{
-                    padding: '12px 16px',
-                    borderBottom: '1px solid #f3f4f6',
-                    cursor: isPreview ? 'default' : 'pointer',
-                    transition: 'background-color 0.2s ease',
-                    backgroundColor: appliedDiscount?.code === discount.code ? backgroundColor : 'transparent',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px'
-                  }}
-                >
-                  <div style={{
-                    width: '20px',
-                    height: '20px',
-                    borderRadius: '50%',
-                    border: `2px solid ${appliedDiscount?.code === discount.code ? borderColor : '#d1d5db'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    {appliedDiscount?.code === discount.code && <CheckIcon size={12} color={borderColor} />}
-                  </div>
-                  <div style={{ flex: 1 }}>
+              {availableDiscounts.map((discount, index) => {
+                const isSelected = appliedDiscount?.code === discount.code;
+                const isLast = index === availableDiscounts.length - 1;
+
+                return (
+                  <div
+                    key={discount.code}
+                    onClick={() => {
+                      if (!isPreview) {
+                        onSwitchDiscount(discount.code);
+                        setShowingAllOffers(false);
+                      }
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) e.currentTarget.style.backgroundColor = '#f9fafb';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                    style={{
+                      padding: '12px 16px',
+                      borderBottom: isLast ? 'none' : '1px solid #f3f4f6',
+                      cursor: isPreview ? 'default' : 'pointer',
+                      transition: 'background-color 0.2s ease',
+                      backgroundColor: isSelected ? '#f0fdf4' : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px'
+                    }}
+                  >
+                    {/* Custom Radio Button */}
                     <div style={{
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#111827',
-                      marginBottom: '2px'
+                      width: '18px',
+                      height: '18px',
+                      borderRadius: '50%',
+                      border: `1.5px solid ${isSelected ? borderColor : '#d1d5db'}`,
+                      backgroundColor: isSelected ? borderColor : 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      transition: 'all 0.2s ease'
                     }}>
-                      {discount.code}{discount.description ? ` - ${discount.description}` : ''}
+                      {isSelected && (
+                        <div style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          backgroundColor: 'white'
+                        }} />
+                      )}
                     </div>
-                    {discount.title && (
+
+                    {/* Content */}
+                    <div style={{ flex: 1 }}>
                       <div style={{
-                        fontSize: '12px',
-                        color: '#6b7280'
+                        display: 'flex',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '8px',
+                        marginBottom: discount.title && discount.title !== discount.code ? '2px' : '0'
                       }}>
-                        {discount.title}
+                        <span style={{
+                          fontSize: '14px',
+                          fontWeight: '700',
+                          color: '#111827',
+                          letterSpacing: '-0.01em'
+                        }}>
+                          {discount.code}
+                        </span>
+                        {discount.description && (
+                          <span style={{
+                            fontSize: '10px',
+                            fontWeight: '600',
+                            color: isSelected ? '#065f46' : '#6b7280',
+                            backgroundColor: isSelected ? '#d1fae5' : '#f3f4f6',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            letterSpacing: '0.02em',
+                            textTransform: 'uppercase'
+                          }}>
+                            {discount.description.replace(/^-\s*/, '')}
+                          </span>
+                        )}
                       </div>
-                    )}
+                      {discount.title && discount.title !== discount.code && (
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#6b7280',
+                          lineHeight: '1.4'
+                        }}>
+                          {discount.title}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -295,4 +381,3 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
     </div>
   );
 };
-

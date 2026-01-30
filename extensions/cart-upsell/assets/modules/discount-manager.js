@@ -10,7 +10,7 @@ import { showNotification } from './utils.js';
  */
 export async function loadAvailableDiscounts(appUrl, shop, config) {
   const couponField = config?.features?.couponCodeField;
-  
+
   if (!couponField || (!couponField.enableAutoApply && !couponField.showAllOffers)) {
     return [];
   }
@@ -98,12 +98,12 @@ export async function applyDiscountCode(code, loadCartCallback) {
 
     if (response.ok) {
       const cart = await response.json();
-      
+
       // Reload cart to get updated discount information
       if (loadCartCallback) {
         await loadCartCallback(cart);
       }
-      
+
       showNotification(`Coupon ${code} applied!`, 'success');
       return true;
     } else {
@@ -136,12 +136,12 @@ export async function removeDiscount(loadCartCallback) {
 
     if (response.ok) {
       const cart = await response.json();
-      
+
       // Call callback with updated cart (but don't trigger full loadCart which would auto-apply)
       if (loadCartCallback) {
         await loadCartCallback(cart);
       }
-      
+
       showNotification('Discount removed', 'info');
       return true;
     } else {
@@ -173,7 +173,7 @@ export async function applyCoupon(appUrl, shop, config, appliedDiscount, renderC
   const couponInput = document.getElementById('upsellity-coupon-input');
   const messageDiv = document.getElementById('upsellity-coupon-message');
   const applyBtn = document.querySelector('.upsellity-coupon-apply-btn');
-  
+
   if (!couponInput || !messageDiv) {
     console.error('Upsellity: Coupon elements not found');
     return null;
@@ -228,7 +228,7 @@ export function getDiscountFromCart(cart) {
 
   // Shopify returns discount_codes array with code and amount
   const discountCode = cart.discount_codes[0];
-  
+
   return {
     code: discountCode.code,
     amount: cart.total_discount || 0 // Total discount amount in cents

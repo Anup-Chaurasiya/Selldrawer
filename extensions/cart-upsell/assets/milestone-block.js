@@ -1,6 +1,6 @@
 /**
  * Upsellity Milestone Block v1.0.11
- * Built: 2026-01-29T13:19:07.671Z
+ * Built: 2026-01-30T10:54:37.754Z
  */
 "use strict";
 (() => {
@@ -8396,33 +8396,6 @@
           }
         )
       ] }),
-      collectionUrl && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-        "a",
-        {
-          href: collectionUrl,
-          style: {
-            display: "block",
-            textAlign: "center",
-            padding: "6px",
-            marginTop: "6px",
-            color: "#6b7280",
-            textDecoration: "none",
-            fontSize: "9px",
-            fontWeight: 500,
-            transition: "color 0.2s"
-          },
-          onMouseEnter: (e) => {
-            e.currentTarget.style.color = "#111827";
-          },
-          onMouseLeave: (e) => {
-            e.currentTarget.style.color = "#6b7280";
-          },
-          children: [
-            viewAllLinkText,
-            " \u2192"
-          ]
-        }
-      ),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("style", { children: `
                 div[role="list"]::-webkit-scrollbar {
                     display: none;
@@ -9506,7 +9479,7 @@
 
   // extensions/cart-upsell/assets/modules/milestone-block-entry.js
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://reprints-work-fold-calculated.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://lil-comfortable-apparent-wherever.trycloudflare.com" : "https://app.upsellity.com";
   function initMilestoneBlocks() {
     const containers = document.querySelectorAll(".upsellity-milestone-container");
     if (containers.length === 0) {

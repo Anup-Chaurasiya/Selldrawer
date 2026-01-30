@@ -596,33 +596,7 @@ export const MilestoneUpsellCarousel: React.FC<MilestoneUpsellCarouselProps> = (
                 </div>
             </div>
 
-            {/* Show All Link - minimal */}
-            {
-                collectionUrl && (
-                    <a
-                        href={collectionUrl}
-                        style={{
-                            display: 'block',
-                            textAlign: 'center',
-                            padding: '6px',
-                            marginTop: '6px',
-                            color: '#6b7280',
-                            textDecoration: 'none',
-                            fontSize: '9px',
-                            fontWeight: 500,
-                            transition: 'color 0.2s',
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.color = '#111827';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.color = '#6b7280';
-                        }}
-                    >
-                        {viewAllLinkText} →
-                    </a>
-                )
-            }
+
 
             {/* Hide scrollbar */}
             <style>{`
