@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gifting Block Test - Minimal</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .container { border: 2px solid #ccc; padding: 20px; margin: 20px 0; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+    </style>
+</head>
+<body>
+    <h1>Gifting Block Direct Test</h1>
+    
+    <div class="container">
+        <h2>Simulated Cart: ₹1800</h2>
+        <p>This should trigger gifts with threshold ₹1600</p>
+    </div>
+
+    <div id="gifting-container" 
+         class="upsellity-gifting-container" 
+         data-shop="upsellity-dev.myshopify.com"
+         style="min-height: 200px; border: 2px dashed #999; padding: 20px;">
+        <p>Waiting for JavaScript...</p>
+    </div>
+
+    <div class="container">
+        <h3>Debug Info</h3>
+        <pre id="debug"></pre>
+    </div>
+
+    <script>
+        const log = (msg) => {
+            const debug = document.getElementById('debug');
+            debug.textContent += new Date().toISOString() + ': ' + msg + '\n';
+            console.log('[TEST]', msg);
+        };
+
+        log('Test page loaded');
+        
+        // Manually load the gift-block script
+        const script = document.createElement('script');
+        script.src = 'https://cdn.shopify.com/extensions/27de7a0f-16d2-26c3-ac46-904a094e21ffb93d65db/cart-upsell-1.0.11/assets/gift-block.js';
+        
+        script.onload = () => {
+            log('✓ Script loaded!');
+            setTimeout(() => {
+                const container = document.getElementById('gifting-container');
+                log('Container HTML: ' + container.innerHTML.substring(0, 100));
+            }, 3000);
+        };
+        
+        script.onerror = () => {
+            log('✗ Script failed to load from CDN');
+            log('Trying local build...');
+            const altScript = document.createElement('script');
+            altScript.src = '/extensions/cart-upsell/assets/gift-block.js';
+            document.head.appendChild(altScript);
+        };
+        
+        document.head.appendChild(script);
+        
+        // Mock cart for testing
+        window.fetch = new Proxy(window.fetch, {
+            apply: function(target, thisArg, args) {
+                const url = args[0];
+                if (typeof url === 'string' && url.includes('/cart.js')) {
+                    log('Intercepted cart.js request');
+                    return Promise.resolve({
+                        json: () => Promise.resolve({
+                            total_price: 180000, // ₹1800 in cents
+                            items: [
+                                {
+                                    product_id: '1234567890',
+                                    quantity: 3,
+                                    price: 60000
+                                }
+                            ]
+                        })
+                    });
+                }
+                return Reflect.apply(target, thisArg, args);
+            }
+        });
+    </script>
+</body>
+</html>

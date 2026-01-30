@@ -41,7 +41,7 @@ export function FreeGiftSelector({
 
   // Get the first qualified free gift (highest priority)
   const freeGift = freeGifts[0];
-  
+
   if (!freeGift || !freeGift.qualified) {
     return null;
   }
@@ -85,8 +85,8 @@ export function FreeGiftSelector({
             fontSize: '12px',
             color: '#15803d',
           }}>
-            {hasSelectedGift 
-              ? 'Gift selected - FREE at checkout!' 
+            {hasSelectedGift
+              ? 'Gift selected - FREE at checkout!'
               : `Choose ${customerLimit} free gift${customerLimit > 1 ? 's' : ''}`
             }
           </div>
@@ -113,7 +113,7 @@ export function FreeGiftSelector({
       }}>
         {giftProducts.map((product) => {
           const isSelected = selectedGiftId === product.id;
-          
+
           return (
             <div
               key={product.id}
@@ -174,7 +174,7 @@ export function FreeGiftSelector({
                   ✓
                 </div>
               )}
-              
+
               {/* Product Image */}
               <div style={{
                 width: '100%',
@@ -207,7 +207,7 @@ export function FreeGiftSelector({
                   </div>
                 )}
               </div>
-              
+
               {/* Product Title */}
               <div style={{
                 fontSize: '11px',
@@ -224,7 +224,7 @@ export function FreeGiftSelector({
               }}>
                 {product.title}
               </div>
-              
+
               {/* Price */}
               <div style={{
                 fontSize: '10px',

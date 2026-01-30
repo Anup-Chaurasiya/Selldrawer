@@ -1,0 +1,37 @@
+query CartInput {
+  cart {
+    lines {
+      id
+      quantity
+      merchandise {
+        __typename
+        ... on ProductVariant {
+          id
+          product {
+            id
+          }
+        }
+      }
+      fbtBundleId: attribute(key: "_fbt_bundle_id") {
+        value
+      }
+      fbtDiscountType: attribute(key: "_fbt_discount_type") {
+        value
+      }
+      fbtDiscountValue: attribute(key: "_fbt_discount_value") {
+        value
+      }
+      fbtBundleSize: attribute(key: "_fbt_bundle_size") {
+        value
+      }
+      cost {
+        subtotalAmount {
+          amount
+        }
+      }
+    }
+  }
+  discount {
+    discountClasses
+  }
+}

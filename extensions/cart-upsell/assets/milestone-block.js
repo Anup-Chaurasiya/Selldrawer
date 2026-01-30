@@ -1,6 +1,6 @@
 /**
  * Upsellity Milestone Block v1.0.11
- * Built: 2026-01-27T14:53:39.119Z
+ * Built: 2026-01-30T10:55:52.442Z
  */
 "use strict";
 (() => {
@@ -9233,15 +9233,32 @@
     const sortedUnlocked = [...unlockedMilestones].sort((a, b) => b.targetAmount - a.targetAmount);
     return sortedUnlocked[0];
   }
+  function normalizeProperties(properties) {
+    if (!properties)
+      return {};
+    if (Array.isArray(properties)) {
+      const props = {};
+      properties.forEach((p) => {
+        const key = p.name || p.key;
+        if (key)
+          props[key] = p.value;
+      });
+      return props;
+    }
+    return properties;
+  }
   function calculateCartTotalExcludingGifts(cart) {
     if (!cart || !cart.items) {
       return 0;
     }
     let total = 0;
     for (const item of cart.items) {
-      const isGift = item.properties && (item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+      const props = normalizeProperties(item.properties);
+      const isGift = props[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || props["_gift"] === "true" || props["_gift"] === true || // Fallback: Check if source is set (even if _upsellity_gift missing)
+      props["_upsellity_gift_source"] === "gifting_block" || props["_upsellity_gift_source"] === "milestone";
+      const linePrice = item.original_line_price || item.price * item.quantity;
       if (!isGift) {
-        total += item.original_line_price || item.price * item.quantity;
+        total += linePrice;
       }
     }
     return total;
@@ -9253,10 +9270,11 @@
     const normalizedVariantId = normalizeVariantId(variantId);
     return cart.items.find((item) => {
       const itemVariantId = normalizeVariantId(item.variant_id || item.id);
-      const isGift = item.properties && (item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+      const props = normalizeProperties(item.properties);
+      const isGift = props[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || props["_gift"] === "true" || props["_gift"] === true || props["_upsellity_gift_source"] === "gifting_block" || props["_upsellity_gift_source"] === "milestone";
       if (isGift && itemVariantId === normalizedVariantId) {
-        if (milestoneId && item.properties[GIFT_MILESTONE_ID_KEY]) {
-          return item.properties[GIFT_MILESTONE_ID_KEY] === milestoneId;
+        if (milestoneId && props[GIFT_MILESTONE_ID_KEY]) {
+          return props[GIFT_MILESTONE_ID_KEY] === milestoneId;
         }
         return true;
       }
@@ -9268,10 +9286,11 @@
       return [];
     }
     return cart.items.filter((item) => {
-      return item.properties && (item.properties[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+      const props = normalizeProperties(item.properties);
+      return props[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || props["_gift"] === "true" || props["_gift"] === true || props["_upsellity_gift_source"] === "gifting_block" || props["_upsellity_gift_source"] === "milestone";
     });
   }
-  async function addGiftToCart(giftProduct, milestoneId) {
+  async function addGiftToCart(giftProduct, milestoneId, source = "milestone") {
     if (!giftProduct || !giftProduct.shopifyVariantId) {
       return false;
     }
@@ -9283,15 +9302,19 @@
       formData.append(`properties[${GIFT_PROPERTY_KEY}]`, GIFT_PROPERTY_VALUE);
       formData.append(`properties[${GIFT_MILESTONE_ID_KEY}]`, milestoneId);
       formData.append("properties[_gift_title]", giftProduct.title || "Free Gift");
+      formData.append("properties[_upsellity_gift_source]", source);
       const response = await fetch("/cart/add.js", {
         method: "POST",
         body: formData
       });
       if (response.ok) {
-        const result = await response.json();
+        const cartResponse = await fetch(`/cart.js?v=${(/* @__PURE__ */ new Date()).getTime()}`, {
+          headers: { "Cache-Control": "no-cache", "Pragma": "no-cache" }
+        });
+        const fullCart = await cartResponse.json();
         await new Promise((resolve) => setTimeout(resolve, 100));
-        document.dispatchEvent(new CustomEvent("cart:updated", { detail: result }));
-        document.dispatchEvent(new CustomEvent("cart:change", { detail: result }));
+        document.dispatchEvent(new CustomEvent("cart:updated", { detail: fullCart }));
+        document.dispatchEvent(new CustomEvent("cart:change", { detail: fullCart }));
         return true;
       } else {
         return false;
@@ -9317,10 +9340,13 @@
         })
       });
       if (response.ok) {
-        const result = await response.json();
+        const cartResponse = await fetch(`/cart.js?v=${(/* @__PURE__ */ new Date()).getTime()}`, {
+          headers: { "Cache-Control": "no-cache", "Pragma": "no-cache" }
+        });
+        const fullCart = await cartResponse.json();
         await new Promise((resolve) => setTimeout(resolve, 100));
-        document.dispatchEvent(new CustomEvent("cart:updated", { detail: result }));
-        document.dispatchEvent(new CustomEvent("cart:change", { detail: result }));
+        document.dispatchEvent(new CustomEvent("cart:updated", { detail: fullCart }));
+        document.dispatchEvent(new CustomEvent("cart:change", { detail: fullCart }));
         return true;
       } else {
         return false;
@@ -9329,11 +9355,17 @@
       return false;
     }
   }
-  async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback) {
+  async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback, source = "milestone") {
     let cartModified = false;
     const currentGifts = getAllGiftsInCart(cart);
+    const managedGifts = currentGifts.filter((item) => {
+      const props = normalizeProperties(item.properties);
+      const itemSource = props["_upsellity_gift_source"];
+      const effectiveSource = itemSource || "milestone";
+      return effectiveSource === source;
+    });
     if (!unlockedMilestone) {
-      for (const giftItem of currentGifts) {
+      for (const giftItem of managedGifts) {
         const removed = await removeGiftFromCart(giftItem.key);
         if (removed) {
           cartModified = true;
@@ -9345,7 +9377,7 @@
       return cartModified;
     }
     if (unlockedMilestone.rewardType !== "gift_wrapping") {
-      for (const giftItem of currentGifts) {
+      for (const giftItem of managedGifts) {
         const removed = await removeGiftFromCart(giftItem.key);
         if (removed) {
           cartModified = true;
@@ -9358,7 +9390,7 @@
     }
     const giftProducts = unlockedMilestone.giftProducts || [];
     if (giftProducts.length === 0) {
-      for (const giftItem of currentGifts) {
+      for (const giftItem of managedGifts) {
         const removed = await removeGiftFromCart(giftItem.key);
         if (removed) {
           cartModified = true;
@@ -9373,9 +9405,10 @@
       giftProducts.map((gp) => normalizeVariantId(gp.shopifyVariantId))
     );
     const seenValidGifts = /* @__PURE__ */ new Set();
-    for (const giftItem of currentGifts) {
+    for (const giftItem of managedGifts) {
       const itemVariantId = normalizeVariantId(giftItem.variant_id || giftItem.id);
-      const belongsToThisMilestone = giftItem.properties && giftItem.properties[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
+      const props = normalizeProperties(giftItem.properties);
+      const belongsToThisMilestone = props[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
       const isValidGift = belongsToThisMilestone && validGiftVariantIds.has(itemVariantId);
       const isDuplicate = seenValidGifts.has(itemVariantId);
       const shouldRemove = !belongsToThisMilestone || belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId) || isDuplicate;
@@ -9413,7 +9446,7 @@
       }
       const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
       if (!existingGift) {
-        const added = await addGiftToCart(giftProduct, unlockedMilestone.id);
+        const added = await addGiftToCart(giftProduct, unlockedMilestone.id, source);
         if (added) {
           cartModified = true;
           seenValidGifts.add(variantId);
@@ -9473,7 +9506,7 @@
 
   // extensions/cart-upsell/assets/modules/milestone-block-entry.js
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://magical-yeah-lotus-ftp.trycloudflare.com/" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
   function initMilestoneBlocks() {
     const containers = document.querySelectorAll(".upsellity-milestone-container");
     if (containers.length === 0) {

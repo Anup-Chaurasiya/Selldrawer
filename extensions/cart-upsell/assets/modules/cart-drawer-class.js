@@ -239,7 +239,9 @@ export class UpsellityCartDrawer {
         this.cart = cartData;
       } else {
         // Only fetch if we don't have cart data
-        const response = await fetch('/cart.js');
+        const response = await fetch(`/cart.js?v=${new Date().getTime()}`, {
+          headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+        });
         this.cart = await response.json();
       }
 
@@ -303,12 +305,28 @@ export class UpsellityCartDrawer {
         // If milestones are disabled, remove any milestone gifts from cart
         const allGifts = MilestoneRewardManager.getAllGiftsInCart(this.cart);
         if (allGifts.length > 0) {
+          let cartModified = false;
           for (const giftItem of allGifts) {
-            await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
+            // Only remove gifts that belong to milestones (or have no source)
+            // DO NOT remove gifts from 'gifting_block' or other sources
+            const props = MilestoneRewardManager.normalizeProperties(giftItem.properties);
+            const source = props['_upsellity_gift_source'];
+            const isMilestoneGift = !source || source === 'milestone';
+
+            if (isMilestoneGift) {
+              console.log('Upsellity Cart Drawer: Cleaning up disabled milestone gift', giftItem.key);
+              await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
+              cartModified = true;
+            } else {
+              console.log('Upsellity Cart Drawer: Ignoring gift from other source', source, giftItem.key);
+            }
           }
-          // Reload cart after cleanup
-          const response = await fetch('/cart.js');
-          this.cart = await response.json();
+
+          if (cartModified) {
+            // Reload cart after cleanup
+            const response = await fetch('/cart.js');
+            this.cart = await response.json();
+          }
         }
       }
 
@@ -445,6 +463,32 @@ export class UpsellityCartDrawer {
       if (e.ctrlKey && e.shiftKey && e.key === 'C') {
         e.preventDefault();
         this.open();
+      }
+    });
+
+    // CRITICAL: Listen for cart updates from other modules (like gift-block-entry.js)
+    // This ensures UI stays in sync when gifts are added/removed externally
+    document.addEventListener('cart:updated', async (e) => {
+
+
+      let cartData = e.detail;
+
+      // Defensive check: Ensure data looks like a cart (has items array)
+      // /cart/add.js returns the ITEM, not the CART, which causes crashes if passed directly
+      if (!cartData || !cartData.items || !Array.isArray(cartData.items)) {
+        console.log('Upsellity Cart Drawer: Event data is not a full cart, fetching fresh data');
+        cartData = null; // trigger fetch in loadCart
+      }
+
+      // Reload cart UI but SKIP gift sync to avoid potential infinite loops
+      // (The external update presumably just finished handling gifts)
+      if (this.isOpen) {
+        await this.loadCart(cartData, false, true);
+      } else {
+        // If closed, just update internal state (if valid)
+        if (cartData) {
+          this.cart = cartData;
+        }
       }
     });
   }

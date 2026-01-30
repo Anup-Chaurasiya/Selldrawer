@@ -1,0 +1,4 @@
+{
+  "name": "Frequently Bought Together Discount",
+  "description": "Automatically applies discounts to FBT bundle products based on line item properties"
+}

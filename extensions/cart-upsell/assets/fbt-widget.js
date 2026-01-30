@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.11
- * Built: 2026-01-27T14:53:39.019Z
+ * Built: 2026-01-30T10:55:52.323Z
  */
 "use strict";
 (() => {
@@ -9414,7 +9414,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://magical-yeah-lotus-ftp.trycloudflare.com/" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;
@@ -9631,64 +9631,68 @@
       }
     }
     async addToCart(selectedIds) {
-      var _a2, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
+      var _a2, _b, _c;
       try {
+        const bundleMetadata = (_a2 = this.config) == null ? void 0 : _a2.bundleMetadata;
+        const hasDiscount = bundleMetadata == null ? void 0 : bundleMetadata.hasDiscount;
+        const bundleId = hasDiscount && (bundleMetadata == null ? void 0 : bundleMetadata.ruleId) ? `fbt_${bundleMetadata.ruleId}_${Date.now()}` : null;
         const items = [];
+        const allProducts = [];
         if (this.parentProduct) {
           const parentVariantId = this.parentProduct.variantId || this.parentProduct.id;
           if (selectedIds.has(parentVariantId)) {
-            try {
-              const response = await fetch(`/products/${this.parentProduct.handle}.js`);
-              if (response.ok) {
-                const productData = await response.json();
-                items.push({
-                  id: (_b = (_a2 = productData.variants) == null ? void 0 : _a2[0]) == null ? void 0 : _b.id,
-                  quantity: 1,
-                  properties: {
-                    "_upsell_source": "fbt",
-                    "_fbt_parent": "true",
-                    "_fbt_discount_code": ((_c = this.config) == null ? void 0 : _c.discountCode) || ""
-                  }
-                });
-                Analytics.track({
-                  eventType: "add_to_cart",
-                  component: "fbt",
-                  productId: this.parentProduct.id,
-                  variantId: (_f = (_e = (_d = productData.variants) == null ? void 0 : _d[0]) == null ? void 0 : _e.id) == null ? void 0 : _f.toString(),
-                  value: typeof this.parentProduct.price === "number" ? this.parentProduct.price : parseFloat(this.parentProduct.price)
-                });
-              }
-            } catch (error) {
-              console.error("Error fetching parent product:", error);
-            }
+            allProducts.push(this.parentProduct);
           }
         }
         for (const product of this.recommendations) {
           const variantId = product.variantId || product.id;
           if (selectedIds.has(variantId)) {
-            try {
-              const response = await fetch(`/products/${product.handle}.js`);
-              if (response.ok) {
-                const productData = await response.json();
-                items.push({
-                  id: (_h = (_g = productData.variants) == null ? void 0 : _g[0]) == null ? void 0 : _h.id,
-                  quantity: 1,
-                  properties: {
-                    "_upsell_source": "fbt",
-                    "_fbt_discount_code": ((_i = this.config) == null ? void 0 : _i.discountCode) || ""
+            allProducts.push(product);
+          }
+        }
+        for (let i = 0; i < allProducts.length; i++) {
+          const product = allProducts[i];
+          try {
+            const response = await fetch(`/products/${product.handle}.js`);
+            if (response.ok) {
+              const productData = await response.json();
+              const variantId = (_c = (_b = productData.variants) == null ? void 0 : _b[0]) == null ? void 0 : _c.id;
+              if (variantId) {
+                const properties = {
+                  "_upsell_source": "fbt"
+                };
+                if (bundleId && hasDiscount) {
+                  const type = (bundleMetadata.discountType || "PERCENTAGE").toUpperCase();
+                  let value = (bundleMetadata.discountValue || "0").toString();
+                  if (type === "FIXED") {
+                    const totalDiscount = parseFloat(value);
+                    const count = allProducts.length;
+                    if (count > 0 && totalDiscount > 0) {
+                      value = (totalDiscount / count).toFixed(2);
+                    }
                   }
+                  properties["_fbt_bundle_id"] = bundleId;
+                  properties["_fbt_rule_id"] = bundleMetadata.ruleId;
+                  properties["_fbt_discount_type"] = type;
+                  properties["_fbt_discount_value"] = value;
+                  properties["_fbt_bundle_size"] = allProducts.length.toString();
+                }
+                items.push({
+                  id: variantId,
+                  quantity: 1,
+                  properties
                 });
                 Analytics.track({
                   eventType: "add_to_cart",
                   component: "fbt",
                   productId: product.id,
-                  variantId: (_l = (_k = (_j = productData.variants) == null ? void 0 : _j[0]) == null ? void 0 : _k.id) == null ? void 0 : _l.toString(),
+                  variantId: variantId.toString(),
                   value: typeof product.price === "number" ? product.price : parseFloat(product.price)
                 });
               }
-            } catch (error) {
-              console.error("Error fetching product:", error);
             }
+          } catch (error) {
+            console.error(`Error fetching product ${product.handle}:`, error);
           }
         }
         if (items.length > 0) {
@@ -9701,33 +9705,18 @@
           });
           if (response.ok) {
             document.dispatchEvent(new CustomEvent("cart:updated"));
-            console.log("=== FBT: Items added to cart successfully ===");
-            console.log("FBT Config:", this.config);
-            console.log("Discount code:", (_m = this.config) == null ? void 0 : _m.discountCode);
+            document.dispatchEvent(new CustomEvent("cart:updated"));
+            if (bundleId) {
+              console.log("\u2705 FBT Bundle added with discount");
+            } else {
+              console.log("\u2705 FBT items added to cart");
+            }
             if (window.upsellityDrawer && typeof window.upsellityDrawer.open === "function") {
               console.log("FBT: Opening cart drawer...");
               setTimeout(() => {
-                var _a3, _b2, _c2, _d2;
                 window.upsellityDrawer.open();
                 console.log("FBT: Cart drawer opened");
-                if (((_a3 = this.config) == null ? void 0 : _a3.discountCode) && window.upsellityDrawer.applyCouponWithCode) {
-                  console.log("=== FBT: Applying discount code:", this.config.discountCode);
-                  setTimeout(() => {
-                    try {
-                      window.upsellityDrawer.applyCouponWithCode(this.config.discountCode);
-                      console.log("=== FBT: Discount applied successfully! ===");
-                    } catch (error) {
-                      console.error("=== FBT: Failed to apply discount ===", error);
-                    }
-                  }, 1e3);
-                } else {
-                  console.warn("FBT: No discount code or applyCouponWithCode not available", {
-                    hasDiscountCode: !!((_b2 = this.config) == null ? void 0 : _b2.discountCode),
-                    discountCode: (_c2 = this.config) == null ? void 0 : _c2.discountCode,
-                    hasMethod: !!((_d2 = window.upsellityDrawer) == null ? void 0 : _d2.applyCouponWithCode)
-                  });
-                }
-              }, 1500);
+              }, 500);
             }
             return true;
           } else {
