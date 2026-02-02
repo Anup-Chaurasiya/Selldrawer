@@ -8,6 +8,7 @@ import {
     initializeDefaultVersion,
     getVersionStats,
 } from '../services/cartDrawerVersions.server';
+import { getCustomerSegments } from '../services/shopifySegments.server';
 
 export async function loader({ request }: LoaderFunctionArgs) {
     await authenticate.admin(request);
@@ -17,8 +18,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     const versions = await getAllVersions();
     const stats = await getVersionStats();
+    const customerSegments = await getCustomerSegments(request);
 
-    return json({ versions, stats });
+    return json({ versions, stats, customerSegments });
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -30,13 +32,18 @@ export async function action({ request }: ActionFunctionArgs) {
     try {
         if (intent === 'set-rollout') {
             const versionKey = formData.get('versionKey') as string;
-            const percentage = parseInt(formData.get('percentage') as string);
+            const percentageStr = formData.get('percentage') as string;
+            const targetingMode = formData.get('targetingMode') as string | undefined;
+            const segmentIdsStr = formData.get('segmentIds') as string | undefined;
 
-            if (!versionKey || isNaN(percentage)) {
-                return json({ error: 'Invalid parameters' }, { status: 400 });
+            if (!versionKey) {
+                return json({ error: 'Version key is required' }, { status: 400 });
             }
 
-            await setVersionRollout(versionKey, percentage);
+            const percentage = percentageStr ? parseInt(percentageStr) : undefined;
+            const segmentIds = segmentIdsStr ? JSON.parse(segmentIdsStr) : undefined;
+
+            await setVersionRollout(versionKey, percentage, targetingMode, segmentIds);
 
             const versions = await getAllVersions();
             return json({ success: true, versions });

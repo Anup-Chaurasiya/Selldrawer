@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.11
- * Built: 2026-01-30T15:02:43.140Z
+ * Built: 2026-02-02T14:08:19.239Z
  */
 "use strict";
 (() => {
@@ -13939,7 +13939,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://effects-delivering-henry-litigation.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://still-lightweight-searched-assurance.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.11" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

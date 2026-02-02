@@ -1,21 +1,23 @@
 import { createHash } from 'crypto';
 import prisma from '../db.server';
+import { checkCustomerSegmentMembership, checkCustomerSegmentMembershipByShop } from './shopifySegments.server';
 
 /**
  * Get the cart drawer version for a customer
  * Uses deterministic rollout based on percentage or customer segment
  * @param customerId - Shopify customer ID (required) - e.g., "gid://shopify/Customer/123456"
- * @param customerSegments - Array of segment IDs the customer belongs to (optional)
+ * @param shop - Shop domain for segment checking in public API
+ * @param request - Optional request object for fetching customer segments from Shopify
  * @returns Version key for this customer
  */
 export async function getCartDrawerVersionForCustomer(
     customerId: string,
-    customerSegments?: string[]
+    shop?: string,
+    request?: Request
 ): Promise<string> {
     console.log('[A/B Test] =====================================');
     console.log('[A/B Test] Starting version selection');
     console.log('[A/B Test] Customer ID:', customerId);
-    console.log('[A/B Test] Customer segments:', customerSegments || 'none provided');
 
     // Get all active versions ordered by priority (highest first)
     const activeVersions = await prisma.cartDrawerVersion.findMany({
@@ -37,6 +39,39 @@ export async function getCartDrawerVersionForCustomer(
         console.log('[A/B Test] ✓ Default version at 100% rollout, returning:', defaultVersion.key);
         console.log('[A/B Test] =====================================');
         return defaultVersion.key;
+    }
+
+    // Collect all unique segment IDs from segment-targeted versions
+    const allSegmentIds = new Set<string>();
+    activeVersions.forEach(v => {
+        if (v.targetingMode === 'segment' && v.segmentIds.length > 0) {
+            v.segmentIds.forEach((segmentId: string) => allSegmentIds.add(segmentId));
+        }
+    });
+
+    // Fetch customer segment memberships if needed
+    let customerSegments: string[] = [];
+    if (allSegmentIds.size > 0 && customerId.startsWith('gid://shopify/Customer/')) {
+        try {
+            console.log('[A/B Test] Checking customer membership for', allSegmentIds.size, 'segments...');
+
+            if (shop && !request) {
+                // Use shop-based method for public API (unauthenticated)
+                console.log('[A/B Test] Using shop-based segment checking');
+                customerSegments = await checkCustomerSegmentMembershipByShop(shop, customerId, Array.from(allSegmentIds));
+            } else if (request) {
+                // Use authenticated request for admin pages
+                console.log('[A/B Test] Using authenticated segment checking');
+                customerSegments = await checkCustomerSegmentMembership(request, customerId, Array.from(allSegmentIds));
+            }
+
+            console.log('[A/B Test] Customer belongs to segments:', customerSegments);
+        } catch (error) {
+            console.error('[A/B Test] Error checking customer segments:', error);
+            console.log('[A/B Test] Continuing without segments');
+        }
+    } else if (allSegmentIds.size > 0 && !customerId.startsWith('gid://shopify/Customer/')) {
+        console.log('[A/B Test] Session-based ID detected, skipping segment check');
     }
 
     // Check non-default versions for targeting

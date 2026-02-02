@@ -55,7 +55,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       // Customer-based A/B testing (preferred for logged-in users)
       userIdentifier = customerId;
       console.log(`[Cart Drawer API] Customer-based version selection for ${customerId}`);
-      assignedVersion = await getCartDrawerVersionForCustomer(customerId);
+      assignedVersion = await getCartDrawerVersionForCustomer(customerId, shop);
     } else {
       // Generate session ID from request for guest users
       const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
@@ -64,7 +64,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
       userIdentifier = `session:${sessionId}`;
       console.log(`[Cart Drawer API] Session-based version selection for session ${sessionId.substring(0, 8)}...`);
-      assignedVersion = await getCartDrawerVersionForCustomer(userIdentifier);
+      assignedVersion = await getCartDrawerVersionForCustomer(userIdentifier, shop);
     }
 
 

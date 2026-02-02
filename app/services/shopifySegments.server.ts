@@ -1,4 +1,5 @@
 import { authenticate } from '../shopify.server';
+import { sessionStorage } from '../shopify.server';
 
 export interface ShopifyCustomerSegment {
   id: string;
@@ -45,48 +46,124 @@ export async function getCustomerSegments(request: Request): Promise<ShopifyCust
 }
 
 /**
- * Check if a customer belongs to specific segments
+ * Check which segments a customer belongs to from a list of segment IDs
+ * Uses the optimized customerSegmentMembership query
  */
-export async function getCustomerSegmentIds(
+export async function checkCustomerSegmentMembership(
   request: Request,
-  customerId: string
+  customerId: string,
+  segmentIds: string[]
 ): Promise<string[]> {
   try {
+    if (!segmentIds || segmentIds.length === 0) {
+      return [];
+    }
+
     const { admin } = await authenticate.admin(request);
 
-    // Query to get the segments a customer belongs to
     const response = await admin.graphql(`
-            query getCustomerSegments($customerId: ID!) {
-                customer(id: $customerId) {
-                    id
-                    segmentMemberships(first: 50) {
-                        edges {
-                            node {
-                                segment {
-                                    id
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        `, {
+      query CheckCustomerSegments($customerId: ID!, $segmentIds: [ID!]!) {
+        customerSegmentMembership(customerId: $customerId, segmentIds: $segmentIds) {
+          memberships {
+            isMember
+          }
+        }
+      }
+    `, {
       variables: {
         customerId: customerId,
+        segmentIds: segmentIds,
       },
     });
 
     const data = await response.json();
 
-    if (!data?.data?.customer?.segmentMemberships?.edges) {
+    if (!data?.data?.customerSegmentMembership?.memberships) {
       return [];
     }
 
-    return data.data.customer.segmentMemberships.edges.map(
-      (edge: any) => edge.node.segment.id
-    );
+    // Filter to get only the segment IDs where isMember is true
+    const memberSegments: string[] = [];
+    data.data.customerSegmentMembership.memberships.forEach((membership: any, index: number) => {
+      if (membership.isMember) {
+        memberSegments.push(segmentIds[index]);
+      }
+    });
+
+    return memberSegments;
   } catch (error) {
-    console.error('Error fetching customer segment memberships:', error);
+    console.error('[Segments] Error checking customer segment membership:', error);
+    return [];
+  }
+}
+
+/**
+ * Check which segments a customer belongs to using shop's offline session
+ * This is used for public API endpoints that don't have authenticated requests
+ */
+export async function checkCustomerSegmentMembershipByShop(
+  shop: string,
+  customerId: string,
+  segmentIds: string[]
+): Promise<string[]> {
+  try {
+    if (!segmentIds || segmentIds.length === 0) {
+      return [];
+    }
+
+    // Get offline session for shop
+    const sessions = await sessionStorage.findSessionsByShop(shop);
+    const offlineSession = sessions.find(s => !s.isOnline);
+
+    if (!offlineSession || !offlineSession.accessToken) {
+      console.error('[Segments] No offline session with access token found for shop:', shop);
+      return [];
+    }
+
+    // Make direct fetch request to Shopify GraphQL API
+    const graphqlUrl = `https://${shop}/admin/api/2025-01/graphql.json`;
+
+    const response = await fetch(graphqlUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': offlineSession.accessToken,
+      },
+      body: JSON.stringify({
+        query: `
+          query CheckCustomerSegments($customerId: ID!, $segmentIds: [ID!]!) {
+            customerSegmentMembership(customerId: $customerId, segmentIds: $segmentIds) {
+              memberships {
+                isMember
+              }
+            }
+          }
+        `,
+        variables: {
+          customerId: customerId,
+          segmentIds: segmentIds,
+        },
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!result?.data?.customerSegmentMembership?.memberships) {
+      console.error('[Segments] Invalid response:', result);
+      return [];
+    }
+
+    // Filter to get only the segment IDs where isMember is true
+    const memberSegments: string[] = [];
+    result.data.customerSegmentMembership.memberships.forEach((membership: any, index: number) => {
+      if (membership.isMember) {
+        memberSegments.push(segmentIds[index]);
+      }
+    });
+
+    return memberSegments;
+  } catch (error) {
+    console.error('[Segments] Error checking customer segment membership by shop:', error);
     return [];
   }
 }
