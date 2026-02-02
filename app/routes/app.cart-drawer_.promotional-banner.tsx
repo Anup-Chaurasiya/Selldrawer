@@ -683,10 +683,6 @@ export default function PromotionalBanner() {
       }, 2000);
       return () => clearTimeout(timer);
     }
-
-    // Update refs for next render
-    prevIsSubmitting.current = isLoading;
-    prevSubmittingIntent.current = submittingIntent;
   }, [submittingIntent, isLoading]);
 
   const [editingSlide, setEditingSlide] = useState<any>(null);
@@ -722,11 +718,13 @@ export default function PromotionalBanner() {
       setIsAddingSlide(false);
       setEditingSlide(null);
     }
+  }, [submittingIntent, isLoading, actionData]);
 
-    // Update refs for next render
+  // Update refs for next render - MUST be the last effect to ensure other effects see the previous state
+  useEffect(() => {
     prevIsSubmitting.current = isLoading;
     prevSubmittingIntent.current = submittingIntent;
-  }, [submittingIntent, isLoading, actionData]);
+  }, [isLoading, submittingIntent]);
 
   const handleToggle = useCallback(() => {
     const formData = new FormData();

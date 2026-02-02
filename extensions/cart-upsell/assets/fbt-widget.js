@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.11
- * Built: 2026-01-30T15:28:29.872Z
+ * Built: 2026-02-02T15:25:09.401Z
  */
 "use strict";
 (() => {
@@ -8095,7 +8095,6 @@
     config,
     handleToggle,
     isPreview,
-    isAtLimit,
     total,
     originalTotal = 0,
     bundleTotal,
@@ -8298,7 +8297,7 @@
                 recommendations.map((product, index) => {
                   const variantId = product.variantId || product.id;
                   const isSelected = selectedProducts.has(variantId);
-                  const isDisabled = isAtLimit && !isSelected;
+                  const isDisabled = false;
                   const discountPercent = product.compareAtPrice && product.price < product.compareAtPrice ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
                   return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_react.default.Fragment, { children: [
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
@@ -8581,8 +8580,7 @@
     selectedProducts,
     config,
     handleToggle,
-    isPreview,
-    isAtLimit
+    isPreview
   }) => {
     return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
       "div",
@@ -8602,71 +8600,52 @@
             var _a2, _b, _c;
             const variantId = parentProduct.variantId || parentProduct.id;
             const isSelected = selectedProducts.has(variantId);
-            return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_react2.default.Fragment, { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { position: "relative", flex: "0 0 140px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                  FBTProductCard,
-                  {
-                    product: parentProduct,
-                    isSelected,
-                    isDisabled: false,
-                    showCheckbox: false,
-                    showDiscount: (_a2 = config.showDiscount) != null ? _a2 : true,
-                    showIndividualPrices: (_b = config.showIndividualPrices) != null ? _b : true,
-                    showReviews: (_c = config.showProductReviews) != null ? _c : false,
-                    onToggle: handleToggle,
-                    isPreview
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                  "div",
-                  {
-                    style: {
-                      position: "absolute",
-                      top: "-6px",
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      background: "#3b82f6",
-                      color: "white",
-                      padding: "2px 6px",
-                      borderRadius: "3px",
-                      fontSize: "0.5625rem",
-                      fontWeight: "600",
-                      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-                      whiteSpace: "nowrap",
-                      zIndex: 20,
-                      letterSpacing: "0.3px"
-                    },
-                    children: "THIS ITEM"
-                  }
-                )
-              ] }),
+            return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(import_react2.default.Fragment, { children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { position: "relative", flex: "1 1 140px", maxWidth: "200px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                FBTProductCard,
+                {
+                  product: parentProduct,
+                  isSelected,
+                  isDisabled: false,
+                  showCheckbox: false,
+                  showDiscount: (_a2 = config.showDiscount) != null ? _a2 : true,
+                  showIndividualPrices: (_b = config.showIndividualPrices) != null ? _b : true,
+                  showReviews: (_c = config.showProductReviews) != null ? _c : false,
+                  onToggle: handleToggle,
+                  isPreview
+                }
+              ),
               /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                 "div",
                 {
-                  className: "upsellity-fbt-plus",
                   style: {
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "1rem",
-                    color: "#6b7280",
+                    position: "absolute",
+                    top: "-6px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    background: "#3b82f6",
+                    color: "white",
+                    padding: "2px 6px",
+                    borderRadius: "3px",
+                    fontSize: "0.5625rem",
                     fontWeight: "600",
-                    minWidth: "20px",
-                    flexShrink: 0
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                    whiteSpace: "nowrap",
+                    zIndex: 20,
+                    letterSpacing: "0.3px"
                   },
-                  children: "+"
+                  children: "THIS ITEM"
                 }
               )
-            ] }, `parent-${variantId}`);
+            ] }) }, `parent-${variantId}`);
           })(),
           recommendations.map((product, index) => {
             var _a2, _b, _c, _d;
             const variantId = product.variantId || product.id;
             const isSelected = selectedProducts.has(variantId);
-            const isDisabled = isAtLimit && !isSelected;
+            const isDisabled = false;
             return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_react2.default.Fragment, { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: { position: "relative", flex: "0 0 140px" }, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: { position: "relative", flex: "1 1 140px", maxWidth: "200px" }, children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                 FBTProductCard,
                 {
                   product,
@@ -8680,23 +8659,7 @@
                   isPreview
                 }
               ) }),
-              index < recommendations.length - 1 && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                "div",
-                {
-                  className: "upsellity-fbt-plus",
-                  style: {
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "1rem",
-                    color: "#6b7280",
-                    fontWeight: "600",
-                    minWidth: "20px",
-                    flexShrink: 0
-                  },
-                  children: "+"
-                }
-              )
+              index < recommendations.length - 1 && null
             ] }, variantId);
           })
         ]
@@ -8725,7 +8688,7 @@
       if (initialSelectedIds) {
         initialSelectedIds.forEach((id) => initial.add(id));
       } else {
-        recommendations.slice(0, config.maxUpsellsInCart || recommendations.length).forEach((r) => initial.add(r.variantId || r.id));
+        recommendations.forEach((r) => initial.add(r.variantId || r.id));
       }
       return initial;
     });
@@ -8744,7 +8707,7 @@
         impressionTracked.current = true;
       }
     }, [onImpression, isPreview, recommendations.length]);
-    const maxUpsells = config.limitUpsellsInCart && config.maxUpsellsInCart ? config.maxUpsellsInCart : null;
+    const maxUpsells = null;
     (0, import_react3.useEffect)(() => {
       const checkMobile = () => {
         if (typeof window !== "undefined") {
@@ -8812,11 +8775,6 @@
       }
       const newSelected = new Set(selectedProducts);
       if (checked) {
-        const nonParentCount = Array.from(newSelected).filter((id) => id !== parentVariantId).length;
-        if (maxUpsells !== null && nonParentCount >= maxUpsells) {
-          showLimitMessage(maxUpsells);
-          return;
-        }
         newSelected.add(variantId);
       } else {
         newSelected.delete(variantId);
@@ -8825,30 +8783,6 @@
       if (onSelectionChange) {
         onSelectionChange(newSelected);
       }
-    };
-    const showLimitMessage = (max) => {
-      if (typeof window === "undefined" || typeof document === "undefined")
-        return;
-      const messageDiv = document.createElement("div");
-      messageDiv.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #fef3c7;
-      border: 1px solid #f59e0b;
-      color: #92400e;
-      padding: 12px 16px;
-      border-radius: 6px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      z-index: 10000;
-      font-size: 14px;
-      font-weight: 500;
-    `;
-      messageDiv.textContent = `Maximum ${max} upsell product${max > 1 ? "s" : ""} can be selected.`;
-      document.body.appendChild(messageDiv);
-      setTimeout(() => {
-        messageDiv.remove();
-      }, 3e3);
     };
     const parsePrice = (price) => {
       if (price == null || price === void 0)
@@ -9068,7 +9002,6 @@
             config,
             handleToggle,
             isPreview,
-            isAtLimit,
             total,
             originalTotal: displayOriginalPrice,
             bundleTotal,
@@ -9200,9 +9133,7 @@
             parentProduct,
             selectedProducts,
             config,
-            handleToggle,
-            isPreview,
-            isAtLimit
+            handleToggle
           }
         );
       }
@@ -9414,7 +9345,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://twist-attachments-heading-pediatric.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://finals-colleges-tumor-creating.trycloudflare.com" : "https://app.upsellity.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;
@@ -9504,7 +9435,7 @@
       }
     }
     async loadRecommendations() {
-      var _a2;
+      var _a2, _b, _c;
       const recommendationType = this.config.recommendationType || "manual";
       const manualRecommendations = [...this.recommendations];
       let aiRecommendations = [];
@@ -9525,12 +9456,12 @@
               const data = await response.json();
               const rawProducts = data.products || [];
               return rawProducts.map((product) => {
-                var _a3, _b;
+                var _a3, _b2;
                 const variant = (_a3 = product.variants) == null ? void 0 : _a3[0];
                 const isAvailable = variant ? variant.available !== false && (variant.inventory_management === null || variant.inventory_quantity === null || variant.inventory_quantity === void 0 || variant.inventory_quantity > 0) : false;
                 return {
                   id: product.id.toString(),
-                  variantId: (_b = variant == null ? void 0 : variant.id) == null ? void 0 : _b.toString(),
+                  variantId: (_b2 = variant == null ? void 0 : variant.id) == null ? void 0 : _b2.toString(),
                   title: product.title,
                   handle: product.handle,
                   price: (variant == null ? void 0 : variant.price) ? parseFloat(variant.price) / 100 : 0,
@@ -9547,7 +9478,7 @@
               aiRecommendations = await fetchRecommendationsByIntent("related");
             }
             if (aiRecommendations && aiRecommendations.length > 0) {
-              const maxRecommendations2 = 4;
+              const maxRecommendations2 = ((_b = this.config) == null ? void 0 : _b.maxUpsellsShown) || 4;
               if (aiRecommendations.length > maxRecommendations2) {
                 aiRecommendations = aiRecommendations.slice(0, maxRecommendations2);
               }
@@ -9571,7 +9502,7 @@
       }
       const currentProductHandle = this.productHandle;
       this.recommendations = allRecommendations.filter((rec) => rec.handle !== currentProductHandle);
-      const maxRecommendations = 4;
+      const maxRecommendations = ((_c = this.config) == null ? void 0 : _c.maxUpsellsShown) || 4;
       if (this.recommendations.length > maxRecommendations) {
         this.recommendations = this.recommendations.slice(0, maxRecommendations);
       }

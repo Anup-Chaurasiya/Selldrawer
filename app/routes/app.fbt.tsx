@@ -226,8 +226,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       useAI: formData.get("useAI") === "true",
       useSmartVariantMatching: formData.get("useSmartVariantMatching") === "true",
       showOfferIfInCart: formData.get("showOfferIfInCart") === "true",
-      limitUpsellsInCart: formData.get("limitUpsellsInCart") === "true",
-      maxUpsellsInCart: parseInt(formData.get("maxUpsellsInCart") as string || "3"),
+      maxUpsellsShown: parseInt(formData.get("maxUpsellsShown") as string || "4"),
       showProductReviews: formData.get("showProductReviews") === "true",
       templateType: formData.get("templateType") as string,
       buttonText: formData.get("buttonText") as string,
@@ -628,8 +627,7 @@ export default function FrequentlyBoughtTogether() {
       useAI: fbtConfig?.useAI ?? useAI,
       useSmartVariantMatching: fbtConfig?.useSmartVariantMatching ?? false,
       showOfferIfInCart: fbtConfig?.showOfferIfInCart ?? false,
-      limitUpsellsInCart: fbtConfig?.limitUpsellsInCart ?? false,
-      maxUpsellsInCart: fbtConfig?.maxUpsellsInCart?.toString() || "3",
+      maxUpsellsShown: (fbtConfig as any)?.maxUpsellsShown?.toString() || "4",
       showProductReviews: fbtConfig?.showProductReviews ?? false,
       templateType: (fbtConfig as any)?.templateType || "classic",
       buttonText: fbtConfig?.buttonText || "Add selected items",
@@ -1258,21 +1256,22 @@ export default function FrequentlyBoughtTogether() {
                     onChange={(value) => setFormState({ ...formState, showOfferIfInCart: value })}
                   />
 
-                  <Checkbox
-                    label="Limit the number of upsells in the cart"
-                    checked={formState.limitUpsellsInCart}
-                    onChange={(value) => setFormState({ ...formState, limitUpsellsInCart: value })}
+                  <TextField
+                    label="Maximum products to show"
+                    type="number"
+                    value={formState.maxUpsellsShown}
+                    onChange={(value) => {
+                      const parsed = parseInt(value);
+                      // Strict limit: 1 to 5
+                      if (value === "" || (parsed >= 1 && parsed <= 5)) {
+                        setFormState({ ...formState, maxUpsellsShown: value });
+                      }
+                    }}
+                    autoComplete="off"
+                    min={1}
+                    max={5}
+                    helpText="Maximum number of upsell products to display (1-5)"
                   />
-
-                  {formState.limitUpsellsInCart && (
-                    <TextField
-                      label="Maximum upsells in cart"
-                      type="number"
-                      value={formState.maxUpsellsInCart}
-                      onChange={(value) => setFormState({ ...formState, maxUpsellsInCart: value })}
-                      autoComplete="off"
-                    />
-                  )}
 
                   <Checkbox
                     label="Show product reviews on upsells"
@@ -1626,8 +1625,7 @@ export default function FrequentlyBoughtTogether() {
                       showProductReviews: formState.showProductReviews,
                       discountType: (upsellRows[0]?.discountType || 'percentage') as 'percentage' | 'fixed',
                       discountValue: upsellRows[0]?.discountValue ? parseFloat(upsellRows[0].discountValue) : undefined,
-                      limitUpsellsInCart: formState.limitUpsellsInCart,
-                      maxUpsellsInCart: parseInt(formState.maxUpsellsInCart)
+                      maxUpsellsShown: (formState as any).maxUpsellsShown ? parseInt((formState as any).maxUpsellsShown) : 4
                     }}
                     parentProduct={sampleParentProduct as FBTProduct}
                     recommendations={previewProducts.map((product: any) => {

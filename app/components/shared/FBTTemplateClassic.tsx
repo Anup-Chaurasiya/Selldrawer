@@ -13,7 +13,6 @@ interface FBTTemplateClassicProps {
   config: any;
   handleToggle: (variantId: string, checked: boolean) => void;
   isPreview?: boolean;
-  isAtLimit: boolean;
 }
 
 export const FBTTemplateClassic: React.FC<FBTTemplateClassicProps> = ({
@@ -22,8 +21,7 @@ export const FBTTemplateClassic: React.FC<FBTTemplateClassicProps> = ({
   selectedProducts,
   config,
   handleToggle,
-  isPreview,
-  isAtLimit
+  isPreview
 }) => {
   return (
     <div
@@ -45,7 +43,7 @@ export const FBTTemplateClassic: React.FC<FBTTemplateClassicProps> = ({
 
         return (
           <React.Fragment key={`parent-${variantId}`}>
-            <div style={{ position: 'relative', flex: '0 0 140px' }}>
+            <div style={{ position: 'relative', flex: '1 1 140px', maxWidth: '200px' }}>
               <FBTProductCard
                 product={parentProduct}
                 isSelected={isSelected}
@@ -79,21 +77,6 @@ export const FBTTemplateClassic: React.FC<FBTTemplateClassicProps> = ({
                 THIS ITEM
               </div>
             </div>
-            <div
-              className="upsellity-fbt-plus"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1rem',
-                color: '#6b7280',
-                fontWeight: '600',
-                minWidth: '20px',
-                flexShrink: 0
-              }}
-            >
-              +
-            </div>
           </React.Fragment>
         );
       })()}
@@ -102,11 +85,11 @@ export const FBTTemplateClassic: React.FC<FBTTemplateClassicProps> = ({
       {recommendations.map((product, index) => {
         const variantId = product.variantId || product.id;
         const isSelected = selectedProducts.has(variantId);
-        const isDisabled = isAtLimit && !isSelected;
+        const isDisabled = false;
 
         return (
           <React.Fragment key={variantId}>
-            <div style={{ position: 'relative', flex: '0 0 140px' }}>
+            <div style={{ position: 'relative', flex: '1 1 140px', maxWidth: '200px' }}>
               <FBTProductCard
                 product={product}
                 isSelected={isSelected}
@@ -119,23 +102,7 @@ export const FBTTemplateClassic: React.FC<FBTTemplateClassicProps> = ({
                 isPreview={isPreview}
               />
             </div>
-            {index < recommendations.length - 1 && (
-              <div
-                className="upsellity-fbt-plus"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1rem',
-                  color: '#6b7280',
-                  fontWeight: '600',
-                  minWidth: '20px',
-                  flexShrink: 0
-                }}
-              >
-                +
-              </div>
-            )}
+            {index < recommendations.length - 1 && null}
           </React.Fragment>
         );
       })}

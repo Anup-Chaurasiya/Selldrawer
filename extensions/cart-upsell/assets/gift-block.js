@@ -1,6 +1,6 @@
 /**
  * Upsellity Gifting Block v1.0.11
- * Built: 2026-01-30T15:28:30.057Z
+ * Built: 2026-02-02T15:25:09.579Z
  */
 "use strict";
 (() => {
@@ -8546,7 +8546,7 @@
 
   // extensions/cart-upsell/assets/modules/gift-block-entry.js
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://twist-attachments-heading-pediatric.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://finals-colleges-tumor-creating.trycloudflare.com" : "https://app.upsellity.com";
   function initGiftingBlocks() {
     const containers = document.querySelectorAll(".upsellity-gifting-container");
     if (containers.length === 0) {

@@ -13,7 +13,6 @@ interface FBTTemplateMinimalProps {
   config: any;
   handleToggle: (variantId: string, checked: boolean) => void;
   isPreview?: boolean;
-  isAtLimit: boolean;
   total: number;
   originalTotal?: number;
   bundleTotal?: number;
@@ -31,7 +30,6 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
   config,
   handleToggle,
   isPreview,
-  isAtLimit,
   total,
   originalTotal = 0,
   bundleTotal,
@@ -241,7 +239,7 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
         {recommendations.map((product, index) => {
           const variantId = product.variantId || product.id;
           const isSelected = selectedProducts.has(variantId);
-          const isDisabled = isAtLimit && !isSelected;
+          const isDisabled = false;
           const discountPercent = product.compareAtPrice && product.price < product.compareAtPrice
             ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
             : 0;
