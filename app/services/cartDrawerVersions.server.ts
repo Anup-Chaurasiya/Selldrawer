@@ -55,14 +55,10 @@ export async function getCartDrawerVersionForCustomer(
         try {
             console.log('[A/B Test] Checking customer membership for', allSegmentIds.size, 'segments...');
 
-            if (shop && !request) {
+            if (shop) {
                 // Use shop-based method for public API (unauthenticated)
                 console.log('[A/B Test] Using shop-based segment checking');
                 customerSegments = await checkCustomerSegmentMembershipByShop(shop, customerId, Array.from(allSegmentIds));
-            } else if (request) {
-                // Use authenticated request for admin pages
-                console.log('[A/B Test] Using authenticated segment checking');
-                customerSegments = await checkCustomerSegmentMembership(request, customerId, Array.from(allSegmentIds));
             }
 
             console.log('[A/B Test] Customer belongs to segments:', customerSegments);
@@ -73,6 +69,17 @@ export async function getCartDrawerVersionForCustomer(
     } else if (allSegmentIds.size > 0 && !customerId.startsWith('gid://shopify/Customer/')) {
         console.log('[A/B Test] Session-based ID detected, skipping segment check');
     }
+
+    // Calculate hash once for this customer (consistent across all percentage checks)
+    const hash = createHash('md5').update(customerId).digest('hex');
+    const hashValue = parseInt(hash.substring(0, 8), 16);
+    const position = hashValue % 100;
+
+    console.log('[A/B Test] Customer hash position:', position, '(0-99)');
+    console.log('[A/B Test] Hash:', hash.substring(0, 16) + '...');
+
+    // Track cumulative percentage for non-overlapping ranges
+    let cumulativePercentage = 0;
 
     // Check non-default versions for targeting
     for (const version of activeVersions) {
@@ -118,7 +125,7 @@ export async function getCartDrawerVersionForCustomer(
             }
         }
 
-        // Check percentage-based targeting
+        // Check percentage-based targeting with non-overlapping ranges
         if (version.targetingMode === 'percentage') {
             console.log('[A/B Test]   → Percentage mode');
             console.log('[A/B Test]      Rollout percentage:', version.rolloutPercentage + '%');
@@ -133,26 +140,29 @@ export async function getCartDrawerVersionForCustomer(
                 continue;
             }
 
-            // Calculate hash position
-            const hash = createHash('md5').update(customerId + version.key).digest('hex');
-            const hashValue = parseInt(hash.substring(0, 8), 16);
-            const position = hashValue % 100;
-            const isInRolloutResult = position < version.rolloutPercentage;
+            // Calculate range for this version
+            const rangeStart = cumulativePercentage;
+            const rangeEnd = cumulativePercentage + version.rolloutPercentage;
 
-            console.log('[A/B Test]      Hash:', hash.substring(0, 16) + '...');
-            console.log('[A/B Test]      Hash value:', hashValue);
-            console.log('[A/B Test]      Position (0-99):', position);
-            console.log('[A/B Test]      Threshold:', version.rolloutPercentage);
+            console.log('[A/B Test]      Range: [' + rangeStart + ', ' + rangeEnd + ')');
+            console.log('[A/B Test]      Position:', position);
+
+            // Check if position falls within this version's range
+            const isInRolloutResult = position >= rangeStart && position < rangeEnd;
+
             console.log('[A/B Test]      In rollout?:', isInRolloutResult);
 
             if (isInRolloutResult) {
-                console.log('[A/B Test]   ✓ MATCH! Customer in rollout percentage');
+                console.log('[A/B Test]   ✓ MATCH! Customer in rollout range');
                 console.log('[A/B Test] Selected version:', version.key);
                 console.log('[A/B Test] =====================================');
                 return version.key;
             } else {
-                console.log('[A/B Test]   ✗ Customer not in rollout percentage');
+                console.log('[A/B Test]   ✗ Customer not in rollout range');
             }
+
+            // Add this version's percentage to cumulative total
+            cumulativePercentage += version.rolloutPercentage;
         }
     }
 

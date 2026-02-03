@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
-import { useLoaderData, useActionData, useSubmit, useNavigate, useFetcher } from "@remix-run/react";
+import { useLoaderData, useActionData, useSubmit, useNavigate, useFetcher, useNavigation } from "@remix-run/react";
 import { useState } from "react";
 import React from "react";
 import {
@@ -20,6 +20,7 @@ import {
   ActionList,
   Modal,
   TextField,
+  Spinner,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import {
@@ -908,6 +909,10 @@ export default function CartDrawerIndex() {
   const submit = useSubmit();
   const fetcher = useFetcher();
   const navigate = useNavigate();
+  const navigation = useNavigation();
+
+  // Check if we're loading a different version
+  const isLoadingVersion = navigation.state === 'loading' && navigation.location?.search.includes('version=');
 
   // Check if we need to redirect for billing
   if ('billingRedirectUrl' in loaderData) {
@@ -1167,11 +1172,35 @@ export default function CartDrawerIndex() {
     <Page>
       <TitleBar title="Cart Drawer Customization" />
 
+      {/* Loading Overlay for Version Switching */}
+      {isLoadingVersion && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          gap: '16px',
+        }}>
+          <Spinner size="large" />
+          <Text as="p" variant="bodyLg">Loading version configuration...</Text>
+        </div>
+      )}
+
       <div style={{
         display: 'flex',
         gap: '24px',
         minHeight: 'calc(100vh - 200px)',
-        padding: '0'
+        padding: '0',
+        opacity: isLoadingVersion ? 0.3 : 1,
+        pointerEvents: isLoadingVersion ? 'none' : 'auto',
+        transition: 'opacity 0.2s ease-in-out',
       }}>
         {/* LEFT SIDE - Configuration Options */}
         <div style={{

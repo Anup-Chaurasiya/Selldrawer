@@ -46,58 +46,6 @@ export async function getCustomerSegments(request: Request): Promise<ShopifyCust
 }
 
 /**
- * Check which segments a customer belongs to from a list of segment IDs
- * Uses the optimized customerSegmentMembership query
- */
-export async function checkCustomerSegmentMembership(
-  request: Request,
-  customerId: string,
-  segmentIds: string[]
-): Promise<string[]> {
-  try {
-    if (!segmentIds || segmentIds.length === 0) {
-      return [];
-    }
-
-    const { admin } = await authenticate.admin(request);
-
-    const response = await admin.graphql(`
-      query CheckCustomerSegments($customerId: ID!, $segmentIds: [ID!]!) {
-        customerSegmentMembership(customerId: $customerId, segmentIds: $segmentIds) {
-          memberships {
-            isMember
-          }
-        }
-      }
-    `, {
-      variables: {
-        customerId: customerId,
-        segmentIds: segmentIds,
-      },
-    });
-
-    const data = await response.json();
-
-    if (!data?.data?.customerSegmentMembership?.memberships) {
-      return [];
-    }
-
-    // Filter to get only the segment IDs where isMember is true
-    const memberSegments: string[] = [];
-    data.data.customerSegmentMembership.memberships.forEach((membership: any, index: number) => {
-      if (membership.isMember) {
-        memberSegments.push(segmentIds[index]);
-      }
-    });
-
-    return memberSegments;
-  } catch (error) {
-    console.error('[Segments] Error checking customer segment membership:', error);
-    return [];
-  }
-}
-
-/**
  * Check which segments a customer belongs to using shop's offline session
  * This is used for public API endpoints that don't have authenticated requests
  */

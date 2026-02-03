@@ -113,6 +113,12 @@ export function VersionManagementModal({
     };
 
     const handleSaveChanges = () => {
+        // Prevent saving if total exceeds 100%
+        if (totalPercentage > 100) {
+            console.error('Cannot save: total percentage exceeds 100%');
+            return;
+        }
+
         // Batch all changes into a single request
         const updates = versions.map((version) => ({
             versionKey: version.key,
@@ -156,6 +162,24 @@ export function VersionManagementModal({
         return versionSegments[versionKey] || [];
     };
 
+    // Calculate total percentage across all percentage-based versions (INCLUDING default)
+    const calculateTotalPercentage = () => {
+        return versions
+            .filter(v => getTargetingModeForVersion(v.key) === 'percentage')
+            .reduce((total, v) => {
+                const percentage = versionPercentages[v.key] ?? v.rolloutPercentage;
+                return total + percentage;
+            }, 0);
+    };
+
+    // Check if any versions use segment targeting
+    const hasSegmentTargeting = () => {
+        return versions.some(v => getTargetingModeForVersion(v.key) === 'segment');
+    };
+
+    const totalPercentage = calculateTotalPercentage();
+    const segmentTargeting = hasSegmentTargeting();
+
     return (
         <>
             <Modal
@@ -165,7 +189,7 @@ export function VersionManagementModal({
                 primaryAction={{
                     content: 'Save Changes',
                     onAction: handleSaveChanges,
-                    disabled: !hasChanges,
+                    disabled: !hasChanges || totalPercentage > 100,
                     loading: fetcher.state !== 'idle',
                 }}
                 secondaryActions={[
@@ -185,6 +209,22 @@ export function VersionManagementModal({
                             <Text variant="bodySm" tone="subdued" as="span">
                                 Control how customers see each version using percentage-based rollout (by Customer ID) or customer segment targeting.
                             </Text>
+
+                            {/* Total Percentage Banner */}
+                            <Banner
+                                tone={totalPercentage > 100 ? 'critical' : 'info'}
+                            >
+                                <p>
+                                    <strong>
+                                        Total Rollout: {totalPercentage}%
+                                        {segmentTargeting && ' + Segment Targeting'}
+                                    </strong>
+                                    <br />
+                                    {totalPercentage > 100 && '⚠️ Total exceeds 100%! Reduce percentages to save.'}
+                                    {totalPercentage <= 100 && totalPercentage > 0 && !segmentTargeting && `${100 - totalPercentage}% of traffic will not see Upsellity.`}
+                                    {segmentTargeting && 'Some customers will be targeted by segments in addition to percentage rollout.'}
+                                </p>
+                            </Banner>
 
                             {versions.map((version) => (
                                 <Card key={version.key}>
@@ -248,8 +288,8 @@ export function VersionManagementModal({
                                                     }
                                                 />
 
-                                                <Text variant="bodySm" as="span">
-                                                    💡 Same customer always gets the same version (deterministic hash)
+                                                <Text variant="bodySm" as="span" tone="subdued">
+                                                    💡 Same customer always gets same version (deterministic hash)
                                                 </Text>
                                             </BlockStack>
                                         )}
