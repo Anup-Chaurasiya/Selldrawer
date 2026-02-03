@@ -4,12 +4,13 @@ import { cors } from "remix-utils/cors";
 import prisma from "../db.server";
 import { normalizeFeatureOrder } from "../utils/featureOrder";
 import { checkPlanAccess } from "../utils/planAccess.server";
-import { getShopCartDrawerVersion, initializeDefaultVersion } from "../services/cartDrawerVersions.server";
+import { getCartDrawerVersionForCustomer, initializeDefaultVersion } from "../services/cartDrawerVersions.server";
+import { getOrGenerateCustomerId } from "../services/customerIdentifier.server";
 
 /**
  * Public API endpoint for cart drawer data
  * This is called from the theme extension to get configuration
- * URL: /api/cart-drawer?shop=example.myshopify.com
+ * URL: /api/cart-drawer?shop=example.myshopify.com&customerId=gid://shopify/Customer/123
  */
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Handle OPTIONS preflight requests immediately
@@ -27,6 +28,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
+  const customerId = url.searchParams.get("customerId"); // Customer ID for logged-in users
 
   if (!shop) {
     const response = json({ error: "Shop parameter is required" }, { status: 400 });
@@ -45,8 +47,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // CRITICAL: Initialize default version to ensure it exists
     await initializeDefaultVersion();
 
-    // Determine which version this shop should see
-    const assignedVersion = await getShopCartDrawerVersion(shop);
+    // Determine which version this customer/session should see
+    const userIdentifier = getOrGenerateCustomerId(customerId, request, shop);
+    console.log(`[Cart Drawer API] Version selection for identifier: ${userIdentifier}`);
+    const assignedVersion = await getCartDrawerVersionForCustomer(userIdentifier, shop);
+
 
     // Get cart drawer configuration for this version
     let cartDrawer = await prisma.cartDrawer.findUnique({

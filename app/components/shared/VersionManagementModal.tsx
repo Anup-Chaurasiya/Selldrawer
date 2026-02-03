@@ -5,12 +5,12 @@ import {
     InlineStack,
     Text,
     Button,
-    RadioButton,
-    Divider,
-    TextField,
     Banner,
-    ProgressBar,
     Badge,
+    ChoiceList,
+    Card,
+    RangeSlider,
+    Select,
 } from '@shopify/polaris';
 import { useFetcher } from '@remix-run/react';
 
@@ -21,9 +21,17 @@ interface Version {
     description?: string;
     isActive: boolean;
     isDefault: boolean;
+    targetingMode: string;
     rolloutPercentage: number;
+    segmentIds: string[];
     estimatedShops: number;
     manualAssignments: number;
+}
+
+interface CustomerSegment {
+    id: string;
+    name: string;
+    query: string;
 }
 
 interface VersionManagementModalProps {
@@ -36,6 +44,7 @@ interface VersionManagementModalProps {
 interface VersionsResponse {
     versions: Version[];
     stats: any;
+    customerSegments: CustomerSegment[];
 }
 
 export function VersionManagementModal({
@@ -45,12 +54,15 @@ export function VersionManagementModal({
     onVersionSwitch,
 }: VersionManagementModalProps) {
     const fetcher = useFetcher();
-    const [selectedVersion, setSelectedVersion] = useState(currentVersion);
     const [versions, setVersions] = useState<Version[]>([]);
-    const [showCreateForm, setShowCreateForm] = useState(false);
-    const [newVersionKey, setNewVersionKey] = useState('');
-    const [newVersionName, setNewVersionName] = useState('');
-    const [newVersionDescription, setNewVersionDescription] = useState('');
+    const [customerSegments, setCustomerSegments] = useState<CustomerSegment[]>([]);
+    const [versionToDelete, setVersionToDelete] = useState<string | null>(null);
+    const [hasChanges, setHasChanges] = useState(false);
+
+    // Track targeting mode and segment selection per version
+    const [versionTargetingModes, setVersionTargetingModes] = useState<Record<string, string>>({});
+    const [versionSegments, setVersionSegments] = useState<Record<string, string[]>>({});
+    const [versionPercentages, setVersionPercentages] = useState<Record<string, number>>({});
 
     // Load versions when modal opens
     useEffect(() => {
@@ -59,257 +71,295 @@ export function VersionManagementModal({
         }
     }, [open]);
 
-    interface VersionsResponse {
-        versions: Version[];
-        stats: any;
-    }
-
     // Update versions from fetcher data
     useEffect(() => {
         const data = fetcher.data as VersionsResponse | undefined;
         if (data && data.versions) {
             setVersions(data.versions);
+
+            // Initialize targeting modes and segments
+            const modes: Record<string, string> = {};
+            const segments: Record<string, string[]> = {};
+            const percentages: Record<string, number> = {};
+            data.versions.forEach((v) => {
+                modes[v.key] = v.targetingMode || 'percentage';
+                segments[v.key] = v.segmentIds || [];
+                percentages[v.key] = v.rolloutPercentage;
+            });
+            setVersionTargetingModes(modes);
+            setVersionSegments(segments);
+            setVersionPercentages(percentages);
+            setHasChanges(false);
+        }
+        if (data && data.customerSegments) {
+            setCustomerSegments(data.customerSegments);
         }
     }, [fetcher.data]);
 
-    const handleRolloutChange = (versionKey: string, percentage: number) => {
-        const formData = new FormData();
-        formData.append('intent', 'set-rollout');
-        formData.append('versionKey', versionKey);
-        formData.append('percentage', percentage.toString());
-        fetcher.submit(formData, { method: 'post', action: '/api/cart-drawer-versions' });
+    const handleTargetingModeChange = (versionKey: string, mode: string) => {
+        setVersionTargetingModes(prev => ({ ...prev, [versionKey]: mode }));
+        setHasChanges(true);
     };
 
-    const handleCreateVersion = () => {
-        if (!newVersionKey || !newVersionName) {
+    const handleSegmentChange = (versionKey: string, segmentId: string) => {
+        // For dropdown, we only support single selection
+        setVersionSegments(prev => ({ ...prev, [versionKey]: segmentId ? [segmentId] : [] }));
+        setHasChanges(true);
+    };
+
+    const handleRolloutChange = (versionKey: string, percentage: number) => {
+        setVersionPercentages(prev => ({ ...prev, [versionKey]: percentage }));
+        setHasChanges(true);
+    };
+
+    const handleSaveChanges = () => {
+        // Prevent saving if total exceeds 100%
+        if (totalPercentage > 100) {
+            console.error('Cannot save: total percentage exceeds 100%');
             return;
         }
 
+        // Batch all changes into a single request
+        const updates = versions.map((version) => ({
+            versionKey: version.key,
+            targetingMode: versionTargetingModes[version.key],
+            percentage: versionPercentages[version.key],
+            segmentIds: versionSegments[version.key],
+        }));
+
         const formData = new FormData();
-        formData.append('intent', 'create-version');
-        formData.append('key', newVersionKey);
-        formData.append('name', newVersionName);
-        if (newVersionDescription) {
-            formData.append('description', newVersionDescription);
-        }
+        formData.append('intent', 'batch-update-rollout');
+        formData.append('updates', JSON.stringify(updates));
 
         fetcher.submit(formData, { method: 'post', action: '/api/cart-drawer-versions' });
-
-        // Reset form
-        setNewVersionKey('');
-        setNewVersionName('');
-        setNewVersionDescription('');
-        setShowCreateForm(false);
+        setHasChanges(false);
     };
 
-    const handleSaveAndSwitch = () => {
-        if (selectedVersion !== currentVersion && onVersionSwitch) {
-            onVersionSwitch(selectedVersion);
+    // Close modal and show success message when save completes
+    useEffect(() => {
+        if (fetcher.state === 'idle' && fetcher.data && !hasChanges && open) {
+            const data = fetcher.data as any;
+            if (data.success) {
+                onClose();
+                // You can add shopify.toast here if you have access to it
+            }
         }
-        onClose();
+    }, [fetcher.state, fetcher.data, hasChanges, open]);
+
+    const handleDeleteVersion = (versionKey: string) => {
+        const formData = new FormData();
+        formData.append('intent', 'delete-version');
+        formData.append('versionKey', versionKey);
+        fetcher.submit(formData, { method: 'post', action: '/api/cart-drawer-versions' });
+        setVersionToDelete(null);
     };
+
+    const getTargetingModeForVersion = (versionKey: string) => {
+        return versionTargetingModes[versionKey] || 'percentage';
+    };
+
+    const getSegmentsForVersion = (versionKey: string) => {
+        return versionSegments[versionKey] || [];
+    };
+
+    // Calculate total percentage across all percentage-based versions (INCLUDING default)
+    const calculateTotalPercentage = () => {
+        return versions
+            .filter(v => getTargetingModeForVersion(v.key) === 'percentage')
+            .reduce((total, v) => {
+                const percentage = versionPercentages[v.key] ?? v.rolloutPercentage;
+                return total + percentage;
+            }, 0);
+    };
+
+    // Check if any versions use segment targeting
+    const hasSegmentTargeting = () => {
+        return versions.some(v => getTargetingModeForVersion(v.key) === 'segment');
+    };
+
+    const totalPercentage = calculateTotalPercentage();
+    const segmentTargeting = hasSegmentTargeting();
 
     return (
-        <Modal
-            open={open}
-            onClose={onClose}
-            title="Cart Drawer Versions & Rollout"
-            primaryAction={{
-                content: 'Close',
-                onAction: handleSaveAndSwitch,
-            }}
-            secondaryActions={[
-                {
-                    content: 'Cancel',
-                    onAction: onClose,
-                },
-            ]}
-        >
-            <Modal.Section>
-                <BlockStack gap="500">
-                    {/* Version Selection */}
-                    <BlockStack gap="300">
-                        <Text variant="headingMd" as="h3">
-                            Select Version to Edit
-                        </Text>
-
-                        {versions.length > 0 ? (
-                            <BlockStack gap="200">
-                                {versions.map((version) => (
-                                    <div
-                                        key={version.key}
-                                        style={{
-                                            padding: '12px',
-                                            borderRadius: '8px',
-                                            border: selectedVersion === version.key ? '2px solid #4F46E5' : '1px solid #e5e7eb',
-                                            backgroundColor: selectedVersion === version.key ? '#f5f3ff' : '#ffffff',
-                                            cursor: 'pointer',
-                                        }}
-                                        onClick={() => setSelectedVersion(version.key)}
-                                    >
-                                        <InlineStack align="space-between" blockAlign="center">
-                                            <InlineStack gap="300" blockAlign="center">
-                                                <RadioButton
-                                                    label={''}
-                                                    checked={selectedVersion === version.key}
-                                                    id={`version-${version.key}`}
-                                                    name="version"
-                                                    onChange={() => setSelectedVersion(version.key)}
-                                                />
-                                                <BlockStack gap="100">
-                                                    <InlineStack gap="200" blockAlign="center">
-                                                        <Text variant="bodyMd" fontWeight="semibold" as="span">
-                                                            {version.name}
-                                                        </Text>
-                                                        {version.isDefault && <Badge tone="info">Default</Badge>}
-                                                        {version.isActive && <Badge tone="success">Active</Badge>}
-                                                    </InlineStack>
-                                                    {version.description && (
-                                                        <Text variant="bodySm" tone="subdued" as="span">
-                                                            {version.description}
-                                                        </Text>
-                                                    )}
-                                                    <Text variant="bodySm" tone="subdued" as="span">
-                                                        ~{version.estimatedShops} merchants
-                                                        {version.manualAssignments > 0 &&
-                                                            ` (${version.manualAssignments} manual)`}
-                                                    </Text>
-                                                </BlockStack>
-                                            </InlineStack>
-                                        </InlineStack>
-                                    </div>
-                                ))}
-                            </BlockStack>
-                        ) : (
-                            <Text tone="subdued" as="span">Loading versions...</Text>
-                        )}
-
-                        {selectedVersion !== currentVersion && (
-                            <Banner tone="warning">
-                                <p>
-                                    You are about to switch to <strong>{versions.find(v => v.key === selectedVersion)?.name}</strong>.
-                                    This will change which configuration you're editing.
-                                </p>
-                            </Banner>
-                        )}
-                    </BlockStack>
-
-                    <Divider />
-
-                    {/* Rollout Controls */}
-                    <BlockStack gap="400">
-                        <Text variant="headingMd" as="h3">
-                            Rollout Settings
-                        </Text>
-                        <Text variant="bodySm" tone="subdued" as="span">
-                            Control what percentage of merchants see each version. Uses deterministic assignment
-                            (same merchant always gets same version).
-                        </Text>
-
-                        {versions.map((version) => (
-                            <BlockStack gap="200" key={version.key}>
-                                <InlineStack align="space-between" blockAlign="center">
-                                    <Text fontWeight="semibold" as="span">{version.name}</Text>
-                                    <Text variant="bodyMd" tone={version.isActive ? 'success' : 'subdued'} as="span">
-                                        {version.rolloutPercentage}%
-                                    </Text>
-                                </InlineStack>
-
-                                <ProgressBar
-                                    progress={version.rolloutPercentage}
-                                    size="small"
-                                />
-
-                                <InlineStack gap="200">
-                                    <Button
-                                        size="slim"
-                                        onClick={() => handleRolloutChange(version.key, 0)}
-                                        pressed={version.rolloutPercentage === 0}
-                                    >
-                                        0%
-                                    </Button>
-                                    <Button
-                                        size="slim"
-                                        onClick={() => handleRolloutChange(version.key, 25)}
-                                        pressed={version.rolloutPercentage === 25}
-                                    >
-                                        25%
-                                    </Button>
-                                    <Button
-                                        size="slim"
-                                        onClick={() => handleRolloutChange(version.key, 50)}
-                                        pressed={version.rolloutPercentage === 50}
-                                    >
-                                        50%
-                                    </Button>
-                                    <Button
-                                        size="slim"
-                                        variant={version.rolloutPercentage === 100 ? 'primary' : undefined}
-                                        onClick={() => handleRolloutChange(version.key, 100)}
-                                        pressed={version.rolloutPercentage === 100}
-                                    >
-                                        100%
-                                    </Button>
-                                </InlineStack>
-
-                                <Text variant="bodySm" tone="subdued" as="span">
-                                    Estimated merchants: ~{Math.floor((version.rolloutPercentage / 100) * (versions[0]?.estimatedShops || 0))}
-                                </Text>
-                            </BlockStack>
-                        ))}
-                    </BlockStack>
-
-                    <Divider />
-
-                    {/* Create New Version */}
-                    {!showCreateForm ? (
-                        <Button onClick={() => setShowCreateForm(true)} fullWidth>
-                            + Create New Version
-                        </Button>
-                    ) : (
-                        <BlockStack gap="300">
+        <>
+            <Modal
+                open={open}
+                onClose={onClose}
+                title="Configure Rollout"
+                primaryAction={{
+                    content: 'Save Changes',
+                    onAction: handleSaveChanges,
+                    disabled: !hasChanges || totalPercentage > 100,
+                    loading: fetcher.state !== 'idle',
+                }}
+                secondaryActions={[
+                    {
+                        content: 'Cancel',
+                        onAction: onClose,
+                    },
+                ]}
+            >
+                <Modal.Section>
+                    <BlockStack gap="500">
+                        {/* Rollout Controls */}
+                        <BlockStack gap="400">
                             <Text variant="headingMd" as="h3">
-                                Create New Version
+                                Rollout Settings
+                            </Text>
+                            <Text variant="bodySm" tone="subdued" as="span">
+                                Control how customers see each version using percentage-based rollout (by Customer ID) or customer segment targeting.
                             </Text>
 
-                            <TextField
-                                label="Version Key"
-                                value={newVersionKey}
-                                onChange={setNewVersionKey}
-                                placeholder="e.g., v2, v3, experimental"
-                                helpText="Unique identifier for this version (lowercase, no spaces)"
-                                autoComplete="off"
-                            />
+                            {/* Total Percentage Banner */}
+                            <Banner
+                                tone={totalPercentage > 100 ? 'critical' : 'info'}
+                            >
+                                <p>
+                                    <strong>
+                                        Total Rollout: {totalPercentage}%
+                                        {segmentTargeting && ' + Segment Targeting'}
+                                    </strong>
+                                    <br />
+                                    {totalPercentage > 100 && '⚠️ Total exceeds 100%! Reduce percentages to save.'}
+                                    {totalPercentage <= 100 && totalPercentage > 0 && !segmentTargeting && `${100 - totalPercentage}% of traffic will not see Upsellity.`}
+                                    {segmentTargeting && 'Some customers will be targeted by segments in addition to percentage rollout.'}
+                                </p>
+                            </Banner>
 
-                            <TextField
-                                label="Version Name"
-                                value={newVersionName}
-                                onChange={setNewVersionName}
-                                placeholder="e.g., Version 2 - Carousel Milestones"
-                                autoComplete="off"
-                            />
+                            {versions.map((version) => (
+                                <Card key={version.key}>
+                                    <BlockStack gap="300">
+                                        <InlineStack align="space-between" blockAlign="center">
+                                            <InlineStack gap="200" blockAlign="center">
+                                                <Text fontWeight="semibold" as="span">{version.name}</Text>
+                                                <Badge tone={version.isActive ? 'success' : undefined}>
+                                                    {version.isActive ? 'Active' : 'Inactive'}
+                                                </Badge>
+                                            </InlineStack>
+                                            {!version.isDefault && (
+                                                <Button
+                                                    onClick={() => setVersionToDelete(version.key)}
+                                                    tone="critical"
+                                                    size="slim"
+                                                >
+                                                    Delete Version
+                                                </Button>
+                                            )}
+                                        </InlineStack>
 
-                            <TextField
-                                label="Description (optional)"
-                                value={newVersionDescription}
-                                onChange={setNewVersionDescription}
-                                placeholder="What's different in this version?"
-                                multiline={2}
-                                autoComplete="off"
-                            />
+                                        {/* Targeting Mode Selection */}
+                                        <ChoiceList
+                                            title="Targeting Mode"
+                                            choices={[
+                                                {
+                                                    label: 'Percentage-based rollout',
+                                                    value: 'percentage',
+                                                    helpText: 'Deterministic rollout based on customer ID (MD5 hash)',
+                                                },
+                                                {
+                                                    label: 'Customer segment targeting',
+                                                    value: 'segment',
+                                                    helpText: 'Target specific Shopify customer segments',
+                                                },
+                                            ]}
+                                            selected={[getTargetingModeForVersion(version.key)]}
+                                            onChange={(selected) => handleTargetingModeChange(version.key, selected[0])}
+                                        />
 
-                            <InlineStack gap="200">
-                                <Button onClick={handleCreateVersion} variant="primary">
-                                    Create Version
-                                </Button>
-                                <Button onClick={() => setShowCreateForm(false)}>
-                                    Cancel
-                                </Button>
-                            </InlineStack>
+                                        {/* Percentage-based Controls */}
+                                        {getTargetingModeForVersion(version.key) === 'percentage' && (
+                                            <BlockStack gap="200">
+                                                <RangeSlider
+                                                    label="Rollout Percentage"
+                                                    value={versionPercentages[version.key] ?? version.rolloutPercentage}
+                                                    onChange={(value) => {
+                                                        // RangeSlider returns a number when not using dual values
+                                                        const percentageValue = typeof value === 'number' ? value : value[0];
+                                                        handleRolloutChange(version.key, percentageValue);
+                                                    }}
+                                                    output
+                                                    min={0}
+                                                    max={100}
+                                                    step={1}
+                                                    suffix={
+                                                        <Text variant="bodyMd" as="span">
+                                                            {versionPercentages[version.key] ?? version.rolloutPercentage}%
+                                                        </Text>
+                                                    }
+                                                />
+
+                                                <Text variant="bodySm" as="span" tone="subdued">
+                                                    💡 Same customer always gets same version (deterministic hash)
+                                                </Text>
+                                            </BlockStack>
+                                        )}
+
+                                        {/* Segment-based Controls */}
+                                        {getTargetingModeForVersion(version.key) === 'segment' && (
+                                            <BlockStack gap="200">
+                                                {customerSegments.length > 0 ? (
+                                                    <>
+                                                        <Select
+                                                            label="Target Customer Segment"
+                                                            options={[
+                                                                { label: 'Select a segment...', value: '' },
+                                                                ...customerSegments.map(segment => ({
+                                                                    label: segment.name,
+                                                                    value: segment.id,
+                                                                }))
+                                                            ]}
+                                                            value={getSegmentsForVersion(version.key)[0] || ''}
+                                                            onChange={(value) => handleSegmentChange(version.key, value)}
+                                                        />
+                                                        {getSegmentsForVersion(version.key).length > 0 && (
+                                                            <Text variant="bodySm" tone="success" as="span">
+                                                                ✓ Targeting: {customerSegments.find(s => s.id === getSegmentsForVersion(version.key)[0])?.name}
+                                                            </Text>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <Banner tone="warning">
+                                                        <p>No customer segments found in your Shopify store. Create customer segments in Shopify Admin to use segment-based targeting.</p>
+                                                    </Banner>
+                                                )}
+                                            </BlockStack>
+                                        )}
+                                    </BlockStack>
+                                </Card>
+                            ))}
                         </BlockStack>
-                    )}
-                </BlockStack>
-            </Modal.Section>
-        </Modal>
+                    </BlockStack>
+                </Modal.Section>
+            </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <Modal
+                open={versionToDelete !== null}
+                onClose={() => setVersionToDelete(null)}
+                title="Delete Version"
+                primaryAction={{
+                    content: 'Delete',
+                    onAction: () => versionToDelete && handleDeleteVersion(versionToDelete),
+                    destructive: true,
+                }}
+                secondaryActions={[
+                    {
+                        content: 'Cancel',
+                        onAction: () => setVersionToDelete(null),
+                    },
+                ]}
+            >
+                <Modal.Section>
+                    <BlockStack gap="300">
+                        <Text as="p" variant="bodyMd">
+                            Are you sure you want to delete <strong>{versions.find(v => v.key === versionToDelete)?.name}</strong>?
+                        </Text>
+                        <Banner tone="warning">
+                            <p>This action cannot be undone. All configuration for this version will be permanently deleted.</p>
+                        </Banner>
+                    </BlockStack>
+                </Modal.Section>
+            </Modal>
+        </>
     );
 }

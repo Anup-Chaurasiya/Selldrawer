@@ -883,37 +883,26 @@ model FreeGiftTarget {
   @@index([freeGiftId])
 }
 
-// Cart Drawer Version Management for A/B Testing and Rollout
+// Cart Drawer Version Management for Customer-based A/B Testing
 model CartDrawerVersion {
-  id                String                          @id @default(cuid())
-  key               String                          @unique // e.g., "default", "v2", "v3"
-  name              String                          // e.g., "Version 1 - Original", "Version 2 - Carousel"
+  id                String   @id @default(cuid())
+  key               String   @unique // e.g., "default", "v2", "v3"
+  name              String   // e.g., "Version 1 - Original", "Version 2 - Carousel"
   description       String?
-  isActive          Boolean                         @default(false)
-  isDefault         Boolean                         @default(false)
-  rolloutPercentage Int                             @default(0) // 0-100
-  priority          Int                             @default(0) // Higher priority = newer version
-  createdAt         DateTime                        @default(now())
-  updatedAt         DateTime                        @updatedAt
-  assignments       ShopCartDrawerVersionAssignment[]
+  isActive          Boolean  @default(false)
+  isDefault         Boolean  @default(false)
+  targetingMode     String   @default("percentage") // "percentage" or "segment"
+  rolloutPercentage Int      @default(0) // 0-100 (used when targetingMode is "percentage")
+  segmentIds        String[] @default([]) // Shopify customer segment IDs (used when targetingMode is "segment")
+  priority          Int      @default(0) // Higher priority = newer version
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@index([isActive])
   @@index([isDefault])
   @@index([key])
 }
 
-// Shop assignment to cart drawer version
-model ShopCartDrawerVersionAssignment {
-  id         String            @id @default(cuid())
-  shop       String            @unique
-  versionId  String
-  assignedAt DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
-  version    CartDrawerVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
-
-  @@index([shop])
-  @@index([versionId])
-}
 
 // Gifting Block - Standalone free gifts feature for theme extension
 model GiftingBlock {

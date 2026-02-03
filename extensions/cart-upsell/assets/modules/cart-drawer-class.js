@@ -61,7 +61,18 @@ export class UpsellityCartDrawer {
       Analytics.init(this.appUrl);
 
       const timestamp = new Date().getTime();
-      const response = await fetch(`${this.appUrl}/api/cart-drawer?shop=${this.shop}&_t=${timestamp}`, {
+
+      // Build URL with customer ID if available from liquid template
+      let apiUrl = `${this.appUrl}/api/cart-drawer?shop=${this.shop}&_t=${timestamp}`;
+
+      if (window.upsellity_config?.customerId) {
+        apiUrl += `&customerId=gid://shopify/Customer/${window.upsellity_config.customerId}`;
+        console.log('[Cart Drawer] Using customer ID from config:', window.upsellity_config.customerId);
+      } else {
+        console.log('[Cart Drawer] No customer ID available, using session-based A/B testing');
+      }
+
+      const response = await fetch(apiUrl, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache',
