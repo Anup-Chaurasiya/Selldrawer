@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 import prisma from '../db.server';
-import { checkCustomerSegmentMembership, checkCustomerSegmentMembershipByShop } from './shopifySegments.server';
+import { checkCustomerSegmentMembershipByShop } from './shopifySegments.server';
 
 /**
  * Get the cart drawer version for a customer

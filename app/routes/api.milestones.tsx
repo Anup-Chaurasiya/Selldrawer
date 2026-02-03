@@ -2,11 +2,13 @@ import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { cors } from "remix-utils/cors";
 import prisma from "../db.server";
-import { getShopCartDrawerVersion } from "../services/cartDrawerVersions.server";
+import { getCartDrawerVersionForCustomer } from "../services/cartDrawerVersions.server";
+import { getOrGenerateCustomerId } from "../services/customerIdentifier.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
+  const customerId = url.searchParams.get("customerId"); // Customer ID for logged-in users
   const cartTotal = parseFloat(url.searchParams.get("cartTotal") || "0");
   const cartItemsJson = url.searchParams.get("cartItems");
 
@@ -26,8 +28,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
       }
     }
 
-    // Determine which version this shop should see
-    const assignedVersion = await getShopCartDrawerVersion(shop);
+    // Determine which version this customer should see
+    const userIdentifier = getOrGenerateCustomerId(customerId, request, shop);
+    const assignedVersion = await getCartDrawerVersionForCustomer(userIdentifier, shop);
 
     // Get cart drawer configuration
     const cartDrawer = await prisma.cartDrawer.findUnique({

@@ -1,11 +1,13 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import prisma from "../db.server";
-import { getShopCartDrawerVersion } from "../services/cartDrawerVersions.server";
+import { getCartDrawerVersionForCustomer } from "../services/cartDrawerVersions.server";
+import { getOrGenerateCustomerId } from "../services/customerIdentifier.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
+  const customerId = url.searchParams.get("customerId"); // Customer ID for logged-in users
   const configId = url.searchParams.get("configId") || "default";
 
   if (!shop) {
@@ -54,8 +56,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
 
     // Fallback: Get cart drawer configuration with promotional banner
-    // Determine which version this shop should see
-    const assignedVersion = await getShopCartDrawerVersion(normalizedShop);
+    // Determine which version this customer should see
+    const userIdentifier = getOrGenerateCustomerId(customerId, request, normalizedShop);
+    const assignedVersion = await getCartDrawerVersionForCustomer(userIdentifier, normalizedShop);
 
     const cartDrawer = await prisma.cartDrawer.findUnique({
       where: {

@@ -1,11 +1,11 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { cors } from "remix-utils/cors";
-import { createHash } from "crypto";
 import prisma from "../db.server";
 import { normalizeFeatureOrder } from "../utils/featureOrder";
 import { checkPlanAccess } from "../utils/planAccess.server";
 import { getCartDrawerVersionForCustomer, initializeDefaultVersion } from "../services/cartDrawerVersions.server";
+import { getOrGenerateCustomerId } from "../services/customerIdentifier.server";
 
 /**
  * Public API endpoint for cart drawer data
@@ -48,24 +48,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     await initializeDefaultVersion();
 
     // Determine which version this customer/session should see
-    let assignedVersion = 'default';
-    let userIdentifier = null;
-
-    if (customerId) {
-      // Customer-based A/B testing (preferred for logged-in users)
-      userIdentifier = customerId;
-      console.log(`[Cart Drawer API] Customer-based version selection for ${customerId}`);
-      assignedVersion = await getCartDrawerVersionForCustomer(customerId, shop);
-    } else {
-      // Generate session ID from request for guest users
-      const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-      const userAgent = request.headers.get('user-agent') || 'unknown';
-      const sessionId = createHash('md5').update(`${ip}-${userAgent}-${shop}`).digest('hex');
-
-      userIdentifier = `session:${sessionId}`;
-      console.log(`[Cart Drawer API] Session-based version selection for session ${sessionId.substring(0, 8)}...`);
-      assignedVersion = await getCartDrawerVersionForCustomer(userIdentifier, shop);
-    }
+    const userIdentifier = getOrGenerateCustomerId(customerId, request, shop);
+    console.log(`[Cart Drawer API] Version selection for identifier: ${userIdentifier}`);
+    const assignedVersion = await getCartDrawerVersionForCustomer(userIdentifier, shop);
 
 
     // Get cart drawer configuration for this version
