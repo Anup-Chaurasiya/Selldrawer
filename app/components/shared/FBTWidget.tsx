@@ -294,7 +294,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
   // Show discount if:
   // 1. FBT bundle discount is configured (discountType and discountValue exist)
   // 2. OR if there are compareAtPrice differences
-  const hasFBTDiscount = config.discountType && config.discountValue && bundleTotal > total;
+  const hasFBTDiscount = Boolean(config.discountType && config.discountValue && bundleTotal > total);
   const hasCompareAtDiscount = config.showDiscount && originalTotal > bundleTotal;
   const hasDiscount = hasFBTDiscount || hasCompareAtDiscount;
 
@@ -442,6 +442,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
           config={config}
           handleToggle={handleToggle}
           isPreview={isPreview}
+          isAtLimit={isAtLimit}
           total={total}
           originalTotal={displayOriginalPrice}
           bundleTotal={bundleTotal}

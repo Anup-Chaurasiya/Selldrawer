@@ -487,7 +487,7 @@ export default function CartTotals() {
                 <CartTotalsComponent
                   items={sampleCartItems}
                   totalPrice={sampleTotalPrice}
-                  appliedDiscount={sampleDiscount}
+
                   config={{
                     showOriginalPrice: formState.showOriginalPrice,
                     showItemDiscounts: formState.showItemDiscounts,

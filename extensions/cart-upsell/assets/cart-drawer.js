@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.11
- * Built: 2026-02-03T10:57:46.339Z
+ * Built: 2026-02-03T15:06:57.711Z
  */
 "use strict";
 (() => {
@@ -7846,348 +7846,6 @@
     }
   });
 
-  // extensions/cart-upsell/assets/modules/constants.js
-  var init_constants = __esm({
-    "extensions/cart-upsell/assets/modules/constants.js"() {
-      "use strict";
-    }
-  });
-
-  // extensions/cart-upsell/assets/modules/utils.js
-  function initToastContainer() {
-    if (toastContainer)
-      return toastContainer;
-    toastContainer = document.createElement("div");
-    toastContainer.className = "upsellity-toast-container";
-    toastContainer.setAttribute("aria-live", "polite");
-    toastContainer.setAttribute("aria-atomic", "true");
-    if (!document.getElementById("upsellity-toast-styles")) {
-      const style = document.createElement("style");
-      style.id = "upsellity-toast-styles";
-      style.textContent = `
-      .upsellity-toast-container {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 100000;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        pointer-events: none;
-        width: auto;
-        max-width: min(380px, calc(100vw - 40px));
-      }
-      
-      .upsellity-toast {
-        position: relative;
-        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-        border-radius: 10px;
-        padding: 14px 16px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        min-width: 300px;
-        max-width: 100%;
-        pointer-events: auto;
-        overflow: hidden;
-        border-left: 4px solid;
-        animation: toastSlideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        transition: all 0.25s ease;
-        backdrop-filter: blur(12px);
-      }
-      
-      .upsellity-toast:hover {
-        transform: translateX(-4px);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.12);
-      }
-      
-      .upsellity-toast-success {
-        border-left-color: #22c55e;
-        background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
-      }
-      
-      .upsellity-toast-success:hover {
-        border-left-color: #16a34a;
-      }
-      
-      .upsellity-toast-error {
-        border-left-color: #f43f5e;
-        background: linear-gradient(135deg, #fff1f2 0%, #ffffff 100%);
-      }
-      
-      .upsellity-toast-error:hover {
-        border-left-color: #e11d48;
-      }
-      
-      .upsellity-toast-info {
-        border-left-color: #3b82f6;
-        background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
-      }
-      
-      .upsellity-toast-info:hover {
-        border-left-color: #2563eb;
-      }
-      
-      .upsellity-toast-icon {
-        flex-shrink: 0;
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 13px;
-        font-weight: 700;
-        line-height: 1;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      }
-      
-      .upsellity-toast-success .upsellity-toast-icon {
-        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-        color: white;
-      }
-      
-      .upsellity-toast-error .upsellity-toast-icon {
-        background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-        color: white;
-      }
-      
-      .upsellity-toast-info .upsellity-toast-icon {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        color: white;
-      }
-      
-      .upsellity-toast-content {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        min-width: 0;
-      }
-      
-      .upsellity-toast-message {
-        font-size: 13px;
-        font-weight: 500;
-        line-height: 1.5;
-        color: #1e293b;
-        margin: 0;
-        word-wrap: break-word;
-      }
-      
-      .upsellity-toast-close {
-        flex-shrink: 0;
-        background: none;
-        border: none;
-        width: 20px;
-        height: 20px;
-        cursor: pointer;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #94a3b8;
-        border-radius: 5px;
-        transition: all 0.2s ease;
-        opacity: 0.6;
-        margin-left: 4px;
-      }
-      
-      .upsellity-toast-close:hover {
-        opacity: 1;
-        background: rgba(0, 0, 0, 0.08);
-        color: #475569;
-        transform: rotate(90deg);
-      }
-      
-      .upsellity-toast-close::before {
-        content: '\xD7';
-        font-size: 22px;
-        line-height: 1;
-        font-weight: 300;
-      }
-      
-      .upsellity-toast-progress {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        height: 3px;
-        background: rgba(0, 0, 0, 0.05);
-        border-radius: 0 0 10px 10px;
-        overflow: hidden;
-      }
-      
-      .upsellity-toast-progress-bar {
-        height: 100%;
-        transition: width linear;
-        border-radius: 0 0 10px 10px;
-        box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-      }
-      
-      .upsellity-toast-success .upsellity-toast-progress-bar {
-        background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
-      }
-      
-      .upsellity-toast-error .upsellity-toast-progress-bar {
-        background: linear-gradient(90deg, #f43f5e 0%, #e11d48 100%);
-      }
-      
-      .upsellity-toast-info .upsellity-toast-progress-bar {
-        background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
-      }
-      
-      @keyframes toastSlideInRight {
-        from {
-          opacity: 0;
-          transform: translateX(100%) scale(0.95);
-        }
-        to {
-          opacity: 1;
-          transform: translateX(0) scale(1);
-        }
-      }
-      
-      @keyframes toastSlideOutRight {
-        from {
-          opacity: 1;
-          transform: translateX(0) scale(1);
-        }
-        to {
-          opacity: 0;
-          transform: translateX(100%) scale(0.95);
-        }
-      }
-      
-      .upsellity-toast.exiting {
-        animation: toastSlideOutRight 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
-      }
-      
-      @media (max-width: 640px) {
-        .upsellity-toast-container {
-          right: 12px;
-          left: 12px;
-          max-width: none;
-          top: 12px;
-        }
-        
-        .upsellity-toast {
-          min-width: auto;
-          padding: 12px 14px;
-        }
-        
-        .upsellity-toast-message {
-          font-size: 12px;
-        }
-      }
-    `;
-      document.head.appendChild(style);
-    }
-    document.body.appendChild(toastContainer);
-    return toastContainer;
-  }
-  function getToastIcon(type) {
-    const icons = {
-      success: "\u2713",
-      error: "\u2715",
-      info: "i"
-    };
-    return icons[type] || icons.info;
-  }
-  function showNotification(message, type = "info", duration = 4e3) {
-    const container = initToastContainer();
-    const toast = document.createElement("div");
-    toast.className = `upsellity-toast upsellity-toast-${type}`;
-    toast.setAttribute("role", "alert");
-    const icon = document.createElement("div");
-    icon.className = "upsellity-toast-icon";
-    icon.textContent = getToastIcon(type);
-    icon.setAttribute("aria-hidden", "true");
-    const content = document.createElement("div");
-    content.className = "upsellity-toast-content";
-    const messageEl = document.createElement("p");
-    messageEl.className = "upsellity-toast-message";
-    messageEl.textContent = message;
-    content.appendChild(messageEl);
-    const closeBtn = document.createElement("button");
-    closeBtn.className = "upsellity-toast-close";
-    closeBtn.setAttribute("aria-label", "Close notification");
-    closeBtn.setAttribute("type", "button");
-    const progressContainer = document.createElement("div");
-    progressContainer.className = "upsellity-toast-progress";
-    const progressBar = document.createElement("div");
-    progressBar.className = "upsellity-toast-progress-bar";
-    progressBar.style.width = "100%";
-    progressBar.style.transitionDuration = `${duration}ms`;
-    progressContainer.appendChild(progressBar);
-    toast.appendChild(icon);
-    toast.appendChild(content);
-    toast.appendChild(closeBtn);
-    toast.appendChild(progressContainer);
-    container.appendChild(toast);
-    requestAnimationFrame(() => {
-      toast.style.opacity = "1";
-    });
-    requestAnimationFrame(() => {
-      progressBar.style.width = "0%";
-    });
-    const removeToast = () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
-      toast.classList.add("exiting");
-      setTimeout(() => {
-        if (toast.parentNode) {
-          toast.parentNode.removeChild(toast);
-        }
-        if (container.children.length === 0 && container.parentNode) {
-          container.parentNode.removeChild(container);
-          toastContainer = null;
-        }
-      }, 300);
-    };
-    closeBtn.addEventListener("click", () => {
-      isPaused = false;
-      removeToast();
-    });
-    let timeoutId = setTimeout(removeToast, duration);
-    let startTime = Date.now();
-    let remainingTime = duration;
-    let isPaused = false;
-    toast.addEventListener("mouseenter", () => {
-      if (isPaused)
-        return;
-      isPaused = true;
-      const elapsed = Date.now() - startTime;
-      remainingTime = duration - elapsed;
-      const currentWidth = progressBar.offsetWidth;
-      const containerWidth = progressContainer.offsetWidth;
-      const percentage = currentWidth / containerWidth * 100;
-      progressBar.style.width = `${percentage}%`;
-      progressBar.style.transitionDuration = "0ms";
-      clearTimeout(timeoutId);
-    });
-    toast.addEventListener("mouseleave", () => {
-      if (!isPaused)
-        return;
-      isPaused = false;
-      progressBar.style.transitionDuration = `${remainingTime}ms`;
-      requestAnimationFrame(() => {
-        progressBar.style.width = "0%";
-      });
-      startTime = Date.now();
-      timeoutId = setTimeout(removeToast, remainingTime);
-    });
-    return toast;
-  }
-  var toastContainer;
-  var init_utils = __esm({
-    "extensions/cart-upsell/assets/modules/utils.js"() {
-      "use strict";
-      init_constants();
-      toastContainer = null;
-    }
-  });
-
   // extensions/cart-upsell/assets/modules/milestone-reward-manager.js
   var milestone_reward_manager_exports = {};
   __export(milestone_reward_manager_exports, {
@@ -8497,7 +8155,6 @@
     if (!milestone)
       return;
     const rewardText = getRewardDescription(milestone);
-    showNotification(`\u{1F389} Milestone Unlocked: ${milestone.title}! ${rewardText}`, "success");
   }
   function getRewardDescription(milestone) {
     if (!milestone)
@@ -8524,7 +8181,6 @@
   var init_milestone_reward_manager = __esm({
     "extensions/cart-upsell/assets/modules/milestone-reward-manager.js"() {
       "use strict";
-      init_utils();
       GIFT_PROPERTY_KEY = "_upsellity_gift";
       GIFT_PROPERTY_VALUE = "true";
       GIFT_MILESTONE_ID_KEY = "_upsellity_milestone_id";
@@ -8574,11 +8230,8 @@
   // extensions/cart-upsell/assets/modules/cart-drawer-class.js
   var import_react8 = __toESM(require_react(), 1);
   var import_client = __toESM(require_client(), 1);
-  init_constants();
-  init_utils();
 
   // extensions/cart-upsell/assets/modules/cart-operations.js
-  init_utils();
   async function addProductToCart(variantId, quantity = 1, loadCartCallback, properties = {}) {
     try {
       if (!variantId) {
@@ -8597,18 +8250,15 @@
         });
         if (response.ok) {
           await loadCartCallback();
-          showNotification("Product added to cart!", "success");
         } else {
           const error = await response.json();
           console.error("Cart add error:", error);
-          showNotification(error.description || "Failed to add product to cart", "error");
         }
       } else {
         await addProductToCartByHandle(variantId, null, quantity, loadCartCallback, properties);
       }
     } catch (error) {
       console.error("Error adding product to cart:", error);
-      showNotification("Failed to add product to cart", "error");
     }
   }
   async function addProductToCartByHandle(productHandle, variantId, quantity = 1, loadCartCallback, properties = {}) {
@@ -8627,12 +8277,10 @@
         });
         if (response2.ok) {
           await loadCartCallback();
-          showNotification("Product added to cart!", "success");
           return;
         } else {
           const error = await response2.json();
           console.error("Failed to add product with numeric ID:", productHandle, error);
-          showNotification(error.description || error.message || "Product not found", "error");
           throw new Error(error.description || error.message || "Product not found");
         }
       } else {
@@ -8654,12 +8302,10 @@
       }
       if (!variant.available) {
         console.warn("Product is not available:", product.title);
-        showNotification(`The product '${product.title}' is already sold out`, "error");
         return;
       }
       if (variant.inventory_management && variant.inventory_quantity !== null && variant.inventory_quantity <= 0) {
         console.warn("Product is out of stock:", product.title);
-        showNotification(`The product '${product.title}' is already sold out`, "error");
         return;
       }
       const formData = new FormData();
@@ -8674,24 +8320,19 @@
       });
       if (response.ok) {
         await loadCartCallback();
-        showNotification(`${product.title} added to cart!`, "success");
       } else {
         const error = await response.json();
         console.error("Cart add failed:", error);
-        showNotification(error.description || error.message || "Failed to add product to cart", "error");
       }
     } catch (error) {
       console.error("Error adding product to cart:", error);
       if (error.message && !error.message.includes("Failed to add")) {
-        showNotification(error.message, "error");
       } else {
-        showNotification("Failed to add product to cart", "error");
       }
     }
   }
   async function updateQuantity(itemKey, newQuantity, loadCartCallback, renderCallback) {
     if (newQuantity < 0) {
-      showNotification("Quantity cannot be negative", "error");
       return;
     }
     const cartItem = document.querySelector(`[data-item-key="${itemKey}"]`);
@@ -8708,13 +8349,11 @@
       if (cartItemIndex === -1) {
         await loadCartCallback();
         renderCallback();
-        showNotification("Item not found in cart", "error");
         return;
       }
       const item = cart.items[cartItemIndex];
       const isGift = item.properties && (item.properties["_upsellity_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
       if (isGift) {
-        showNotification("Gift items are automatically managed and cannot be modified", "info");
         await loadCartCallback();
         renderCallback();
         return;
@@ -8743,7 +8382,6 @@
         await loadCartCallback(result);
         renderCallback();
         if (newQuantity > 0) {
-          showNotification("Cart updated!", "success");
         }
       } else {
         const error = await response.json();
@@ -8755,9 +8393,7 @@
           if (newQuantity !== 0) {
             errorMessage = "This product is out of stock";
           }
-          showNotification(errorMessage, "error");
         } else {
-          showNotification(errorMessage, "error");
         }
         return;
       }
@@ -8765,7 +8401,6 @@
       console.error("Error updating quantity:", error);
       await loadCartCallback();
       renderCallback();
-      showNotification("Failed to update cart", "error");
     } finally {
       if (cartItem) {
         cartItem.classList.remove("upsellity-loading");
@@ -8785,7 +8420,6 @@
         if (item) {
           const isGift = item.properties && (item.properties["_upsellity_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
           if (isGift) {
-            showNotification("Gift items are automatically managed and cannot be removed manually", "info");
             await loadCartCallback();
             renderCallback();
             return;
@@ -8806,14 +8440,11 @@
         const result = await response.json();
         await loadCartCallback(result);
         renderCallback();
-        showNotification("Item removed from cart", "success");
       } else {
         const error = await response.json();
-        showNotification(error.description || "Failed to remove item", "error");
       }
     } catch (error) {
       console.error("Error removing item:", error);
-      showNotification("Failed to remove item", "error");
     } finally {
       if (cartItem) {
         cartItem.classList.remove("upsellity-loading");
@@ -8822,7 +8453,6 @@
   }
 
   // extensions/cart-upsell/assets/modules/discount-manager.js
-  init_utils();
   async function loadAvailableDiscounts(appUrl, shop, config) {
     var _a2;
     const couponField = (_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.couponCodeField;
@@ -8879,7 +8509,6 @@
   }
   async function applyDiscountCode(code, loadCartCallback) {
     if (!code || !code.trim()) {
-      showNotification("Please enter a coupon code", "error");
       return false;
     }
     try {
@@ -8897,17 +8526,14 @@
         if (loadCartCallback) {
           await loadCartCallback(cart);
         }
-        showNotification(`Coupon ${code} applied!`, "success");
         return true;
       } else {
         const error = await response.json();
         const errorMessage = error.description || error.message || "Invalid coupon code";
-        showNotification(errorMessage, "error");
         return false;
       }
     } catch (error) {
       console.error("Upsellity: Error applying discount", error);
-      showNotification("Failed to apply coupon code", "error");
       return false;
     }
   }
@@ -8927,17 +8553,14 @@
         if (loadCartCallback) {
           await loadCartCallback(cart);
         }
-        showNotification("Discount removed", "info");
         return true;
       } else {
         const error = await response.json();
         console.error("Upsellity: Error removing discount", error);
-        showNotification(error.description || error.message || "Failed to remove discount", "error");
         return false;
       }
     } catch (error) {
       console.error("Upsellity: Error removing discount", error);
-      showNotification("Failed to remove discount", "error");
       return false;
     }
   }
@@ -9193,14 +8816,18 @@
   async function loadFreeGifts(appUrl, shop, cart, cartTotalExcludingGifts = null) {
     try {
       const cartTotal = cartTotalExcludingGifts !== null ? cartTotalExcludingGifts : cart.total_price / 100;
-      const cartItemsJson = JSON.stringify(cart.items);
       console.log("Upsellity Free Gifts: Loading with cart total", cartTotal);
       const timestamp = (/* @__PURE__ */ new Date()).getTime();
       const response = await fetch(
-        `${appUrl}/api/free-gifts?shop=${shop}&cartTotal=${cartTotal}&cartItems=${encodeURIComponent(cartItemsJson)}&_t=${timestamp}`,
+        `${appUrl}/api/free-gifts?shop=${shop}&_t=${timestamp}`,
         {
-          cache: "no-store",
+          method: "POST",
+          body: JSON.stringify({
+            cartTotal,
+            cartItems: cart.items || []
+          }),
           headers: {
+            "Content-Type": "application/json",
             "Cache-Control": "no-cache",
             "Pragma": "no-cache"
           }
@@ -11371,51 +10998,92 @@
         )
       ] }),
       appliedDiscount && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
-        backgroundColor,
-        border: `2px solid ${borderColor}`,
-        borderRadius: "10px",
-        padding: "12px 16px",
-        marginBottom: "12px",
+        backgroundColor: "#f0fdf4",
+        // Emerald 50
+        border: "1px solid #bbf7d0",
+        // Emerald 200
+        borderRadius: "8px",
+        padding: "12px",
+        marginBottom: "16px",
+        // Increased margin
         display: "flex",
-        alignItems: "center",
-        gap: "12px"
+        alignItems: "flex-start",
+        // Align to top for better multi-line handling
+        gap: "12px",
+        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
       }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-          width: "24px",
-          height: "24px",
+          width: "20px",
+          height: "20px",
           borderRadius: "50%",
-          backgroundColor: borderColor,
+          backgroundColor: "#16a34a",
+          // Emerald 600
           color: "white",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          flexShrink: 0
-        }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 14, color: "white" }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { flex: 1 }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-          fontSize: "14px",
-          fontWeight: "600",
-          color: couponCodeColor || textColor
-        }, children: appliedDiscount.code }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+          flexShrink: 0,
+          marginTop: "1px"
+          // Align with text
+        }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 12, color: "white" }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { flex: 1 }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
+          display: "flex",
+          alignItems: "baseline",
+          gap: "8px",
+          flexWrap: "wrap"
+        }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: {
+            fontSize: "14px",
+            fontWeight: "700",
+            color: "#15803d",
+            // Emerald 700
+            letterSpacing: "-0.01em"
+          }, children: appliedDiscount.code }),
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: {
+            fontSize: "11px",
+            color: "#166534",
+            // Emerald 800
+            backgroundColor: "#dcfce7",
+            // Emerald 100
+            padding: "1px 6px",
+            borderRadius: "10px",
+            fontWeight: "600"
+          }, children: "APPLIED" })
+        ] }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
           "button",
           {
             onClick: onRemoveDiscount,
             style: {
-              width: "28px",
-              height: "28px",
-              padding: "0",
-              backgroundColor: "transparent",
-              color: "#6b7280",
-              border: "none",
+              padding: "4px 8px",
+              backgroundColor: "white",
+              color: "#dc2626",
+              // Red 600
+              border: "1px solid #fee2e2",
+              // Red 100
               borderRadius: "6px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              fontSize: "11px",
+              fontWeight: "600",
               cursor: "pointer",
               transition: "all 0.2s ease",
-              flexShrink: 0
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              boxShadow: "0 1px 1px rgba(0,0,0,0.05)"
             },
-            children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(XIcon, { size: 16, color: "#6b7280" })
+            onMouseEnter: (e) => {
+              e.currentTarget.style.backgroundColor = "#fef2f2";
+              e.currentTarget.style.borderColor = "#fecaca";
+            },
+            onMouseLeave: (e) => {
+              e.currentTarget.style.backgroundColor = "white";
+              e.currentTarget.style.borderColor = "#fee2e2";
+            },
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { children: "Remove" }),
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(XIcon, { size: 12, color: "#dc2626" })
+            ]
           }
         )
       ] }),
@@ -11458,51 +11126,92 @@
           border: "1px solid #e5e7eb",
           borderRadius: "8px",
           overflow: "hidden",
-          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)"
-        }, children: availableDiscounts.map((discount) => /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
-          "div",
-          {
-            onClick: () => !isPreview && onSwitchDiscount(discount.code),
-            style: {
-              padding: "12px 16px",
-              borderBottom: "1px solid #f3f4f6",
-              cursor: isPreview ? "default" : "pointer",
-              transition: "background-color 0.2s ease",
-              backgroundColor: (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? backgroundColor : "transparent",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px"
-            },
-            children: [
-              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-                width: "20px",
-                height: "20px",
-                borderRadius: "50%",
-                border: `2px solid ${(appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code ? borderColor : "#d1d5db"}`,
+          marginTop: "4px",
+          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"
+        }, children: availableDiscounts.map((discount, index) => {
+          const isSelected = (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code;
+          const isLast = index === availableDiscounts.length - 1;
+          return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
+            "div",
+            {
+              onClick: () => {
+                if (!isPreview) {
+                  onSwitchDiscount(discount.code);
+                  setShowingAllOffers(false);
+                }
+              },
+              onMouseEnter: (e) => {
+                if (!isSelected)
+                  e.currentTarget.style.backgroundColor = "#f9fafb";
+              },
+              onMouseLeave: (e) => {
+                if (!isSelected)
+                  e.currentTarget.style.backgroundColor = "transparent";
+              },
+              style: {
+                padding: "12px 16px",
+                borderBottom: isLast ? "none" : "1px solid #f3f4f6",
+                cursor: isPreview ? "default" : "pointer",
+                transition: "background-color 0.2s ease",
+                backgroundColor: isSelected ? "#f0fdf4" : "transparent",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0
-              }, children: (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 12, color: borderColor }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { flex: 1 }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  color: "#111827",
-                  marginBottom: "2px"
-                }, children: [
-                  discount.code,
-                  discount.description ? ` - ${discount.description}` : ""
-                ] }),
-                discount.title && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-                  fontSize: "12px",
-                  color: "#6b7280"
-                }, children: discount.title })
-              ] })
-            ]
-          },
-          discount.code
-        )) })
+                gap: "12px"
+              },
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+                  width: "18px",
+                  height: "18px",
+                  borderRadius: "50%",
+                  border: `1.5px solid ${isSelected ? borderColor : "#d1d5db"}`,
+                  backgroundColor: isSelected ? borderColor : "white",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  transition: "all 0.2s ease"
+                }, children: isSelected && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  backgroundColor: "white"
+                } }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { flex: 1 }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
+                    display: "flex",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    gap: "8px",
+                    marginBottom: discount.title && discount.title !== discount.code ? "2px" : "0"
+                  }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: {
+                      fontSize: "14px",
+                      fontWeight: "700",
+                      color: "#111827",
+                      letterSpacing: "-0.01em"
+                    }, children: discount.code }),
+                    discount.description && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: {
+                      fontSize: "10px",
+                      fontWeight: "600",
+                      color: isSelected ? "#065f46" : "#6b7280",
+                      backgroundColor: isSelected ? "#d1fae5" : "#f3f4f6",
+                      padding: "2px 8px",
+                      borderRadius: "12px",
+                      letterSpacing: "0.02em",
+                      textTransform: "uppercase"
+                    }, children: discount.description.replace(/^-\s*/, "") })
+                  ] }),
+                  discount.title && discount.title !== discount.code && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+                    fontSize: "12px",
+                    color: "#6b7280",
+                    lineHeight: "1.4"
+                  }, children: discount.title })
+                ] })
+              ]
+            },
+            discount.code
+          );
+        }) })
       ] })
     ] });
   };
@@ -12144,33 +11853,6 @@
           }
         )
       ] }),
-      collectionUrl && /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-        "a",
-        {
-          href: collectionUrl,
-          style: {
-            display: "block",
-            textAlign: "center",
-            padding: "6px",
-            marginTop: "6px",
-            color: "#6b7280",
-            textDecoration: "none",
-            fontSize: "9px",
-            fontWeight: 500,
-            transition: "color 0.2s"
-          },
-          onMouseEnter: (e) => {
-            e.currentTarget.style.color = "#111827";
-          },
-          onMouseLeave: (e) => {
-            e.currentTarget.style.color = "#6b7280";
-          },
-          children: [
-            viewAllLinkText,
-            " \u2192"
-          ]
-        }
-      ),
       /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("style", { children: `
                 div[role="list"]::-webkit-scrollbar {
                     display: none;
@@ -13199,13 +12881,17 @@
           return;
         const cartTotalInCents = calculateCartTotalExcludingGifts(this.cart);
         const cartTotal = cartTotalInCents / 100;
-        const cartItemsJson = this.cart ? JSON.stringify(this.cart.items) : "[]";
         const timestamp = (/* @__PURE__ */ new Date()).getTime();
         const response = await fetch(
-          `${appUrl}/api/milestones?shop=${this.shop}&cartTotal=${cartTotal}&cartItems=${encodeURIComponent(cartItemsJson)}&_t=${timestamp}`,
+          `${appUrl}/api/milestones?shop=${this.shop}&_t=${timestamp}`,
           {
-            cache: "no-store",
+            method: "POST",
+            body: JSON.stringify({
+              cartTotal,
+              cartItems: this.cart ? this.cart.items : []
+            }),
             headers: {
+              "Content-Type": "application/json",
               "Cache-Control": "no-cache",
               "Pragma": "no-cache"
             }
@@ -13655,7 +13341,6 @@
           );
           if (!validation.valid) {
             console.log("Upsellity: Milestone validation failed", validation.message);
-            showNotification(validation.message, "info");
             if (this.unlockedMilestone.rewardType === "gift_wrapping") {
               await this.handleMilestoneRewards();
               setTimeout(() => {
@@ -13680,7 +13365,6 @@
         window.location.href = "/checkout";
       } catch (error) {
         console.error("Upsellity: Error during checkout", error);
-        showNotification("An error occurred. Proceeding to checkout...", "error");
         setTimeout(() => {
           window.location.href = "/checkout";
         }, 1e3);
@@ -13939,7 +13623,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://specifically-sci-stamps-patrick.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.11" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {
