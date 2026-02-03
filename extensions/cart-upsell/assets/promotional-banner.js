@@ -1,6 +1,6 @@
 /**
  * Upsellity Promotional Banner Block v1.0.11
- * Built: 2026-02-03T10:26:13.325Z
+ * Built: 2026-02-03T12:47:43.859Z
  */
 "use strict";
 (() => {
@@ -8937,7 +8937,7 @@
 
   // extensions/cart-upsell/assets/modules/promotional-banner-entry.js
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://camps-proceed-mhz-coast.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://locally-yield-blogging-aging.trycloudflare.com" : "https://app.upsellity.com";
   function initPromotionalBannerBlocks() {
     const containers = document.querySelectorAll(".upsellity-promotional-banner-container");
     if (containers.length === 0) {
