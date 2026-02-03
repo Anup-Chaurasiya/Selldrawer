@@ -57,17 +57,21 @@ export function formatMoney(cents) {
   return `₹${Math.round(amount)}`;
 }
 
+
 /**
- * Toast Notification Manager
+ * Toast Notification Manager - DISABLED
  * Modern, top-notch toast notification system with stacking, icons, and progress bars
  */
 
 // Toast container singleton
+/*
 let toastContainer = null;
+*/
 
 /**
  * Initialize toast container if it doesn't exist
  */
+/*
 function initToastContainer() {
   if (toastContainer) return toastContainer;
   
@@ -301,10 +305,12 @@ function initToastContainer() {
   document.body.appendChild(toastContainer);
   return toastContainer;
 }
+*/
 
 /**
  * Get icon for toast type
  */
+/*
 function getToastIcon(type) {
   const icons = {
     success: '✓',
@@ -313,14 +319,18 @@ function getToastIcon(type) {
   };
   return icons[type] || icons.info;
 }
+*/
 
 /**
- * Show notification toast
+ * Show notification toast - DISABLED
  * @param {string} message - Toast message
  * @param {string} type - Toast type: 'success', 'error', 'info'
  * @param {number} duration - Duration in milliseconds (default: 4000)
  */
 export function showNotification(message, type = 'info', duration = 4000) {
+  // Functionality disabled
+  return null;
+  /*
   // Initialize container
   const container = initToastContainer();
   
@@ -450,6 +460,7 @@ export function showNotification(message, type = 'info', duration = 4000) {
   });
   
   return toast;
+  */
 }
 
 /**

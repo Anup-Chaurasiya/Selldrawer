@@ -3,7 +3,7 @@
  * Handles all milestone reward logic including gift products and discount application
  */
 
-import { showNotification } from './utils.js';
+// import { showNotification } from './utils.js';
 
 // Gift product marker property
 const GIFT_PROPERTY_KEY = '_upsellity_gift';
@@ -527,7 +527,7 @@ export function showMilestoneUnlockedNotification(milestone) {
   if (!milestone) return;
 
   const rewardText = getRewardDescription(milestone);
-  showNotification(`🎉 Milestone Unlocked: ${milestone.title}! ${rewardText}`, 'success');
+  // showNotification(`🎉 Milestone Unlocked: ${milestone.title}! ${rewardText}`, 'success');
 }
 
 /**

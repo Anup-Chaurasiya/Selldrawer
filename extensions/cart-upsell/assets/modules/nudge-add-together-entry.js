@@ -8,7 +8,7 @@ import { createRoot } from 'react-dom/client';
 import { NudgeAddTogetherWidgetWrapper } from './components/NudgeAddTogetherWidgetWrapper.jsx';
 import { Analytics } from './analytics.js';
 import { cartOps } from './cart-operations-enhanced.js';
-import { showNotification } from './utils.js';
+// import { showNotification } from './utils.js';
 
 
 // App URL is injected at build time from config.js
@@ -240,11 +240,11 @@ class NudgeAddTogether {
 
             if (!result.success) {
               console.error('Failed to add original product:', result.error);
-              showNotification(
-                result.error || 'Failed to add product to cart. Please try again.',
-                'error',
-                5000
-              );
+              // showNotification(
+              //   result.error || 'Failed to add product to cart. Please try again.',
+              //   'error',
+              //   5000
+              // );
               return; // Don't show popup if add to cart failed
             }
 
@@ -257,11 +257,11 @@ class NudgeAddTogether {
             }
           } catch (error) {
             console.error('Nudge Add Together: Error in add to cart flow:', error);
-            showNotification(
-              'Failed to add product to cart. Please try again.',
-              'error',
-              5000
-            );
+            // showNotification(
+            //   'Failed to add product to cart. Please try again.',
+            //   'error',
+            //   5000
+            // );
           }
         }
       }, true);
@@ -601,11 +601,11 @@ class NudgeAddTogether {
 
       // Notify user if some products failed
       if (failedProducts.length > 0) {
-        showNotification(
-          `Some products could not be added: ${failedProducts.join(', ')}`,
-          'error',
-          5000
-        );
+        // showNotification(
+        //   `Some products could not be added: ${failedProducts.join(', ')}`,
+        //   'error',
+        //   5000
+        // );
       }
 
       // Wait for cart to be ready
@@ -639,11 +639,11 @@ class NudgeAddTogether {
       // Clean up popup
       this.cleanupPopup();
 
-      showNotification(
-        error.message || 'Failed to update cart. Please try again.',
-        'error',
-        5000
-      );
+      // showNotification(
+      //   error.message || 'Failed to update cart. Please try again.',
+      //   'error',
+      //   5000
+      // );
 
       // If checkout trigger, still try to proceed
       if (shouldRedirectToCheckout) {

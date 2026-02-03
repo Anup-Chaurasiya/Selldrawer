@@ -24,7 +24,9 @@ interface CartTotalsConfig {
   showOriginalPrice?: boolean;
   showItemDiscounts?: boolean;
   showSubtotal?: boolean;
+  showCouponDiscount?: boolean;
   showTaxNotice?: boolean;
+
   subtotalLabel?: string;
   totalLabel?: string;
   taxNoticeText?: string;
@@ -86,7 +88,7 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
     if (variantId && freeGiftVariantIds.length > 0) {
       return freeGiftVariantIds.some(giftId => giftId.toString() === variantId);
     }
-    
+
     // Fallback: check properties (for milestone gifts)
     return item.properties && (
       item.properties['_upsellity_gift'] === 'true' ||
@@ -110,10 +112,10 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
   const sumOfRegularItems = regularItems.reduce((sum, item) => {
     return sum + (item.line_price || (item.final_price || item.price || 0) * item.quantity);
   }, 0);
-  
+
   // Subtotal: use cart.subtotal_price if available, otherwise sum of regular items
   const subtotal = subtotalPrice || sumOfRegularItems;
-  
+
   // Calculate original total (before any discounts)
   const originalTotal = regularItems.reduce((sum, item) => {
     // Use original_line_price if available, otherwise original_price
@@ -122,13 +124,13 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
     }
     return sum + ((item.original_price || item.price || 0) * item.quantity);
   }, 0);
-  
+
   // Item-level savings (from original price to subtotal)
   const itemLevelSavings = originalTotal - subtotal;
-  
+
   // Total savings (item discounts + gift savings)
   const totalSavings = itemLevelSavings + giftSavings;
-  
+
   // Total: sum of regular items' line_price (Shopify handles all discounts, excludes gift items)
   // This is the actual total the customer pays for regular items
   const finalTotal = sumOfRegularItems;
@@ -181,7 +183,7 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
         </div>
       )}
 
-      
+
 
       {/* Subtotal */}
       {showSubtotal && (

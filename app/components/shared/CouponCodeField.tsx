@@ -30,6 +30,8 @@ interface Discount {
   amount?: number; // Discount amount in cents from Shopify cart
   title?: string; // Optional, for display purposes
   description?: string; // Optional, for display purposes
+  type?: string;
+  value?: number;
 }
 
 interface CouponCodeFieldProps {

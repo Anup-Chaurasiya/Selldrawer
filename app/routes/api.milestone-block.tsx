@@ -1,7 +1,34 @@
-import type { LoaderFunctionArgs } from "@remix-run/node";
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { cors } from "remix-utils/cors";
 import prisma from "../db.server";
+
+export async function action({ request }: ActionFunctionArgs) {
+  // Handle POST for data fetching
+  if (request.method !== "POST") {
+    return json({ error: "Method not allowed" }, { status: 405 });
+  }
+
+  try {
+    const url = new URL(request.url);
+    const shop = url.searchParams.get("shop");
+
+    if (!shop) {
+      const response = json({ error: "Shop parameter is required" }, { status: 400 });
+      return cors(request, response);
+    }
+
+    const body = await request.json();
+    // No specific cartItems usage in the business logic yet, but prepared for consistency
+    // The current loader implementation mostly just returns config
+
+    return await getMilestoneBlockResponse(request, shop);
+  } catch (error) {
+    console.error("Error in milestone block action:", error);
+    const response = json({ error: "Internal server error" }, { status: 500 });
+    return cors(request, response);
+  }
+}
 
 /**
  * Public API endpoint for milestone block data
@@ -15,7 +42,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       status: 204,
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS", // Added POST
         "Access-Control-Allow-Headers": "Content-Type, Cache-Control, Pragma",
         "Access-Control-Max-Age": "86400",
       },
@@ -30,6 +57,22 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     return cors(request, response);
   }
 
+  return await getMilestoneBlockResponse(request, shop);
+};
+
+// Handle CORS preflight requests (backup - also handled in loader)
+export const OPTIONS = async () => {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS", // Added POST
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+};
+
+async function getMilestoneBlockResponse(request: Request, shop: string) {
   try {
     // Get milestone block configuration
     const milestoneBlock = await prisma.milestoneBlock.findUnique({
@@ -123,16 +166,4 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const response = json({ error: "Internal server error" }, { status: 500 });
     return cors(request, response);
   }
-};
-
-// Handle CORS preflight requests (backup - also handled in loader)
-export const OPTIONS = async () => {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    },
-  });
-};
+}

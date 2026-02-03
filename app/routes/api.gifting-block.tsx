@@ -1,7 +1,33 @@
-import type { LoaderFunctionArgs } from "@remix-run/node";
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { cors } from "remix-utils/cors";
 import prisma from "../db.server";
+
+export async function action({ request }: ActionFunctionArgs) {
+    if (request.method !== "POST") {
+        return json({ error: "Method not allowed" }, { status: 405 });
+    }
+
+    try {
+        const url = new URL(request.url);
+        const shop = url.searchParams.get("shop");
+
+        if (!shop) {
+            const response = json({ error: "Shop parameter is required" }, { status: 400 });
+            return cors(request, response);
+        }
+
+        const body = await request.json();
+        const cartTotal = parseFloat(body.cartTotal || "0");
+        const cartItems = body.cartItems || [];
+
+        return await getGiftingBlockResponse(request, shop, cartTotal, cartItems);
+    } catch (error) {
+        console.error("Error in gifting-block action:", error);
+        const response = json({ error: "Failed to fetch gifts" }, { status: 500 });
+        return cors(request, response);
+    }
+}
 
 /**
  * Public API endpoint for gifting block data
@@ -15,7 +41,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
             status: 204,
             headers: {
                 "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, OPTIONS",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
                 "Access-Control-Allow-Headers": "Content-Type, Cache-Control, Pragma",
                 "Access-Control-Max-Age": "86400",
             },
@@ -32,17 +58,32 @@ export async function loader({ request }: LoaderFunctionArgs) {
         return cors(request, response);
     }
 
-    try {
-        // Parse cart items if provided
-        let cartItems: any[] = [];
-        if (cartItemsJson) {
-            try {
-                cartItems = JSON.parse(cartItemsJson);
-            } catch (e) {
-                console.error("Failed to parse cart items:", e);
-            }
+    let cartItems: any[] = [];
+    if (cartItemsJson) {
+        try {
+            cartItems = JSON.parse(cartItemsJson);
+        } catch (e) {
+            console.error("Failed to parse cart items:", e);
         }
+    }
 
+    return await getGiftingBlockResponse(request, shop, cartTotal, cartItems);
+}
+
+// Handle CORS preflight requests
+export const OPTIONS = async () => {
+    return new Response(null, {
+        status: 204,
+        headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+        },
+    });
+};
+
+async function getGiftingBlockResponse(request: Request, shop: string, cartTotal: number, cartItems: any[]) {
+    try {
         // Get gifting block configuration
         const giftingBlock = await prisma.giftingBlock.findUnique({
             where: { shop },
@@ -166,15 +207,3 @@ export async function loader({ request }: LoaderFunctionArgs) {
         return cors(request, response);
     }
 }
-
-// Handle CORS preflight requests
-export const OPTIONS = async () => {
-    return new Response(null, {
-        status: 204,
-        headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
-        },
-    });
-};

@@ -3,7 +3,22 @@ import prisma from "../db.server";
 /**
  * Get analytics for a specific version
  */
-export async function getVersionAnalytics(shop: string, version: string, days = 30) {
+export interface Analytics {
+    impressions: number;
+    clicks: number;
+    addToCarts: number;
+    orders: number;
+    revenue: number;
+    ctr: number;
+    conversionRate: number;
+    orderRate: number;
+    aov: number;
+}
+
+/**
+ * Get analytics for a specific version
+ */
+export async function getVersionAnalytics(shop: string, version: string, days = 30): Promise<Analytics> {
     const since = new Date();
     since.setDate(since.getDate() - days);
 
@@ -46,7 +61,7 @@ export async function getVersionAnalytics(shop: string, version: string, days = 
 /**
  * Compare two versions
  */
-export function compareVersions(analyticsA: any, analyticsB: any) {
+export function compareVersions(analyticsA: Analytics, analyticsB: Analytics) {
     // Calculate percentage improvements
     const improvement = {
         impressions: calculatePercentDiff(analyticsA.impressions, analyticsB.impressions),

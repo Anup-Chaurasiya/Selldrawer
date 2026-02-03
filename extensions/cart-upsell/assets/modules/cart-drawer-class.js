@@ -5,7 +5,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { FEATURE_ORDER_SENTINEL } from './constants.js';
-import { splitFeatureOrder, showNotification } from './utils.js';
+import { splitFeatureOrder } from './utils.js';
 import * as CartOps from './cart-operations.js';
 import * as DiscountManager from './discount-manager.js';
 import * as ProductLoader from './product-loader.js';
@@ -150,14 +150,19 @@ export class UpsellityCartDrawer {
       // This ensures milestones are calculated from the original cart value, not the discounted subtotal
       const cartTotalInCents = MilestoneRewardManager.calculateCartTotalExcludingGifts(this.cart);
       const cartTotal = cartTotalInCents / 100; // Convert cents to rupees
-      const cartItemsJson = this.cart ? JSON.stringify(this.cart.items) : '[]';
+
 
       const timestamp = new Date().getTime();
       const response = await fetch(
-        `${appUrl}/api/milestones?shop=${this.shop}&cartTotal=${cartTotal}&cartItems=${encodeURIComponent(cartItemsJson)}&_t=${timestamp}`,
+        `${appUrl}/api/milestones?shop=${this.shop}&_t=${timestamp}`,
         {
-          cache: 'no-store',
+          method: 'POST',
+          body: JSON.stringify({
+            cartTotal,
+            cartItems: this.cart ? this.cart.items : []
+          }),
           headers: {
+            'Content-Type': 'application/json',
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache'
           }
@@ -782,7 +787,7 @@ export class UpsellityCartDrawer {
 
         if (!validation.valid) {
           console.log('Upsellity: Milestone validation failed', validation.message);
-          showNotification(validation.message, 'info');
+          // console.log('Upsellity: Milestone validation failed', validation.message);
 
           // If gifts are missing, try to sync them
           if (this.unlockedMilestone.rewardType === 'gift_wrapping') {
@@ -818,7 +823,7 @@ export class UpsellityCartDrawer {
       window.location.href = '/checkout';
     } catch (error) {
       console.error('Upsellity: Error during checkout', error);
-      showNotification('An error occurred. Proceeding to checkout...', 'error');
+      // showNotification('An error occurred. Proceeding to checkout...', 'error');
 
       // Fallback to normal checkout
       setTimeout(() => {

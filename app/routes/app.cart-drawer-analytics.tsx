@@ -28,7 +28,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     if (versions.length < 2) {
         return json({
-            hasEnoughVersions: false,
+            hasEnoughVersions: false as const,
             versions
         });
     }
@@ -36,6 +36,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // Get default and first test version
     const versionA = versions.find(v => v.isDefault) || versions[0];
     const versionB = versions.find(v => !v.isDefault) || versions[1];
+
+    if (!versionA || !versionB) {
+        return json({
+            hasEnoughVersions: false as const,
+            versions
+        });
+    }
 
     // Get analytics for both
     const analyticsA = await getVersionAnalytics(shop, versionA.key);
@@ -81,31 +88,31 @@ export default function VersionComparison() {
             <Layout>
                 {/* Version Headers */}
                 <Layout.Section>
-                    <InlineStack gap="4">
+                    <InlineStack gap="400">
                         <div style={{ flex: 1 }}>
                             <Card>
-                                <BlockStack gap="2">
+                                <BlockStack gap="200">
                                     <Text variant="headingMd" as="h2">Version A (Control)</Text>
                                     <Text variant="headingLg" as="h3">{versionA.name}</Text>
-                                    <InlineStack gap="2">
+                                    <InlineStack gap="200">
                                         <Badge tone={versionA.isDefault ? "success" : "info"}>
                                             {versionA.isDefault ? "Default" : "Test"}
                                         </Badge>
-                                        <Badge>{versionA.rolloutPercentage}% rollout</Badge>
+                                        <Badge>{`${versionA.rolloutPercentage}% rollout`}</Badge>
                                     </InlineStack>
                                 </BlockStack>
                             </Card>
                         </div>
                         <div style={{ flex: 1 }}>
                             <Card>
-                                <BlockStack gap="2">
+                                <BlockStack gap="200">
                                     <Text variant="headingMd" as="h2">Version B (Test)</Text>
                                     <Text variant="headingLg" as="h3">{versionB.name}</Text>
-                                    <InlineStack gap="2">
+                                    <InlineStack gap="200">
                                         <Badge tone={versionB.isDefault ? "success" : "info"}>
                                             {versionB.isDefault ? "Default" : "Test"}
                                         </Badge>
-                                        <Badge>{versionB.rolloutPercentage}% rollout</Badge>
+                                        <Badge>{`${versionB.rolloutPercentage}% rollout`}</Badge>
                                     </InlineStack>
                                 </BlockStack>
                             </Card>
@@ -118,23 +125,23 @@ export default function VersionComparison() {
                     <Card>
                         {significance.isSignificant ? (
                             <Banner tone="success">
-                                <BlockStack gap="2">
+                                <BlockStack gap="200">
                                     <Text variant="headingMd" as="h2">
                                         🏆 Winner: Version {winner}
                                     </Text>
-                                    <Text>
+                                    <Text as="p">
                                         Results are statistically significant with <strong>{(significance.confidenceLevel * 100).toFixed(1)}%</strong> confidence.
                                     </Text>
-                                    <Text>
+                                    <Text as="p">
                                         Conversion rate improved by <strong>{Math.abs(improvement.conversionRate).toFixed(1)}%</strong>
                                     </Text>
                                 </BlockStack>
                             </Banner>
                         ) : (
                             <Banner tone="warning">
-                                <BlockStack gap="2">
+                                <BlockStack gap="200">
                                     <Text variant="headingMd" as="h2">Not Statistically Significant</Text>
-                                    <Text>
+                                    <Text as="p">
                                         Need approximately <strong>{Math.ceil(significance.sampleSizeNeeded)}</strong> more impressions to reach 95% confidence.
                                     </Text>
                                     <Text as="p" tone="subdued">
@@ -149,7 +156,7 @@ export default function VersionComparison() {
                 {/* Metrics Comparison */}
                 <Layout.Section>
                     <Card>
-                        <BlockStack gap="4">
+                        <BlockStack gap="400">
                             <Text variant="headingLg" as="h2">Performance Metrics (Last 30 Days)</Text>
                             <DataTable
                                 columnContentTypes={['text', 'numeric', 'numeric', 'text']}
@@ -205,7 +212,7 @@ export default function VersionComparison() {
                 {/* Sample Size Info */}
                 <Layout.Section>
                     <Card>
-                        <BlockStack gap="2">
+                        <BlockStack gap="200">
                             <Text variant="headingMd" as="h2">Sample Size</Text>
                             <DataTable
                                 columnContentTypes={['text', 'numeric', 'numeric']}

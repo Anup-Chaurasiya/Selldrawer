@@ -152,10 +152,53 @@ function initMilestoneBlocks() {
         // Fetch milestone data
         const apiUrl = `${APP_URL}/api/milestone-block?shop=${encodeURIComponent(shop)}`;
 
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        // Use POST to avoid URL length limits with many cart items
+        // We don't send cart items here yet as the refactor didn't strictly require it for the business logic seen
+        // BUT the plan says we should to be consistent. However, api.milestone-block.tsx loader/action I wrote 
+        // didn't actually USE cartItems for logic in the snippet I wrote? 
+        // Wait, looking back at api.milestone-block.tsx content (Step 71-76), 
+        // the original loader didn't use cartItems at all! It just used `shop`.
+        // The implementation plan said: "Parse cartItems from request body in action."
+        // But the Original Code didn't use cartItems. 
+        // Let's re-read Step 50. 
+        // Step 50: api.milestone-block.tsx loader takes `shop`. It finds `milestoneBlock` by shop. 
+        // It returns milestones. It does NOT filter by cart items (unlike api.milestones.tsx).
+        // So passing cartItems isn't strictly necessary for filtering *on server*, 
+        // UNLESS the server logic changed to support targeting? 
+        // Step 50 shows filtered logic? No, Step 50 code just returns `milestoneBlock.milestones`.
+        // It seems `milestone-block` is simpler. 
+        // However, the user said "i think this same thing happening with gifting feature and gifting block".
+        // Maybe the user assumes it's the same issue. 
+        // If I change it to POST, it won't hurt. 
+        // But wait, if I don't send cartItems in the body, then the request size is small anyway?
+        // Ah, `api.milestones.tsx` had `cartItems` in URL query params. `api.milestone-block.tsx` DOES NOT seem to have `cartItems` in URL query params in the original code (Step 50).
+        // Line 9: URL: /api/milestone-block?shop=example.myshopify.com
+        // Line 25-26: Gets `shop`. 
+        // It DOES NOT get `cartItems`.
+        // So `api.milestone-block.tsx` might NOT have the URL length issue if it only sends `shop`.
+        // BUT `api.gifting-block.tsx` (Step 52) DOES receive `cartItems` in Query String.
+        // And `api.free-gifts.tsx` (Step 51) DOES receive `cartItems` in Query String.
+        // So Milestone Block might be fine, but I should probably standardize it or just leave it if it's not broken.
+        // The user said "and there is a block for milestone please check that also".
+        // It's safer to just switch it to POST as requested to be sure, even if currently it's not sending sending big data.
+        // Actually, if I don't send cart items, POST or GET doesn't matter for size.
+        // But if I want to future-proof it or if the user intends to add targeting later... 
+        // I will follow the plan and switch to POST.
+        // I will send empty cartItems or just the shop if that's all it needs.
+        // Wait, the action I wrote in Step 76 DOES try to read body.json(). 
+        // So I must send a valid JSON body.
+
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          body: JSON.stringify({
+            shop: shop,
+            cartTotal: 0, // Not used by backend currently but good for consistency
+            cartItems: [] // Not used by backend currently
+          }),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
 
         const data = await response.json();
 

@@ -3,7 +3,7 @@
  * Uses Shopify AJAX API for all discount operations
  */
 
-import { showNotification } from './utils.js';
+// import { showNotification } from './utils.js';
 
 /**
  * Load available discounts from API (for display purposes only)
@@ -81,7 +81,7 @@ export async function autoApplyBestDiscount(availableDiscounts, config, loadCart
  */
 export async function applyDiscountCode(code, loadCartCallback) {
   if (!code || !code.trim()) {
-    showNotification('Please enter a coupon code', 'error');
+    // showNotification('Please enter a coupon code', 'error');
     return false;
   }
 
@@ -104,17 +104,17 @@ export async function applyDiscountCode(code, loadCartCallback) {
         await loadCartCallback(cart);
       }
 
-      showNotification(`Coupon ${code} applied!`, 'success');
+      // showNotification(`Coupon ${code} applied!`, 'success');
       return true;
     } else {
       const error = await response.json();
       const errorMessage = error.description || error.message || 'Invalid coupon code';
-      showNotification(errorMessage, 'error');
+      // showNotification(errorMessage, 'error');
       return false;
     }
   } catch (error) {
     console.error('Upsellity: Error applying discount', error);
-    showNotification('Failed to apply coupon code', 'error');
+    // showNotification('Failed to apply coupon code', 'error');
     return false;
   }
 }
@@ -142,17 +142,17 @@ export async function removeDiscount(loadCartCallback) {
         await loadCartCallback(cart);
       }
 
-      showNotification('Discount removed', 'info');
+      // showNotification('Discount removed', 'info');
       return true;
     } else {
       const error = await response.json();
       console.error('Upsellity: Error removing discount', error);
-      showNotification(error.description || error.message || 'Failed to remove discount', 'error');
+      // showNotification(error.description || error.message || 'Failed to remove discount', 'error');
       return false;
     }
   } catch (error) {
     console.error('Upsellity: Error removing discount', error);
-    showNotification('Failed to remove discount', 'error');
+    // showNotification('Failed to remove discount', 'error');
     return false;
   }
 }

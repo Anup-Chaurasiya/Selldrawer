@@ -1,6 +1,6 @@
 /**
  * Upsellity Gifting Block v1.0.11
- * Built: 2026-02-02T15:25:09.579Z
+ * Built: 2026-02-03T10:26:13.399Z
  */
 "use strict";
 (() => {
@@ -8375,14 +8375,18 @@
   async function loadGiftingBlockGifts(appUrl, shop, cart, cartTotalExcludingGifts = null) {
     try {
       const cartTotal = cartTotalExcludingGifts !== null ? cartTotalExcludingGifts : cart.total_price / 100;
-      const cartItemsJson = JSON.stringify(cart.items);
       console.log("Upsellity Gifting Block: Loading with cart total", cartTotal);
       const timestamp = (/* @__PURE__ */ new Date()).getTime();
       const response = await fetch(
-        `${appUrl}/api/gifting-block?shop=${shop}&cartTotal=${cartTotal}&cartItems=${encodeURIComponent(cartItemsJson)}&_t=${timestamp}`,
+        `${appUrl}/api/gifting-block?shop=${shop}&_t=${timestamp}`,
         {
-          cache: "no-store",
+          method: "POST",
+          body: JSON.stringify({
+            cartTotal,
+            cartItems: cart.items || []
+          }),
           headers: {
+            "Content-Type": "application/json",
             "Cache-Control": "no-cache",
             "Pragma": "no-cache"
           }
@@ -8546,7 +8550,7 @@
 
   // extensions/cart-upsell/assets/modules/gift-block-entry.js
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://finals-colleges-tumor-creating.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://camps-proceed-mhz-coast.trycloudflare.com" : "https://app.upsellity.com";
   function initGiftingBlocks() {
     const containers = document.querySelectorAll(".upsellity-gifting-container");
     if (containers.length === 0) {

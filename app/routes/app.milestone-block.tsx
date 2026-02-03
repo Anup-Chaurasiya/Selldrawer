@@ -431,7 +431,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Get existing milestone to retrieve old discount ID
     const existingMilestone = await prisma.blockMilestone.findUnique({
       where: { id: milestoneId },
-      select: { shopifyDiscountId: true, isActive: true } as any
+      select: { shopifyDiscountId: true, discountCode: true, isActive: true }
     });
 
     // Parse gift products first (needed for discount creation)

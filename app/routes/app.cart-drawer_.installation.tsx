@@ -48,11 +48,11 @@ export default function Installation() {
                 <Text as="h2" variant="headingLg">
                   🚀 Quick Installation (Recommended)
                 </Text>
-                
+
                 <Text as="h3" variant="headingMd">
                   Method 1: Using Theme App Extension (Easiest)
                 </Text>
-                
+
                 <List type="number">
                   <List.Item>
                     Go to <strong>Online Store → Themes</strong> in your Shopify admin
@@ -85,7 +85,7 @@ export default function Installation() {
                 <Text as="h3" variant="headingMd">
                   Method 2: Manual Theme Integration
                 </Text>
-                
+
                 <Text as="p" variant="bodyMd" tone="subdued">
                   For advanced users or custom themes
                 </Text>
@@ -95,9 +95,9 @@ export default function Installation() {
                 <Text as="h4" variant="headingSm">
                   Step 1: Add the Snippet
                 </Text>
-                
+
                 <Text as="p" variant="bodyMd" tone="subdued">
-                  Note: The cart drawer snippet is already included in your theme extension. 
+                  Note: The cart drawer snippet is already included in your theme extension.
                   You just need to add one line to your theme.
                 </Text>
 
@@ -106,7 +106,7 @@ export default function Installation() {
                 <Text as="h4" variant="headingSm">
                   Step 2: Add to Your Theme
                 </Text>
-                
+
                 <List type="number">
                   <List.Item>
                     Open <strong>Layout → theme.liquid</strong>
@@ -125,7 +125,7 @@ export default function Installation() {
                   </pre>
                 </Box>
 
-                <List type="number" start={4}>
+                <List type="number" start={4 as any}>
                   <List.Item>
                     Click <strong>Save</strong>
                   </List.Item>
@@ -138,7 +138,7 @@ export default function Installation() {
                 <Text as="h3" variant="headingMd">
                   📱 How It Works
                 </Text>
-                
+
                 <Text as="p" variant="bodyMd">
                   Once installed, the cart drawer will:
                 </Text>
@@ -168,7 +168,7 @@ export default function Installation() {
                 <Text as="h3" variant="headingMd">
                   🎨 Customization
                 </Text>
-                
+
                 <Text as="p" variant="bodyMd">
                   All features can be customized from the Upsellity app dashboard:
                 </Text>
@@ -202,7 +202,7 @@ export default function Installation() {
                 <Text as="h3" variant="headingMd">
                   ❓ Troubleshooting
                 </Text>
-                
+
                 <List type="bullet">
                   <List.Item>
                     <strong>Cart drawer not showing?</strong> Make sure you've saved your theme and cleared your browser cache.
