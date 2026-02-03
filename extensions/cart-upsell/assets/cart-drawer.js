@@ -1,6 +1,6 @@
 /**
  * Upsellity Cart Drawer v1.0.11
- * Built: 2026-02-02T14:08:19.239Z
+ * Built: 2026-02-03T07:54:20.423Z
  */
 "use strict";
 (() => {
@@ -13939,7 +13939,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://still-lightweight-searched-assurance.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://grill-manufacturer-indices-bearing.trycloudflare.com" : "https://app.upsellity.com";
   var CART_DRAWER_VERSION = true ? "1.0.11" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

@@ -15,6 +15,11 @@ import {
   Icon,
   Box,
   Banner,
+  Select,
+  Popover,
+  ActionList,
+  Modal,
+  TextField,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import {
@@ -920,10 +925,49 @@ export default function CartDrawerIndex() {
   const [draggedFeatureId, setDraggedFeatureId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [showVersionModal, setShowVersionModal] = useState(false);
-  const [showManualAssignModal, setShowManualAssignModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [versionDropdownActive, setVersionDropdownActive] = useState(false);
+  const [showNewVersionForm, setShowNewVersionForm] = useState(false);
+  const [versions, setVersions] = useState<any[]>([]);
+  const [newVersionKey, setNewVersionKey] = useState('');
+  const [newVersionName, setNewVersionName] = useState('');
+  const [newVersionDescription, setNewVersionDescription] = useState('');
 
   const currentVersion = editingVersion; // Alias for clarity in UI
+
+  // Fetch versions when component mounts
+  React.useEffect(() => {
+    fetcher.load('/api/cart-drawer-versions');
+  }, []);
+
+  // Update versions from fetcher data
+  React.useEffect(() => {
+    const data = fetcher.data as any;
+    if (data && data.versions) {
+      setVersions(data.versions);
+    }
+  }, [fetcher.data]);
+
+  const handleCreateVersion = () => {
+    if (!newVersionKey || !newVersionName) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('intent', 'create-version');
+    formData.append('key', newVersionKey);
+    formData.append('name', newVersionName);
+    if (newVersionDescription) {
+      formData.append('description', newVersionDescription);
+    }
+
+    fetcher.submit(formData, { method: 'post', action: '/api/cart-drawer-versions' });
+
+    // Reset form
+    setNewVersionKey('');
+    setNewVersionName('');
+    setNewVersionDescription('');
+    setShowNewVersionForm(false);
+  };
 
   React.useEffect(() => {
     setFeatureOrder(normalizeFeatureOrder(cartDrawer.featureOrder));
@@ -1019,7 +1063,7 @@ export default function CartDrawerIndex() {
     {
       id: 'free-gifts',
       title: 'Free Gifts',
-      description: 'Let customers choose free gifts on qualifying orders',
+      description: 'Let customers choose free gifts on orders',
       icon: GiftCardIcon,
       enabled: cartDrawer.freeGiftsEnabled,
       count: cartDrawer.freeGifts.length,
@@ -1217,27 +1261,81 @@ export default function CartDrawerIndex() {
 
             {/* Feature Configuration Cards */}
             <BlockStack gap="400">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '4px 8px',
-                margin: '4px 0 -4px 0',
-                color: '#6b7280',
-                fontSize: '12px',
-                fontWeight: 600
-              }}>
-                <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style={{ opacity: 0.7 }}>
-                    <circle cx="5" cy="5" r="1.5" />
-                    <circle cx="10" cy="5" r="1.5" />
-                    <circle cx="15" cy="5" r="1.5" />
-                    <circle cx="5" cy="10" r="1.5" />
-                    <circle cx="10" cy="10" r="1.5" />
-                    <circle cx="15" cy="10" r="1.5" />
-                  </svg>
-                </span>
-                <span>Drag to reorder features</span></div><Button onClick={() => setShowVersionModal(true)} icon={ChartVerticalIcon} size="slim">Manage Versions</Button></div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '4px 8px',
+                    color: '#6b7280',
+                    fontSize: '12px',
+                    fontWeight: 600
+                  }}>
+                    <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style={{ opacity: 0.7 }}>
+                        <circle cx="5" cy="5" r="1.5" />
+                        <circle cx="10" cy="5" r="1.5" />
+                        <circle cx="15" cy="5" r="1.5" />
+                        <circle cx="5" cy="10" r="1.5" />
+                        <circle cx="10" cy="10" r="1.5" />
+                        <circle cx="15" cy="10" r="1.5" />
+                      </svg>
+                    </span>
+                    <span>Drag to reorder features</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {/* Version Dropdown */}
+                  <Popover
+                    active={versionDropdownActive}
+                    activator={
+                      <Button
+                        onClick={() => setVersionDropdownActive(!versionDropdownActive)}
+                        disclosure={versionDropdownActive ? "up" : "down"}
+                        size="slim"
+                      >
+                        {versions.find(v => v.key === currentVersion)?.name || currentVersion}
+                      </Button>
+                    }
+                    onClose={() => setVersionDropdownActive(false)}
+                  >
+                    <ActionList
+                      items={[
+                        ...versions.map((version: any) => ({
+                          content: version.name,
+                          active: version.key === currentVersion,
+                          suffix: version.isDefault ? <Badge tone="info">Default</Badge> : undefined,
+                          onAction: () => {
+                            setVersionDropdownActive(false);
+                            if (version.key !== currentVersion) {
+                              navigate(`/app/cart-drawer?version=${version.key}`);
+                            }
+                          },
+                        })),
+                        {
+                          content: '+ New Version',
+                          onAction: () => {
+                            setVersionDropdownActive(false);
+                            setShowNewVersionForm(true);
+                          },
+                        },
+                      ]}
+                    />
+                  </Popover>
+                  <Button
+                    onClick={() => setShowVersionModal(true)}
+                    icon={ChartVerticalIcon}
+                    size="slim"
+                  >
+                    Configure Rollout
+                  </Button>
+                </div>
+              </div>
               {orderedFeatureCards.map((item) => {
                 const isCartItems = 'isCartItems' in item && item.isCartItems;
                 const feature = isCartItems ? null : item as (typeof features)[number];
@@ -1371,6 +1469,54 @@ export default function CartDrawerIndex() {
           />
         </div>
       </div>
+
+      {/* New Version Creation Modal */}
+      <Modal
+        open={showNewVersionForm}
+        onClose={() => setShowNewVersionForm(false)}
+        title="Create New Version"
+        primaryAction={{
+          content: 'Create Version',
+          onAction: handleCreateVersion,
+          disabled: !newVersionKey || !newVersionName,
+        }}
+        secondaryActions={[
+          {
+            content: 'Cancel',
+            onAction: () => setShowNewVersionForm(false),
+          },
+        ]}
+      >
+        <Modal.Section>
+          <BlockStack gap="400">
+            <TextField
+              label="Version Key"
+              value={newVersionKey}
+              onChange={setNewVersionKey}
+              placeholder="e.g., v2, v3, experimental"
+              helpText="Unique identifier for this version (lowercase, no spaces)"
+              autoComplete="off"
+            />
+
+            <TextField
+              label="Version Name"
+              value={newVersionName}
+              onChange={setNewVersionName}
+              placeholder="e.g., Version 2 - Carousel Milestones"
+              autoComplete="off"
+            />
+
+            <TextField
+              label="Description (optional)"
+              value={newVersionDescription}
+              onChange={setNewVersionDescription}
+              placeholder="What's different in this version?"
+              multiline={2}
+              autoComplete="off"
+            />
+          </BlockStack>
+        </Modal.Section>
+      </Modal>
 
       {/* Version Management Modal */}
       <VersionManagementModal

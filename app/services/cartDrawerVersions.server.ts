@@ -337,3 +337,32 @@ export async function getVersionStats() {
         })),
     };
 }
+
+/**
+ * Delete a version
+ * Cannot delete the default version
+ */
+export async function deleteVersion(versionKey: string): Promise<void> {
+    console.log('[Version Delete] Deleting version:', versionKey);
+
+    // Check if version exists
+    const version = await prisma.cartDrawerVersion.findUnique({
+        where: { key: versionKey },
+    });
+
+    if (!version) {
+        throw new Error(`Version with key ${versionKey} not found`);
+    }
+
+    // Prevent deleting the default version
+    if (version.isDefault) {
+        throw new Error('Cannot delete the default version');
+    }
+
+    // Delete the version
+    await prisma.cartDrawerVersion.delete({
+        where: { key: versionKey },
+    });
+
+    console.log('[Version Delete] Version deleted successfully');
+}

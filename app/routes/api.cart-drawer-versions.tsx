@@ -5,6 +5,7 @@ import {
     getAllVersions,
     setVersionRollout,
     createVersion,
+    deleteVersion,
     initializeDefaultVersion,
     getVersionStats,
 } from '../services/cartDrawerVersions.server';
@@ -59,6 +60,44 @@ export async function action({ request }: ActionFunctionArgs) {
             }
 
             await createVersion({ key, name, description });
+
+            const versions = await getAllVersions();
+            return json({ success: true, versions });
+        }
+
+        if (intent === 'delete-version') {
+            const versionKey = formData.get('versionKey') as string;
+
+            if (!versionKey) {
+                return json({ error: 'Version key is required' }, { status: 400 });
+            }
+
+            await deleteVersion(versionKey);
+
+            const versions = await getAllVersions();
+            return json({ success: true, versions });
+        }
+
+        if (intent === 'batch-update-rollout') {
+            const updatesStr = formData.get('updates') as string;
+
+            if (!updatesStr) {
+                return json({ error: 'Updates are required' }, { status: 400 });
+            }
+
+            const updates = JSON.parse(updatesStr);
+
+            // Process all updates sequentially
+            for (const update of updates) {
+                const { versionKey, targetingMode, percentage, segmentIds } = update;
+
+                await setVersionRollout(
+                    versionKey,
+                    percentage,
+                    targetingMode,
+                    segmentIds
+                );
+            }
 
             const versions = await getAllVersions();
             return json({ success: true, versions });
