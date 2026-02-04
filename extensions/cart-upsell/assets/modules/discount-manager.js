@@ -3,14 +3,14 @@
  * Uses Shopify AJAX API for all discount operations
  */
 
-import { showNotification } from './utils.js';
+// import { showNotification } from './utils.js';
 
 /**
  * Load available discounts from API (for display purposes only)
  */
 export async function loadAvailableDiscounts(appUrl, shop, config) {
   const couponField = config?.features?.couponCodeField;
-  
+
   if (!couponField || (!couponField.enableAutoApply && !couponField.showAllOffers)) {
     return [];
   }
@@ -81,7 +81,7 @@ export async function autoApplyBestDiscount(availableDiscounts, config, loadCart
  */
 export async function applyDiscountCode(code, loadCartCallback) {
   if (!code || !code.trim()) {
-    showNotification('Please enter a coupon code', 'error');
+    // showNotification('Please enter a coupon code', 'error');
     return false;
   }
 
@@ -98,23 +98,23 @@ export async function applyDiscountCode(code, loadCartCallback) {
 
     if (response.ok) {
       const cart = await response.json();
-      
+
       // Reload cart to get updated discount information
       if (loadCartCallback) {
         await loadCartCallback(cart);
       }
-      
-      showNotification(`Coupon ${code} applied!`, 'success');
+
+      // showNotification(`Coupon ${code} applied!`, 'success');
       return true;
     } else {
       const error = await response.json();
       const errorMessage = error.description || error.message || 'Invalid coupon code';
-      showNotification(errorMessage, 'error');
+      // showNotification(errorMessage, 'error');
       return false;
     }
   } catch (error) {
     console.error('Upsellity: Error applying discount', error);
-    showNotification('Failed to apply coupon code', 'error');
+    // showNotification('Failed to apply coupon code', 'error');
     return false;
   }
 }
@@ -136,23 +136,23 @@ export async function removeDiscount(loadCartCallback) {
 
     if (response.ok) {
       const cart = await response.json();
-      
+
       // Call callback with updated cart (but don't trigger full loadCart which would auto-apply)
       if (loadCartCallback) {
         await loadCartCallback(cart);
       }
-      
-      showNotification('Discount removed', 'info');
+
+      // showNotification('Discount removed', 'info');
       return true;
     } else {
       const error = await response.json();
       console.error('Upsellity: Error removing discount', error);
-      showNotification(error.description || error.message || 'Failed to remove discount', 'error');
+      // showNotification(error.description || error.message || 'Failed to remove discount', 'error');
       return false;
     }
   } catch (error) {
     console.error('Upsellity: Error removing discount', error);
-    showNotification('Failed to remove discount', 'error');
+    // showNotification('Failed to remove discount', 'error');
     return false;
   }
 }
@@ -173,7 +173,7 @@ export async function applyCoupon(appUrl, shop, config, appliedDiscount, renderC
   const couponInput = document.getElementById('upsellity-coupon-input');
   const messageDiv = document.getElementById('upsellity-coupon-message');
   const applyBtn = document.querySelector('.upsellity-coupon-apply-btn');
-  
+
   if (!couponInput || !messageDiv) {
     console.error('Upsellity: Coupon elements not found');
     return null;
@@ -228,7 +228,7 @@ export function getDiscountFromCart(cart) {
 
   // Shopify returns discount_codes array with code and amount
   const discountCode = cart.discount_codes[0];
-  
+
   return {
     code: discountCode.code,
     amount: cart.total_discount || 0 // Total discount amount in cents

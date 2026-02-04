@@ -1,9 +1,35 @@
-import type { LoaderFunctionArgs } from "@remix-run/node";
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { cors } from "remix-utils/cors";
 import prisma from "../db.server";
 import { getCartDrawerVersionForCustomer } from "../services/cartDrawerVersions.server";
 import { getOrGenerateCustomerId } from "../services/customerIdentifier.server";
+
+export async function action({ request }: ActionFunctionArgs) {
+  if (request.method !== "POST") {
+    return json({ error: "Method not allowed" }, { status: 405 });
+  }
+
+  try {
+    const url = new URL(request.url);
+    const shop = url.searchParams.get("shop");
+
+    if (!shop) {
+      const response = json({ error: "Shop parameter is required" }, { status: 400 });
+      return cors(request, response);
+    }
+
+    const body = await request.json();
+    const cartTotal = parseFloat(body.cartTotal || "0");
+    const cartItems = body.cartItems || [];
+
+    return await getMilestonesResponse(request, shop, cartTotal, cartItems);
+  } catch (error) {
+    console.error("Error in milestones action:", error);
+    const response = json({ error: "Failed to fetch milestones" }, { status: 500 });
+    return cors(request, response);
+  }
+}
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
@@ -17,20 +43,49 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return cors(request, response);
   }
 
-  try {
-    // Parse cart items if provided
-    let cartItems: any[] = [];
-    if (cartItemsJson) {
-      try {
-        cartItems = JSON.parse(cartItemsJson);
-      } catch (e) {
-        console.error("Failed to parse cart items:", e);
-      }
+  let cartItems: any[] = [];
+  if (cartItemsJson) {
+    try {
+      cartItems = JSON.parse(cartItemsJson);
+    } catch (e) {
+      console.error("Failed to parse cart items:", e);
     }
+  }
 
+  const userIdentifier = getOrGenerateCustomerId(customerId, request, shop);
+
+  // We pass userIdentifier to the shared function if needed, or handle versioning here
+  // The original loader logic handled versioning internally. 
+  // Let's refactor to pass the necessary data to getMilestonesResponse.
+  // Actually, getMilestonesResponse needs to do the version check.
+
+  return await getMilestonesResponse(request, shop, cartTotal, cartItems, userIdentifier);
+}
+
+// Handle CORS preflight requests
+export async function options() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+}
+
+async function getMilestonesResponse(request: Request, shop: string, cartTotal: number, cartItems: any[], userIdentifier?: string) {
+  try {
     // Determine which version this customer should see
-    const userIdentifier = getOrGenerateCustomerId(customerId, request, shop);
-    const assignedVersion = await getCartDrawerVersionForCustomer(userIdentifier, shop);
+    // If called from action, we might not have customerId easily unless passed in body, 
+    // but for now let's assume standard behavior or re-generate identifier if not provided.
+    // In the loader above, we extracted customerId from URL.
+    // In the action, we didn't extract it. 
+    // Ideally, the POST body should include customerId if relevant. 
+    // However, for now, let's use the one generated from request if 'userIdentifier' is missing.
+
+    const finalUserIdentifier = userIdentifier || getOrGenerateCustomerId(null, request, shop);
+    const assignedVersion = await getCartDrawerVersionForCustomer(finalUserIdentifier, shop);
 
     // Get cart drawer configuration
     const cartDrawer = await prisma.cartDrawer.findUnique({
@@ -88,8 +143,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
       }
 
       if (milestone.targetType === "collections") {
-        // For collections, we'd need additional product data
-        // For now, we'll return true and let the frontend handle it
         return true;
       }
 
@@ -145,13 +198,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
         titleColor: milestone.titleColor,
         unlockButtonColor: milestone.unlockButtonColor,
         giftProducts: (milestone as any).giftProducts || [],
-        // Product eligibility for upsell
         eligibleCollectionHandle: (milestone as any).eligibleCollectionHandle || null,
         eligibleTag: (milestone as any).eligibleTag || null,
         eligibleProductIds: (milestone as any).eligibleProductIds || [],
         eligibilitySource: (milestone as any).eligibilitySource || 'none',
         canShowUpsell: (milestone as any).eligibilitySource !== 'none' && (status === "locked" || status === "in_progress"),
-        // Upsell text customization
         upsellHeaderText: (milestone as any).upsellHeaderText || "Unlock Your Reward",
         viewAllLinkText: (milestone as any).viewAllLinkText || "View All",
         unlockButtonText: (milestone as any).unlockButtonText || "Unlock Reward",
@@ -171,4 +222,3 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return cors(request, response);
   }
 }
-

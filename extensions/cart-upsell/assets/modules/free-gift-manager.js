@@ -20,16 +20,21 @@ export async function loadFreeGifts(appUrl, shop, cart, cartTotalExcludingGifts 
       ? cartTotalExcludingGifts
       : cart.total_price / 100;
 
-    const cartItemsJson = JSON.stringify(cart.items);
+
 
     console.log('Upsellity Free Gifts: Loading with cart total', cartTotal);
 
     const timestamp = new Date().getTime();
     const response = await fetch(
-      `${appUrl}/api/free-gifts?shop=${shop}&cartTotal=${cartTotal}&cartItems=${encodeURIComponent(cartItemsJson)}&_t=${timestamp}`,
+      `${appUrl}/api/free-gifts?shop=${shop}&_t=${timestamp}`,
       {
-        cache: 'no-store',
+        method: 'POST',
+        body: JSON.stringify({
+          cartTotal,
+          cartItems: cart.items || []
+        }),
         headers: {
+          'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         }
@@ -66,16 +71,21 @@ export async function loadGiftingBlockGifts(appUrl, shop, cart, cartTotalExcludi
       ? cartTotalExcludingGifts
       : cart.total_price / 100;
 
-    const cartItemsJson = JSON.stringify(cart.items);
+
 
     console.log('Upsellity Gifting Block: Loading with cart total', cartTotal);
 
     const timestamp = new Date().getTime();
     const response = await fetch(
-      `${appUrl}/api/gifting-block?shop=${shop}&cartTotal=${cartTotal}&cartItems=${encodeURIComponent(cartItemsJson)}&_t=${timestamp}`,
+      `${appUrl}/api/gifting-block?shop=${shop}&_t=${timestamp}`,
       {
-        cache: 'no-store',
+        method: 'POST',
+        body: JSON.stringify({
+          cartTotal,
+          cartItems: cart.items || []
+        }),
         headers: {
+          'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         }

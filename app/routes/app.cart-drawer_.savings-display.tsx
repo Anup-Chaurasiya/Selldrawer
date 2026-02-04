@@ -317,7 +317,7 @@ export default function SavingsDisplay() {
 
                   <TextField
                     label="Background Color"
-                    type="color"
+                    type={"color" as any}
                     value={formState.backgroundColor}
                     onChange={(value) => setFormState({ ...formState, backgroundColor: value })}
                     autoComplete="off"
@@ -325,7 +325,7 @@ export default function SavingsDisplay() {
 
                   <TextField
                     label="Text Color"
-                    type="color"
+                    type={"color" as any}
                     value={formState.textColor}
                     onChange={(value) => setFormState({ ...formState, textColor: value })}
                     autoComplete="off"
@@ -333,7 +333,7 @@ export default function SavingsDisplay() {
 
                   <TextField
                     label="Border Color"
-                    type="color"
+                    type={"color" as any}
                     value={formState.borderColor}
                     onChange={(value) => setFormState({ ...formState, borderColor: value })}
                     autoComplete="off"

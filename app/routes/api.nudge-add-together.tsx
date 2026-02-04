@@ -169,6 +169,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         showOnAddToCart: nudgeAddTogetherConfig.showOnAddToCart ?? true,
         triggerPoint: matchingRule?.triggerPoint || nudgeAddTogetherConfig.triggerPoint || "add_to_cart",
         popupDelay: nudgeAddTogetherConfig.popupDelay ?? 0,
+        checkboxMode: nudgeAddTogetherConfig.checkboxMode ?? true,
       },
       recommendations
     });

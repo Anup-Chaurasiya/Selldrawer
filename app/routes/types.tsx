@@ -88,8 +88,8 @@ export interface FrequentlyBoughtTogether {
   useAI: boolean;
   useSmartVariantMatching: boolean;
   showOfferIfInCart: boolean;
-  limitUpsellsInCart: boolean;
-  maxUpsellsInCart: number;
+
+  maxUpsellsShown: number;
   showProductReviews: boolean;
   layout: string;
   buttonText: string;
@@ -122,8 +122,8 @@ export interface FBTConfig {
   useAI: boolean;
   algorithm: string;
   showOfferIfInCart: boolean;
-  limitUpsellsInCart: boolean;
-  maxUpsellsInCart: number;
+
+  maxUpsellsShown: number;
 }
 
 export interface FBTRecommendation {

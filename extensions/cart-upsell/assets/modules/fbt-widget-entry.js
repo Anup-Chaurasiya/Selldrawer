@@ -182,7 +182,7 @@ class FrequentlyBoughtTogether {
 
           // Filter final recommendations - hard maximum of 4 (parent + 4 = 5 total)
           if (aiRecommendations && aiRecommendations.length > 0) {
-            const maxRecommendations = 4;
+            const maxRecommendations = this.config?.maxUpsellsShown || 4;
             if (aiRecommendations.length > maxRecommendations) {
               aiRecommendations = aiRecommendations.slice(0, maxRecommendations);
             }
@@ -212,8 +212,8 @@ class FrequentlyBoughtTogether {
     const currentProductHandle = this.productHandle;
     this.recommendations = allRecommendations.filter(rec => rec.handle !== currentProductHandle);
 
-    // Hard maximum of 4 recommendations (parent + 4 = 5 total products)
-    const maxRecommendations = 4;
+    // Filter final recommendations
+    const maxRecommendations = this.config?.maxUpsellsShown || 4;
     if (this.recommendations.length > maxRecommendations) {
       this.recommendations = this.recommendations.slice(0, maxRecommendations);
     }

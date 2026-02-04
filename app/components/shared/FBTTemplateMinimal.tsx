@@ -54,21 +54,42 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '1rem'
+        gap: '1rem',
+        maxWidth: '100%',
+        width: '100%',
+        boxSizing: 'border-box',
+        minWidth: 0
       }}
     >
+      {/* Hide scrollbar for all browsers */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .upsellity-fbt-products-container::-webkit-scrollbar {
+            display: none;
+          }
+        `
+      }} />
       {/* Products section */}
       <div
         style={{
           display: 'flex',
           flexDirection: 'row',
-          gap: '0rem',
+          gap: '0',
           padding: '1rem',
           background: '#ffffff',
           borderRadius: '10px',
           overflowX: 'auto',
-          maxWidth: '100%'
+          overflowY: 'hidden',
+          maxWidth: '100%',
+          width: 'fit-content',
+          margin: '0 auto',
+          minWidth: 0,
+          boxSizing: 'border-box',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          WebkitOverflowScrolling: 'touch'
         }}
+        className="upsellity-fbt-products-container"
       >
         {/* Render Parent Product First */}
         {parentProduct && (() => {
@@ -80,12 +101,13 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
 
           return (
             <React.Fragment key={`parent-${variantId}`}>
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', width: '110px', minWidth: '110px', flexShrink: 0, boxSizing: 'border-box' }}>
                 <div
                   className="upsellity-fbt-minimal-card selected"
                   style={{
                     width: '100%',
-                    padding: '0.75rem',
+                    boxSizing: 'border-box',
+                    padding: '0.5rem',
                     border: '2px solid #3b82f6',
                     borderRadius: '12px',
                     background: '#f9fafb',
@@ -97,70 +119,116 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
                     gap: '0.375rem'
                   }}
                 >
-                  <div style={{ position: 'relative', width: '100%' }}>
-                    {parentProduct.imageUrl ? (
-                      <img
-                        src={parentProduct.imageUrl}
-                        alt={parentProduct.title}
-                        style={{
-                          width: '100%',
-                          height: '110px',
-                          objectFit: 'cover',
-                          borderRadius: '8px',
-                          background: '#f3f4f6'
-                        }}
-                      />
-                    ) : (
-                      <div style={{
-                        width: '100%',
-                        height: '110px',
-                        backgroundColor: '#f3f4f6',
-                        borderRadius: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '40px'
-                      }}>
-                        📦
-                      </div>
-                    )}
-                    {discountPercent > 0 && config.showDiscount && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '8px',
-                          left: '8px',
-                          background: '#10b981',
-                          color: 'white',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          fontSize: '0.75rem',
-                          fontWeight: '600',
-                          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                        }}
-                      >
-                        {discountPercent}% off
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Product Title */}
-                  <h4
+                  {/* Disabled Checkbox for visual consistency */}
+                  <div
                     style={{
-                      fontSize: '0.875rem',
-                      fontWeight: '500',
-                      color: '#111827',
-                      lineHeight: 1.4,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      margin: 0,
-                      textAlign: 'center'
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '4px',
+                      background: '#3b82f6',
+                      border: '2px solid #3b82f6',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.75rem',
+                      fontWeight: '700',
+                      zIndex: 15,
+                      cursor: 'not-allowed',
+                      opacity: 0.9
                     }}
                   >
-                    {parentProduct.title}
-                  </h4>
+                    ✓
+                  </div>
+
+                  {/* Clickable Product Image */}
+                  <a
+                    href={isPreview ? '#' : `/products/${parentProduct.handle}`}
+                    onClick={(e) => {
+                      if (isPreview) {
+                        e.preventDefault();
+                      }
+                    }}
+                    style={{ display: 'block', textDecoration: 'none', cursor: 'pointer' }}
+                  >
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      {parentProduct.imageUrl ? (
+                        <img
+                          src={parentProduct.imageUrl}
+                          alt={parentProduct.title}
+                          style={{
+                            width: '100%',
+                            height: '110px',
+                            objectFit: 'cover',
+                            borderRadius: '8px',
+                            background: '#f3f4f6'
+                          }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '100%',
+                          height: '110px',
+                          backgroundColor: '#f3f4f6',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '40px'
+                        }}>
+                          📦
+                        </div>
+                      )}
+                      {discountPercent > 0 && config.showDiscount && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '8px',
+                            left: '8px',
+                            background: '#10b981',
+                            color: 'white',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                          }}
+                        >
+                          {discountPercent}% off
+                        </div>
+                      )}
+                    </div>
+                  </a>
+
+                  {/* Clickable Product Title */}
+                  <a
+                    href={isPreview ? '#' : `/products/${parentProduct.handle}`}
+                    onClick={(e) => {
+                      if (isPreview) {
+                        e.preventDefault();
+                      }
+                    }}
+                    style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
+                  >
+                    <h4
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: '500',
+                        color: '#111827',
+                        lineHeight: 1.3,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        margin: 0,
+                        textAlign: 'center'
+                      }}
+                    >
+                      {parentProduct.title}
+                    </h4>
+                  </a>
 
                   {/* Individual Price Display */}
                   {config.showIndividualPrices && (
@@ -227,8 +295,11 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
                   fontSize: '1.5rem',
                   color: '#6b7280',
                   fontWeight: '600',
-                  minWidth: '20px',
-                  flexShrink: 0
+                  minWidth: '24px',
+                  width: '24px',
+                  flexShrink: 0,
+                  alignSelf: 'center',
+                  margin: '0 8px'
                 }}
               >
                 +
@@ -248,163 +319,202 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
 
           return (
             <React.Fragment key={variantId}>
-              <div
-                className={`upsellity-fbt-minimal-card ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: isSelected ? '2px solid #10b981' : '1px solid #d1d5db',
-                  borderRadius: '12px',
-                  background: '#f9fafb',
-                  transition: 'all 0.2s',
-                  opacity: isDisabled ? 0.5 : 1,
-                  cursor: 'pointer',
-                  position: 'relative',
-                  boxShadow: isSelected ? '0 6px 14px rgba(16, 185, 129, 0.15)' : '0 4px 10px rgba(15, 23, 42, 0.08)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.375rem'
-                }}
-                onClick={() => !isDisabled && handleToggle(variantId, !isSelected)}
-              >
-                <div style={{ position: 'relative', width: '100%' }}>
-                  {product.imageUrl ? (
-                    <img
-                      src={product.imageUrl}
-                      alt={product.title}
-                      style={{
-                        width: '100%',
-                        height: '110px',
-                        objectFit: 'cover',
-                        borderRadius: '8px',
-                        background: '#f3f4f6'
-                      }}
-                    />
-                  ) : (
-                    <div style={{
-                      width: '100%',
-                      height: '110px',
-                      backgroundColor: '#f3f4f6',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '40px'
-                    }}>
-                      📦
-                    </div>
-                  )}
-                  {discountPercent > 0 && config.showDiscount && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '8px',
-                        left: '8px',
-                        background: '#10b981',
-                        color: 'white',
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                      }}
-                    >
-                      {discountPercent}% off
-                    </div>
-                  )}
-                </div>
-
-                {/* Product Title */}
-                <h4
+              <div style={{ position: 'relative', width: '110px', minWidth: '110px', flexShrink: 0, boxSizing: 'border-box' }}>
+                <div
+                  className={`upsellity-fbt-minimal-card ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
                   style={{
-                    fontSize: '0.875rem',
-                    fontWeight: '500',
-                    color: '#111827',
-                    lineHeight: 1.4,
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    margin: 0,
-                    textAlign: 'center'
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '0.5rem',
+                    border: isSelected ? '2px solid #10b981' : '1px solid #d1d5db',
+                    borderRadius: '12px',
+                    background: '#f9fafb',
+                    transition: 'all 0.2s',
+                    opacity: isDisabled ? 0.5 : 1,
+                    cursor: 'default',
+                    position: 'relative',
+                    boxShadow: isSelected ? '0 6px 14px rgba(16, 185, 129, 0.15)' : '0 4px 10px rgba(15, 23, 42, 0.08)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.375rem'
                   }}
                 >
-                  {product.title}
-                </h4>
-
-                {/* Individual Price Display */}
-                {config.showIndividualPrices && (
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.375rem',
-                    flexWrap: 'wrap'
-                  }}>
-                    {product.compareAtPrice && config.showDiscount && (
-                      <span
-                        style={{
-                          textDecoration: 'line-through',
-                          color: '#9ca3af',
-                          fontSize: '0.6875rem',
-                          fontWeight: '400'
-                        }}
-                      >
-                        {formatMoney(product.compareAtPrice)}
-                      </span>
-                    )}
-                    <span
-                      style={{
-                        fontSize: '0.875rem',
-                        fontWeight: '700',
-                        color: '#111827'
-                      }}
-                    >
-                      {formatMoney(product.price)}
-                    </span>
-                  </div>
-                )}
-
-                {isSelected && (
+                  {/* Checkbox for selection */}
                   <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!isDisabled) {
+                        handleToggle(variantId, !isSelected);
+                      }
+                    }}
                     style={{
                       position: 'absolute',
-                      top: '4px',
-                      right: '4px',
+                      top: '8px',
+                      right: '8px',
                       width: '20px',
                       height: '20px',
-                      borderRadius: '50%',
-                      background: '#10b981',
+                      borderRadius: '4px',
+                      background: isSelected ? '#10b981' : 'white',
+                      border: `2px solid ${isSelected ? '#10b981' : '#d1d5db'}`,
                       color: 'white',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '0.75rem',
-                      fontWeight: '600'
+                      fontWeight: '700',
+                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                      zIndex: 15,
+                      transition: 'all 0.2s'
                     }}
                   >
-                    ✓
+                    {isSelected && '✓'}
                   </div>
-                )}
+
+                  {/* Clickable Product Image */}
+                  <a
+                    href={isPreview ? '#' : `/products/${product.handle}`}
+                    onClick={(e) => {
+                      if (isPreview) {
+                        e.preventDefault();
+                      }
+                      e.stopPropagation();
+                    }}
+                    style={{ display: 'block', textDecoration: 'none', cursor: 'pointer' }}
+                  >
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      {product.imageUrl ? (
+                        <img
+                          src={product.imageUrl}
+                          alt={product.title}
+                          style={{
+                            width: '100%',
+                            height: '110px',
+                            objectFit: 'cover',
+                            borderRadius: '8px',
+                            background: '#f3f4f6'
+                          }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '100%',
+                          height: '110px',
+                          backgroundColor: '#f3f4f6',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '40px'
+                        }}>
+                          📦
+                        </div>
+                      )}
+                      {discountPercent > 0 && config.showDiscount && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '8px',
+                            left: '8px',
+                            background: '#10b981',
+                            color: 'white',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                          }}
+                        >
+                          {discountPercent}% off
+                        </div>
+                      )}
+                    </div>
+                  </a>
+
+                  {/* Clickable Product Title */}
+                  <a
+                    href={isPreview ? '#' : `/products/${product.handle}`}
+                    onClick={(e) => {
+                      if (isPreview) {
+                        e.preventDefault();
+                      }
+                      e.stopPropagation();
+                    }}
+                    style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
+                  >
+                    <h4
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: '500',
+                        color: '#111827',
+                        lineHeight: 1.3,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        margin: 0,
+                        textAlign: 'center'
+                      }}
+                    >
+                      {product.title}
+                    </h4>
+                  </a>
+
+                  {/* Individual Price Display */}
+                  {config.showIndividualPrices && (
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.375rem',
+                      flexWrap: 'wrap'
+                    }}>
+                      {product.compareAtPrice && config.showDiscount && (
+                        <span
+                          style={{
+                            textDecoration: 'line-through',
+                            color: '#9ca3af',
+                            fontSize: '0.6875rem',
+                            fontWeight: '400'
+                          }}
+                        >
+                          {formatMoney(product.compareAtPrice)}
+                        </span>
+                      )}
+                      <span
+                        style={{
+                          fontSize: '0.875rem',
+                          fontWeight: '700',
+                          color: '#111827'
+                        }}
+                      >
+                        {formatMoney(product.price)}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {index < recommendations.length - 1 && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.5rem',
-                    color: '#6b7280',
-                    fontWeight: '600',
-                    minWidth: '20px',
-                    flexShrink: 0
-                  }}
-                >
-                  +
-                </div>
-              )}
+              {
+                index < recommendations.length - 1 && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.5rem',
+                      color: '#6b7280',
+                      fontWeight: '600',
+                      minWidth: '24px',
+                      width: '24px',
+                      flexShrink: 0,
+                      alignSelf: 'center',
+                      margin: '0 8px'
+                    }}
+                  >
+                    +
+                  </div>
+                )
+              }
             </React.Fragment>
           );
         })}
@@ -508,7 +618,6 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
           {isAdding ? 'Adding...' : (config.buttonText || 'ADD TO CART')}
         </button>
       </div>
-    </div>
+    </div >
   );
 };
-

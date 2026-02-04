@@ -2,8 +2,6 @@
  * Cart operations module - handles adding, updating, and removing items
  */
 
-import { showNotification } from './utils.js';
-
 /**
  * Add product to cart by variant ID
  */
@@ -32,11 +30,11 @@ export async function addProductToCart(variantId, quantity = 1, loadCartCallback
 
       if (response.ok) {
         await loadCartCallback();
-        showNotification('Product added to cart!', 'success');
+        // showNotification('Product added to cart!', 'success');
       } else {
         const error = await response.json();
         console.error('Cart add error:', error);
-        showNotification(error.description || 'Failed to add product to cart', 'error');
+        // showNotification(error.description || 'Failed to add product to cart', 'error');
       }
     } else {
       // It's a product handle - fetch product and use first variant
@@ -44,7 +42,7 @@ export async function addProductToCart(variantId, quantity = 1, loadCartCallback
     }
   } catch (error) {
     console.error('Error adding product to cart:', error);
-    showNotification('Failed to add product to cart', 'error');
+    // showNotification('Failed to add product to cart', 'error');
   }
 }
 
@@ -73,12 +71,12 @@ export async function addProductToCartByHandle(productHandle, variantId, quantit
 
       if (response.ok) {
         await loadCartCallback();
-        showNotification('Product added to cart!', 'success');
+        // showNotification('Product added to cart!', 'success');
         return;
       } else {
         const error = await response.json();
         console.error('Failed to add product with numeric ID:', productHandle, error);
-        showNotification(error.description || error.message || 'Product not found', 'error');
+        // showNotification(error.description || error.message || 'Product not found', 'error');
         throw new Error(error.description || error.message || 'Product not found');
       }
     } else {
@@ -109,14 +107,14 @@ export async function addProductToCartByHandle(productHandle, variantId, quantit
     // Check if variant is available for purchase
     if (!variant.available) {
       console.warn('Product is not available:', product.title);
-      showNotification(`The product '${product.title}' is already sold out`, 'error');
+      // showNotification(`The product '${product.title}' is already sold out`, 'error');
       return;
     }
 
     // Check inventory quantity if available
     if (variant.inventory_management && variant.inventory_quantity !== null && variant.inventory_quantity <= 0) {
       console.warn('Product is out of stock:', product.title);
-      showNotification(`The product '${product.title}' is already sold out`, 'error');
+      // showNotification(`The product '${product.title}' is already sold out`, 'error');
       return;
     }
 
@@ -136,18 +134,18 @@ export async function addProductToCartByHandle(productHandle, variantId, quantit
 
     if (response.ok) {
       await loadCartCallback();
-      showNotification(`${product.title} added to cart!`, 'success');
+      // showNotification(`${product.title} added to cart!`, 'success');
     } else {
       const error = await response.json();
       console.error('Cart add failed:', error);
-      showNotification(error.description || error.message || 'Failed to add product to cart', 'error');
+      // showNotification(error.description || error.message || 'Failed to add product to cart', 'error');
     }
   } catch (error) {
     console.error('Error adding product to cart:', error);
     if (error.message && !error.message.includes('Failed to add')) {
-      showNotification(error.message, 'error');
+      // showNotification(error.message, 'error');
     } else {
-      showNotification('Failed to add product to cart', 'error');
+      // showNotification('Failed to add product to cart', 'error');
     }
   }
 }
@@ -157,7 +155,7 @@ export async function addProductToCartByHandle(productHandle, variantId, quantit
  */
 export async function updateQuantity(itemKey, newQuantity, loadCartCallback, renderCallback) {
   if (newQuantity < 0) {
-    showNotification('Quantity cannot be negative', 'error');
+    // showNotification('Quantity cannot be negative', 'error');
     return; // Return gracefully without throwing
   }
 
@@ -180,7 +178,7 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
       // Item not found in cart - might have been removed
       await loadCartCallback();
       renderCallback();
-      showNotification('Item not found in cart', 'error');
+      // showNotification('Item not found in cart', 'error');
       return;
     }
 
@@ -194,7 +192,7 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
     );
 
     if (isGift) {
-      showNotification('Gift items are automatically managed and cannot be modified', 'info');
+      // showNotification('Gift items are automatically managed and cannot be modified', 'info');
       await loadCartCallback();
       renderCallback();
       return;
@@ -234,7 +232,7 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
 
       // Only show success if we're not removing the item (quantity 0)
       if (newQuantity > 0) {
-        showNotification('Cart updated!', 'success');
+        // showNotification('Cart updated!', 'success');
       }
     } else {
       const error = await response.json();
@@ -249,9 +247,9 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
         if (newQuantity !== 0) {
           errorMessage = 'This product is out of stock';
         }
-        showNotification(errorMessage, 'error');
+        // showNotification(errorMessage, 'error');
       } else {
-        showNotification(errorMessage, 'error');
+        // showNotification(errorMessage, 'error');
       }
 
       // Don't throw - handle gracefully to prevent uncaught promise rejection
@@ -266,7 +264,7 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
     renderCallback();
 
     // Show generic error notification
-    showNotification('Failed to update cart', 'error');
+    // showNotification('Failed to update cart', 'error');
 
     // Don't throw error - handle gracefully to prevent uncaught promise rejection
   } finally {
@@ -301,7 +299,7 @@ export async function removeItem(itemKey, loadCartCallback, renderCallback) {
         );
 
         if (isGift) {
-          showNotification('Gift items are automatically managed and cannot be removed manually', 'info');
+          // showNotification('Gift items are automatically managed and cannot be removed manually', 'info');
           await loadCartCallback();
           renderCallback();
           return;
@@ -326,14 +324,14 @@ export async function removeItem(itemKey, loadCartCallback, renderCallback) {
       await loadCartCallback(result);
       renderCallback();
 
-      showNotification('Item removed from cart', 'success');
+      // showNotification('Item removed from cart', 'success');
     } else {
       const error = await response.json();
-      showNotification(error.description || 'Failed to remove item', 'error');
+      // showNotification(error.description || 'Failed to remove item', 'error');
     }
   } catch (error) {
     console.error('Error removing item:', error);
-    showNotification('Failed to remove item', 'error');
+    // showNotification('Failed to remove item', 'error');
   } finally {
     if (cartItem) {
       cartItem.classList.remove('upsellity-loading');

@@ -114,8 +114,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             };
           });
 
-          // Hard maximum of 4 recommendations (parent + 4 = 5 total products)
-          const maxRecommendations = 4;
+          // Use configured maximum (default 4)
+          const maxRecommendations = (fbtConfig as any).maxUpsellsShown || 4;
           recommendations = recommendations.slice(0, maxRecommendations);
 
         }
@@ -163,8 +163,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         algorithm: fbtConfig.algorithm,
         useSmartVariantMatching: fbtConfig.useSmartVariantMatching,
         showOfferIfInCart: fbtConfig.showOfferIfInCart,
-        limitUpsellsInCart: fbtConfig.limitUpsellsInCart,
-        maxUpsellsInCart: fbtConfig.maxUpsellsInCart,
+        maxUpsellsShown: (fbtConfig as any).maxUpsellsShown || 4,
         // Bundle metadata for Discount Function
         bundleMetadata: matchingRule ? {
           ruleId: matchingRule.id,

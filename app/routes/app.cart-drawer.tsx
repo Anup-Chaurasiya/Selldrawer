@@ -834,7 +834,6 @@ function MiniCartDrawerPreview({
                 image: item.image
               }))}
               productCompareAtPrices={{}}
-              appliedDiscount={null}
               onUpdateQuantity={() => { }}
               onRemoveItem={() => { }}
               isPreview={true}
@@ -855,7 +854,6 @@ function MiniCartDrawerPreview({
               quantity: sampleCart.itemCount
             }]}
             totalPrice={Math.round(sampleCart.total * 100)} // Convert to cents
-            appliedDiscount={null}
             config={cartTotalsConfig ? {
               showOriginalPrice: cartTotalsConfig.showOriginalPrice,
               showItemDiscounts: cartTotalsConfig.showItemDiscounts,

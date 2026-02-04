@@ -16,18 +16,25 @@ export const NudgeAddTogetherWidgetWrapper = ({
   isVisible = true
 }) => {
   const [selectedProducts, setSelectedProducts] = useState(new Set());
+  const checkboxMode = config.checkboxMode !== false; // Default to true if undefined
 
-  const handleProductClick = (product) => {
-    // Toggle selection instead of immediately adding
-    setSelectedProducts(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(product.id)) {
-        newSet.delete(product.id);
-      } else {
-        newSet.add(product.id);
-      }
-      return newSet;
-    });
+
+  const handleProductClick = async (product) => {
+    if (checkboxMode) {
+      // Toggle selection instead of immediately adding
+      setSelectedProducts(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(product.id)) {
+          newSet.delete(product.id);
+        } else {
+          newSet.add(product.id);
+        }
+        return newSet;
+      });
+    } else {
+      // Immediate add for single product
+      await handleAddSelected([product]);
+    }
   };
 
   const handleSelectAllCheckbox = () => {
@@ -41,15 +48,15 @@ export const NudgeAddTogetherWidgetWrapper = ({
 
   const handleAddSelected = async (selectedProductsArray) => {
     if (!onAddSelected) return;
-    
+
     // onSelectAll is called with filtered array from NudgeWidget
     // Use that array directly
-    const selected = selectedProductsArray && selectedProductsArray.length > 0 
-      ? selectedProductsArray 
+    const selected = selectedProductsArray && selectedProductsArray.length > 0
+      ? selectedProductsArray
       : recommendations.filter(p => selectedProducts.has(p.id));
-    
+
     if (selected.length === 0) return;
-    
+
     await onAddSelected(selected);
   };
 
@@ -104,7 +111,7 @@ export const NudgeAddTogetherWidgetWrapper = ({
       )}
 
       {/* Select All Checkbox */}
-      {recommendations.length > 0 && (
+      {checkboxMode && recommendations.length > 0 && (
         <div style={{
           width: '100%',
           marginBottom: '1rem',
@@ -152,7 +159,7 @@ export const NudgeAddTogetherWidgetWrapper = ({
         onSelectAll={handleAddSelected} // Add selected products
         isVisible={isVisible}
         isPreview={false}
-        checkboxMode={true}
+        checkboxMode={checkboxMode}
         selectedProductIds={selectedProducts}
       />
     </div>

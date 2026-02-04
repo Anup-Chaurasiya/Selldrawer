@@ -390,7 +390,9 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                     background: '#ffffff',
                     transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
                     width: config.layout === 'carousel' ? '200px' : '100%',
-                    height: '320px',
+                    // removed fixed height to allow flex stretch to handle height
+                    minHeight: '320px',
+                    height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
                     cursor: isPreview ? 'default' : 'pointer',
@@ -475,7 +477,8 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                         textOverflow: 'ellipsis',
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical' as const
+                        WebkitBoxOrient: 'vertical' as const,
+                        marginBottom: '0.25rem' // Reduced margin
                       }}
                     >
                       {product.title}
@@ -487,11 +490,15 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                         style={{
                           fontSize: '0.75em',
                           color: '#6b7280',
-                          margin: '0 0 0.75rem 0',
-                          lineHeight: 1.5
+                          margin: '0 0 0.5rem 0', // Reduced margin
+                          lineHeight: 1.4,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          maxWidth: '100%'
                         }}
                       >
-                        {stripHtml(product.description).substring(0, 100)}...
+                        {stripHtml(product.description)}
                       </p>
                     )}
 
@@ -502,8 +509,8 @@ export const NudgeWidget: React.FC<NudgeWidgetProps> = ({
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.5rem',
-                          marginTop: 'auto',
-                          paddingTop: '0.5rem'
+                          marginTop: 'auto', // Push to bottom for alignment
+                          paddingTop: '0.5rem' // Restore some padding
                         }}
                       >
                         {config.showProductComparePrice && product.compareAtPrice && product.compareAtPrice > product.price && (

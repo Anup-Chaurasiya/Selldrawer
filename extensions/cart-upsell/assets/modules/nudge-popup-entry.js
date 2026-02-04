@@ -8,7 +8,7 @@ import { createRoot } from 'react-dom/client';
 import { NudgeWidget } from '../../../../app/components/shared/NudgeWidget.tsx';
 import { Analytics } from './analytics.js';
 import { cartOps } from './cart-operations-enhanced.js';
-import { showNotification } from './utils.js';
+// import { showNotification } from './utils.js';
 
 
 // App URL is injected at build time from config.js
@@ -552,7 +552,7 @@ class NudgePopup {
                 }
               } catch (error) {
                 console.error('Error adding original product:', error);
-                showNotification('Failed to add product to cart. Please try again.', 'error', 5000);
+                // showNotification('Failed to add product to cart. Please try again.', 'error', 5000);
               }
             }
           }
@@ -602,11 +602,11 @@ class NudgePopup {
       // Clean up popup
       this.cleanupPopup();
 
-      showNotification(
-        error.message || 'Failed to update cart. Please try again.',
-        'error',
-        5000
-      );
+      // showNotification(
+      //   error.message || 'Failed to update cart. Please try again.',
+      //   'error',
+      //   5000
+      // );
 
       // If checkout trigger, still try to proceed
       if (shouldRedirectToCheckout) {
@@ -743,11 +743,11 @@ class NudgePopup {
 
       // Notify user if some products failed
       if (failedProducts.length > 0) {
-        showNotification(
-          `Some products could not be added: ${failedProducts.join(', ')}`,
-          'error',
-          5000
-        );
+        // showNotification(
+        //   `Some products could not be added: ${failedProducts.join(', ')}`,
+        //   'error',
+        //   5000
+        // );
       }
 
       // Wait for cart to be ready
@@ -781,11 +781,11 @@ class NudgePopup {
       // Clean up popup
       this.cleanupPopup();
 
-      showNotification(
-        error.message || 'Failed to update cart. Please try again.',
-        'error',
-        5000
-      );
+      // showNotification(
+      //   error.message || 'Failed to update cart. Please try again.',
+      //   'error',
+      //   5000
+      // );
 
       // If checkout trigger, still try to proceed
       if (shouldRedirectToCheckout) {

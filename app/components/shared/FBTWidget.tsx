@@ -21,8 +21,7 @@ interface FBTConfig {
   showProductReviews?: boolean;
   discountType?: 'percentage' | 'fixed';
   discountValue?: number;
-  limitUpsellsInCart?: boolean;
-  maxUpsellsInCart?: number;
+  maxUpsellsShown?: number;
 }
 
 interface FBTWidgetProps {
@@ -61,8 +60,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
     if (initialSelectedIds) {
       initialSelectedIds.forEach(id => initial.add(id));
     } else {
-      recommendations.slice(0, config.maxUpsellsInCart || recommendations.length)
-        .forEach(r => initial.add(r.variantId || r.id));
+      recommendations.forEach(r => initial.add(r.variantId || r.id));
     }
 
     return initial;
@@ -84,9 +82,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
     }
   }, [onImpression, isPreview, recommendations.length]);
 
-  const maxUpsells = config.limitUpsellsInCart && config.maxUpsellsInCart
-    ? config.maxUpsellsInCart
-    : null;
+  const maxUpsells = null;
 
   // Check if we should show mobile carousel
   useEffect(() => {
@@ -164,12 +160,6 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
     const newSelected = new Set(selectedProducts);
 
     if (checked) {
-      // Check if we're at the limit (not counting parent product)
-      const nonParentCount = Array.from(newSelected).filter(id => id !== parentVariantId).length;
-      if (maxUpsells !== null && nonParentCount >= maxUpsells) {
-        showLimitMessage(maxUpsells);
-        return;
-      }
       newSelected.add(variantId);
     } else {
       newSelected.delete(variantId);
@@ -179,34 +169,6 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
     if (onSelectionChange) {
       onSelectionChange(newSelected);
     }
-  };
-
-  const showLimitMessage = (max: number) => {
-    // Only run in browser
-    if (typeof window === 'undefined' || typeof document === 'undefined') return;
-
-    const messageDiv = document.createElement('div');
-    messageDiv.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #fef3c7;
-      border: 1px solid #f59e0b;
-      color: #92400e;
-      padding: 12px 16px;
-      border-radius: 6px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      z-index: 10000;
-      font-size: 14px;
-      font-weight: 500;
-    `;
-    messageDiv.textContent = `Maximum ${max} upsell product${max > 1 ? 's' : ''} can be selected.`;
-
-    document.body.appendChild(messageDiv);
-
-    setTimeout(() => {
-      messageDiv.remove();
-    }, 3000);
   };
 
   // Helper function to convert price to number
@@ -332,7 +294,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
   // Show discount if:
   // 1. FBT bundle discount is configured (discountType and discountValue exist)
   // 2. OR if there are compareAtPrice differences
-  const hasFBTDiscount = config.discountType && config.discountValue && bundleTotal > total;
+  const hasFBTDiscount = Boolean(config.discountType && config.discountValue && bundleTotal > total);
   const hasCompareAtDiscount = config.showDiscount && originalTotal > bundleTotal;
   const hasDiscount = hasFBTDiscount || hasCompareAtDiscount;
 
@@ -620,8 +582,6 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
           selectedProducts={selectedProducts}
           config={config}
           handleToggle={handleToggle}
-          isPreview={isPreview}
-          isAtLimit={isAtLimit}
         />
       );
     }
