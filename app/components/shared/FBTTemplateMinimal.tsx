@@ -119,70 +119,116 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
                     gap: '0.375rem'
                   }}
                 >
-                  <div style={{ position: 'relative', width: '100%' }}>
-                    {parentProduct.imageUrl ? (
-                      <img
-                        src={parentProduct.imageUrl}
-                        alt={parentProduct.title}
-                        style={{
-                          width: '100%',
-                          height: '110px',
-                          objectFit: 'cover',
-                          borderRadius: '8px',
-                          background: '#f3f4f6'
-                        }}
-                      />
-                    ) : (
-                      <div style={{
-                        width: '100%',
-                        height: '110px',
-                        backgroundColor: '#f3f4f6',
-                        borderRadius: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '40px'
-                      }}>
-                        📦
-                      </div>
-                    )}
-                    {discountPercent > 0 && config.showDiscount && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '8px',
-                          left: '8px',
-                          background: '#10b981',
-                          color: 'white',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          fontSize: '0.75rem',
-                          fontWeight: '600',
-                          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                        }}
-                      >
-                        {discountPercent}% off
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Product Title */}
-                  <h4
+                  {/* Disabled Checkbox for visual consistency */}
+                  <div
                     style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '4px',
+                      background: '#3b82f6',
+                      border: '2px solid #3b82f6',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       fontSize: '0.75rem',
-                      fontWeight: '500',
-                      color: '#111827',
-                      lineHeight: 1.3,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      margin: 0,
-                      textAlign: 'center'
+                      fontWeight: '700',
+                      zIndex: 15,
+                      cursor: 'not-allowed',
+                      opacity: 0.9
                     }}
                   >
-                    {parentProduct.title}
-                  </h4>
+                    ✓
+                  </div>
+
+                  {/* Clickable Product Image */}
+                  <a
+                    href={isPreview ? '#' : `/products/${parentProduct.handle}`}
+                    onClick={(e) => {
+                      if (isPreview) {
+                        e.preventDefault();
+                      }
+                    }}
+                    style={{ display: 'block', textDecoration: 'none', cursor: 'pointer' }}
+                  >
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      {parentProduct.imageUrl ? (
+                        <img
+                          src={parentProduct.imageUrl}
+                          alt={parentProduct.title}
+                          style={{
+                            width: '100%',
+                            height: '110px',
+                            objectFit: 'cover',
+                            borderRadius: '8px',
+                            background: '#f3f4f6'
+                          }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '100%',
+                          height: '110px',
+                          backgroundColor: '#f3f4f6',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '40px'
+                        }}>
+                          📦
+                        </div>
+                      )}
+                      {discountPercent > 0 && config.showDiscount && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '8px',
+                            left: '8px',
+                            background: '#10b981',
+                            color: 'white',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                          }}
+                        >
+                          {discountPercent}% off
+                        </div>
+                      )}
+                    </div>
+                  </a>
+
+                  {/* Clickable Product Title */}
+                  <a
+                    href={isPreview ? '#' : `/products/${parentProduct.handle}`}
+                    onClick={(e) => {
+                      if (isPreview) {
+                        e.preventDefault();
+                      }
+                    }}
+                    style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
+                  >
+                    <h4
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: '500',
+                        color: '#111827',
+                        lineHeight: 1.3,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        margin: 0,
+                        textAlign: 'center'
+                      }}
+                    >
+                      {parentProduct.title}
+                    </h4>
+                  </a>
 
                   {/* Individual Price Display */}
                   {config.showIndividualPrices && (
@@ -253,7 +299,7 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
                   width: '24px',
                   flexShrink: 0,
                   alignSelf: 'center',
-                  margin: '0 12px'
+                  margin: '0 8px'
                 }}
               >
                 +
@@ -285,79 +331,132 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
                     background: '#f9fafb',
                     transition: 'all 0.2s',
                     opacity: isDisabled ? 0.5 : 1,
-                    cursor: 'pointer',
+                    cursor: 'default',
                     position: 'relative',
                     boxShadow: isSelected ? '0 6px 14px rgba(16, 185, 129, 0.15)' : '0 4px 10px rgba(15, 23, 42, 0.08)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '0.375rem'
                   }}
-                  onClick={() => !isDisabled && handleToggle(variantId, !isSelected)}
                 >
-                  <div style={{ position: 'relative', width: '100%' }}>
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.title}
-                        style={{
-                          width: '100%',
-                          height: '110px',
-                          objectFit: 'cover',
-                          borderRadius: '8px',
-                          background: '#f3f4f6'
-                        }}
-                      />
-                    ) : (
-                      <div style={{
-                        width: '100%',
-                        height: '110px',
-                        backgroundColor: '#f3f4f6',
-                        borderRadius: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '40px'
-                      }}>
-                        📦
-                      </div>
-                    )}
-                    {discountPercent > 0 && config.showDiscount && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '8px',
-                          left: '8px',
-                          background: '#10b981',
-                          color: 'white',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          fontSize: '0.75rem',
-                          fontWeight: '600',
-                          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                        }}
-                      >
-                        {discountPercent}% off
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Product Title */}
-                  <h4
+                  {/* Checkbox for selection */}
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!isDisabled) {
+                        handleToggle(variantId, !isSelected);
+                      }
+                    }}
                     style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '4px',
+                      background: isSelected ? '#10b981' : 'white',
+                      border: `2px solid ${isSelected ? '#10b981' : '#d1d5db'}`,
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       fontSize: '0.75rem',
-                      fontWeight: '500',
-                      color: '#111827',
-                      lineHeight: 1.3,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      margin: 0,
-                      textAlign: 'center'
+                      fontWeight: '700',
+                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                      zIndex: 15,
+                      transition: 'all 0.2s'
                     }}
                   >
-                    {product.title}
-                  </h4>
+                    {isSelected && '✓'}
+                  </div>
+
+                  {/* Clickable Product Image */}
+                  <a
+                    href={isPreview ? '#' : `/products/${product.handle}`}
+                    onClick={(e) => {
+                      if (isPreview) {
+                        e.preventDefault();
+                      }
+                      e.stopPropagation();
+                    }}
+                    style={{ display: 'block', textDecoration: 'none', cursor: 'pointer' }}
+                  >
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      {product.imageUrl ? (
+                        <img
+                          src={product.imageUrl}
+                          alt={product.title}
+                          style={{
+                            width: '100%',
+                            height: '110px',
+                            objectFit: 'cover',
+                            borderRadius: '8px',
+                            background: '#f3f4f6'
+                          }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '100%',
+                          height: '110px',
+                          backgroundColor: '#f3f4f6',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '40px'
+                        }}>
+                          📦
+                        </div>
+                      )}
+                      {discountPercent > 0 && config.showDiscount && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '8px',
+                            left: '8px',
+                            background: '#10b981',
+                            color: 'white',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                          }}
+                        >
+                          {discountPercent}% off
+                        </div>
+                      )}
+                    </div>
+                  </a>
+
+                  {/* Clickable Product Title */}
+                  <a
+                    href={isPreview ? '#' : `/products/${product.handle}`}
+                    onClick={(e) => {
+                      if (isPreview) {
+                        e.preventDefault();
+                      }
+                      e.stopPropagation();
+                    }}
+                    style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
+                  >
+                    <h4
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: '500',
+                        color: '#111827',
+                        lineHeight: 1.3,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        margin: 0,
+                        textAlign: 'center'
+                      }}
+                    >
+                      {product.title}
+                    </h4>
+                  </a>
 
                   {/* Individual Price Display */}
                   {config.showIndividualPrices && (
@@ -392,28 +491,6 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
                       </span>
                     </div>
                   )}
-
-                  {isSelected && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '4px',
-                        right: '4px',
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        background: '#10b981',
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.75rem',
-                        fontWeight: '600'
-                      }}
-                    >
-                      ✓
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -431,7 +508,7 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
                       width: '24px',
                       flexShrink: 0,
                       alignSelf: 'center',
-                      margin: '0 12px'
+                      margin: '0 8px'
                     }}
                   >
                     +

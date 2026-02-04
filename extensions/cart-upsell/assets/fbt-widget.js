@@ -1,6 +1,6 @@
 /**
  * Upsellity FBT Widget v1.0.11
- * Built: 2026-02-03T15:06:57.757Z
+ * Built: 2026-02-04T12:36:24.880Z
  */
 "use strict";
 (() => {
@@ -8177,68 +8177,117 @@
                             gap: "0.375rem"
                           },
                           children: [
-                            /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative", width: "100%" }, children: [
-                              parentProduct.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                                "img",
-                                {
-                                  src: parentProduct.imageUrl,
-                                  alt: parentProduct.title,
-                                  style: {
-                                    width: "100%",
-                                    height: "110px",
-                                    objectFit: "cover",
-                                    borderRadius: "8px",
-                                    background: "#f3f4f6"
-                                  }
-                                }
-                              ) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-                                width: "100%",
-                                height: "110px",
-                                backgroundColor: "#f3f4f6",
-                                borderRadius: "8px",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontSize: "40px"
-                              }, children: "\u{1F4E6}" }),
-                              discountPercent > 0 && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                                "div",
-                                {
-                                  style: {
-                                    position: "absolute",
-                                    top: "8px",
-                                    left: "8px",
-                                    background: "#10b981",
-                                    color: "white",
-                                    padding: "4px 8px",
-                                    borderRadius: "4px",
-                                    fontSize: "0.75rem",
-                                    fontWeight: "600",
-                                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
-                                  },
-                                  children: [
-                                    discountPercent,
-                                    "% off"
-                                  ]
-                                }
-                              )
-                            ] }),
                             /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                              "h4",
+                              "div",
                               {
                                 style: {
+                                  position: "absolute",
+                                  top: "8px",
+                                  right: "8px",
+                                  width: "20px",
+                                  height: "20px",
+                                  borderRadius: "4px",
+                                  background: "#3b82f6",
+                                  border: "2px solid #3b82f6",
+                                  color: "white",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
                                   fontSize: "0.75rem",
-                                  fontWeight: "500",
-                                  color: "#111827",
-                                  lineHeight: 1.3,
-                                  display: "-webkit-box",
-                                  WebkitLineClamp: 2,
-                                  WebkitBoxOrient: "vertical",
-                                  overflow: "hidden",
-                                  margin: 0,
-                                  textAlign: "center"
+                                  fontWeight: "700",
+                                  zIndex: 15,
+                                  cursor: "not-allowed",
+                                  opacity: 0.9
                                 },
-                                children: parentProduct.title
+                                children: "\u2713"
+                              }
+                            ),
+                            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                              "a",
+                              {
+                                href: isPreview ? "#" : `/products/${parentProduct.handle}`,
+                                onClick: (e) => {
+                                  if (isPreview) {
+                                    e.preventDefault();
+                                  }
+                                },
+                                style: { display: "block", textDecoration: "none", cursor: "pointer" },
+                                children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative", width: "100%" }, children: [
+                                  parentProduct.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                                    "img",
+                                    {
+                                      src: parentProduct.imageUrl,
+                                      alt: parentProduct.title,
+                                      style: {
+                                        width: "100%",
+                                        height: "110px",
+                                        objectFit: "cover",
+                                        borderRadius: "8px",
+                                        background: "#f3f4f6"
+                                      }
+                                    }
+                                  ) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                                    width: "100%",
+                                    height: "110px",
+                                    backgroundColor: "#f3f4f6",
+                                    borderRadius: "8px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "40px"
+                                  }, children: "\u{1F4E6}" }),
+                                  discountPercent > 0 && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                                    "div",
+                                    {
+                                      style: {
+                                        position: "absolute",
+                                        top: "8px",
+                                        left: "8px",
+                                        background: "#10b981",
+                                        color: "white",
+                                        padding: "4px 8px",
+                                        borderRadius: "4px",
+                                        fontSize: "0.75rem",
+                                        fontWeight: "600",
+                                        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
+                                      },
+                                      children: [
+                                        discountPercent,
+                                        "% off"
+                                      ]
+                                    }
+                                  )
+                                ] })
+                              }
+                            ),
+                            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                              "a",
+                              {
+                                href: isPreview ? "#" : `/products/${parentProduct.handle}`,
+                                onClick: (e) => {
+                                  if (isPreview) {
+                                    e.preventDefault();
+                                  }
+                                },
+                                style: { textDecoration: "none", color: "inherit", cursor: "pointer" },
+                                children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                                  "h4",
+                                  {
+                                    style: {
+                                      fontSize: "0.75rem",
+                                      fontWeight: "500",
+                                      color: "#111827",
+                                      lineHeight: 1.3,
+                                      display: "-webkit-box",
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: "vertical",
+                                      overflow: "hidden",
+                                      margin: 0,
+                                      textAlign: "center"
+                                    },
+                                    children: parentProduct.title
+                                  }
+                                )
                               }
                             ),
                             config.showIndividualPrices && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
@@ -8312,7 +8361,7 @@
                           width: "24px",
                           flexShrink: 0,
                           alignSelf: "center",
-                          margin: "0 12px"
+                          margin: "0 8px"
                         },
                         children: "+"
                       }
@@ -8338,77 +8387,133 @@
                           background: "#f9fafb",
                           transition: "all 0.2s",
                           opacity: isDisabled ? 0.5 : 1,
-                          cursor: "pointer",
+                          cursor: "default",
                           position: "relative",
                           boxShadow: isSelected ? "0 6px 14px rgba(16, 185, 129, 0.15)" : "0 4px 10px rgba(15, 23, 42, 0.08)",
                           display: "flex",
                           flexDirection: "column",
                           gap: "0.375rem"
                         },
-                        onClick: () => !isDisabled && handleToggle(variantId, !isSelected),
                         children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative", width: "100%" }, children: [
-                            product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                              "img",
-                              {
-                                src: product.imageUrl,
-                                alt: product.title,
-                                style: {
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                            "div",
+                            {
+                              onClick: (e) => {
+                                e.stopPropagation();
+                                if (!isDisabled) {
+                                  handleToggle(variantId, !isSelected);
+                                }
+                              },
+                              style: {
+                                position: "absolute",
+                                top: "8px",
+                                right: "8px",
+                                width: "20px",
+                                height: "20px",
+                                borderRadius: "4px",
+                                background: isSelected ? "#10b981" : "white",
+                                border: `2px solid ${isSelected ? "#10b981" : "#d1d5db"}`,
+                                color: "white",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "0.75rem",
+                                fontWeight: "700",
+                                cursor: isDisabled ? "not-allowed" : "pointer",
+                                zIndex: 15,
+                                transition: "all 0.2s"
+                              },
+                              children: isSelected && "\u2713"
+                            }
+                          ),
+                          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                            "a",
+                            {
+                              href: isPreview ? "#" : `/products/${product.handle}`,
+                              onClick: (e) => {
+                                if (isPreview) {
+                                  e.preventDefault();
+                                }
+                                e.stopPropagation();
+                              },
+                              style: { display: "block", textDecoration: "none", cursor: "pointer" },
+                              children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative", width: "100%" }, children: [
+                                product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                                  "img",
+                                  {
+                                    src: product.imageUrl,
+                                    alt: product.title,
+                                    style: {
+                                      width: "100%",
+                                      height: "110px",
+                                      objectFit: "cover",
+                                      borderRadius: "8px",
+                                      background: "#f3f4f6"
+                                    }
+                                  }
+                                ) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
                                   width: "100%",
                                   height: "110px",
-                                  objectFit: "cover",
+                                  backgroundColor: "#f3f4f6",
                                   borderRadius: "8px",
-                                  background: "#f3f4f6"
-                                }
-                              }
-                            ) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-                              width: "100%",
-                              height: "110px",
-                              backgroundColor: "#f3f4f6",
-                              borderRadius: "8px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: "40px"
-                            }, children: "\u{1F4E6}" }),
-                            discountPercent > 0 && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                              "div",
-                              {
-                                style: {
-                                  position: "absolute",
-                                  top: "8px",
-                                  left: "8px",
-                                  background: "#10b981",
-                                  color: "white",
-                                  padding: "4px 8px",
-                                  borderRadius: "4px",
-                                  fontSize: "0.75rem",
-                                  fontWeight: "600",
-                                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
-                                },
-                                children: [
-                                  discountPercent,
-                                  "% off"
-                                ]
-                              }
-                            )
-                          ] }),
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontSize: "40px"
+                                }, children: "\u{1F4E6}" }),
+                                discountPercent > 0 && config.showDiscount && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                                  "div",
+                                  {
+                                    style: {
+                                      position: "absolute",
+                                      top: "8px",
+                                      left: "8px",
+                                      background: "#10b981",
+                                      color: "white",
+                                      padding: "4px 8px",
+                                      borderRadius: "4px",
+                                      fontSize: "0.75rem",
+                                      fontWeight: "600",
+                                      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
+                                    },
+                                    children: [
+                                      discountPercent,
+                                      "% off"
+                                    ]
+                                  }
+                                )
+                              ] })
+                            }
+                          ),
                           /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                            "h4",
+                            "a",
                             {
-                              style: {
-                                fontSize: "0.75rem",
-                                fontWeight: "500",
-                                color: "#111827",
-                                lineHeight: 1.3,
-                                display: "-webkit-box",
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: "vertical",
-                                overflow: "hidden",
-                                margin: 0,
-                                textAlign: "center"
+                              href: isPreview ? "#" : `/products/${product.handle}`,
+                              onClick: (e) => {
+                                if (isPreview) {
+                                  e.preventDefault();
+                                }
+                                e.stopPropagation();
                               },
-                              children: product.title
+                              style: { textDecoration: "none", color: "inherit", cursor: "pointer" },
+                              children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                                "h4",
+                                {
+                                  style: {
+                                    fontSize: "0.75rem",
+                                    fontWeight: "500",
+                                    color: "#111827",
+                                    lineHeight: 1.3,
+                                    display: "-webkit-box",
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: "vertical",
+                                    overflow: "hidden",
+                                    margin: 0,
+                                    textAlign: "center"
+                                  },
+                                  children: product.title
+                                }
+                              )
                             }
                           ),
                           config.showIndividualPrices && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
@@ -8442,28 +8547,7 @@
                                 children: formatMoney(product.price)
                               }
                             )
-                          ] }),
-                          isSelected && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                            "div",
-                            {
-                              style: {
-                                position: "absolute",
-                                top: "4px",
-                                right: "4px",
-                                width: "20px",
-                                height: "20px",
-                                borderRadius: "50%",
-                                background: "#10b981",
-                                color: "white",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontSize: "0.75rem",
-                                fontWeight: "600"
-                              },
-                              children: "\u2713"
-                            }
-                          )
+                          ] })
                         ]
                       }
                     ) }),
@@ -8481,7 +8565,7 @@
                           width: "24px",
                           flexShrink: 0,
                           alignSelf: "center",
-                          margin: "0 12px"
+                          margin: "0 8px"
                         },
                         children: "+"
                       }
@@ -9375,7 +9459,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://specifically-sci-stamps-patrick.trycloudflare.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://singh-site-pipes-blogs.trycloudflare.com" : "https://app.upsellity.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;
