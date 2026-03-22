@@ -15,13 +15,13 @@ function getConfig() {
 
     return {
       version: versionMatch ? versionMatch[1] : '1.0.0',
-      appUrl: appUrlMatch ? appUrlMatch[1] : 'https://app.upsellity.com'
+      appUrl: appUrlMatch ? appUrlMatch[1] : 'https://app.selldrawer.com'
     };
   } catch (error) {
     console.warn('⚠️ Could not read config.js, using defaults');
     return {
       version: '1.0.0',
-      appUrl: 'https://app.upsellity.com'
+      appUrl: 'https://app.selldrawer.com'
     };
   }
 }
@@ -63,7 +63,7 @@ async function build() {
     // Add version banner to cart-drawer
     const cartDrawerFile = join(__dirname, 'assets/cart-drawer.js');
     const cartDrawerContent = readFileSync(cartDrawerFile, 'utf-8');
-    const cartDrawerBanner = `/**\n * Upsellity Cart Drawer v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
+    const cartDrawerBanner = `/**\n * Selldrawer Cart Drawer v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
     writeFileSync(cartDrawerFile, cartDrawerBanner + cartDrawerContent);
 
 
@@ -97,7 +97,7 @@ async function build() {
     // Add version banner to fbt-widget
     const fbtWidgetFile = join(__dirname, 'assets/fbt-widget.js');
     const fbtWidgetContent = readFileSync(fbtWidgetFile, 'utf-8');
-    const fbtWidgetBanner = `/**\n * Upsellity FBT Widget v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
+    const fbtWidgetBanner = `/**\n * Selldrawer FBT Widget v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
     writeFileSync(fbtWidgetFile, fbtWidgetBanner + fbtWidgetContent);
 
 
@@ -131,7 +131,7 @@ async function build() {
     // Add version banner to nudge-popup
     const nudgePopupFile = join(__dirname, 'assets/nudge-popup.js');
     const nudgePopupContent = readFileSync(nudgePopupFile, 'utf-8');
-    const nudgePopupBanner = `/**\n * Upsellity Nudge Popup v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
+    const nudgePopupBanner = `/**\n * Selldrawer Nudge Popup v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
     writeFileSync(nudgePopupFile, nudgePopupBanner + nudgePopupContent);
 
 
@@ -165,7 +165,7 @@ async function build() {
     // Add version banner to nudge-add-together
     const nudgeAddTogetherFile = join(__dirname, 'assets/nudge-add-together.js');
     const nudgeAddTogetherContent = readFileSync(nudgeAddTogetherFile, 'utf-8');
-    const nudgeAddTogetherBanner = `/**\n * Upsellity Nudge Add Together v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
+    const nudgeAddTogetherBanner = `/**\n * Selldrawer Nudge Add Together v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
     writeFileSync(nudgeAddTogetherFile, nudgeAddTogetherBanner + nudgeAddTogetherContent);
 
 
@@ -199,7 +199,7 @@ async function build() {
     // Add version banner to promotional-banner
     const promotionalBannerFile = join(__dirname, 'assets/promotional-banner.js');
     const promotionalBannerContent = readFileSync(promotionalBannerFile, 'utf-8');
-    const promotionalBannerBanner = `/**\n * Upsellity Promotional Banner Block v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
+    const promotionalBannerBanner = `/**\n * Selldrawer Promotional Banner Block v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
     writeFileSync(promotionalBannerFile, promotionalBannerBanner + promotionalBannerContent);
 
 
@@ -233,7 +233,7 @@ async function build() {
     // Add version banner to milestone-block
     const milestoneBlockFile = join(__dirname, 'assets/milestone-block.js');
     const milestoneBlockContent = readFileSync(milestoneBlockFile, 'utf-8');
-    const milestoneBlockBanner = `/**\n * Upsellity Milestone Block v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
+    const milestoneBlockBanner = `/**\n * Selldrawer Milestone Block v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
     writeFileSync(milestoneBlockFile, milestoneBlockBanner + milestoneBlockContent);
 
 
@@ -268,7 +268,7 @@ async function build() {
     const giftBlockFile = join(__dirname, 'assets/gift-block.js');
     const giftBlockContent = readFileSync(giftBlockFile, 'utf-8');
     const giftBlockBanner = `/**
- * Upsellity Gifting Block v${version}
+ * Selldrawer Gifting Block v${version}
  * Built: ${new Date().toISOString()}
  */
 `;

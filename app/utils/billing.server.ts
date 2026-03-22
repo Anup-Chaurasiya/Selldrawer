@@ -10,7 +10,7 @@ export async function requireBilling(billing: any): Promise<string | null> {
   
   if (!hasActivePayment) {
     const isDev = process.env.NODE_ENV === "development";
-    const appHandle = isDev ? "upsellity-ai-dev" : "upsellity-ai";
+    const appHandle = isDev ? "selldrawer-ai-dev" : "selldrawer-ai";
     return `https://admin.shopify.com/charges/${appHandle}/pricing_plans`;
   }
   
@@ -22,7 +22,7 @@ export async function requireBilling(billing: any): Promise<string | null> {
  */
 export function getPlanSelectionUrl(): string {
   const isDev = process.env.NODE_ENV === "development";
-  const appHandle = isDev ? "upsellity-ai-dev" : "upsellity-ai";
+  const appHandle = isDev ? "selldrawer-ai-dev" : "selldrawer-ai";
   return `https://admin.shopify.com/charges/${appHandle}/pricing_plans`;
 }
 

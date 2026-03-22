@@ -7,7 +7,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { PromotionalBannerCard } from '../../../../../app/components/shared/PromotionalBannerCard.tsx';
 
-const CONTAINER_ID = 'upsellity-promo-banner-root';
+const CONTAINER_ID = 'selldrawer-promo-banner-root';
 
 export function renderPromotionalBanner(config, reactRoots = {}) {
   if (!config.features.promotionalBanner) {
@@ -36,8 +36,8 @@ export function renderPromotionalBanner(config, reactRoots = {}) {
       ctaBackgroundColor: banner.ctaBackgroundColor || '#f3f4f6',
       borderColor: banner.borderColor || '#e5e7eb',
       onCtaClick: (url) => {
-        if (url && window.upsellityDrawer) {
-          window.upsellityDrawer.handleSlideCtaClick(url);
+        if (url && window.selldrawerDrawer) {
+          window.selldrawerDrawer.handleSlideCtaClick(url);
         }
       },
       isPreview: false

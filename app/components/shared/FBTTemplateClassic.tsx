@@ -25,7 +25,7 @@ export const FBTTemplateClassic: React.FC<FBTTemplateClassicProps> = ({
 }) => {
   return (
     <div
-      className="upsellity-fbt-template-classic"
+      className="selldrawer-fbt-template-classic"
       style={{
         display: 'flex',
         flexDirection: 'row',

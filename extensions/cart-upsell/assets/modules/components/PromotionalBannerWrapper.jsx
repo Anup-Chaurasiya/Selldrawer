@@ -25,7 +25,7 @@ export const PromotionalBannerWrapper = ({
   };
 
   return (
-    <div className="upsellity-promotional-banner-block">
+    <div className="selldrawer-promotional-banner-block">
       <PromotionalBannerCard
         slides={slides}
         carouselSettings={carouselSettings}

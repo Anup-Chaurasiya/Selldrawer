@@ -1,13 +1,13 @@
 export default function TermsOfService() {
   return (
     <main style={{ padding: "4rem 6vw", maxWidth: "960px", margin: "0 auto", lineHeight: 1.7 }}>
-      <h1>Upsellity AI Terms of Service</h1>
+      <h1>Selldrawer AI Terms of Service</h1>
       <p>Last updated: November 10, 2025</p>
 
       <section>
         <h2>1. Agreement</h2>
         <p>
-          These Terms of Service ("Terms") govern the use of the Upsellity AI Shopify application ("App"). By
+          These Terms of Service ("Terms") govern the use of the Selldrawer AI Shopify application ("App"). By
           installing or using the App, you ("Merchant") agree to these Terms. If you do not agree, do not install
           or use the App.
         </p>
@@ -16,7 +16,7 @@ export default function TermsOfService() {
       <section>
         <h2>2. Access and License</h2>
         <p>
-          Upsellity AI grants Merchants a limited, non-exclusive, non-transferable license to use the App solely on
+          Selldrawer AI grants Merchants a limited, non-exclusive, non-transferable license to use the App solely on
           their Shopify store. Merchants are responsible for safeguarding access credentials and ensuring the App is
           used in compliance with applicable laws and Shopify&#39;s policies.
         </p>
@@ -27,7 +27,7 @@ export default function TermsOfService() {
         <ul>
           <li>Provide accurate billing and contact information.</li>
           <li>Maintain lawful use of customer data collected through the App.</li>
-          <li>Cooperate with Upsellity AI on compliance requests and investigations.</li>
+          <li>Cooperate with Selldrawer AI on compliance requests and investigations.</li>
         </ul>
       </section>
 
@@ -43,7 +43,7 @@ export default function TermsOfService() {
       <section>
         <h2>5. Data Handling</h2>
         <p>
-          Upsellity AI accesses store data solely to deliver upsell features and analytics. We comply with GDPR and
+          Selldrawer AI accesses store data solely to deliver upsell features and analytics. We comply with GDPR and
           other privacy regulations and process mandatory Shopify webhooks to honor data subject requests. Refer to
           our <a href="/privacy-policy">Privacy Policy</a> for details.
         </p>
@@ -52,7 +52,7 @@ export default function TermsOfService() {
       <section>
         <h2>6. Availability &amp; Support</h2>
         <p>
-          Upsellity AI strives for 99.9% uptime. Support is available via <a href="mailto:support@upsellity.ai">support@upsellity.ai</a> and within the
+          Selldrawer AI strives for 99.9% uptime. Support is available via <a href="mailto:support@selldrawer.ai">support@selldrawer.ai</a> and within the
           in-app chat. We may schedule maintenance windows with prior notice.
         </p>
       </section>
@@ -60,7 +60,7 @@ export default function TermsOfService() {
       <section>
         <h2>7. Limitation of Liability</h2>
         <p>
-          To the maximum extent permitted by law, Upsellity AI is not liable for indirect, incidental, or
+          To the maximum extent permitted by law, Selldrawer AI is not liable for indirect, incidental, or
           consequential damages arising from use of the App. Total liability is limited to fees paid in the six (6)
           months preceding the claim.
         </p>
@@ -85,11 +85,11 @@ export default function TermsOfService() {
       <section>
         <h2>10. Contact</h2>
         <p>
-          Upsellity Labs Inc.<br />
+          Selldrawer Labs Inc.<br />
           Legal Department<br />
           123 Market Street, Suite 500<br />
           San Francisco, CA 94105<br />
-          <a href="mailto:legal@upsellity.ai">legal@upsellity.ai</a>
+          <a href="mailto:legal@selldrawer.ai">legal@selldrawer.ai</a>
         </p>
       </section>
     </main>

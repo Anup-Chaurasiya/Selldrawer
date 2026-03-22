@@ -94,38 +94,38 @@ export const FBTWidgetWrapper = ({
         console.log('Discount code value:', config.discountCode);
 
         // Open cart drawer if it exists
-        if (window.upsellityDrawer && typeof window.upsellityDrawer.open === 'function') {
+        if (window.selldrawerDrawer && typeof window.selldrawerDrawer.open === 'function') {
           console.log('FBT: Opening cart drawer in 1.5s...');
           setTimeout(() => {
-            window.upsellityDrawer.open();
+            window.selldrawerDrawer.open();
             console.log('FBT: Cart drawer opened');
 
             // Apply discount code if available
             if (config.discountCode) {
               console.log('=== FBT: Attempting to apply discount code ===');
               console.log('Discount code:', config.discountCode);
-              console.log('applyCouponWithCode available?', typeof window.upsellityDrawer.applyCouponWithCode);
+              console.log('applyCouponWithCode available?', typeof window.selldrawerDrawer.applyCouponWithCode);
 
-              if (window.upsellityDrawer.applyCouponWithCode) {
+              if (window.selldrawerDrawer.applyCouponWithCode) {
                 // Wait a bit more for cart to fully load, then apply discount
                 setTimeout(() => {
                   try {
                     console.log('FBT: Calling applyCouponWithCode with:', config.discountCode);
-                    window.upsellityDrawer.applyCouponWithCode(config.discountCode);
+                    window.selldrawerDrawer.applyCouponWithCode(config.discountCode);
                     console.log('=== FBT: Discount code applied successfully ===');
                   } catch (error) {
                     console.error('=== FBT: Failed to apply discount ===', error);
                   }
                 }, 800);
               } else {
-                console.error('FBT: applyCouponWithCode method not found on upsellityDrawer');
+                console.error('FBT: applyCouponWithCode method not found on selldrawerDrawer');
               }
             } else {
               console.log('FBT: No discount code in config to apply');
             }
           }, 1500);
         } else {
-          console.error('FBT: upsellityDrawer not found or open method not available');
+          console.error('FBT: selldrawerDrawer not found or open method not available');
         }
 
         return true;

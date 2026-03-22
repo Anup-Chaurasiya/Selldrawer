@@ -1,5 +1,5 @@
 /**
- * Upsellity FBT Widget v1.0.11
+ * Selldrawer FBT Widget v1.0.11
  * Built: 2026-02-04T13:36:03.936Z
  */
 "use strict";
@@ -7921,7 +7921,7 @@
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
       "div",
       {
-        className: `upsellity-fbt-product ${isDisabled ? "upsellity-fbt-product-disabled" : ""}`,
+        className: `selldrawer-fbt-product ${isDisabled ? "selldrawer-fbt-product-disabled" : ""}`,
         "data-variant-id": variantId,
         style: {
           width: "100%",
@@ -7937,7 +7937,7 @@
             "input",
             {
               type: "checkbox",
-              className: "upsellity-fbt-checkbox",
+              className: "selldrawer-fbt-checkbox",
               "data-variant-id": variantId,
               checked: isSelected,
               disabled: isDisabled,
@@ -7953,7 +7953,7 @@
               }
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "upsellity-fbt-product-image-wrapper", style: { position: "relative", marginBottom: "0.5em" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "selldrawer-fbt-product-image-wrapper", style: { position: "relative", marginBottom: "0.5em" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               "a",
               {
@@ -7965,7 +7965,7 @@
                   {
                     src: product.imageUrl,
                     alt: product.title,
-                    className: "upsellity-fbt-product-image",
+                    className: "selldrawer-fbt-product-image",
                     style: {
                       width: "100%",
                       height: "80px",
@@ -7989,7 +7989,7 @@
             discountPercent > 0 && showDiscount && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
               "div",
               {
-                className: "upsellity-fbt-discount-badge",
+                className: "selldrawer-fbt-discount-badge",
                 style: {
                   position: "absolute",
                   top: "0.25em",
@@ -8020,7 +8020,7 @@
               children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                 "h3",
                 {
-                  className: "upsellity-fbt-product-title",
+                  className: "selldrawer-fbt-product-title",
                   style: {
                     fontSize: "0.75em",
                     fontWeight: "500",
@@ -8042,7 +8042,7 @@
           showIndividualPrices && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
             "div",
             {
-              className: "upsellity-fbt-product-price",
+              className: "selldrawer-fbt-product-price",
               style: {
                 fontSize: "0.8125em",
                 fontWeight: "600",
@@ -8053,7 +8053,7 @@
                 product.compareAtPrice && showDiscount && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                   "span",
                   {
-                    className: "upsellity-fbt-product-compare-price",
+                    className: "selldrawer-fbt-product-compare-price",
                     style: {
                       textDecoration: "line-through",
                       color: "#9ca3af",
@@ -8071,7 +8071,7 @@
           showReviews && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             "div",
             {
-              className: "upsellity-fbt-reviews",
+              className: "selldrawer-fbt-reviews",
               style: {
                 fontSize: "0.75em",
                 color: "#f59e0b",
@@ -8111,7 +8111,7 @@
     return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
       "div",
       {
-        className: "upsellity-fbt-template-minimal",
+        className: "selldrawer-fbt-template-minimal",
         style: {
           display: "flex",
           flexDirection: "column",
@@ -8124,7 +8124,7 @@
         children: [
           /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("style", { dangerouslySetInnerHTML: {
             __html: `
-          .upsellity-fbt-products-container::-webkit-scrollbar {
+          .selldrawer-fbt-products-container::-webkit-scrollbar {
             display: none;
           }
         `
@@ -8150,7 +8150,7 @@
                 msOverflowStyle: "none",
                 WebkitOverflowScrolling: "touch"
               },
-              className: "upsellity-fbt-products-container",
+              className: "selldrawer-fbt-products-container",
               children: [
                 parentProduct && (() => {
                   const variantId = parentProduct.variantId || parentProduct.id;
@@ -8161,7 +8161,7 @@
                       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                         "div",
                         {
-                          className: "upsellity-fbt-minimal-card selected",
+                          className: "selldrawer-fbt-minimal-card selected",
                           style: {
                             width: "100%",
                             boxSizing: "border-box",
@@ -8377,7 +8377,7 @@
                     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { position: "relative", width: "110px", minWidth: "110px", flexShrink: 0, boxSizing: "border-box" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                       "div",
                       {
-                        className: `upsellity-fbt-minimal-card ${isDisabled ? "disabled" : ""} ${isSelected ? "selected" : ""}`,
+                        className: `selldrawer-fbt-minimal-card ${isDisabled ? "disabled" : ""} ${isSelected ? "selected" : ""}`,
                         style: {
                           width: "100%",
                           boxSizing: "border-box",
@@ -8698,7 +8698,7 @@
     return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
       "div",
       {
-        className: "upsellity-fbt-template-classic",
+        className: "selldrawer-fbt-template-classic",
         style: {
           display: "flex",
           flexDirection: "row",
@@ -8834,7 +8834,7 @@
     const handlePrevSlide = () => {
       var _a2;
       if (carouselRef.current) {
-        const cardWidth = ((_a2 = carouselRef.current.querySelector(".upsellity-fbt-product")) == null ? void 0 : _a2.clientWidth) || 200;
+        const cardWidth = ((_a2 = carouselRef.current.querySelector(".selldrawer-fbt-product")) == null ? void 0 : _a2.clientWidth) || 200;
         const gap = 12;
         carouselRef.current.scrollBy({
           left: -(cardWidth + gap),
@@ -8845,7 +8845,7 @@
     const handleNextSlide = () => {
       var _a2;
       if (carouselRef.current) {
-        const cardWidth = ((_a2 = carouselRef.current.querySelector(".upsellity-fbt-product")) == null ? void 0 : _a2.clientWidth) || 200;
+        const cardWidth = ((_a2 = carouselRef.current.querySelector(".selldrawer-fbt-product")) == null ? void 0 : _a2.clientWidth) || 200;
         const gap = 12;
         carouselRef.current.scrollBy({
           left: cardWidth + gap,
@@ -8995,7 +8995,7 @@
     const selectedCount = selectedProducts.size;
     const isAtLimit = maxUpsells !== null && selectedCount >= maxUpsells;
     if (showSuccess) {
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "upsellity-fbt-content", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { textAlign: "center", padding: "2rem" }, children: [
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "selldrawer-fbt-content", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { textAlign: "center", padding: "2rem" }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { fontSize: "3rem", marginBottom: "1rem" }, children: "\u2713" }),
         /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h3", { style: { fontSize: "1.25rem", fontWeight: "600", color: "#10b981", marginBottom: "0.5rem" }, children: "Items added to cart!" }),
         /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("p", { style: { color: "#6b7280" }, children: "Opening cart drawer..." })
@@ -9010,7 +9010,7 @@
               "div",
               {
                 ref: carouselRef,
-                className: "upsellity-fbt-carousel",
+                className: "selldrawer-fbt-carousel",
                 onMouseDown: handleMouseDown,
                 onMouseLeave: handleMouseLeave,
                 onMouseUp: handleMouseUp,
@@ -9133,7 +9133,7 @@
               "div",
               {
                 ref: carouselRef,
-                className: "upsellity-fbt-carousel",
+                className: "selldrawer-fbt-carousel",
                 onMouseDown: handleMouseDown,
                 onMouseLeave: handleMouseLeave,
                 onMouseUp: handleMouseUp,
@@ -9252,11 +9252,11 @@
         );
       }
     };
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "upsellity-fbt-content", children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "selldrawer-fbt-content", children: [
       /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
         "h2",
         {
-          className: "upsellity-fbt-title",
+          className: "selldrawer-fbt-title",
           style: {
             fontSize: "1em",
             fontWeight: "600",
@@ -9270,7 +9270,7 @@
       /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
         "div",
         {
-          className: "upsellity-fbt-layout",
+          className: "selldrawer-fbt-layout",
           style: {
             display: "flex",
             flexDirection: templateType === "minimal" ? "column" : "row",
@@ -9284,7 +9284,7 @@
             templateType !== "minimal" && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
               "div",
               {
-                className: "upsellity-fbt-actions",
+                className: "selldrawer-fbt-actions",
                 style: {
                   display: "flex",
                   flexDirection: "column",
@@ -9297,7 +9297,7 @@
                   config.showTotalPrice && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
                     "div",
                     {
-                      className: "upsellity-fbt-total",
+                      className: "selldrawer-fbt-total",
                       style: {
                         display: "flex",
                         flexDirection: "row",
@@ -9314,7 +9314,7 @@
                         /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
                           "span",
                           {
-                            className: "upsellity-fbt-total-label",
+                            className: "selldrawer-fbt-total-label",
                             style: {
                               fontSize: "0.8125em",
                               fontWeight: "600",
@@ -9327,7 +9327,7 @@
                           hasDiscount && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
                             "span",
                             {
-                              className: "upsellity-fbt-total-original",
+                              className: "selldrawer-fbt-total-original",
                               style: {
                                 textDecoration: "line-through",
                                 color: "#9ca3af",
@@ -9340,7 +9340,7 @@
                           /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
                             "span",
                             {
-                              className: "upsellity-fbt-total-price",
+                              className: "selldrawer-fbt-total-price",
                               style: {
                                 fontSize: "1em",
                                 fontWeight: "700",
@@ -9356,7 +9356,7 @@
                   /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
                     "button",
                     {
-                      className: "upsellity-fbt-button",
+                      className: "selldrawer-fbt-button",
                       onClick: handleAddToCart,
                       disabled: selectedCount === 0 || isAdding || isPreview,
                       style: {
@@ -9398,14 +9398,14 @@
     },
     setVersion(version) {
       this.version = version || "default";
-      console.log("[Upsellity Analytics] Version set to:", this.version);
+      console.log("[Selldrawer Analytics] Version set to:", this.version);
     },
     getSessionId() {
       try {
-        let sessionId = sessionStorage.getItem("upsellity_session_id");
+        let sessionId = sessionStorage.getItem("selldrawer_session_id");
         if (!sessionId) {
           sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-          sessionStorage.setItem("upsellity_session_id", sessionId);
+          sessionStorage.setItem("selldrawer_session_id", sessionId);
         }
         return sessionId;
       } catch (e) {
@@ -9414,11 +9414,11 @@
     },
     track(event) {
       if (!this.shop) {
-        console.warn("[Upsellity Analytics] Shop not detected, skipping tracking");
+        console.warn("[Selldrawer Analytics] Shop not detected, skipping tracking");
         return;
       }
       if (!this.appUrl) {
-        console.warn("[Upsellity Analytics] App URL not configured, skipping tracking");
+        console.warn("[Selldrawer Analytics] App URL not configured, skipping tracking");
         return;
       }
       const payload = {
@@ -9435,7 +9435,7 @@
         const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
         const sent = navigator.sendBeacon(apiUrl, blob);
         if (!sent) {
-          console.warn("[Upsellity Analytics] sendBeacon failed, falling back to fetch");
+          console.warn("[Selldrawer Analytics] sendBeacon failed, falling back to fetch");
           this.fallbackFetch(apiUrl, payload);
         }
       } else {
@@ -9452,14 +9452,14 @@
         keepalive: true
       }).then((response) => {
         if (!response.ok) {
-          console.error("[Upsellity Analytics] API error:", response.status, apiUrl);
+          console.error("[Selldrawer Analytics] API error:", response.status, apiUrl);
         }
-      }).catch((err) => console.error("[Upsellity Analytics] Fetch error:", err));
+      }).catch((err) => console.error("[Selldrawer Analytics] Fetch error:", err));
     }
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://app.selldrawer.com" : "https://app.selldrawer.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;
@@ -9756,10 +9756,10 @@
             } else {
               console.log("\u2705 FBT items added to cart");
             }
-            if (window.upsellityDrawer && typeof window.upsellityDrawer.open === "function") {
+            if (window.selldrawerDrawer && typeof window.selldrawerDrawer.open === "function") {
               console.log("FBT: Opening cart drawer...");
               setTimeout(() => {
-                window.upsellityDrawer.open();
+                window.selldrawerDrawer.open();
                 console.log("FBT: Cart drawer opened");
               }, 500);
             }
@@ -9784,7 +9784,7 @@
     }
   };
   function initializeWidgets() {
-    const widgets = document.querySelectorAll(".upsellity-fbt-widget");
+    const widgets = document.querySelectorAll(".selldrawer-fbt-widget");
     widgets.forEach((container) => {
       new FrequentlyBoughtTogether(container);
     });
@@ -9799,10 +9799,10 @@
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === 1) {
-            if (node.classList && node.classList.contains("upsellity-fbt-widget")) {
+            if (node.classList && node.classList.contains("selldrawer-fbt-widget")) {
               new FrequentlyBoughtTogether(node);
             } else {
-              const widgets = node.querySelectorAll && node.querySelectorAll(".upsellity-fbt-widget");
+              const widgets = node.querySelectorAll && node.querySelectorAll(".selldrawer-fbt-widget");
               if (widgets && widgets.length > 0) {
                 widgets.forEach((container) => {
                   if (!container.dataset.initialized) {

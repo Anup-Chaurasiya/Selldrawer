@@ -9,7 +9,7 @@ import { PromotionalBannerWrapper } from './components/PromotionalBannerWrapper.
 import { Analytics } from './analytics.js';
 
 // App URL is injected at build time from config.js
-const APP_URL = typeof __APP_URL__ !== 'undefined' ? __APP_URL__ : 'https://app.upsellity.com';
+const APP_URL = typeof __APP_URL__ !== 'undefined' ? __APP_URL__ : 'https://app.selldrawer.com';
 
 // Version info
 const VERSION = typeof __PROMOTIONAL_BANNER_VERSION__ !== 'undefined'
@@ -19,7 +19,7 @@ const VERSION = typeof __PROMOTIONAL_BANNER_VERSION__ !== 'undefined'
 // Initialize promotional banner blocks
 function initPromotionalBannerBlocks() {
   // Find all promotional banner containers
-  const containers = document.querySelectorAll('.upsellity-promotional-banner-container');
+  const containers = document.querySelectorAll('.selldrawer-promotional-banner-container');
 
   if (containers.length === 0) {
     return;
@@ -150,8 +150,8 @@ if (typeof MutationObserver !== 'undefined') {
     mutations.forEach((mutation) => {
       mutation.addedNodes.forEach((node) => {
         if (node.nodeType === 1) { // Element node
-          if (node.classList?.contains('upsellity-promotional-banner-container') ||
-            node.querySelector?.('.upsellity-promotional-banner-container')) {
+          if (node.classList?.contains('selldrawer-promotional-banner-container') ||
+            node.querySelector?.('.selldrawer-promotional-banner-container')) {
             shouldInit = true;
           }
         }

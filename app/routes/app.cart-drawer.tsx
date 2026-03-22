@@ -649,7 +649,7 @@ function MiniCartDrawerPreview({
       case 'coupon-code':
         return (cartDrawer?.couponCodeFieldEnabled && couponCodeField && (
           <CouponCodeField
-            id="upsellity-coupon-field-mini-preview"
+            id="selldrawer-coupon-field-mini-preview"
             placeholder={couponCodeField.placeholder || 'Enter coupon code'}
             buttonText={couponCodeField.buttonText || 'Apply'}
             showAllOffers={couponCodeField.showAllOffers || false}
@@ -1258,17 +1258,17 @@ export default function CartDrawerIndex() {
                     </Box>
                     <BlockStack gap="200">
                       <Text as="h3" variant="headingMd">
-                        Please connect Upsellity Bridge
+                        Please connect Selldrawer Bridge
                       </Text>
                       <Text as="p" variant="bodyMd" tone="subdued">
-                        Now that you've installed Upsellity, you need to enable the <strong>Upsellity Bridge</strong> in your Shopify theme. This will not set your cart live yet.
+                        Now that you've installed Selldrawer, you need to enable the <strong>Selldrawer Bridge</strong> in your Shopify theme. This will not set your cart live yet.
                       </Text>
                       <BlockStack gap="200">
                         <Text as="p" variant="bodyMd">
-                          <strong>1.</strong> Click the button below to enable the Upsellity Bridge from your theme editor.
+                          <strong>1.</strong> Click the button below to enable the Selldrawer Bridge from your theme editor.
                         </Text>
                         <Text as="p" variant="bodyMd">
-                          <strong>2.</strong> Ensure the Upsellity Bridge is toggled on and click <strong>save</strong>.
+                          <strong>2.</strong> Ensure the Selldrawer Bridge is toggled on and click <strong>save</strong>.
                         </Text>
                       </BlockStack>
                       <Box paddingBlockStart="200">
@@ -1277,7 +1277,7 @@ export default function CartDrawerIndex() {
                           url={`https://admin.shopify.com/store/${shopDomain.split('.')[0]}/themes/current/editor?context=apps`}
                           target="_blank"
                         >
-                          Click here to enable the Upsellity Bridge
+                          Click here to enable the Selldrawer Bridge
                         </Button>
                       </Box>
                     </BlockStack>

@@ -1,5 +1,5 @@
 /**
- * Upsellity Promotional Banner Block v1.0.11
+ * Selldrawer Promotional Banner Block v1.0.11
  * Built: 2026-02-04T13:36:03.986Z
  */
 "use strict";
@@ -8468,22 +8468,22 @@
     };
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginBottom: isBlockContext ? "0" : "16px" }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("style", { children: `
-        .upsellity-promo-scroll::-webkit-scrollbar {
+        .selldrawer-promo-scroll::-webkit-scrollbar {
           display: none;
         }
-        .upsellity-promo-scroll {
+        .selldrawer-promo-scroll {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
         
         /* Ensure indicators are always visible */
-        .upsellity-promo-indicators {
+        .selldrawer-promo-indicators {
           display: flex !important;
           visibility: visible !important;
           opacity: 1 !important;
         }
         
-        .upsellity-promo-indicator {
+        .selldrawer-promo-indicator {
           display: block !important;
           visibility: visible !important;
           opacity: 1 !important;
@@ -8491,20 +8491,20 @@
         
         /* Block context responsive styles */
         ${isBlockContext ? `
-          .upsellity-promo-block-media {
+          .selldrawer-promo-block-media {
             height: ${maxHeight === "auto" ? "auto" : maxHeight};
             ${maxHeight === "auto" ? "aspect-ratio: 16 / 9;" : ""}
           }
           
           @media (max-width: 768px) {
-            .upsellity-promo-block-media {
+            .selldrawer-promo-block-media {
               height: ${maxHeight === "auto" ? "auto" : `calc(${maxHeight} * 0.78)`};
               ${maxHeight === "auto" ? "aspect-ratio: 16 / 9;" : ""}
             }
           }
           
           @media (max-width: 480px) {
-            .upsellity-promo-block-media {
+            .selldrawer-promo-block-media {
               height: ${maxHeight === "auto" ? "auto" : `calc(${maxHeight} * 0.67)`};
               ${maxHeight === "auto" ? "aspect-ratio: 16 / 9;" : ""}
             }
@@ -8590,7 +8590,7 @@
           "div",
           {
             ref: scrollContainerRef,
-            className: "upsellity-promo-scroll",
+            className: "selldrawer-promo-scroll",
             style: {
               display: "flex",
               gap: isBlockContext ? "16px" : "8px",
@@ -8620,7 +8620,7 @@
                   /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                     "div",
                     {
-                      className: isBlockContext ? "upsellity-promo-block-media" : "",
+                      className: isBlockContext ? "selldrawer-promo-block-media" : "",
                       style: __spreadProps(__spreadValues({
                         position: "relative",
                         overflow: "hidden"
@@ -8773,7 +8773,7 @@
         slides.length > 1 && (carouselSettings == null ? void 0 : carouselSettings.showDots) !== false && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
           "div",
           {
-            className: "upsellity-promo-indicators",
+            className: "selldrawer-promo-indicators",
             style: {
               display: "flex",
               justifyContent: "center",
@@ -8792,7 +8792,7 @@
             children: slides.map((_, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               "div",
               {
-                className: `upsellity-promo-indicator ${index === currentIndex ? "active" : ""}`,
+                className: `selldrawer-promo-indicator ${index === currentIndex ? "active" : ""}`,
                 onClick: (e) => handleDotClick(index, e),
                 style: {
                   width: isBlockContext ? "24px" : "20px",
@@ -8849,7 +8849,7 @@
         window.location.href = url;
       }
     };
-    return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "upsellity-promotional-banner-block", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "selldrawer-promotional-banner-block", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
       PromotionalBannerCard,
       {
         slides,
@@ -8875,14 +8875,14 @@
     },
     setVersion(version) {
       this.version = version || "default";
-      console.log("[Upsellity Analytics] Version set to:", this.version);
+      console.log("[Selldrawer Analytics] Version set to:", this.version);
     },
     getSessionId() {
       try {
-        let sessionId = sessionStorage.getItem("upsellity_session_id");
+        let sessionId = sessionStorage.getItem("selldrawer_session_id");
         if (!sessionId) {
           sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-          sessionStorage.setItem("upsellity_session_id", sessionId);
+          sessionStorage.setItem("selldrawer_session_id", sessionId);
         }
         return sessionId;
       } catch (e) {
@@ -8891,11 +8891,11 @@
     },
     track(event) {
       if (!this.shop) {
-        console.warn("[Upsellity Analytics] Shop not detected, skipping tracking");
+        console.warn("[Selldrawer Analytics] Shop not detected, skipping tracking");
         return;
       }
       if (!this.appUrl) {
-        console.warn("[Upsellity Analytics] App URL not configured, skipping tracking");
+        console.warn("[Selldrawer Analytics] App URL not configured, skipping tracking");
         return;
       }
       const payload = {
@@ -8912,7 +8912,7 @@
         const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
         const sent = navigator.sendBeacon(apiUrl, blob);
         if (!sent) {
-          console.warn("[Upsellity Analytics] sendBeacon failed, falling back to fetch");
+          console.warn("[Selldrawer Analytics] sendBeacon failed, falling back to fetch");
           this.fallbackFetch(apiUrl, payload);
         }
       } else {
@@ -8929,17 +8929,17 @@
         keepalive: true
       }).then((response) => {
         if (!response.ok) {
-          console.error("[Upsellity Analytics] API error:", response.status, apiUrl);
+          console.error("[Selldrawer Analytics] API error:", response.status, apiUrl);
         }
-      }).catch((err) => console.error("[Upsellity Analytics] Fetch error:", err));
+      }).catch((err) => console.error("[Selldrawer Analytics] Fetch error:", err));
     }
   };
 
   // extensions/cart-upsell/assets/modules/promotional-banner-entry.js
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://app.selldrawer.com" : "https://app.selldrawer.com";
   function initPromotionalBannerBlocks() {
-    const containers = document.querySelectorAll(".upsellity-promotional-banner-container");
+    const containers = document.querySelectorAll(".selldrawer-promotional-banner-container");
     if (containers.length === 0) {
       return;
     }
@@ -9052,7 +9052,7 @@
         mutation.addedNodes.forEach((node) => {
           var _a2, _b;
           if (node.nodeType === 1) {
-            if (((_a2 = node.classList) == null ? void 0 : _a2.contains("upsellity-promotional-banner-container")) || ((_b = node.querySelector) == null ? void 0 : _b.call(node, ".upsellity-promotional-banner-container"))) {
+            if (((_a2 = node.classList) == null ? void 0 : _a2.contains("selldrawer-promotional-banner-container")) || ((_b = node.querySelector) == null ? void 0 : _b.call(node, ".selldrawer-promotional-banner-container"))) {
               shouldInit = true;
             }
           }

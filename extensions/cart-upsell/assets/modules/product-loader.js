@@ -91,7 +91,7 @@ export async function loadShopifyRecommendations(cart, config) {
     const productId = firstItem.product_id;
 
     if (!productId) {
-      console.warn('Upsellity: Product ID not found in cart item');
+      console.warn('Selldrawer: Product ID not found in cart item');
       return;
     }
 
@@ -185,7 +185,7 @@ export async function loadShopifyRecommendations(cart, config) {
     }
 
   } catch (error) {
-    console.error('Upsellity: Error loading Shopify recommendations:', error);
+    console.error('Selldrawer: Error loading Shopify recommendations:', error);
     if (recommendations) {
       recommendations.products = [];
     }

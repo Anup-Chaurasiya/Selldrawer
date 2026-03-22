@@ -1,5 +1,5 @@
 /**
- * Upsellity FBT Widget - Entry Point for Build
+ * Selldrawer FBT Widget - Entry Point for Build
  * This file serves as the entry point for bundling all FBT modules
  */
 
@@ -9,7 +9,7 @@ import { FBTWidget } from '../../../../app/components/shared/FBTWidget.tsx';
 import { Analytics } from './analytics.js';
 
 // App URL is injected at build time from config.js
-const APP_URL = typeof __APP_URL__ !== 'undefined' ? __APP_URL__ : 'https://app.upsellity.com';
+const APP_URL = typeof __APP_URL__ !== 'undefined' ? __APP_URL__ : 'https://app.selldrawer.com';
 
 class FrequentlyBoughtTogether {
   constructor(container) {
@@ -401,10 +401,10 @@ class FrequentlyBoughtTogether {
           }
 
           // Open cart drawer
-          if (window.upsellityDrawer && typeof window.upsellityDrawer.open === 'function') {
+          if (window.selldrawerDrawer && typeof window.selldrawerDrawer.open === 'function') {
             console.log('FBT: Opening cart drawer...');
             setTimeout(() => {
-              window.upsellityDrawer.open();
+              window.selldrawerDrawer.open();
               console.log('FBT: Cart drawer opened');
             }, 500);
           }
@@ -434,7 +434,7 @@ class FrequentlyBoughtTogether {
 
 // Initialize all widgets when DOM is ready
 function initializeWidgets() {
-  const widgets = document.querySelectorAll('.upsellity-fbt-widget');
+  const widgets = document.querySelectorAll('.selldrawer-fbt-widget');
   widgets.forEach(container => {
     new FrequentlyBoughtTogether(container);
   });
@@ -452,10 +452,10 @@ if (typeof MutationObserver !== 'undefined') {
     mutations.forEach((mutation) => {
       mutation.addedNodes.forEach((node) => {
         if (node.nodeType === 1) {
-          if (node.classList && node.classList.contains('upsellity-fbt-widget')) {
+          if (node.classList && node.classList.contains('selldrawer-fbt-widget')) {
             new FrequentlyBoughtTogether(node);
           } else {
-            const widgets = node.querySelectorAll && node.querySelectorAll('.upsellity-fbt-widget');
+            const widgets = node.querySelectorAll && node.querySelectorAll('.selldrawer-fbt-widget');
             if (widgets && widgets.length > 0) {
               widgets.forEach(container => {
                 if (!container.dataset.initialized) {

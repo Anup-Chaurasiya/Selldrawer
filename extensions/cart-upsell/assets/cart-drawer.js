@@ -1,5 +1,5 @@
 /**
- * Upsellity Cart Drawer v1.0.11
+ * Selldrawer Cart Drawer v1.0.11
  * Built: 2026-02-04T13:36:03.904Z
  */
 "use strict";
@@ -7898,8 +7898,8 @@
     let total = 0;
     for (const item of cart.items) {
       const props = normalizeProperties(item.properties);
-      const isGift = props[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || props["_gift"] === "true" || props["_gift"] === true || // Fallback: Check if source is set (even if _upsellity_gift missing)
-      props["_upsellity_gift_source"] === "gifting_block" || props["_upsellity_gift_source"] === "milestone";
+      const isGift = props[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || props["_gift"] === "true" || props["_gift"] === true || // Fallback: Check if source is set (even if _selldrawer_gift missing)
+      props["_selldrawer_gift_source"] === "gifting_block" || props["_selldrawer_gift_source"] === "milestone";
       const linePrice = item.original_line_price || item.price * item.quantity;
       if (!isGift) {
         total += linePrice;
@@ -7915,7 +7915,7 @@
     return cart.items.find((item) => {
       const itemVariantId = normalizeVariantId(item.variant_id || item.id);
       const props = normalizeProperties(item.properties);
-      const isGift = props[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || props["_gift"] === "true" || props["_gift"] === true || props["_upsellity_gift_source"] === "gifting_block" || props["_upsellity_gift_source"] === "milestone";
+      const isGift = props[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || props["_gift"] === "true" || props["_gift"] === true || props["_selldrawer_gift_source"] === "gifting_block" || props["_selldrawer_gift_source"] === "milestone";
       if (isGift && itemVariantId === normalizedVariantId) {
         if (milestoneId && props[GIFT_MILESTONE_ID_KEY]) {
           return props[GIFT_MILESTONE_ID_KEY] === milestoneId;
@@ -7931,7 +7931,7 @@
     }
     return cart.items.filter((item) => {
       const props = normalizeProperties(item.properties);
-      return props[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || props["_gift"] === "true" || props["_gift"] === true || props["_upsellity_gift_source"] === "gifting_block" || props["_upsellity_gift_source"] === "milestone";
+      return props[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || props["_gift"] === "true" || props["_gift"] === true || props["_selldrawer_gift_source"] === "gifting_block" || props["_selldrawer_gift_source"] === "milestone";
     });
   }
   async function addGiftToCart(giftProduct, milestoneId, source = "milestone") {
@@ -7946,7 +7946,7 @@
       formData.append(`properties[${GIFT_PROPERTY_KEY}]`, GIFT_PROPERTY_VALUE);
       formData.append(`properties[${GIFT_MILESTONE_ID_KEY}]`, milestoneId);
       formData.append("properties[_gift_title]", giftProduct.title || "Free Gift");
-      formData.append("properties[_upsellity_gift_source]", source);
+      formData.append("properties[_selldrawer_gift_source]", source);
       const response = await fetch("/cart/add.js", {
         method: "POST",
         body: formData
@@ -8004,7 +8004,7 @@
     const currentGifts = getAllGiftsInCart(cart);
     const managedGifts = currentGifts.filter((item) => {
       const props = normalizeProperties(item.properties);
-      const itemSource = props["_upsellity_gift_source"];
+      const itemSource = props["_selldrawer_gift_source"];
       const effectiveSource = itemSource || "milestone";
       return effectiveSource === source;
     });
@@ -8181,9 +8181,9 @@
   var init_milestone_reward_manager = __esm({
     "extensions/cart-upsell/assets/modules/milestone-reward-manager.js"() {
       "use strict";
-      GIFT_PROPERTY_KEY = "_upsellity_gift";
+      GIFT_PROPERTY_KEY = "_selldrawer_gift";
       GIFT_PROPERTY_VALUE = "true";
-      GIFT_MILESTONE_ID_KEY = "_upsellity_milestone_id";
+      GIFT_MILESTONE_ID_KEY = "_selldrawer_milestone_id";
     }
   });
 
@@ -8337,7 +8337,7 @@
     }
     const cartItem = document.querySelector(`[data-item-key="${itemKey}"]`);
     if (cartItem) {
-      cartItem.classList.add("upsellity-loading");
+      cartItem.classList.add("selldrawer-loading");
     }
     try {
       const cartResponse = await fetch("/cart.js");
@@ -8352,7 +8352,7 @@
         return;
       }
       const item = cart.items[cartItemIndex];
-      const isGift = item.properties && (item.properties["_upsellity_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+      const isGift = item.properties && (item.properties["_selldrawer_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
       if (isGift) {
         await loadCartCallback();
         renderCallback();
@@ -8403,14 +8403,14 @@
       renderCallback();
     } finally {
       if (cartItem) {
-        cartItem.classList.remove("upsellity-loading");
+        cartItem.classList.remove("selldrawer-loading");
       }
     }
   }
   async function removeItem(itemKey, loadCartCallback, renderCallback) {
     const cartItem = document.querySelector(`[data-item-key="${itemKey}"]`);
     if (cartItem) {
-      cartItem.classList.add("upsellity-loading");
+      cartItem.classList.add("selldrawer-loading");
     }
     try {
       const cartResponse = await fetch("/cart.js");
@@ -8418,7 +8418,7 @@
         const cart = await cartResponse.json();
         const item = cart.items.find((i) => i.key === itemKey);
         if (item) {
-          const isGift = item.properties && (item.properties["_upsellity_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+          const isGift = item.properties && (item.properties["_selldrawer_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
           if (isGift) {
             await loadCartCallback();
             renderCallback();
@@ -8447,7 +8447,7 @@
       console.error("Error removing item:", error);
     } finally {
       if (cartItem) {
-        cartItem.classList.remove("upsellity-loading");
+        cartItem.classList.remove("selldrawer-loading");
       }
     }
   }
@@ -8465,7 +8465,7 @@
       if (data.discounts && data.discounts.length > 0) {
         return data.discounts;
       } else {
-        console.warn("Upsellity: No discounts available", {
+        console.warn("Selldrawer: No discounts available", {
           count: data.count,
           error: data.error,
           debug: data.debug
@@ -8473,7 +8473,7 @@
         return [];
       }
     } catch (error) {
-      console.error("Upsellity: Failed to load available discounts", error);
+      console.error("Selldrawer: Failed to load available discounts", error);
       return [];
     }
   }
@@ -8533,7 +8533,7 @@
         return false;
       }
     } catch (error) {
-      console.error("Upsellity: Error applying discount", error);
+      console.error("Selldrawer: Error applying discount", error);
       return false;
     }
   }
@@ -8556,11 +8556,11 @@
         return true;
       } else {
         const error = await response.json();
-        console.error("Upsellity: Error removing discount", error);
+        console.error("Selldrawer: Error removing discount", error);
         return false;
       }
     } catch (error) {
-      console.error("Upsellity: Error removing discount", error);
+      console.error("Selldrawer: Error removing discount", error);
       return false;
     }
   }
@@ -8568,11 +8568,11 @@
     return await applyDiscountCode(couponCode, loadCartCallback);
   }
   async function applyCoupon(appUrl, shop, config, appliedDiscount, renderCallback) {
-    const couponInput = document.getElementById("upsellity-coupon-input");
-    const messageDiv = document.getElementById("upsellity-coupon-message");
-    const applyBtn = document.querySelector(".upsellity-coupon-apply-btn");
+    const couponInput = document.getElementById("selldrawer-coupon-input");
+    const messageDiv = document.getElementById("selldrawer-coupon-message");
+    const applyBtn = document.querySelector(".selldrawer-coupon-apply-btn");
     if (!couponInput || !messageDiv) {
-      console.error("Upsellity: Coupon elements not found");
+      console.error("Selldrawer: Coupon elements not found");
       return null;
     }
     const couponCode = couponInput.value.trim();
@@ -8602,7 +8602,7 @@
         return null;
       }
     } catch (error) {
-      console.error("Upsellity: Error applying coupon", error);
+      console.error("Selldrawer: Error applying coupon", error);
       const couponField = config.features.couponCodeField;
       messageDiv.textContent = couponField.errorMessage || "Invalid coupon code";
       messageDiv.style.color = "#ef4444";
@@ -8697,7 +8697,7 @@
       const firstItem = cart.items[0];
       const productId = firstItem.product_id;
       if (!productId) {
-        console.warn("Upsellity: Product ID not found in cart item");
+        console.warn("Selldrawer: Product ID not found in cart item");
         return;
       }
       const maxProducts = recommendations.maxProducts || 4;
@@ -8761,7 +8761,7 @@
         recommendations.products = [];
       }
     } catch (error) {
-      console.error("Upsellity: Error loading Shopify recommendations:", error);
+      console.error("Selldrawer: Error loading Shopify recommendations:", error);
       if (recommendations) {
         recommendations.products = [];
       }
@@ -8769,7 +8769,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/auto-apply-storage.js
-  var STORAGE_KEY = "upsellity_discount_removed";
+  var STORAGE_KEY = "selldrawer_discount_removed";
   var EXPIRATION_MINUTES = 15;
   function markDiscountRemoved() {
     const expirationTime = Date.now() + EXPIRATION_MINUTES * 60 * 1e3;
@@ -8779,7 +8779,7 @@
         expiresAt: expirationTime
       }));
     } catch (error) {
-      console.warn("Upsellity: Failed to save discount removal preference", error);
+      console.warn("Selldrawer: Failed to save discount removal preference", error);
     }
   }
   function wasDiscountRemoved() {
@@ -8796,7 +8796,7 @@
       }
       return data.removed === true;
     } catch (error) {
-      console.warn("Upsellity: Failed to read discount removal preference", error);
+      console.warn("Selldrawer: Failed to read discount removal preference", error);
       return false;
     }
   }
@@ -8804,7 +8804,7 @@
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (error) {
-      console.warn("Upsellity: Failed to clear discount removal preference", error);
+      console.warn("Selldrawer: Failed to clear discount removal preference", error);
     }
   }
 
@@ -8816,7 +8816,7 @@
   async function loadFreeGifts(appUrl, shop, cart, cartTotalExcludingGifts = null) {
     try {
       const cartTotal = cartTotalExcludingGifts !== null ? cartTotalExcludingGifts : cart.total_price / 100;
-      console.log("Upsellity Free Gifts: Loading with cart total", cartTotal);
+      console.log("Selldrawer Free Gifts: Loading with cart total", cartTotal);
       const timestamp = (/* @__PURE__ */ new Date()).getTime();
       const response = await fetch(
         `${appUrl}/api/free-gifts?shop=${shop}&_t=${timestamp}`,
@@ -8834,14 +8834,14 @@
         }
       );
       const data = await response.json();
-      console.log("Upsellity Free Gifts: API Response", data);
+      console.log("Selldrawer Free Gifts: API Response", data);
       if (data.freeGifts) {
-        console.log("Upsellity Free Gifts: Loaded", data.freeGifts.length, "offers");
+        console.log("Selldrawer Free Gifts: Loaded", data.freeGifts.length, "offers");
         return data.freeGifts;
       }
       return [];
     } catch (error) {
-      console.error("Upsellity: Failed to load free gifts", error);
+      console.error("Selldrawer: Failed to load free gifts", error);
       return [];
     }
   }
@@ -8888,12 +8888,12 @@
     for (const giftItem of allGifts) {
       const itemVariantId = (_a2 = giftItem.variant_id || giftItem.id) == null ? void 0 : _a2.toString();
       const props = normalizeProperties(giftItem.properties);
-      const belongsToThisOffer = props["_upsellity_milestone_id"] === freeGift.id;
-      const itemSource = props["_upsellity_gift_source"];
+      const belongsToThisOffer = props["_selldrawer_milestone_id"] === freeGift.id;
+      const itemSource = props["_selldrawer_gift_source"];
       const isManaged = itemSource === source;
       if (isManaged) {
         if (!belongsToThisOffer || belongsToThisOffer && !validGiftVariantIds.has(itemVariantId)) {
-          console.log("Upsellity Free Gifts: Removing invalid gift from this offer", itemVariantId);
+          console.log("Selldrawer Free Gifts: Removing invalid gift from this offer", itemVariantId);
           const removed = await removeGiftFromCart(giftItem.key);
           if (removed) {
             cartModified = true;
@@ -8905,16 +8905,16 @@
       var _a3;
       const itemVariantId = (_a3 = item.variant_id || item.id) == null ? void 0 : _a3.toString();
       const props = normalizeProperties(item.properties);
-      const belongsToThisOffer = props["_upsellity_milestone_id"] === freeGift.id;
-      const itemSource = props["_upsellity_gift_source"];
+      const belongsToThisOffer = props["_selldrawer_milestone_id"] === freeGift.id;
+      const itemSource = props["_selldrawer_gift_source"];
       return itemSource === source && belongsToThisOffer && validGiftVariantIds.has(itemVariantId);
     });
     if (selectedGift) {
       for (const giftItem of allGifts) {
         const props = normalizeProperties(giftItem.properties);
-        const itemSource = props["_upsellity_gift_source"];
+        const itemSource = props["_selldrawer_gift_source"];
         if (itemSource === source && giftItem.key !== selectedGift.key) {
-          console.log("Upsellity Free Gifts: Removing duplicate gift");
+          console.log("Selldrawer Free Gifts: Removing duplicate gift");
           const removed = await removeGiftFromCart(giftItem.key);
           if (removed) {
             cartModified = true;
@@ -8952,7 +8952,7 @@
   }
   async function selectGift(variantId, freeGift, loadCartCallback) {
     try {
-      console.log("Upsellity Free Gifts: User selecting gift", variantId);
+      console.log("Selldrawer Free Gifts: User selecting gift", variantId);
       const cartResponse = await fetch("/cart.js");
       const cart = await cartResponse.json();
       const milestone = convertFreeGiftToMilestone(freeGift);
@@ -8961,7 +8961,7 @@
       const source = "gifting_block";
       const currentGifts = getAllGiftsInCart(cart).filter((item) => {
         const props = normalizeProperties(item.properties);
-        const itemSource = props["_upsellity_gift_source"];
+        const itemSource = props["_selldrawer_gift_source"];
         return itemSource === source;
       });
       for (const giftItem of currentGifts) {
@@ -8984,7 +8984,7 @@
       }
       return false;
     } catch (error) {
-      console.error("Upsellity: Error selecting gift", error);
+      console.error("Selldrawer: Error selecting gift", error);
       return false;
     }
   }
@@ -9684,22 +9684,22 @@
     };
     return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: isBlockContext ? "0" : "16px" }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("style", { children: `
-        .upsellity-promo-scroll::-webkit-scrollbar {
+        .selldrawer-promo-scroll::-webkit-scrollbar {
           display: none;
         }
-        .upsellity-promo-scroll {
+        .selldrawer-promo-scroll {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
         
         /* Ensure indicators are always visible */
-        .upsellity-promo-indicators {
+        .selldrawer-promo-indicators {
           display: flex !important;
           visibility: visible !important;
           opacity: 1 !important;
         }
         
-        .upsellity-promo-indicator {
+        .selldrawer-promo-indicator {
           display: block !important;
           visibility: visible !important;
           opacity: 1 !important;
@@ -9707,20 +9707,20 @@
         
         /* Block context responsive styles */
         ${isBlockContext ? `
-          .upsellity-promo-block-media {
+          .selldrawer-promo-block-media {
             height: ${maxHeight === "auto" ? "auto" : maxHeight};
             ${maxHeight === "auto" ? "aspect-ratio: 16 / 9;" : ""}
           }
           
           @media (max-width: 768px) {
-            .upsellity-promo-block-media {
+            .selldrawer-promo-block-media {
               height: ${maxHeight === "auto" ? "auto" : `calc(${maxHeight} * 0.78)`};
               ${maxHeight === "auto" ? "aspect-ratio: 16 / 9;" : ""}
             }
           }
           
           @media (max-width: 480px) {
-            .upsellity-promo-block-media {
+            .selldrawer-promo-block-media {
               height: ${maxHeight === "auto" ? "auto" : `calc(${maxHeight} * 0.67)`};
               ${maxHeight === "auto" ? "aspect-ratio: 16 / 9;" : ""}
             }
@@ -9806,7 +9806,7 @@
           "div",
           {
             ref: scrollContainerRef,
-            className: "upsellity-promo-scroll",
+            className: "selldrawer-promo-scroll",
             style: {
               display: "flex",
               gap: isBlockContext ? "16px" : "8px",
@@ -9836,7 +9836,7 @@
                   /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                     "div",
                     {
-                      className: isBlockContext ? "upsellity-promo-block-media" : "",
+                      className: isBlockContext ? "selldrawer-promo-block-media" : "",
                       style: __spreadProps(__spreadValues({
                         position: "relative",
                         overflow: "hidden"
@@ -9989,7 +9989,7 @@
         slides.length > 1 && (carouselSettings == null ? void 0 : carouselSettings.showDots) !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
           "div",
           {
-            className: "upsellity-promo-indicators",
+            className: "selldrawer-promo-indicators",
             style: {
               display: "flex",
               justifyContent: "center",
@@ -10008,7 +10008,7 @@
             children: slides.map((_, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
               "div",
               {
-                className: `upsellity-promo-indicator ${index === currentIndex ? "active" : ""}`,
+                className: `selldrawer-promo-indicator ${index === currentIndex ? "active" : ""}`,
                 onClick: (e) => handleDotClick(index, e),
                 style: {
                   width: isBlockContext ? "24px" : "20px",
@@ -10112,7 +10112,7 @@
     }, [item.quantity, isEditing]);
     const prices = calculateItemPrices(item);
     const imageUrl = ((_a2 = item.featured_image) == null ? void 0 : _a2.url) || item.image || "";
-    const isGiftItem = item.properties && (item.properties["_upsellity_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+    const isGiftItem = item.properties && (item.properties["_selldrawer_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
     return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
       "div",
       {
@@ -10502,10 +10502,10 @@
     }
     return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { marginTop: "8px" }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("style", { children: `
-        .upsellity-product-recommendations-scroll::-webkit-scrollbar {
+        .selldrawer-product-recommendations-scroll::-webkit-scrollbar {
           display: none;
         }
-        .upsellity-product-recommendations-scroll {
+        .selldrawer-product-recommendations-scroll {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
@@ -10599,7 +10599,7 @@
           "div",
           {
             ref: scrollContainerRef,
-            className: !isGrid ? "upsellity-product-recommendations-scroll" : "",
+            className: !isGrid ? "selldrawer-product-recommendations-scroll" : "",
             style: isGrid ? {
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
@@ -11253,7 +11253,7 @@
       if (variantId && freeGiftVariantIds.length > 0) {
         return freeGiftVariantIds.some((giftId) => giftId.toString() === variantId);
       }
-      return item.properties && (item.properties["_upsellity_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+      return item.properties && (item.properties["_selldrawer_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
     };
     const giftItems = items.filter(isGiftItem);
     const regularItems = items.filter((item) => !isGiftItem(item));
@@ -12540,7 +12540,7 @@
           return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
             CouponCodeField,
             {
-              id: "upsellity-coupon-field",
+              id: "selldrawer-coupon-field",
               placeholder: couponField.placeholder || "Enter coupon code",
               buttonText: couponField.buttonText || "Apply",
               showAllOffers: couponField.showAllOffers || false,
@@ -12603,7 +12603,7 @@
       /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
         "button",
         {
-          className: "upsellity-close-btn",
+          className: "selldrawer-close-btn",
           onClick: onClose,
           style: { background: "none", border: "none", cursor: "pointer" },
           children: "\xD7"
@@ -12612,7 +12612,7 @@
       /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
         "h2",
         {
-          id: "upsellity-cart-header",
+          id: "selldrawer-cart-header",
           style: { fontSize: "20px", fontWeight: 600, marginBottom: "20px" },
           children: [
             "Your Cart (",
@@ -12664,7 +12664,7 @@
       /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
         "button",
         {
-          className: "upsellity-checkout-btn",
+          className: "selldrawer-checkout-btn",
           onClick: onCheckout,
           children: "Checkout"
         }
@@ -12704,14 +12704,14 @@
     },
     setVersion(version) {
       this.version = version || "default";
-      console.log("[Upsellity Analytics] Version set to:", this.version);
+      console.log("[Selldrawer Analytics] Version set to:", this.version);
     },
     getSessionId() {
       try {
-        let sessionId = sessionStorage.getItem("upsellity_session_id");
+        let sessionId = sessionStorage.getItem("selldrawer_session_id");
         if (!sessionId) {
           sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-          sessionStorage.setItem("upsellity_session_id", sessionId);
+          sessionStorage.setItem("selldrawer_session_id", sessionId);
         }
         return sessionId;
       } catch (e) {
@@ -12720,11 +12720,11 @@
     },
     track(event) {
       if (!this.shop) {
-        console.warn("[Upsellity Analytics] Shop not detected, skipping tracking");
+        console.warn("[Selldrawer Analytics] Shop not detected, skipping tracking");
         return;
       }
       if (!this.appUrl) {
-        console.warn("[Upsellity Analytics] App URL not configured, skipping tracking");
+        console.warn("[Selldrawer Analytics] App URL not configured, skipping tracking");
         return;
       }
       const payload = {
@@ -12741,7 +12741,7 @@
         const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
         const sent = navigator.sendBeacon(apiUrl, blob);
         if (!sent) {
-          console.warn("[Upsellity Analytics] sendBeacon failed, falling back to fetch");
+          console.warn("[Selldrawer Analytics] sendBeacon failed, falling back to fetch");
           this.fallbackFetch(apiUrl, payload);
         }
       } else {
@@ -12758,14 +12758,14 @@
         keepalive: true
       }).then((response) => {
         if (!response.ok) {
-          console.error("[Upsellity Analytics] API error:", response.status, apiUrl);
+          console.error("[Selldrawer Analytics] API error:", response.status, apiUrl);
         }
-      }).catch((err) => console.error("[Upsellity Analytics] Fetch error:", err));
+      }).catch((err) => console.error("[Selldrawer Analytics] Fetch error:", err));
     }
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-class.js
-  var UpsellityCartDrawer = class {
+  var SelldrawerCartDrawer = class {
     constructor(appUrl) {
       var _a2;
       this.appUrl = appUrl;
@@ -12788,11 +12788,11 @@
     }
     async init() {
       if (!this.shop) {
-        console.error("Upsellity: Shop not detected");
+        console.error("Selldrawer: Shop not detected");
         return;
       }
       if (!this.appUrl) {
-        console.error("Upsellity: App URL not configured");
+        console.error("Selldrawer: App URL not configured");
         return;
       }
       this.createDrawer();
@@ -12807,9 +12807,9 @@
         Analytics.init(this.appUrl);
         const timestamp = (/* @__PURE__ */ new Date()).getTime();
         let apiUrl = `${this.appUrl}/api/cart-drawer?shop=${this.shop}&_t=${timestamp}`;
-        if ((_a2 = window.upsellity_config) == null ? void 0 : _a2.customerId) {
-          apiUrl += `&customerId=gid://shopify/Customer/${window.upsellity_config.customerId}`;
-          console.log("[Cart Drawer] Using customer ID from config:", window.upsellity_config.customerId);
+        if ((_a2 = window.selldrawer_config) == null ? void 0 : _a2.customerId) {
+          apiUrl += `&customerId=gid://shopify/Customer/${window.selldrawer_config.customerId}`;
+          console.log("[Cart Drawer] Using customer ID from config:", window.selldrawer_config.customerId);
         } else {
           console.log("[Cart Drawer] No customer ID available, using session-based A/B testing");
         }
@@ -12831,18 +12831,18 @@
           await this.loadFreeGifts();
         }
       } catch (error) {
-        console.error("Upsellity: Failed to load config", error);
+        console.error("Selldrawer: Failed to load config", error);
         this.config = { enabled: false, features: {} };
       }
     }
     async loadFreeGifts() {
       try {
         if (this.isSyncingGifts) {
-          console.log("Upsellity Free Gifts: Already syncing, skipping");
+          console.log("Selldrawer Free Gifts: Already syncing, skipping");
           return;
         }
         const cartTotalExcludingGifts = calculateCartTotalExcludingGifts(this.cart);
-        console.log("Upsellity Free Gifts: Cart total check", {
+        console.log("Selldrawer Free Gifts: Cart total check", {
           totalWithGifts: this.cart.total_price / 100,
           totalExcludingGifts: cartTotalExcludingGifts / 100
         });
@@ -12855,7 +12855,7 @@
         );
         this.freeGifts = freeGifts;
         if (freeGifts.length > 0 && freeGifts[0].qualified) {
-          console.log("Upsellity Free Gifts: API returned gifts, syncing");
+          console.log("Selldrawer Free Gifts: API returned gifts, syncing");
           await syncFreeGiftWithCart(
             freeGifts[0],
             this.cart,
@@ -12866,17 +12866,17 @@
           );
           this.selectedGiftId = getSelectedGiftFromCart(this.cart, freeGifts[0]);
         } else {
-          console.log("Upsellity Free Gifts: No gifts from API, not syncing (milestone has priority)");
+          console.log("Selldrawer Free Gifts: No gifts from API, not syncing (milestone has priority)");
           this.selectedGiftId = null;
         }
       } catch (error) {
-        console.error("Upsellity: Failed to load free gifts", error);
+        console.error("Selldrawer: Failed to load free gifts", error);
       }
     }
     async loadMilestones() {
       var _a2;
       try {
-        const appUrl = (_a2 = document.querySelector("[data-upsellity-app-url]")) == null ? void 0 : _a2.dataset.upsellityAppUrl;
+        const appUrl = (_a2 = document.querySelector("[data-selldrawer-app-url]")) == null ? void 0 : _a2.dataset.selldrawerAppUrl;
         if (!appUrl)
           return;
         const cartTotalInCents = calculateCartTotalExcludingGifts(this.cart);
@@ -12913,17 +12913,17 @@
           this.config.features.milestonesAllUnlockedMessage = data.allUnlockedMessage;
         }
       } catch (error) {
-        console.error("Upsellity: Failed to load milestones", error);
+        console.error("Selldrawer: Failed to load milestones", error);
       }
     }
     async handleMilestoneRewards() {
       if (this.isSyncingGifts) {
-        console.log("Upsellity Milestones: Already syncing, skipping");
+        console.log("Selldrawer Milestones: Already syncing, skipping");
         return;
       }
       try {
         this.isSyncingGifts = true;
-        console.log("Upsellity Milestones: Starting sync");
+        console.log("Selldrawer Milestones: Starting sync");
         const previousMilestone = this.unlockedMilestone;
         this.unlockedMilestone = await handleMilestoneRewards(
           this.milestones,
@@ -12935,9 +12935,9 @@
         if (this.unlockedMilestone && (!previousMilestone || previousMilestone.id !== this.unlockedMilestone.id)) {
           showMilestoneUnlockedNotification(this.unlockedMilestone);
         }
-        console.log("Upsellity Milestones: Sync complete");
+        console.log("Selldrawer Milestones: Sync complete");
       } catch (error) {
-        console.error("Upsellity Milestones: Error handling rewards", error);
+        console.error("Selldrawer Milestones: Error handling rewards", error);
       } finally {
         setTimeout(() => {
           this.isSyncingGifts = false;
@@ -12976,7 +12976,7 @@
           this.render();
         }
       } catch (error) {
-        console.error("Upsellity: Failed to load cart", error);
+        console.error("Selldrawer: Failed to load cart", error);
         this.cart = {
           item_count: 0,
           total_price: 0,
@@ -12999,14 +12999,14 @@
             let cartModified = false;
             for (const giftItem of allGifts) {
               const props = normalizeProperties(giftItem.properties);
-              const source = props["_upsellity_gift_source"];
+              const source = props["_selldrawer_gift_source"];
               const isMilestoneGift = !source || source === "milestone";
               if (isMilestoneGift) {
-                console.log("Upsellity Cart Drawer: Cleaning up disabled milestone gift", giftItem.key);
+                console.log("Selldrawer Cart Drawer: Cleaning up disabled milestone gift", giftItem.key);
                 await removeGiftFromCart(giftItem.key);
                 cartModified = true;
               } else {
-                console.log("Upsellity Cart Drawer: Ignoring gift from other source", source, giftItem.key);
+                console.log("Selldrawer Cart Drawer: Ignoring gift from other source", source, giftItem.key);
               }
             }
             if (cartModified) {
@@ -13020,7 +13020,7 @@
         }
         this.render();
       } catch (error) {
-        console.error("Upsellity: Failed to load secondary data", error);
+        console.error("Selldrawer: Failed to load secondary data", error);
       }
     }
     interceptAddToCart() {
@@ -13050,10 +13050,10 @@
               await this.open();
               this.loadSecondaryData();
             } else {
-              console.error("Upsellity: Failed to add to cart", await response.text());
+              console.error("Selldrawer: Failed to add to cart", await response.text());
             }
           } catch (error) {
-            console.error("Upsellity: Failed to add to cart", error);
+            console.error("Selldrawer: Failed to add to cart", error);
           } finally {
             setTimeout(() => {
               isHandlingAddToCart = false;
@@ -13082,7 +13082,7 @@
               this.loadSecondaryData();
             }
           } catch (error) {
-            console.error("Upsellity: Error handling cart add", error);
+            console.error("Selldrawer: Error handling cart add", error);
           } finally {
             setTimeout(() => {
               isHandlingAddToCart = false;
@@ -13114,7 +13114,7 @@
       document.addEventListener("cart:updated", async (e) => {
         let cartData = e.detail;
         if (!cartData || !cartData.items || !Array.isArray(cartData.items)) {
-          console.log("Upsellity Cart Drawer: Event data is not a full cart, fetching fresh data");
+          console.log("Selldrawer Cart Drawer: Event data is not a full cart, fetching fresh data");
           cartData = null;
         }
         if (this.isOpen) {
@@ -13128,17 +13128,17 @@
     }
     createDrawer() {
       const drawer = document.createElement("div");
-      drawer.id = "upsellity-cart-drawer";
-      drawer.className = "upsellity-drawer";
+      drawer.id = "selldrawer-cart-drawer";
+      drawer.className = "selldrawer-drawer";
       drawer.innerHTML = `
-      <div class="upsellity-drawer-overlay"></div>
-      <div class="upsellity-drawer-content">
-        <div class="upsellity-drawer-inner"></div>
+      <div class="selldrawer-drawer-overlay"></div>
+      <div class="selldrawer-drawer-content">
+        <div class="selldrawer-drawer-inner"></div>
       </div>
     `;
       document.body.appendChild(drawer);
-      const overlay = drawer.querySelector(".upsellity-drawer-overlay");
-      const drawerContent = drawer.querySelector(".upsellity-drawer-content");
+      const overlay = drawer.querySelector(".selldrawer-drawer-overlay");
+      const drawerContent = drawer.querySelector(".selldrawer-drawer-content");
       drawer.addEventListener("click", (e) => {
         if (this.isOpen && e.target === drawer) {
           this.close();
@@ -13165,7 +13165,7 @@
       this.loadStyles();
     }
     loadStyles() {
-      if (document.querySelector("#upsellity-cart-drawer-styles")) {
+      if (document.querySelector("#selldrawer-cart-drawer-styles")) {
         return;
       }
     }
@@ -13173,20 +13173,20 @@
       var _a2, _b;
       if (!this.cart)
         return;
-      const drawer = document.getElementById("upsellity-cart-drawer");
+      const drawer = document.getElementById("selldrawer-cart-drawer");
       if (!drawer) {
-        console.error("Upsellity: Drawer element not found");
+        console.error("Selldrawer: Drawer element not found");
         return;
       }
-      const inner = drawer.querySelector(".upsellity-drawer-inner");
+      const inner = drawer.querySelector(".selldrawer-drawer-inner");
       if (!inner) {
-        console.error("Upsellity: Drawer inner element not found");
+        console.error("Selldrawer: Drawer inner element not found");
         return;
       }
       if (!this.reactRoot) {
         this.reactRoot = (0, import_client.createRoot)(inner);
       }
-      console.log("Upsellity Cart Drawer Render:", {
+      console.log("Selldrawer Cart Drawer Render:", {
         freeGifts: this.freeGifts,
         freeGiftsEnabled: (_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.freeGiftsEnabled,
         selectedGiftId: this.selectedGiftId
@@ -13239,7 +13239,7 @@
       );
     }
     async open() {
-      const drawer = document.getElementById("upsellity-cart-drawer");
+      const drawer = document.getElementById("selldrawer-cart-drawer");
       if (this.cartJustUpdated) {
         this.cartJustUpdated = false;
         this.render();
@@ -13275,11 +13275,11 @@
         }
         this.render();
       } catch (error) {
-        console.error("Upsellity: Failed to load secondary data", error);
+        console.error("Selldrawer: Failed to load secondary data", error);
       }
     }
     close() {
-      const drawer = document.getElementById("upsellity-cart-drawer");
+      const drawer = document.getElementById("selldrawer-cart-drawer");
       drawer.classList.remove("open");
       this.isOpen = false;
       if (this.reactRoot) {
@@ -13300,7 +13300,7 @@
     async handleSelectGift(giftId, variantId) {
       const freeGift = this.freeGifts && this.freeGifts.length > 0 ? this.freeGifts[0] : null;
       if (!freeGift) {
-        console.error("Upsellity: No free gift available");
+        console.error("Selldrawer: No free gift available");
         return;
       }
       const success = await selectGift(variantId, freeGift, async () => {
@@ -13317,30 +13317,30 @@
     async handleCheckout() {
       var _a2;
       try {
-        console.log("Upsellity: Starting checkout process", {
+        console.log("Selldrawer: Starting checkout process", {
           hasFreeGifts: this.freeGifts && this.freeGifts.length > 0,
           hasUnlockedMilestone: !!this.unlockedMilestone,
           cartTotal: ((_a2 = this.cart) == null ? void 0 : _a2.total_price) / 100
         });
         if (this.freeGifts && this.freeGifts.length > 0 && this.freeGifts[0].qualified) {
-          console.log("Upsellity: Free gift is qualified, checking discount code");
+          console.log("Selldrawer: Free gift is qualified, checking discount code");
           if (this.freeGifts[0].discountCode) {
-            console.log("Upsellity: Using free gift discount code", this.freeGifts[0].discountCode);
+            console.log("Selldrawer: Using free gift discount code", this.freeGifts[0].discountCode);
             const checkoutUrl = getCheckoutUrlWithDiscount2(this.freeGifts[0]);
             window.location.href = checkoutUrl;
             return;
           } else {
-            console.log("Upsellity: Free gift has no discount code, proceeding to normal checkout");
+            console.log("Selldrawer: Free gift has no discount code, proceeding to normal checkout");
           }
         }
         if (this.unlockedMilestone && this.unlockedMilestone.discountCode) {
-          console.log("Upsellity: Using milestone discount", this.unlockedMilestone.discountCode);
+          console.log("Selldrawer: Using milestone discount", this.unlockedMilestone.discountCode);
           const validation = await validateMilestoneForCheckout(
             this.unlockedMilestone,
             this.cart
           );
           if (!validation.valid) {
-            console.log("Upsellity: Milestone validation failed", validation.message);
+            console.log("Selldrawer: Milestone validation failed", validation.message);
             if (this.unlockedMilestone.rewardType === "gift_wrapping") {
               await this.handleMilestoneRewards();
               setTimeout(() => {
@@ -13350,21 +13350,21 @@
             return;
           }
           const checkoutUrl = getCheckoutUrlWithDiscount(this.unlockedMilestone);
-          console.log("Upsellity: Redirecting to checkout with milestone discount", checkoutUrl);
+          console.log("Selldrawer: Redirecting to checkout with milestone discount", checkoutUrl);
           window.location.href = checkoutUrl;
           return;
         }
         const appliedDiscount = this.getDiscountFromCart();
         if (appliedDiscount && appliedDiscount.code) {
-          console.log("Upsellity: Using manually applied discount", appliedDiscount.code);
+          console.log("Selldrawer: Using manually applied discount", appliedDiscount.code);
           const checkoutUrl = getCheckoutUrl(appliedDiscount.code);
           window.location.href = checkoutUrl;
           return;
         }
-        console.log("Upsellity: Proceeding to normal checkout");
+        console.log("Selldrawer: Proceeding to normal checkout");
         window.location.href = "/checkout";
       } catch (error) {
-        console.error("Upsellity: Error during checkout", error);
+        console.error("Selldrawer: Error during checkout", error);
         setTimeout(() => {
           window.location.href = "/checkout";
         }, 1e3);
@@ -13388,7 +13388,7 @@
     }
     async updateQuantity(itemKey, newQuantity) {
       if (this.pendingOperations.has(itemKey)) {
-        console.log("Upsellity: Operation already pending for item", itemKey);
+        console.log("Selldrawer: Operation already pending for item", itemKey);
         return;
       }
       this.pendingOperations.add(itemKey);
@@ -13406,7 +13406,7 @@
     }
     async removeItem(itemKey) {
       if (this.pendingOperations.has(itemKey)) {
-        console.log("Upsellity: Operation already pending for item", itemKey);
+        console.log("Selldrawer: Operation already pending for item", itemKey);
         return;
       }
       this.pendingOperations.add(itemKey);
@@ -13450,8 +13450,8 @@
     }
     toggleAllOffers() {
       this.showingAllOffers = !this.showingAllOffers;
-      const dropdown = document.getElementById("upsellity-all-offers-dropdown");
-      const arrow = document.getElementById("upsellity-offers-arrow");
+      const dropdown = document.getElementById("selldrawer-all-offers-dropdown");
+      const arrow = document.getElementById("selldrawer-offers-arrow");
       if (dropdown) {
         dropdown.style.display = this.showingAllOffers ? "block" : "none";
       }
@@ -13462,7 +13462,7 @@
     async switchDiscount(discountCode) {
       const discount = this.availableDiscounts.find((d) => d.code === discountCode);
       if (!discount) {
-        console.error("Upsellity: Discount not found", discountCode);
+        console.error("Selldrawer: Discount not found", discountCode);
         return;
       }
       const success = await applyDiscountCode(discountCode, this.loadCart.bind(this));
@@ -13579,9 +13579,9 @@
       this.isRemoving = true;
       try {
         console.log(`FBT Monitor: Removing discount ${discountCode || "current"} from cart...`);
-        if (window.upsellityDrawer && typeof window.upsellityDrawer.removeDiscount === "function") {
+        if (window.selldrawerDrawer && typeof window.selldrawerDrawer.removeDiscount === "function") {
           console.log("FBT Monitor: Using cart drawer removeDiscount method");
-          await window.upsellityDrawer.removeDiscount();
+          await window.selldrawerDrawer.removeDiscount();
         } else {
           console.log("FBT Monitor: Using direct Shopify API");
           const response = await fetch("/cart/update.js", {
@@ -13601,8 +13601,8 @@
           }
         }
         console.log("FBT Monitor: Discount removed successfully");
-        if (window.upsellityDrawer && typeof window.upsellityDrawer.loadCart === "function") {
-          await window.upsellityDrawer.loadCart();
+        if (window.selldrawerDrawer && typeof window.selldrawerDrawer.loadCart === "function") {
+          await window.selldrawerDrawer.loadCart();
         }
         document.dispatchEvent(new CustomEvent("cart:updated"));
       } catch (error) {
@@ -13623,13 +13623,13 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://app.upsellity.com" : "https://app.upsellity.com";
+  var APP_URL = true ? "https://app.selldrawer.com" : "https://app.selldrawer.com";
   var CART_DRAWER_VERSION = true ? "1.0.11" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {
       window.UPSELLITY_APP_URL = APP_URL;
-      window.upsellityDrawer = new UpsellityCartDrawer(APP_URL);
-      window.upsellityDrawer.version = CART_DRAWER_VERSION;
+      window.selldrawerDrawer = new SelldrawerCartDrawer(APP_URL);
+      window.selldrawerDrawer.version = CART_DRAWER_VERSION;
     }
   }
   if (typeof document !== "undefined") {

@@ -15,13 +15,13 @@ function getConfig() {
     
     return {
       version: versionMatch ? versionMatch[1] : '1.0.0',
-      appUrl: appUrlMatch ? appUrlMatch[1] : 'https://app.upsellity.com'
+      appUrl: appUrlMatch ? appUrlMatch[1] : 'https://app.selldrawer.com'
     };
   } catch (error) {
     console.warn('⚠️ Could not read config.js, using defaults');
     return {
       version: '1.0.0',
-      appUrl: 'https://app.upsellity.com'
+      appUrl: 'https://app.selldrawer.com'
     };
   }
 }
@@ -37,8 +37,8 @@ function createVersionBannerPlugin(outfile, moduleName) {
           try {
             const content = readFileSync(outfile, 'utf-8');
             // Only add banner if it's not already there
-            if (!content.startsWith(`/**\n * Upsellity ${moduleName}`)) {
-              const banner = `/**\n * Upsellity ${moduleName} v${config.version}\n * Built: ${new Date().toISOString()}\n */\n`;
+            if (!content.startsWith(`/**\n * Selldrawer ${moduleName}`)) {
+              const banner = `/**\n * Selldrawer ${moduleName} v${config.version}\n * Built: ${new Date().toISOString()}\n */\n`;
               writeFileSync(outfile, banner + content);
             }
           } catch (error) {

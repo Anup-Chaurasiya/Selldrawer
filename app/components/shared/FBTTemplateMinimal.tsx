@@ -50,7 +50,7 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
 
   return (
     <div
-      className="upsellity-fbt-template-minimal"
+      className="selldrawer-fbt-template-minimal"
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -64,7 +64,7 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
       {/* Hide scrollbar for all browsers */}
       <style dangerouslySetInnerHTML={{
         __html: `
-          .upsellity-fbt-products-container::-webkit-scrollbar {
+          .selldrawer-fbt-products-container::-webkit-scrollbar {
             display: none;
           }
         `
@@ -89,7 +89,7 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
           msOverflowStyle: 'none',
           WebkitOverflowScrolling: 'touch'
         }}
-        className="upsellity-fbt-products-container"
+        className="selldrawer-fbt-products-container"
       >
         {/* Render Parent Product First */}
         {parentProduct && (() => {
@@ -103,7 +103,7 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
             <React.Fragment key={`parent-${variantId}`}>
               <div style={{ position: 'relative', width: '110px', minWidth: '110px', flexShrink: 0, boxSizing: 'border-box' }}>
                 <div
-                  className="upsellity-fbt-minimal-card selected"
+                  className="selldrawer-fbt-minimal-card selected"
                   style={{
                     width: '100%',
                     boxSizing: 'border-box',
@@ -321,7 +321,7 @@ export const FBTTemplateMinimal: React.FC<FBTTemplateMinimalProps> = ({
             <React.Fragment key={variantId}>
               <div style={{ position: 'relative', width: '110px', minWidth: '110px', flexShrink: 0, boxSizing: 'border-box' }}>
                 <div
-                  className={`upsellity-fbt-minimal-card ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
+                  className={`selldrawer-fbt-minimal-card ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
                   style={{
                     width: '100%',
                     boxSizing: 'border-box',

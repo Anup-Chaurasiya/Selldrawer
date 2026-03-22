@@ -119,7 +119,7 @@ const CartItemRow: React.FC<{
 
     // Check if this is a gift item
     const isGiftItem = item.properties && (
-      item.properties['_upsellity_gift'] === 'true' ||
+      item.properties['_selldrawer_gift'] === 'true' ||
       item.properties['_gift'] === 'true' ||
       item.properties['_gift'] === true
     );

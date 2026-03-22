@@ -68,9 +68,9 @@ export async function checkAppEmbedEnabled(
     const appEmbeds = settings?.current?.blocks || {};
     
     // Check if any app embed with our extension is enabled
-    // The type should match your extension name (e.g., "apps/upsellity-ai/cart-drawer-embed")
+    // The type should match your extension name (e.g., "apps/selldrawer-ai/cart-drawer-embed")
     const isEnabled = Object.values(appEmbeds).some((embed: any) => 
-      embed?.type?.includes('upsellity-ai') && embed?.disabled !== true
+      embed?.type?.includes('selldrawer-ai') && embed?.disabled !== true
     );
 
     return isEnabled;

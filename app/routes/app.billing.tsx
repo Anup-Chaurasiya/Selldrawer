@@ -234,7 +234,7 @@ export default function Billing() {
           <Banner tone="warning">
             <BlockStack gap="200">
               <Text as="p" variant="bodyMd">
-                You don't have an active subscription. Please subscribe to a plan to use Upsellity.
+                You don't have an active subscription. Please subscribe to a plan to use Selldrawer.
               </Text>
               <Text as="p" variant="bodySm" tone="subdued">
                 Click the button below to view and select a pricing plan.

@@ -7,7 +7,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { FreeShippingMessage } from '../../../../../app/components/shared/FreeShippingMessage.tsx';
 
-const CONTAINER_ID = 'upsellity-free-shipping-msg-root';
+const CONTAINER_ID = 'selldrawer-free-shipping-msg-root';
 
 export function renderFreeShippingMessage(config, cart, reactRoots = {}) {
   if (!config.features.freeShippingMessage) {

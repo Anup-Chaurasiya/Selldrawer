@@ -116,10 +116,10 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
   return (
     <div style={{ marginTop: '8px' }}>
       <style>{`
-        .upsellity-product-recommendations-scroll::-webkit-scrollbar {
+        .selldrawer-product-recommendations-scroll::-webkit-scrollbar {
           display: none;
         }
-        .upsellity-product-recommendations-scroll {
+        .selldrawer-product-recommendations-scroll {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
@@ -218,7 +218,7 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
 
         <div 
           ref={scrollContainerRef}
-          className={!isGrid ? 'upsellity-product-recommendations-scroll' : ''}
+          className={!isGrid ? 'selldrawer-product-recommendations-scroll' : ''}
           style={isGrid ? {
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',

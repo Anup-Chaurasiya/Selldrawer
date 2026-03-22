@@ -141,9 +141,9 @@ class FBTCartMonitor {
             console.log(`FBT Monitor: Removing discount ${discountCode || 'current'} from cart...`);
 
             // Method 1: Use cart drawer's removeDiscount if available
-            if (window.upsellityDrawer && typeof window.upsellityDrawer.removeDiscount === 'function') {
+            if (window.selldrawerDrawer && typeof window.selldrawerDrawer.removeDiscount === 'function') {
                 console.log('FBT Monitor: Using cart drawer removeDiscount method');
-                await window.upsellityDrawer.removeDiscount();
+                await window.selldrawerDrawer.removeDiscount();
             } else {
                 // Method 2: Direct Shopify cart API call
                 console.log('FBT Monitor: Using direct Shopify API');
@@ -167,8 +167,8 @@ class FBTCartMonitor {
             console.log('FBT Monitor: Discount removed successfully');
 
             // Reload cart to reflect changes
-            if (window.upsellityDrawer && typeof window.upsellityDrawer.loadCart === 'function') {
-                await window.upsellityDrawer.loadCart();
+            if (window.selldrawerDrawer && typeof window.selldrawerDrawer.loadCart === 'function') {
+                await window.selldrawerDrawer.loadCart();
             }
 
             // Trigger cart update event

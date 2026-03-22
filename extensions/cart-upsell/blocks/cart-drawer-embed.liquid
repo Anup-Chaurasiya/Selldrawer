@@ -1,14 +1,14 @@
 {% comment %}
-  Upsellity Cart Drawer - App Embed
+  Selldrawer Cart Drawer - App Embed
   This app embed enables the cart drawer functionality
 {% endcomment %}
 
-<div data-upsellity-app-url="{{ block.settings.app_url }}"></div>
+<div data-selldrawer-app-url="{{ block.settings.app_url }}"></div>
 
 <script>
   (function() {
     // Set config BEFORE loading the script so it's available immediately
-    window.upsellity_config = {
+    window.selldrawer_config = {
       customerId: "{{ customer.id | default: '' }}",
       shop: "{{ shop.permanent_domain }}"
     };
@@ -36,15 +36,15 @@
 
 {% schema %}
 {
-  "name": "Upsellity Cart Drawer",
+  "name": "Selldrawer Cart Drawer",
   "target": "body",
   "settings": [
     {
       "type": "text",
       "id": "app_url",
       "label": "App URL",
-      "info": "Enter your Upsellity app URL (e.g., https://your-app.fly.dev)",
-      "default": "https://app.upsellity.com"
+      "info": "Enter your Selldrawer app URL (e.g., https://your-app.fly.dev)",
+      "default": "https://app.selldrawer.com"
     },
     {
       "type": "text",

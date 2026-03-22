@@ -7,7 +7,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { CartTotals } from '../../../../../app/components/shared/CartTotals.tsx';
 
-const CONTAINER_ID = 'upsellity-cart-totals-root';
+const CONTAINER_ID = 'selldrawer-cart-totals-root';
 
 export function renderCartTotals(cart, appliedDiscount, reactRoots = {}) {
   const html = `<div id="${CONTAINER_ID}"></div>`;

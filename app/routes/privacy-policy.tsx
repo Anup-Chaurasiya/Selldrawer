@@ -1,13 +1,13 @@
 export default function PrivacyPolicy() {
   return (
     <main style={{ padding: "4rem 6vw", maxWidth: "960px", margin: "0 auto", lineHeight: 1.7 }}>
-      <h1>Upsellity AI Privacy Policy</h1>
+      <h1>Selldrawer AI Privacy Policy</h1>
       <p>Last updated: November 10, 2025</p>
 
       <section>
         <h2>1. Overview</h2>
         <p>
-          Upsellity AI ("we", "us", "our") helps Shopify merchants drive higher average order value through
+          Selldrawer AI ("we", "us", "our") helps Shopify merchants drive higher average order value through
           cart drawer experiences, upsells, and personalized recommendations. This privacy policy explains how we
           collect, use, and protect personal information processed through our Shopify app.
         </p>
@@ -21,7 +21,7 @@ export default function PrivacyPolicy() {
             Customer interaction data necessary to deliver upsell experiences, including anonymous cart events and
             customer identifiers used to power recommendations.
           </li>
-          <li>Theme and configuration settings created by the merchant inside Upsellity AI.</li>
+          <li>Theme and configuration settings created by the merchant inside Selldrawer AI.</li>
         </ul>
       </section>
 
@@ -39,7 +39,7 @@ export default function PrivacyPolicy() {
         <h2>4. Data Sharing</h2>
         <p>
           We do not sell merchant or customer data. We share data only with service providers engaged to host our
-          infrastructure, process payments, or provide analytics strictly for Upsellity AI operations. All
+          infrastructure, process payments, or provide analytics strictly for Selldrawer AI operations. All
           processors are bound by confidentiality and data protection agreements.
         </p>
       </section>
@@ -58,7 +58,7 @@ export default function PrivacyPolicy() {
       <section>
         <h2>6. Security</h2>
         <p>
-          Upsellity AI uses industry-standard security practices including SSL encryption, scoped access tokens,
+          Selldrawer AI uses industry-standard security practices including SSL encryption, scoped access tokens,
           and role-based access controls. We never store Shopify credentials or customer payment information.
         </p>
       </section>
@@ -67,17 +67,17 @@ export default function PrivacyPolicy() {
         <h2>7. Your Rights</h2>
         <p>
           Merchants and their customers may exercise data access, correction, or deletion rights by emailing
-          <a href="mailto:privacy@upsellity.ai"> privacy@upsellity.ai</a>. We respond to all verified requests within 30 days.
+          <a href="mailto:privacy@selldrawer.ai"> privacy@selldrawer.ai</a>. We respond to all verified requests within 30 days.
         </p>
       </section>
 
       <section>
         <h2>8. Contact</h2>
         <p>
-          Upsellity Labs Inc.<br />
+          Selldrawer Labs Inc.<br />
           123 Market Street, Suite 500<br />
           San Francisco, CA 94105<br />
-          <a href="mailto:privacy@upsellity.ai">privacy@upsellity.ai</a>
+          <a href="mailto:privacy@selldrawer.ai">privacy@selldrawer.ai</a>
         </p>
       </section>
     </main>

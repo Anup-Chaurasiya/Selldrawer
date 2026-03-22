@@ -4,7 +4,7 @@
  * with 15-minute expiration
  */
 
-const STORAGE_KEY = 'upsellity_discount_removed';
+const STORAGE_KEY = 'selldrawer_discount_removed';
 const EXPIRATION_MINUTES = 15;
 
 /**
@@ -19,7 +19,7 @@ export function markDiscountRemoved() {
       expiresAt: expirationTime
     }));
   } catch (error) {
-    console.warn('Upsellity: Failed to save discount removal preference', error);
+    console.warn('Selldrawer: Failed to save discount removal preference', error);
   }
 }
 
@@ -47,7 +47,7 @@ export function wasDiscountRemoved() {
     
     return data.removed === true;
   } catch (error) {
-    console.warn('Upsellity: Failed to read discount removal preference', error);
+    console.warn('Selldrawer: Failed to read discount removal preference', error);
     return false;
   }
 }
@@ -60,7 +60,7 @@ export function clearDiscountRemoval() {
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch (error) {
-    console.warn('Upsellity: Failed to clear discount removal preference', error);
+    console.warn('Selldrawer: Failed to clear discount removal preference', error);
   }
 }
 

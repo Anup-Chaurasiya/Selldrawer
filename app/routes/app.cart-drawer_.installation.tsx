@@ -39,7 +39,7 @@ export default function Installation() {
           <BlockStack gap="500">
             <Banner tone="info">
               <p>
-                The Upsellity Cart Drawer works with any Shopify theme! Follow these simple steps to enable it in your store.
+                The Selldrawer Cart Drawer works with any Shopify theme! Follow these simple steps to enable it in your store.
               </p>
             </Banner>
 
@@ -64,7 +64,7 @@ export default function Installation() {
                     Click the <strong>App embeds</strong> button in the theme editor (left sidebar, bottom)
                   </List.Item>
                   <List.Item>
-                    Find <strong>"Upsellity Cart Drawer"</strong> in the list and toggle it ON
+                    Find <strong>"Selldrawer Cart Drawer"</strong> in the list and toggle it ON
                   </List.Item>
                   <List.Item>
                     Enter your app URL in the settings: <InlineCode>{appUrl}</InlineCode>
@@ -170,7 +170,7 @@ export default function Installation() {
                 </Text>
 
                 <Text as="p" variant="bodyMd">
-                  All features can be customized from the Upsellity app dashboard:
+                  All features can be customized from the Selldrawer app dashboard:
                 </Text>
 
                 <List type="bullet">

@@ -1,5 +1,5 @@
 /**
- * Main UpsellityCartDrawer Class
+ * Main SelldrawerCartDrawer Class
  */
 
 import React from 'react';
@@ -15,7 +15,7 @@ import * as FreeGiftManager from './free-gift-manager.js';
 import { UnifiedCartDrawer } from './components/UnifiedCartDrawer.jsx';
 import { Analytics } from './analytics.js';
 
-export class UpsellityCartDrawer {
+export class SelldrawerCartDrawer {
   constructor(appUrl) {
     this.appUrl = appUrl;
     this.shop = window.Shopify?.shop || null;
@@ -39,12 +39,12 @@ export class UpsellityCartDrawer {
 
   async init() {
     if (!this.shop) {
-      console.error('Upsellity: Shop not detected');
+      console.error('Selldrawer: Shop not detected');
       return;
     }
 
     if (!this.appUrl) {
-      console.error('Upsellity: App URL not configured');
+      console.error('Selldrawer: App URL not configured');
       return;
     }
 
@@ -65,9 +65,9 @@ export class UpsellityCartDrawer {
       // Build URL with customer ID if available from liquid template
       let apiUrl = `${this.appUrl}/api/cart-drawer?shop=${this.shop}&_t=${timestamp}`;
 
-      if (window.upsellity_config?.customerId) {
-        apiUrl += `&customerId=gid://shopify/Customer/${window.upsellity_config.customerId}`;
-        console.log('[Cart Drawer] Using customer ID from config:', window.upsellity_config.customerId);
+      if (window.selldrawer_config?.customerId) {
+        apiUrl += `&customerId=gid://shopify/Customer/${window.selldrawer_config.customerId}`;
+        console.log('[Cart Drawer] Using customer ID from config:', window.selldrawer_config.customerId);
       } else {
         console.log('[Cart Drawer] No customer ID available, using session-based A/B testing');
       }
@@ -96,7 +96,7 @@ export class UpsellityCartDrawer {
         await this.loadFreeGifts();
       }
     } catch (error) {
-      console.error('Upsellity: Failed to load config', error);
+      console.error('Selldrawer: Failed to load config', error);
       this.config = { enabled: false, features: {} };
     }
   }
@@ -105,14 +105,14 @@ export class UpsellityCartDrawer {
     try {
       // Prevent concurrent gift syncing to avoid infinite loops
       if (this.isSyncingGifts) {
-        console.log('Upsellity Free Gifts: Already syncing, skipping');
+        console.log('Selldrawer Free Gifts: Already syncing, skipping');
         return;
       }
 
       // Calculate cart total EXCLUDING gift items to prevent circular dependency
       // This ensures that if a gift was added earlier, it doesn't count towards the threshold
       const cartTotalExcludingGifts = MilestoneRewardManager.calculateCartTotalExcludingGifts(this.cart);
-      console.log('Upsellity Free Gifts: Cart total check', {
+      console.log('Selldrawer Free Gifts: Cart total check', {
         totalWithGifts: this.cart.total_price / 100,
         totalExcludingGifts: cartTotalExcludingGifts / 100
       });
@@ -129,7 +129,7 @@ export class UpsellityCartDrawer {
 
       // Only sync if API returned free gifts (meaning they have priority over milestones)
       if (freeGifts.length > 0 && freeGifts[0].qualified) {
-        console.log('Upsellity Free Gifts: API returned gifts, syncing');
+        console.log('Selldrawer Free Gifts: API returned gifts, syncing');
         await FreeGiftManager.syncFreeGiftWithCart(
           freeGifts[0],
           this.cart,
@@ -142,19 +142,19 @@ export class UpsellityCartDrawer {
         // Update selected gift ID
         this.selectedGiftId = FreeGiftManager.getSelectedGiftFromCart(this.cart, freeGifts[0]);
       } else {
-        console.log('Upsellity Free Gifts: No gifts from API, not syncing (milestone has priority)');
+        console.log('Selldrawer Free Gifts: No gifts from API, not syncing (milestone has priority)');
         // API returned no gifts - this means milestone has priority
         // Don't remove anything, let milestone handle it
         this.selectedGiftId = null;
       }
     } catch (error) {
-      console.error('Upsellity: Failed to load free gifts', error);
+      console.error('Selldrawer: Failed to load free gifts', error);
     }
   }
 
   async loadMilestones() {
     try {
-      const appUrl = document.querySelector('[data-upsellity-app-url]')?.dataset.upsellityAppUrl;
+      const appUrl = document.querySelector('[data-selldrawer-app-url]')?.dataset.selldrawerAppUrl;
       if (!appUrl) return;
 
       // CRITICAL FIX: Use original cart total (before discounts) for milestone calculation
@@ -206,19 +206,19 @@ export class UpsellityCartDrawer {
         this.config.features.milestonesAllUnlockedMessage = data.allUnlockedMessage;
       }
     } catch (error) {
-      console.error('Upsellity: Failed to load milestones', error);
+      console.error('Selldrawer: Failed to load milestones', error);
     }
   }
 
   async handleMilestoneRewards() {
     if (this.isSyncingGifts) {
-      console.log('Upsellity Milestones: Already syncing, skipping');
+      console.log('Selldrawer Milestones: Already syncing, skipping');
       return;
     }
 
     try {
       this.isSyncingGifts = true;
-      console.log('Upsellity Milestones: Starting sync');
+      console.log('Selldrawer Milestones: Starting sync');
 
       // Evaluate and handle milestone rewards
       const previousMilestone = this.unlockedMilestone;
@@ -236,9 +236,9 @@ export class UpsellityCartDrawer {
         MilestoneRewardManager.showMilestoneUnlockedNotification(this.unlockedMilestone);
       }
 
-      console.log('Upsellity Milestones: Sync complete');
+      console.log('Selldrawer Milestones: Sync complete');
     } catch (error) {
-      console.error('Upsellity Milestones: Error handling rewards', error);
+      console.error('Selldrawer Milestones: Error handling rewards', error);
     } finally {
       // Add a small delay before allowing next sync
       setTimeout(() => {
@@ -300,7 +300,7 @@ export class UpsellityCartDrawer {
         this.render();
       }
     } catch (error) {
-      console.error('Upsellity: Failed to load cart', error);
+      console.error('Selldrawer: Failed to load cart', error);
       this.cart = {
         item_count: 0,
         total_price: 0,
@@ -326,15 +326,15 @@ export class UpsellityCartDrawer {
             // Only remove gifts that belong to milestones (or have no source)
             // DO NOT remove gifts from 'gifting_block' or other sources
             const props = MilestoneRewardManager.normalizeProperties(giftItem.properties);
-            const source = props['_upsellity_gift_source'];
+            const source = props['_selldrawer_gift_source'];
             const isMilestoneGift = !source || source === 'milestone';
 
             if (isMilestoneGift) {
-              console.log('Upsellity Cart Drawer: Cleaning up disabled milestone gift', giftItem.key);
+              console.log('Selldrawer Cart Drawer: Cleaning up disabled milestone gift', giftItem.key);
               await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
               cartModified = true;
             } else {
-              console.log('Upsellity Cart Drawer: Ignoring gift from other source', source, giftItem.key);
+              console.log('Selldrawer Cart Drawer: Ignoring gift from other source', source, giftItem.key);
             }
           }
 
@@ -353,7 +353,7 @@ export class UpsellityCartDrawer {
       // Re-render after milestones/gifts are loaded
       this.render();
     } catch (error) {
-      console.error('Upsellity: Failed to load secondary data', error);
+      console.error('Selldrawer: Failed to load secondary data', error);
     }
   }
 
@@ -399,10 +399,10 @@ export class UpsellityCartDrawer {
             // Load secondary data in background
             this.loadSecondaryData();
           } else {
-            console.error('Upsellity: Failed to add to cart', await response.text());
+            console.error('Selldrawer: Failed to add to cart', await response.text());
           }
         } catch (error) {
-          console.error('Upsellity: Failed to add to cart', error);
+          console.error('Selldrawer: Failed to add to cart', error);
         } finally {
           setTimeout(() => {
             isHandlingAddToCart = false;
@@ -446,7 +446,7 @@ export class UpsellityCartDrawer {
             this.loadSecondaryData();
           }
         } catch (error) {
-          console.error('Upsellity: Error handling cart add', error);
+          console.error('Selldrawer: Error handling cart add', error);
         } finally {
           setTimeout(() => {
             isHandlingAddToCart = false;
@@ -492,7 +492,7 @@ export class UpsellityCartDrawer {
       // Defensive check: Ensure data looks like a cart (has items array)
       // /cart/add.js returns the ITEM, not the CART, which causes crashes if passed directly
       if (!cartData || !cartData.items || !Array.isArray(cartData.items)) {
-        console.log('Upsellity Cart Drawer: Event data is not a full cart, fetching fresh data');
+        console.log('Selldrawer Cart Drawer: Event data is not a full cart, fetching fresh data');
         cartData = null; // trigger fetch in loadCart
       }
 
@@ -511,20 +511,20 @@ export class UpsellityCartDrawer {
 
   createDrawer() {
     const drawer = document.createElement('div');
-    drawer.id = 'upsellity-cart-drawer';
-    drawer.className = 'upsellity-drawer';
+    drawer.id = 'selldrawer-cart-drawer';
+    drawer.className = 'selldrawer-drawer';
     drawer.innerHTML = `
-      <div class="upsellity-drawer-overlay"></div>
-      <div class="upsellity-drawer-content">
-        <div class="upsellity-drawer-inner"></div>
+      <div class="selldrawer-drawer-overlay"></div>
+      <div class="selldrawer-drawer-content">
+        <div class="selldrawer-drawer-inner"></div>
       </div>
     `;
 
     document.body.appendChild(drawer);
 
     // Get references to drawer elements
-    const overlay = drawer.querySelector('.upsellity-drawer-overlay');
-    const drawerContent = drawer.querySelector('.upsellity-drawer-content');
+    const overlay = drawer.querySelector('.selldrawer-drawer-overlay');
+    const drawerContent = drawer.querySelector('.selldrawer-drawer-content');
 
     // Click handler for the main drawer container
     // This catches clicks anywhere in the drawer area
@@ -564,7 +564,7 @@ export class UpsellityCartDrawer {
   }
 
   loadStyles() {
-    if (document.querySelector('#upsellity-cart-drawer-styles')) {
+    if (document.querySelector('#selldrawer-cart-drawer-styles')) {
       return;
     }
   }
@@ -572,15 +572,15 @@ export class UpsellityCartDrawer {
   render() {
     if (!this.cart) return;
 
-    const drawer = document.getElementById('upsellity-cart-drawer');
+    const drawer = document.getElementById('selldrawer-cart-drawer');
     if (!drawer) {
-      console.error('Upsellity: Drawer element not found');
+      console.error('Selldrawer: Drawer element not found');
       return;
     }
 
-    const inner = drawer.querySelector('.upsellity-drawer-inner');
+    const inner = drawer.querySelector('.selldrawer-drawer-inner');
     if (!inner) {
-      console.error('Upsellity: Drawer inner element not found');
+      console.error('Selldrawer: Drawer inner element not found');
       return;
     }
 
@@ -590,7 +590,7 @@ export class UpsellityCartDrawer {
     }
 
     // Debug logging
-    console.log('Upsellity Cart Drawer Render:', {
+    console.log('Selldrawer Cart Drawer Render:', {
       freeGifts: this.freeGifts,
       freeGiftsEnabled: this.config?.features?.freeGiftsEnabled,
       selectedGiftId: this.selectedGiftId
@@ -649,7 +649,7 @@ export class UpsellityCartDrawer {
   }
 
   async open() {
-    const drawer = document.getElementById('upsellity-cart-drawer');
+    const drawer = document.getElementById('selldrawer-cart-drawer');
 
     // If cart was just updated (add to cart), render and open immediately
     if (this.cartJustUpdated) {
@@ -709,12 +709,12 @@ export class UpsellityCartDrawer {
       // Re-render with secondary data
       this.render();
     } catch (error) {
-      console.error('Upsellity: Failed to load secondary data', error);
+      console.error('Selldrawer: Failed to load secondary data', error);
     }
   }
 
   close() {
-    const drawer = document.getElementById('upsellity-cart-drawer');
+    const drawer = document.getElementById('selldrawer-cart-drawer');
     drawer.classList.remove('open');
     this.isOpen = false;
 
@@ -742,7 +742,7 @@ export class UpsellityCartDrawer {
     const freeGift = this.freeGifts && this.freeGifts.length > 0 ? this.freeGifts[0] : null;
 
     if (!freeGift) {
-      console.error('Upsellity: No free gift available');
+      console.error('Selldrawer: No free gift available');
       return;
     }
 
@@ -763,7 +763,7 @@ export class UpsellityCartDrawer {
   // Handle checkout with milestone rewards and free gifts
   async handleCheckout() {
     try {
-      console.log('Upsellity: Starting checkout process', {
+      console.log('Selldrawer: Starting checkout process', {
         hasFreeGifts: this.freeGifts && this.freeGifts.length > 0,
         hasUnlockedMilestone: !!this.unlockedMilestone,
         cartTotal: this.cart?.total_price / 100
@@ -771,16 +771,16 @@ export class UpsellityCartDrawer {
 
       // Check free gifts first - only if qualified
       if (this.freeGifts && this.freeGifts.length > 0 && this.freeGifts[0].qualified) {
-        console.log('Upsellity: Free gift is qualified, checking discount code');
+        console.log('Selldrawer: Free gift is qualified, checking discount code');
 
         // If free gift has discount code, use it for checkout
         if (this.freeGifts[0].discountCode) {
-          console.log('Upsellity: Using free gift discount code', this.freeGifts[0].discountCode);
+          console.log('Selldrawer: Using free gift discount code', this.freeGifts[0].discountCode);
           const checkoutUrl = FreeGiftManager.getCheckoutUrlWithDiscount(this.freeGifts[0]);
           window.location.href = checkoutUrl;
           return;
         } else {
-          console.log('Upsellity: Free gift has no discount code, proceeding to normal checkout');
+          console.log('Selldrawer: Free gift has no discount code, proceeding to normal checkout');
           // Free gift is in cart but no discount code configured
           // This is OK - the BXGY automatic discount will apply at checkout
           // Continue to next priority
@@ -789,7 +789,7 @@ export class UpsellityCartDrawer {
 
       // Priority 1: Use milestone discount if available
       if (this.unlockedMilestone && this.unlockedMilestone.discountCode) {
-        console.log('Upsellity: Using milestone discount', this.unlockedMilestone.discountCode);
+        console.log('Selldrawer: Using milestone discount', this.unlockedMilestone.discountCode);
         // Validate milestone before checkout
         const validation = await MilestoneRewardManager.validateMilestoneForCheckout(
           this.unlockedMilestone,
@@ -797,8 +797,8 @@ export class UpsellityCartDrawer {
         );
 
         if (!validation.valid) {
-          console.log('Upsellity: Milestone validation failed', validation.message);
-          // console.log('Upsellity: Milestone validation failed', validation.message);
+          console.log('Selldrawer: Milestone validation failed', validation.message);
+          // console.log('Selldrawer: Milestone validation failed', validation.message);
 
           // If gifts are missing, try to sync them
           if (this.unlockedMilestone.rewardType === 'gift_wrapping') {
@@ -815,7 +815,7 @@ export class UpsellityCartDrawer {
 
         // Proceed to checkout with milestone discount
         const checkoutUrl = MilestoneRewardManager.getCheckoutUrlWithDiscount(this.unlockedMilestone);
-        console.log('Upsellity: Redirecting to checkout with milestone discount', checkoutUrl);
+        console.log('Selldrawer: Redirecting to checkout with milestone discount', checkoutUrl);
         window.location.href = checkoutUrl;
         return;
       }
@@ -823,17 +823,17 @@ export class UpsellityCartDrawer {
       // Priority 2: Use manually applied discount (coupon code)
       const appliedDiscount = this.getDiscountFromCart();
       if (appliedDiscount && appliedDiscount.code) {
-        console.log('Upsellity: Using manually applied discount', appliedDiscount.code);
+        console.log('Selldrawer: Using manually applied discount', appliedDiscount.code);
         const checkoutUrl = DiscountManager.getCheckoutUrl(appliedDiscount.code);
         window.location.href = checkoutUrl;
         return;
       }
 
       // Priority 3: No discount, proceed to normal checkout
-      console.log('Upsellity: Proceeding to normal checkout');
+      console.log('Selldrawer: Proceeding to normal checkout');
       window.location.href = '/checkout';
     } catch (error) {
-      console.error('Upsellity: Error during checkout', error);
+      console.error('Selldrawer: Error during checkout', error);
       // showNotification('An error occurred. Proceeding to checkout...', 'error');
 
       // Fallback to normal checkout
@@ -865,7 +865,7 @@ export class UpsellityCartDrawer {
   async updateQuantity(itemKey, newQuantity) {
     // Check if there's already a pending operation for this item
     if (this.pendingOperations.has(itemKey)) {
-      console.log('Upsellity: Operation already pending for item', itemKey);
+      console.log('Selldrawer: Operation already pending for item', itemKey);
       return;
     }
 
@@ -894,7 +894,7 @@ export class UpsellityCartDrawer {
   async removeItem(itemKey) {
     // Check if there's already a pending operation for this item
     if (this.pendingOperations.has(itemKey)) {
-      console.log('Upsellity: Operation already pending for item', itemKey);
+      console.log('Selldrawer: Operation already pending for item', itemKey);
       return;
     }
 
@@ -963,8 +963,8 @@ export class UpsellityCartDrawer {
   toggleAllOffers() {
     this.showingAllOffers = !this.showingAllOffers;
 
-    const dropdown = document.getElementById('upsellity-all-offers-dropdown');
-    const arrow = document.getElementById('upsellity-offers-arrow');
+    const dropdown = document.getElementById('selldrawer-all-offers-dropdown');
+    const arrow = document.getElementById('selldrawer-offers-arrow');
 
     if (dropdown) {
       dropdown.style.display = this.showingAllOffers ? 'block' : 'none';
@@ -979,7 +979,7 @@ export class UpsellityCartDrawer {
     const discount = this.availableDiscounts.find(d => d.code === discountCode);
 
     if (!discount) {
-      console.error('Upsellity: Discount not found', discountCode);
+      console.error('Selldrawer: Discount not found', discountCode);
       return;
     }
 

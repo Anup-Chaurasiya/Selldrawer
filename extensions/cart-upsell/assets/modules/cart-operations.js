@@ -161,7 +161,7 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
 
   const cartItem = document.querySelector(`[data-item-key="${itemKey}"]`);
   if (cartItem) {
-    cartItem.classList.add('upsellity-loading');
+    cartItem.classList.add('selldrawer-loading');
   }
 
   try {
@@ -186,7 +186,7 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
 
     // Check if this is a gift item - gift items cannot be manually modified
     const isGift = item.properties && (
-      item.properties['_upsellity_gift'] === 'true' ||
+      item.properties['_selldrawer_gift'] === 'true' ||
       item.properties['_gift'] === 'true' ||
       item.properties['_gift'] === true
     );
@@ -269,7 +269,7 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
     // Don't throw error - handle gracefully to prevent uncaught promise rejection
   } finally {
     if (cartItem) {
-      cartItem.classList.remove('upsellity-loading');
+      cartItem.classList.remove('selldrawer-loading');
     }
   }
 }
@@ -280,7 +280,7 @@ export async function updateQuantity(itemKey, newQuantity, loadCartCallback, ren
 export async function removeItem(itemKey, loadCartCallback, renderCallback) {
   const cartItem = document.querySelector(`[data-item-key="${itemKey}"]`);
   if (cartItem) {
-    cartItem.classList.add('upsellity-loading');
+    cartItem.classList.add('selldrawer-loading');
   }
 
   try {
@@ -293,7 +293,7 @@ export async function removeItem(itemKey, loadCartCallback, renderCallback) {
       if (item) {
         // Check if this is a gift item
         const isGift = item.properties && (
-          item.properties['_upsellity_gift'] === 'true' ||
+          item.properties['_selldrawer_gift'] === 'true' ||
           item.properties['_gift'] === 'true' ||
           item.properties['_gift'] === true
         );
@@ -334,7 +334,7 @@ export async function removeItem(itemKey, loadCartCallback, renderCallback) {
     // showNotification('Failed to remove item', 'error');
   } finally {
     if (cartItem) {
-      cartItem.classList.remove('upsellity-loading');
+      cartItem.classList.remove('selldrawer-loading');
     }
   }
 }

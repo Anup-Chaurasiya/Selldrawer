@@ -499,83 +499,8 @@ model FBTProduct {
   @@index([position])
 }
 
-model NudgePopup {
-  id                      String      @id @default(cuid())
-  shop                    String      @unique
-  isActive                Boolean     @default(true)
-  title                   String      @default("You might also like")
-  subtitle                String      @default("Select a product to replace your choice")
-  recommendationType      String      @default("manual")
-  algorithm               String      @default("related")
-  useAI                   Boolean     @default(false)
-  showOnAddToCart         Boolean     @default(true)
-  triggerPoint            String      @default("add_to_cart")
-  popupDelay              Int         @default(0)
-  overlayColor            String      @default("#000000")
-  overlayOpacity          Int         @default(50)
-  popupBackgroundColor    String      @default("#FFFFFF")
-  popupBorderRadius       Int         @default(8)
-  titleColor              String      @default("#000000")
-  subtitleColor           String      @default("#666666")
-  continueButtonText      String      @default("Continue with original")
-  continueButtonColor     String      @default("#000000")
-  continueButtonTextColor String      @default("#FFFFFF")
-  selectButtonText        String      @default("Select this product")
-  selectButtonColor       String      @default("#4F46E5")
-  selectButtonTextColor   String      @default("#FFFFFF")
-  closeButtonColor        String      @default("#999999")
-  showProductImage        Boolean     @default(true)
-  showProductPrice        Boolean     @default(true)
-  showProductComparePrice Boolean     @default(true)
-  showProductDescription  Boolean     @default(false)
-  maxProducts             Int         @default(4)
-  layout                  String      @default("grid")
-  enableAnimation         Boolean     @default(true)
-  animationType           String      @default("fade")
-  checkboxMode            Boolean     @default(false)
-  createdAt               DateTime    @default(now())
-  updatedAt               DateTime    @updatedAt
-  rules                   NudgeRule[]
 
-  @@index([shop, isActive])
-}
 
-model NudgeRule {
-  id               String         @id @default(cuid())
-  nudgeId          String
-  triggerType      String
-  triggerValue     String
-  triggerProductId String?
-  triggerTitle     String?
-  triggerPoint     String         @default("add_to_cart")
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  products         NudgeProduct[]
-  nudge            NudgePopup     @relation(fields: [nudgeId], references: [id], onDelete: Cascade)
-
-  @@index([nudgeId])
-  @@index([triggerProductId])
-}
-
-model NudgeProduct {
-  id               String    @id @default(cuid())
-  ruleId           String
-  shopifyProductId String
-  shopifyVariantId String?
-  title            String
-  price            Decimal
-  compareAtPrice   Decimal?
-  imageUrl         String?
-  handle           String
-  description      String?
-  position         Int       @default(0)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  rule             NudgeRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
-
-  @@index([ruleId])
-  @@index([position])
-}
 
 model CartMilestone {
   id                      String                 @id @default(cuid())
@@ -648,80 +573,8 @@ model CartMilestoneGiftProduct {
   @@index([milestoneId])
   @@index([position])
 }
-model NudgeAddTogether {
-  id                      String                    @id @default(cuid())
-  shop                    String                    @unique
-  isActive                Boolean                   @default(true)
-  title                   String                    @default("Complete your purchase")
-  subtitle                String                    @default("Add these products together")
-  recommendationType      String                    @default("manual")
-  algorithm               String                    @default("related")
-  useAI                   Boolean                   @default(false)
-  showOnAddToCart         Boolean                   @default(true)
-  triggerPoint            String                    @default("add_to_cart")
-  popupDelay              Int                       @default(0)
-  overlayColor            String                    @default("#000000")
-  overlayOpacity          Int                       @default(50)
-  popupBackgroundColor    String                    @default("#FFFFFF")
-  popupBorderRadius       Int                       @default(8)
-  titleColor              String                    @default("#000000")
-  subtitleColor           String                    @default("#666666")
-  addSelectedButtonText   String                    @default("Add Selected to Cart")
-  addSelectedButtonColor  String                    @default("#4F46E5")
-  addSelectedButtonTextColor String                  @default("#FFFFFF")
-  closeButtonColor        String                    @default("#999999")
-  showProductImage        Boolean                   @default(true)
-  showProductPrice        Boolean                   @default(true)
-  showProductComparePrice Boolean                   @default(true)
-  showProductDescription  Boolean                   @default(false)
-  maxProducts             Int                       @default(4)
-  layout                  String                    @default("grid")
-  enableAnimation         Boolean                   @default(true)
-  animationType           String                    @default("fade")
-  checkboxMode            Boolean                   @default(true)
-  createdAt               DateTime                  @default(now())
-  updatedAt               DateTime                  @updatedAt
-  rules                   NudgeAddTogetherRule[]
 
-  @@index([shop, isActive])
-}
 
-model NudgeAddTogetherRule {
-  id               String                    @id @default(cuid())
-  nudgeAddTogetherId String
-  triggerType      String
-  triggerValue     String
-  triggerProductId String?
-  triggerTitle     String?
-  triggerPoint     String                    @default("add_to_cart")
-  createdAt        DateTime                  @default(now())
-  updatedAt        DateTime                  @updatedAt
-  products         NudgeAddTogetherProduct[]
-  nudgeAddTogether NudgeAddTogether          @relation(fields: [nudgeAddTogetherId], references: [id], onDelete: Cascade)
-
-  @@index([nudgeAddTogetherId])
-  @@index([triggerProductId])
-}
-
-model NudgeAddTogetherProduct {
-  id               String                    @id @default(cuid())
-  ruleId           String
-  shopifyProductId String
-  shopifyVariantId String?
-  title            String
-  price            Decimal
-  compareAtPrice   Decimal?
-  imageUrl         String?
-  handle           String
-  description      String?
-  position         Int                       @default(0)
-  createdAt        DateTime                  @default(now())
-  updatedAt        DateTime                  @updatedAt
-  rule             NudgeAddTogetherRule      @relation(fields: [ruleId], references: [id], onDelete: Cascade)
-
-  @@index([ruleId])
-  @@index([position])
-}
 
 model AnalyticsEvent {
   id          String   @id @default(cuid())
@@ -745,91 +598,9 @@ model AnalyticsEvent {
   @@index([shop, version])  // For version queries
 }
 
-model MilestoneBlock {
-  id                           String                     @id @default(cuid())
-  shop                         String                     @unique
-  isActive                     Boolean                    @default(true)
-  milestonesProgressBarColor   String                     @default("#3b82f6")
-  milestonesAllUnlockedMessage String                     @default("🎉 Congratulations! All rewards unlocked!")
-  createdAt                    DateTime                   @default(now())
-  updatedAt                    DateTime                   @updatedAt
-  milestones                   BlockMilestone[]
 
-  @@index([shop])
-  @@index([shop, isActive])
-}
 
-model BlockMilestone {
-  id                       String                      @id @default(cuid())
-  milestoneBlockId         String
-  shop                     String
-  isActive                 Boolean                     @default(true)
-  title                    String
-  description              String?
-  targetAmount             Decimal
-  currency                 String                      @default("INR")
-  rewardType               String
-  rewardValue              Decimal?
-  discountCode             String?
-  shopifyDiscountId        String?
-  targetType               String                      @default("store_wide")
-  priority                 Int                         @default(0)
-  icon                     String?
-  unlockedMessage          String?
-  inProgressMessage        String?
-  lockedMessage            String?
-  iconColor                String                      @default("#3b82f6")
-  titleColor               String                      @default("#1e40af")
-  unlockButtonColor        String                      @default("#3b82f6")
-  showProgressBar          Boolean                     @default(true)
-  eligibleCollectionHandle String?
-  eligibleTag              String?
-  eligibleProductIds       String[]                    @default([])
-  eligibilitySource        String?                     @default("none") // "none" | "collection" | "products" | "all_products"
-  upsellHeaderText         String?                     @default("Unlock Your Reward")
-  viewAllLinkText          String?                     @default("View All")
-  unlockButtonText         String?                     @default("Unlock Reward")
-  createdAt                DateTime                    @default(now())
-  updatedAt                DateTime                    @updatedAt
-  milestoneBlock           MilestoneBlock              @relation(fields: [milestoneBlockId], references: [id], onDelete: Cascade)
-  targets                  BlockMilestoneTarget[]
-  giftProducts             BlockMilestoneGiftProduct[]
 
-  @@index([milestoneBlockId])
-  @@index([shop, isActive])
-  @@index([priority])
-}
-
-model BlockMilestoneTarget {
-  id          String         @id @default(cuid())
-  milestoneId String
-  targetType  String
-  shopifyId   String
-  title       String?
-  milestone   BlockMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
-
-  @@index([milestoneId])
-  @@index([targetType, shopifyId])
-}
-
-model BlockMilestoneGiftProduct {
-  id               String         @id @default(cuid())
-  milestoneId      String
-  shopifyProductId String
-  shopifyVariantId String?
-  title            String
-  price            Decimal
-  compareAtPrice   Decimal?
-  imageUrl         String?
-  handle           String
-  position         Int            @default(0)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  milestone        BlockMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
-
-  @@index([milestoneId])
-  @@index([position])
-}
 
 model FreeGift {
   id                String           @id @default(cuid())
@@ -905,68 +676,6 @@ model CartDrawerVersion {
 
 
 // Gifting Block - Standalone free gifts feature for theme extension
-model GiftingBlock {
-  id        String          @id @default(cuid())
-  shop      String          @unique
-  isActive  Boolean         @default(true)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  gifts     BlockFreeGift[]
 
-  @@index([shop])
-  @@index([shop, isActive])
-}
 
-model BlockFreeGift {
-  id                String                 @id @default(cuid())
-  giftingBlockId    String
-  shop              String
-  name              String
-  isActive          Boolean                @default(true)
-  triggerType       String                 @default("spend") // spend, quantity, products, collections
-  triggerValue      Decimal                @default(0)
-  customerLimit     Int                    @default(1) // How many gifts customer can choose
-  priority          Int                    @default(0)
-  shopifyDiscountId String?
-  discountCode      String?
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
-  giftingBlock      GiftingBlock           @relation(fields: [giftingBlockId], references: [id], onDelete: Cascade)
-  giftProducts      BlockFreeGiftProduct[]
-  targets           BlockFreeGiftTarget[]
 
-  @@index([giftingBlockId])
-  @@index([shop, isActive])
-  @@index([priority])
-}
-
-model BlockFreeGiftProduct {
-  id               String        @id @default(cuid())
-  freeGiftId       String
-  shopifyProductId String
-  shopifyVariantId String?
-  title            String
-  price            Decimal
-  compareAtPrice   Decimal?
-  imageUrl         String?
-  handle           String
-  position         Int           @default(0)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  freeGift         BlockFreeGift @relation(fields: [freeGiftId], references: [id], onDelete: Cascade)
-
-  @@index([freeGiftId])
-  @@index([position])
-}
-
-model BlockFreeGiftTarget {
-  id         String        @id @default(cuid())
-  freeGiftId String
-  shopifyId  String        // Product or Collection ID
-  type       String        // "product" or "collection"
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
-  freeGift   BlockFreeGift @relation(fields: [freeGiftId], references: [id], onDelete: Cascade)
-
-  @@index([freeGiftId])
-}

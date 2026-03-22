@@ -221,7 +221,7 @@ export const UnifiedCartDrawer = ({
         return (
           <div key={featureId} style={{ marginBottom: '12px' }}>
             <CouponCodeField
-              id="upsellity-coupon-field"
+              id="selldrawer-coupon-field"
               placeholder={couponField.placeholder || 'Enter coupon code'}
               buttonText={couponField.buttonText || 'Apply'}
               showAllOffers={couponField.showAllOffers || false}
@@ -296,7 +296,7 @@ export const UnifiedCartDrawer = ({
   return (
     <>
       <button
-        className="upsellity-close-btn"
+        className="selldrawer-close-btn"
         onClick={onClose}
         style={{ background: 'none', border: 'none', cursor: 'pointer' }}
       >
@@ -304,7 +304,7 @@ export const UnifiedCartDrawer = ({
       </button>
 
       <h2
-        id="upsellity-cart-header"
+        id="selldrawer-cart-header"
         style={{ fontSize: '20px', fontWeight: 600, marginBottom: '20px' }}
       >
         Your Cart ({cart.item_count} items)
@@ -362,7 +362,7 @@ export const UnifiedCartDrawer = ({
 
       {/* Checkout button */}
       <button
-        className="upsellity-checkout-btn"
+        className="selldrawer-checkout-btn"
         onClick={onCheckout}
       >
         Checkout

@@ -209,8 +209,8 @@ async function createBasicAutomatic(
 async function getOrCreateAllProductsCollection(
   admin: AdminApiContext
 ): Promise<string | null> {
-  const collectionTitle = "Upsellity - All Products (Price > 0)";
-  const collectionHandle = "upsellity-all-products-price-greater-than-0";
+  const collectionTitle = "Selldrawer - All Products (Price > 0)";
+  const collectionHandle = "selldrawer-all-products-price-greater-than-0";
 
   // First, try to find existing collection by handle
   const findQuery = `

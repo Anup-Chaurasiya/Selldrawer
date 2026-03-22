@@ -22,7 +22,7 @@ export async function loadAvailableDiscounts(appUrl, shop, config) {
     if (data.discounts && data.discounts.length > 0) {
       return data.discounts;
     } else {
-      console.warn('Upsellity: No discounts available', {
+      console.warn('Selldrawer: No discounts available', {
         count: data.count,
         error: data.error,
         debug: data.debug,
@@ -30,7 +30,7 @@ export async function loadAvailableDiscounts(appUrl, shop, config) {
       return [];
     }
   } catch (error) {
-    console.error('Upsellity: Failed to load available discounts', error);
+    console.error('Selldrawer: Failed to load available discounts', error);
     return [];
   }
 }
@@ -113,7 +113,7 @@ export async function applyDiscountCode(code, loadCartCallback) {
       return false;
     }
   } catch (error) {
-    console.error('Upsellity: Error applying discount', error);
+    console.error('Selldrawer: Error applying discount', error);
     // showNotification('Failed to apply coupon code', 'error');
     return false;
   }
@@ -146,12 +146,12 @@ export async function removeDiscount(loadCartCallback) {
       return true;
     } else {
       const error = await response.json();
-      console.error('Upsellity: Error removing discount', error);
+      console.error('Selldrawer: Error removing discount', error);
       // showNotification(error.description || error.message || 'Failed to remove discount', 'error');
       return false;
     }
   } catch (error) {
-    console.error('Upsellity: Error removing discount', error);
+    console.error('Selldrawer: Error removing discount', error);
     // showNotification('Failed to remove discount', 'error');
     return false;
   }
@@ -170,12 +170,12 @@ export async function validateAndApplyCoupon(appUrl, shop, config, couponCode, l
  * Uses Shopify AJAX API directly
  */
 export async function applyCoupon(appUrl, shop, config, appliedDiscount, renderCallback) {
-  const couponInput = document.getElementById('upsellity-coupon-input');
-  const messageDiv = document.getElementById('upsellity-coupon-message');
-  const applyBtn = document.querySelector('.upsellity-coupon-apply-btn');
+  const couponInput = document.getElementById('selldrawer-coupon-input');
+  const messageDiv = document.getElementById('selldrawer-coupon-message');
+  const applyBtn = document.querySelector('.selldrawer-coupon-apply-btn');
 
   if (!couponInput || !messageDiv) {
-    console.error('Upsellity: Coupon elements not found');
+    console.error('Selldrawer: Coupon elements not found');
     return null;
   }
 
@@ -208,7 +208,7 @@ export async function applyCoupon(appUrl, shop, config, appliedDiscount, renderC
       return null;
     }
   } catch (error) {
-    console.error('Upsellity: Error applying coupon', error);
+    console.error('Selldrawer: Error applying coupon', error);
     const couponField = config.features.couponCodeField;
     messageDiv.textContent = couponField.errorMessage || 'Invalid coupon code';
     messageDiv.style.color = '#ef4444';

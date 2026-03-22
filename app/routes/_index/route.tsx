@@ -23,9 +23,9 @@ import { Form, Link, useLoaderData } from "@remix-run/react";
      <div className={styles.page}>
        <header className={styles.hero}>
          <div className={styles.heroContent}>
-           <h1 className={styles.heading}>Upsellity AI for High-Converting Shopify Carts</h1>
+           <h1 className={styles.heading}>Selldrawer AI for High-Converting Shopify Carts</h1>
            <p className={styles.text}>
-             Turn every cart into a personalized shopping experience. Upsellity AI combines
+             Turn every cart into a personalized shopping experience. Selldrawer AI combines
              real-time cart intelligence, AI recommendations, and proven merchandising
              tactics to lift average order value without hurting conversion.
            </p>
@@ -40,7 +40,7 @@ import { Form, Link, useLoaderData } from "@remix-run/react";
                    placeholder="my-shop.myshopify.com"
                    aria-label="Shop domain"
                  />
-                 <span className={styles.helpText}>Install Upsellity AI on your Shopify store</span>
+                 <span className={styles.helpText}>Install Selldrawer AI on your Shopify store</span>
                </label>
                <button className={styles.button} type="submit">
                  Log in
@@ -98,7 +98,7 @@ import { Form, Link, useLoaderData } from "@remix-run/react";
            <div>
              <h3>We are here to help</h3>
              <p>
-               Reach our merchant success team any time at <a href="mailto:support@upsellity.ai">support@upsellity.ai</a> or
+               Reach our merchant success team any time at <a href="mailto:support@selldrawer.ai">support@selldrawer.ai</a> or
                schedule a strategy session to plan your upsell funnels.
              </p>
            </div>
@@ -108,14 +108,14 @@ import { Form, Link, useLoaderData } from "@remix-run/react";
                Visit our help center for implementation guides, theme setup tutorials, and best practices for AI
                merchandising.
              </p>
-             <a className={styles.linkButton} href="https://upsellity.ai/help" target="_blank" rel="noreferrer">
+             <a className={styles.linkButton} href="https://selldrawer.ai/help" target="_blank" rel="noreferrer">
                Explore documentation
              </a>
            </div>
            <div>
              <h3>Compliance</h3>
              <p>
-               Upsellity AI is GDPR-ready and responds to all Shopify privacy webhooks. Review our
+               Selldrawer AI is GDPR-ready and responds to all Shopify privacy webhooks. Review our
                <Link to="/privacy-policy">Privacy Policy</Link> and <Link to="/terms-of-service">Terms of Service</Link> for details.
              </p>
            </div>
@@ -124,8 +124,8 @@ import { Form, Link, useLoaderData } from "@remix-run/react";
  
        <footer className={styles.footer}>
          <p>
-           &copy; {new Date().getFullYear()} Upsellity AI. <Link to="/privacy-policy">Privacy Policy</Link> ·
-           <Link to="/terms-of-service"> Terms of Service</Link> · <a href="mailto:support@upsellity.ai">Support</a>
+           &copy; {new Date().getFullYear()} Selldrawer AI. <Link to="/privacy-policy">Privacy Policy</Link> ·
+           <Link to="/terms-of-service"> Terms of Service</Link> · <a href="mailto:support@selldrawer.ai">Support</a>
          </p>
        </footer>
      </div>

@@ -7,7 +7,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { SavingsDisplay } from '../../../../../app/components/shared/SavingsDisplay.tsx';
 
-const CONTAINER_ID = 'upsellity-savings-display-root';
+const CONTAINER_ID = 'selldrawer-savings-display-root';
 
 export function renderSavingsDisplay(config, cart, appliedDiscount, reactRoots = {}) {
   if (!config.features.savingsDisplay) {

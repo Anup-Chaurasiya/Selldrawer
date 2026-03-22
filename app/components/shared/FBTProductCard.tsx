@@ -72,7 +72,7 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
 
   return (
     <div
-      className={`upsellity-fbt-product ${isDisabled ? 'upsellity-fbt-product-disabled' : ''}`}
+      className={`selldrawer-fbt-product ${isDisabled ? 'selldrawer-fbt-product-disabled' : ''}`}
       data-variant-id={variantId}
       style={{
         width: '100%',
@@ -87,7 +87,7 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
       {showCheckbox && (
         <input
           type="checkbox"
-          className="upsellity-fbt-checkbox"
+          className="selldrawer-fbt-checkbox"
           data-variant-id={variantId}
           checked={isSelected}
           disabled={isDisabled}
@@ -104,7 +104,7 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
         />
       )}
 
-      <div className="upsellity-fbt-product-image-wrapper" style={{ position: 'relative', marginBottom: '0.5em' }}>
+      <div className="selldrawer-fbt-product-image-wrapper" style={{ position: 'relative', marginBottom: '0.5em' }}>
         <a
           href={`/products/${product.handle}`}
           onClick={handleProductClick}
@@ -114,7 +114,7 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
             <img
               src={product.imageUrl}
               alt={product.title}
-              className="upsellity-fbt-product-image"
+              className="selldrawer-fbt-product-image"
               style={{
                 width: '100%',
                 height: '80px',
@@ -140,7 +140,7 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
         </a>
         {discountPercent > 0 && showDiscount && (
           <div
-            className="upsellity-fbt-discount-badge"
+            className="selldrawer-fbt-discount-badge"
             style={{
               position: 'absolute',
               top: '0.25em',
@@ -166,7 +166,7 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
         style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
       >
         <h3
-          className="upsellity-fbt-product-title"
+          className="selldrawer-fbt-product-title"
           style={{
             fontSize: '0.75em',
             fontWeight: '500',
@@ -187,7 +187,7 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
 
       {showIndividualPrices && (
         <div
-          className="upsellity-fbt-product-price"
+          className="selldrawer-fbt-product-price"
           style={{
             fontSize: '0.8125em',
             fontWeight: '600',
@@ -197,7 +197,7 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
         >
           {product.compareAtPrice && showDiscount && (
             <span
-              className="upsellity-fbt-product-compare-price"
+              className="selldrawer-fbt-product-compare-price"
               style={{
                 textDecoration: 'line-through',
                 color: '#9ca3af',
@@ -215,7 +215,7 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
 
       {showReviews && (
         <div
-          className="upsellity-fbt-reviews"
+          className="selldrawer-fbt-reviews"
           style={{
             fontSize: '0.75em',
             color: '#f59e0b',

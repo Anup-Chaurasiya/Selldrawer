@@ -76,16 +76,16 @@ function initToastContainer() {
   if (toastContainer) return toastContainer;
   
   toastContainer = document.createElement('div');
-  toastContainer.className = 'upsellity-toast-container';
+  toastContainer.className = 'selldrawer-toast-container';
   toastContainer.setAttribute('aria-live', 'polite');
   toastContainer.setAttribute('aria-atomic', 'true');
   
   // Inject styles if not already present
-  if (!document.getElementById('upsellity-toast-styles')) {
+  if (!document.getElementById('selldrawer-toast-styles')) {
     const style = document.createElement('style');
-    style.id = 'upsellity-toast-styles';
+    style.id = 'selldrawer-toast-styles';
     style.textContent = `
-      .upsellity-toast-container {
+      .selldrawer-toast-container {
         position: fixed;
         top: 20px;
         right: 20px;
@@ -98,7 +98,7 @@ function initToastContainer() {
         max-width: min(380px, calc(100vw - 40px));
       }
       
-      .upsellity-toast {
+      .selldrawer-toast {
         position: relative;
         background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         border-radius: 10px;
@@ -117,39 +117,39 @@ function initToastContainer() {
         backdrop-filter: blur(12px);
       }
       
-      .upsellity-toast:hover {
+      .selldrawer-toast:hover {
         transform: translateX(-4px);
         box-shadow: 0 12px 40px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.12);
       }
       
-      .upsellity-toast-success {
+      .selldrawer-toast-success {
         border-left-color: #22c55e;
         background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
       }
       
-      .upsellity-toast-success:hover {
+      .selldrawer-toast-success:hover {
         border-left-color: #16a34a;
       }
       
-      .upsellity-toast-error {
+      .selldrawer-toast-error {
         border-left-color: #f43f5e;
         background: linear-gradient(135deg, #fff1f2 0%, #ffffff 100%);
       }
       
-      .upsellity-toast-error:hover {
+      .selldrawer-toast-error:hover {
         border-left-color: #e11d48;
       }
       
-      .upsellity-toast-info {
+      .selldrawer-toast-info {
         border-left-color: #3b82f6;
         background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
       }
       
-      .upsellity-toast-info:hover {
+      .selldrawer-toast-info:hover {
         border-left-color: #2563eb;
       }
       
-      .upsellity-toast-icon {
+      .selldrawer-toast-icon {
         flex-shrink: 0;
         width: 22px;
         height: 22px;
@@ -163,29 +163,29 @@ function initToastContainer() {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
       }
       
-      .upsellity-toast-success .upsellity-toast-icon {
+      .selldrawer-toast-success .selldrawer-toast-icon {
         background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
         color: white;
       }
       
-      .upsellity-toast-error .upsellity-toast-icon {
+      .selldrawer-toast-error .selldrawer-toast-icon {
         background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
         color: white;
       }
       
-      .upsellity-toast-info .upsellity-toast-icon {
+      .selldrawer-toast-info .selldrawer-toast-icon {
         background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
         color: white;
       }
       
-      .upsellity-toast-content {
+      .selldrawer-toast-content {
         flex: 1;
         display: flex;
         align-items: center;
         min-width: 0;
       }
       
-      .upsellity-toast-message {
+      .selldrawer-toast-message {
         font-size: 13px;
         font-weight: 500;
         line-height: 1.5;
@@ -194,7 +194,7 @@ function initToastContainer() {
         word-wrap: break-word;
       }
       
-      .upsellity-toast-close {
+      .selldrawer-toast-close {
         flex-shrink: 0;
         background: none;
         border: none;
@@ -212,21 +212,21 @@ function initToastContainer() {
         margin-left: 4px;
       }
       
-      .upsellity-toast-close:hover {
+      .selldrawer-toast-close:hover {
         opacity: 1;
         background: rgba(0, 0, 0, 0.08);
         color: #475569;
         transform: rotate(90deg);
       }
       
-      .upsellity-toast-close::before {
+      .selldrawer-toast-close::before {
         content: '×';
         font-size: 22px;
         line-height: 1;
         font-weight: 300;
       }
       
-      .upsellity-toast-progress {
+      .selldrawer-toast-progress {
         position: absolute;
         bottom: 0;
         left: 0;
@@ -236,22 +236,22 @@ function initToastContainer() {
         overflow: hidden;
       }
       
-      .upsellity-toast-progress-bar {
+      .selldrawer-toast-progress-bar {
         height: 100%;
         transition: width linear;
         border-radius: 0 0 10px 10px;
         box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
       }
       
-      .upsellity-toast-success .upsellity-toast-progress-bar {
+      .selldrawer-toast-success .selldrawer-toast-progress-bar {
         background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
       }
       
-      .upsellity-toast-error .upsellity-toast-progress-bar {
+      .selldrawer-toast-error .selldrawer-toast-progress-bar {
         background: linear-gradient(90deg, #f43f5e 0%, #e11d48 100%);
       }
       
-      .upsellity-toast-info .upsellity-toast-progress-bar {
+      .selldrawer-toast-info .selldrawer-toast-progress-bar {
         background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
       }
       
@@ -277,24 +277,24 @@ function initToastContainer() {
         }
       }
       
-      .upsellity-toast.exiting {
+      .selldrawer-toast.exiting {
         animation: toastSlideOutRight 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
       }
       
       @media (max-width: 640px) {
-        .upsellity-toast-container {
+        .selldrawer-toast-container {
           right: 12px;
           left: 12px;
           max-width: none;
           top: 12px;
         }
         
-        .upsellity-toast {
+        .selldrawer-toast {
           min-width: auto;
           padding: 12px 14px;
         }
         
-        .upsellity-toast-message {
+        .selldrawer-toast-message {
           font-size: 12px;
         }
       }
@@ -336,37 +336,37 @@ export function showNotification(message, type = 'info', duration = 4000) {
   
   // Create toast element
   const toast = document.createElement('div');
-  toast.className = `upsellity-toast upsellity-toast-${type}`;
+  toast.className = `selldrawer-toast selldrawer-toast-${type}`;
   toast.setAttribute('role', 'alert');
   
   // Icon
   const icon = document.createElement('div');
-  icon.className = 'upsellity-toast-icon';
+  icon.className = 'selldrawer-toast-icon';
   icon.textContent = getToastIcon(type);
   icon.setAttribute('aria-hidden', 'true');
   
   // Content
   const content = document.createElement('div');
-  content.className = 'upsellity-toast-content';
+  content.className = 'selldrawer-toast-content';
   
   const messageEl = document.createElement('p');
-  messageEl.className = 'upsellity-toast-message';
+  messageEl.className = 'selldrawer-toast-message';
   messageEl.textContent = message;
   
   content.appendChild(messageEl);
   
   // Close button
   const closeBtn = document.createElement('button');
-  closeBtn.className = 'upsellity-toast-close';
+  closeBtn.className = 'selldrawer-toast-close';
   closeBtn.setAttribute('aria-label', 'Close notification');
   closeBtn.setAttribute('type', 'button');
   
   // Progress bar
   const progressContainer = document.createElement('div');
-  progressContainer.className = 'upsellity-toast-progress';
+  progressContainer.className = 'selldrawer-toast-progress';
   
   const progressBar = document.createElement('div');
-  progressBar.className = 'upsellity-toast-progress-bar';
+  progressBar.className = 'selldrawer-toast-progress-bar';
   progressBar.style.width = '100%';
   progressBar.style.transitionDuration = `${duration}ms`;
   

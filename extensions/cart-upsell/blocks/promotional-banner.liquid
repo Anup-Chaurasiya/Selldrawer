@@ -1,5 +1,5 @@
 {% comment %}
-  Upsellity Promotional Banner Block
+  Selldrawer Promotional Banner Block
   Standalone promotional banner that can be placed anywhere on the site
   Displays carousel with images/videos, titles, descriptions, and CTA buttons
   Configuration is managed in extensions/cart-upsell/config.js
@@ -15,7 +15,7 @@
   {% if is_full_width %}
     <style>
       /* Break out of Shopify container constraints for full width */
-      .upsellity-promotional-banner-fullwidth-wrapper {
+      .selldrawer-promotional-banner-fullwidth-wrapper {
         width: 100vw;
         position: relative;
         left: 50%;
@@ -26,18 +26,18 @@
       }
       
       /* Ensure inner container takes full width */
-      .upsellity-promotional-banner-fullwidth {
+      .selldrawer-promotional-banner-fullwidth {
         max-width: 100% !important;
         width: 100% !important;
         margin-left: 0 !important;
         margin-right: 0 !important;
       }
     </style>
-    <div class="upsellity-promotional-banner-fullwidth-wrapper">
+    <div class="selldrawer-promotional-banner-fullwidth-wrapper">
   {% endif %}
   
   <div 
-    class="upsellity-promotional-banner-container{% if is_full_width %} upsellity-promotional-banner-fullwidth{% endif %}"
+    class="selldrawer-promotional-banner-container{% if is_full_width %} selldrawer-promotional-banner-fullwidth{% endif %}"
     data-shop="{{ shop.permanent_domain }}"
     data-config-id="{{ block.settings.config_id }}"
     data-max-height="{{ block.settings.max_height }}"
@@ -81,21 +81,21 @@
   "settings": [
     {
       "type": "paragraph",
-      "content": "Display promotional banners with carousel, images/videos, and CTA buttons. Configure the banner content in the Upsellity admin panel."
+      "content": "Display promotional banners with carousel, images/videos, and CTA buttons. Configure the banner content in the Selldrawer admin panel."
     },
     {
       "type": "checkbox",
       "id": "enabled",
       "label": "Enable Promotional Banner",
       "default": true,
-      "info": "You can also enable/disable from the Upsellity admin panel"
+      "info": "You can also enable/disable from the Selldrawer admin panel"
     },
     {
       "type": "text",
       "id": "config_id",
       "label": "Configuration ID",
       "default": "default",
-      "info": "Enter the Configuration ID from the Upsellity admin panel (e.g., 'homepage', 'product-banner')"
+      "info": "Enter the Configuration ID from the Selldrawer admin panel (e.g., 'homepage', 'product-banner')"
     },
     {
       "type": "header",

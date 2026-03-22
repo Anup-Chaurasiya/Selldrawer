@@ -35,7 +35,7 @@ export async function createStorefrontAccessToken(
         const response = await admin.graphql(mutation, {
             variables: {
                 input: {
-                    title: `Upsellity App - ${new Date().toISOString()}`,
+                    title: `Selldrawer App - ${new Date().toISOString()}`,
                 },
             },
         });

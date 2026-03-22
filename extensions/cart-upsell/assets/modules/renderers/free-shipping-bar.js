@@ -7,7 +7,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { FreeShippingBar } from '../../../../../app/components/shared/FreeShippingBar.tsx';
 
-const CONTAINER_ID = 'upsellity-free-shipping-bar-root';
+const CONTAINER_ID = 'selldrawer-free-shipping-bar-root';
 
 export function renderFreeShippingBar(config, cart, reactRoots = {}) {
   const bar = config?.features?.freeShippingProgressBar;

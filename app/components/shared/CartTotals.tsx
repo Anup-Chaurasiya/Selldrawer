@@ -91,7 +91,7 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
 
     // Fallback: check properties (for milestone gifts)
     return item.properties && (
-      item.properties['_upsellity_gift'] === 'true' ||
+      item.properties['_selldrawer_gift'] === 'true' ||
       item.properties['_gift'] === 'true' ||
       item.properties['_gift'] === true
     );

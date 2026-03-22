@@ -99,7 +99,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
 
   const handlePrevSlide = () => {
     if (carouselRef.current) {
-      const cardWidth = carouselRef.current.querySelector('.upsellity-fbt-product')?.clientWidth || 200;
+      const cardWidth = carouselRef.current.querySelector('.selldrawer-fbt-product')?.clientWidth || 200;
       const gap = 12; // 0.75rem gap
       carouselRef.current.scrollBy({
         left: -(cardWidth + gap),
@@ -110,7 +110,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
 
   const handleNextSlide = () => {
     if (carouselRef.current) {
-      const cardWidth = carouselRef.current.querySelector('.upsellity-fbt-product')?.clientWidth || 200;
+      const cardWidth = carouselRef.current.querySelector('.selldrawer-fbt-product')?.clientWidth || 200;
       const gap = 12; // 0.75rem gap
       carouselRef.current.scrollBy({
         left: cardWidth + gap,
@@ -307,7 +307,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
 
   if (showSuccess) {
     return (
-      <div className="upsellity-fbt-content">
+      <div className="selldrawer-fbt-content">
         <div style={{ textAlign: 'center', padding: '2rem' }}>
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✓</div>
           <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#10b981', marginBottom: '0.5rem' }}>
@@ -333,7 +333,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
           <div style={{ position: 'relative', width: '100%' }}>
             <div
               ref={carouselRef}
-              className="upsellity-fbt-carousel"
+              className="selldrawer-fbt-carousel"
               onMouseDown={handleMouseDown}
               onMouseLeave={handleMouseLeave}
               onMouseUp={handleMouseUp}
@@ -463,7 +463,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
           <div style={{ position: 'relative' }}>
             <div
               ref={carouselRef}
-              className="upsellity-fbt-carousel"
+              className="selldrawer-fbt-carousel"
               onMouseDown={handleMouseDown}
               onMouseLeave={handleMouseLeave}
               onMouseUp={handleMouseUp}
@@ -588,9 +588,9 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
   };
 
   return (
-    <div className="upsellity-fbt-content">
+    <div className="selldrawer-fbt-content">
       <h2
-        className="upsellity-fbt-title"
+        className="selldrawer-fbt-title"
         style={{
           fontSize: '1em',
           fontWeight: '600',
@@ -603,7 +603,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
       </h2>
 
       <div
-        className="upsellity-fbt-layout"
+        className="selldrawer-fbt-layout"
         style={{
           display: 'flex',
           flexDirection: templateType === 'minimal' ? 'column' : 'row',
@@ -617,7 +617,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
 
         {templateType !== 'minimal' && (
           <div
-            className="upsellity-fbt-actions"
+            className="selldrawer-fbt-actions"
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -629,7 +629,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
           >
             {config.showTotalPrice && (
               <div
-                className="upsellity-fbt-total"
+                className="selldrawer-fbt-total"
                 style={{
                   display: 'flex',
                   flexDirection: 'row',
@@ -644,7 +644,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                 }}
               >
                 <span
-                  className="upsellity-fbt-total-label"
+                  className="selldrawer-fbt-total-label"
                   style={{
                     fontSize: '0.8125em',
                     fontWeight: '600',
@@ -656,7 +656,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.375em' }}>
                   {hasDiscount && (
                     <span
-                      className="upsellity-fbt-total-original"
+                      className="selldrawer-fbt-total-original"
                       style={{
                         textDecoration: 'line-through',
                         color: '#9ca3af',
@@ -668,7 +668,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
                     </span>
                   )}
                   <span
-                    className="upsellity-fbt-total-price"
+                    className="selldrawer-fbt-total-price"
                     style={{
                       fontSize: '1em',
                       fontWeight: '700',
@@ -682,7 +682,7 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
             )}
 
             <button
-              className="upsellity-fbt-button"
+              className="selldrawer-fbt-button"
               onClick={handleAddToCart}
               disabled={selectedCount === 0 || isAdding || isPreview}
               style={{

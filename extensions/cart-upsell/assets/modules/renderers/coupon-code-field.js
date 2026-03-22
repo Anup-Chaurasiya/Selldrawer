@@ -7,8 +7,8 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { CouponCodeField } from '../../../../../app/components/shared/CouponCodeField.tsx';
 
-const CONTAINER_ID = 'upsellity-coupon-field-root';
-const COMPONENT_ID = 'upsellity-coupon-field';
+const CONTAINER_ID = 'selldrawer-coupon-field-root';
+const COMPONENT_ID = 'selldrawer-coupon-field';
 
 export function renderCouponCodeField(config, appliedDiscount, availableDiscounts, showingAllOffers, reactRoots = {}) {
   if (!config.features.couponCodeField) {
@@ -37,18 +37,18 @@ export function renderCouponCodeField(config, appliedDiscount, availableDiscount
       borderColor: couponField.borderColor || '#059669',
       appliedDiscountText: couponField.appliedDiscountText || '',
       onApplyCoupon: (code) => {
-        if (window.upsellityDrawer) {
-          window.upsellityDrawer.applyCouponWithCode(code);
+        if (window.selldrawerDrawer) {
+          window.selldrawerDrawer.applyCouponWithCode(code);
         }
       },
       onRemoveDiscount: () => {
-        if (window.upsellityDrawer) {
-          window.upsellityDrawer.removeDiscount();
+        if (window.selldrawerDrawer) {
+          window.selldrawerDrawer.removeDiscount();
         }
       },
       onSwitchDiscount: (code) => {
-        if (window.upsellityDrawer) {
-          window.upsellityDrawer.switchDiscount(code);
+        if (window.selldrawerDrawer) {
+          window.selldrawerDrawer.switchDiscount(code);
         }
       },
       isPreview: false

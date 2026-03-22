@@ -717,22 +717,22 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
   return (
     <div style={{ marginBottom: isBlockContext ? '0' : '16px' }}>
       <style>{`
-        .upsellity-promo-scroll::-webkit-scrollbar {
+        .selldrawer-promo-scroll::-webkit-scrollbar {
           display: none;
         }
-        .upsellity-promo-scroll {
+        .selldrawer-promo-scroll {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
         
         /* Ensure indicators are always visible */
-        .upsellity-promo-indicators {
+        .selldrawer-promo-indicators {
           display: flex !important;
           visibility: visible !important;
           opacity: 1 !important;
         }
         
-        .upsellity-promo-indicator {
+        .selldrawer-promo-indicator {
           display: block !important;
           visibility: visible !important;
           opacity: 1 !important;
@@ -740,20 +740,20 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         
         /* Block context responsive styles */
         ${isBlockContext ? `
-          .upsellity-promo-block-media {
+          .selldrawer-promo-block-media {
             height: ${maxHeight === 'auto' ? 'auto' : maxHeight};
             ${maxHeight === 'auto' ? 'aspect-ratio: 16 / 9;' : ''}
           }
           
           @media (max-width: 768px) {
-            .upsellity-promo-block-media {
+            .selldrawer-promo-block-media {
               height: ${maxHeight === 'auto' ? 'auto' : `calc(${maxHeight} * 0.78)`};
               ${maxHeight === 'auto' ? 'aspect-ratio: 16 / 9;' : ''}
             }
           }
           
           @media (max-width: 480px) {
-            .upsellity-promo-block-media {
+            .selldrawer-promo-block-media {
               height: ${maxHeight === 'auto' ? 'auto' : `calc(${maxHeight} * 0.67)`};
               ${maxHeight === 'auto' ? 'aspect-ratio: 16 / 9;' : ''}
             }
@@ -843,7 +843,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         {/* Scrollable Container */}
         <div
           ref={scrollContainerRef}
-          className="upsellity-promo-scroll"
+          className="selldrawer-promo-scroll"
           style={{
             display: 'flex',
             gap: isBlockContext ? '16px' : '8px',
@@ -873,7 +873,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
             >
               {/* Media Section */}
               <div
-                className={isBlockContext ? 'upsellity-promo-block-media' : ''}
+                className={isBlockContext ? 'selldrawer-promo-block-media' : ''}
                 style={{
                   position: 'relative',
                   overflow: 'hidden',
@@ -1047,7 +1047,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
         {/* Dot Indicators - Rounded rectangles like Flipkart style */}
         {slides.length > 1 && carouselSettings?.showDots !== false && (
           <div
-            className="upsellity-promo-indicators"
+            className="selldrawer-promo-indicators"
             style={{
               display: 'flex',
               justifyContent: 'center',
@@ -1067,7 +1067,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
             {slides.map((_, index) => (
               <div
                 key={`indicator-${index}`}
-                className={`upsellity-promo-indicator ${index === currentIndex ? 'active' : ''}`}
+                className={`selldrawer-promo-indicator ${index === currentIndex ? 'active' : ''}`}
                 onClick={(e) => handleDotClick(index, e)}
                 style={{
                   width: isBlockContext ? '24px' : '20px',

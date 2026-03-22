@@ -29,10 +29,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing, session, admin } = await authenticate.admin(request);
   const shop = session.shop;
 
-  // Check billing - if no active payment, return redirect URL
+  // Check billing - if no active payment, redirect directly to our internal billing page router
   const billingRedirectUrl = await requireBilling(billing);
   if (billingRedirectUrl) {
-    return json({ billingRedirectUrl });
+    return redirect("/app/billing");
   }
 
   // Get subscription details
@@ -148,15 +148,7 @@ export default function Index() {
   const data = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
-  // Check if we need to redirect for billing
-  if ('billingRedirectUrl' in data) {
-    if (typeof window !== 'undefined') {
-      window.top!.location.href = data.billingRedirectUrl;
-    }
-    return null;
-  }
-
-  const { currentSubscription, appEmbedEnabled, shopDomain, apiKey, analytics } = data as Exclude<typeof data, { billingRedirectUrl: string }>;
+  const { currentSubscription, appEmbedEnabled, shopDomain, apiKey, analytics } = data;
 
   // User has active subscription (loader redirects if not), show dashboard
   const rows = Object.values(analytics.products).map((product: any) => [
@@ -169,7 +161,7 @@ export default function Index() {
 
   return (
     <Page>
-      <TitleBar title="Upsellity AI Dashboard" />
+      <TitleBar title="Selldrawer AI Dashboard" />
       <BlockStack gap="500">
         <Layout>
           <Layout.Section>
@@ -178,7 +170,7 @@ export default function Index() {
                 <InlineStack align="space-between" blockAlign="center">
                   <BlockStack gap="200">
                     <Text as="h2" variant="headingLg">
-                      Welcome to Upsellity AI 🎉
+                      Welcome to Selldrawer AI 🎉
                     </Text>
                     <Text as="p" variant="bodyMd" tone="subdued">
                       Your intelligent cart drawer is ready! Get started by customizing your cart features.
@@ -194,20 +186,20 @@ export default function Index() {
                 {/* App Embed Status Banner */}
                 {!appEmbedEnabled && (
                   <Banner
-                    title={"Upsellity Disabled"}
+                    title={"Selldrawer Disabled"}
                     tone={"warning"}
                   >
                     <BlockStack gap="200">
                       <>
                         <Text as="p" variant="bodyMd">
-                          Now that you've installed Upsellity, you need to enable the <strong>Upsellity Bridge</strong> in your Shopify theme. This will not set your cart live yet.
+                          Now that you've installed Selldrawer, you need to enable the <strong>Selldrawer Bridge</strong> in your Shopify theme. This will not set your cart live yet.
                         </Text>
                         <BlockStack gap="100">
                           <Text as="p" variant="bodyMd" fontWeight="semibold">
-                            1. Click the button below to enable the Upsellity Bridge from your theme editor.
+                            1. Click the button below to enable the Selldrawer Bridge from your theme editor.
                           </Text>
                           <Text as="p" variant="bodyMd" fontWeight="semibold">
-                            2. Ensure the Upsellity Bridge is toggled on and click save.
+                            2. Ensure the Selldrawer Bridge is toggled on and click save.
                           </Text>
                         </BlockStack>
                         <Box paddingBlockStart="300">
@@ -216,7 +208,7 @@ export default function Index() {
                             url={`https://${shopDomain}/admin/themes/current/editor?context=apps&activateAppId=${apiKey}/cart-drawer-embed`}
                             target="_blank"
                           >
-                            Enable Upsellity Bridge
+                            Enable Selldrawer Bridge
                           </Button>
                         </Box>
                       </>

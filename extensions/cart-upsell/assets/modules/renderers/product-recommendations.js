@@ -7,7 +7,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { ProductRecommendations } from '../../../../../app/components/shared/ProductRecommendations.tsx';
 
-const CONTAINER_ID = 'upsellity-product-recs-root';
+const CONTAINER_ID = 'selldrawer-product-recs-root';
 
 export function renderProductRecommendations(config, reactRoots = {}) {
   if (!config.features.productRecommendations) {
@@ -36,8 +36,8 @@ export function renderProductRecommendations(config, reactRoots = {}) {
       showDiscountBadge: recommendations.showDiscountBadge ?? true,
       showAddButton: recommendations.showAddButton ?? true,
       onAddToCart: (variantId) => {
-        if (window.upsellityDrawer) {
-          window.upsellityDrawer.addProductToCart(variantId);
+        if (window.selldrawerDrawer) {
+          window.selldrawerDrawer.addProductToCart(variantId);
         }
       },
       isPreview: false

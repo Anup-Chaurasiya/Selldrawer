@@ -221,7 +221,7 @@ export function VersionManagementModal({
                                     </strong>
                                     <br />
                                     {totalPercentage > 100 && '⚠️ Total exceeds 100%! Reduce percentages to save.'}
-                                    {totalPercentage <= 100 && totalPercentage > 0 && !segmentTargeting && `${100 - totalPercentage}% of traffic will not see Upsellity.`}
+                                    {totalPercentage <= 100 && totalPercentage > 0 && !segmentTargeting && `${100 - totalPercentage}% of traffic will not see Selldrawer.`}
                                     {segmentTargeting && 'Some customers will be targeted by segments in addition to percentage rollout.'}
                                 </p>
                             </Banner>

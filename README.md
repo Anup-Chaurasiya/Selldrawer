@@ -102,7 +102,7 @@ Please read the [documentation for @shopify/shopify-app-remix](https://www.npmjs
 
 ### Production Deployment to AWS ECS
 
-This app is configured for deployment to AWS ECS at `https://app.upsellity.com`. The deployment process is automated via GitHub Actions.
+This app is configured for deployment to AWS ECS at `https://app.selldrawer.com`. The deployment process is automated via GitHub Actions.
 
 **📚 Comprehensive Documentation:**
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide with AWS setup, configuration, and troubleshooting
@@ -121,8 +121,8 @@ This app is configured for deployment to AWS ECS at `https://app.upsellity.com`.
    - `SHOPIFY_CART_UPSELL_EXTENSION_ID`
 
 3. **Update Shopify Partner Dashboard**:
-   - App URL: `https://app.upsellity.com`
-   - Redirect URLs: `https://app.upsellity.com/auth/callback` (and variants)
+   - App URL: `https://app.selldrawer.com`
+   - Redirect URLs: `https://app.selldrawer.com/auth/callback` (and variants)
 
 4. **Deploy**:
    ```bash

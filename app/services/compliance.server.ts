@@ -11,8 +11,6 @@ export async function deleteShopData(shop: string) {
     db.frequentlyBoughtTogether.deleteMany({ where: { shop } }),
     db.milestoneBlock.deleteMany({ where: { shop } }),
     db.promotionalBannerBlock.deleteMany({ where: { shop } }),
-    db.nudgePopup.deleteMany({ where: { shop } }),
-    db.nudgeAddTogether.deleteMany({ where: { shop } }),
   ]);
 }
 

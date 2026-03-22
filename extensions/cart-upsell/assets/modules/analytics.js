@@ -9,15 +9,15 @@ export const Analytics = {
 
   setVersion(version) {
     this.version = version || 'default';
-    console.log('[Upsellity Analytics] Version set to:', this.version);
+    console.log('[Selldrawer Analytics] Version set to:', this.version);
   },
 
   getSessionId() {
     try {
-      let sessionId = sessionStorage.getItem('upsellity_session_id');
+      let sessionId = sessionStorage.getItem('selldrawer_session_id');
       if (!sessionId) {
         sessionId = 'sess_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-        sessionStorage.setItem('upsellity_session_id', sessionId);
+        sessionStorage.setItem('selldrawer_session_id', sessionId);
       }
       return sessionId;
     } catch (e) {
@@ -28,12 +28,12 @@ export const Analytics = {
   track(event) {
     // Don't track if shop or appUrl is not available
     if (!this.shop) {
-      console.warn('[Upsellity Analytics] Shop not detected, skipping tracking');
+      console.warn('[Selldrawer Analytics] Shop not detected, skipping tracking');
       return;
     }
 
     if (!this.appUrl) {
-      console.warn('[Upsellity Analytics] App URL not configured, skipping tracking');
+      console.warn('[Selldrawer Analytics] App URL not configured, skipping tracking');
       return;
     }
 
@@ -54,7 +54,7 @@ export const Analytics = {
       const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
       const sent = navigator.sendBeacon(apiUrl, blob);
       if (!sent) {
-        console.warn('[Upsellity Analytics] sendBeacon failed, falling back to fetch');
+        console.warn('[Selldrawer Analytics] sendBeacon failed, falling back to fetch');
         this.fallbackFetch(apiUrl, payload);
       }
     } else {
@@ -72,9 +72,9 @@ export const Analytics = {
       keepalive: true
     }).then(response => {
       if (!response.ok) {
-        console.error('[Upsellity Analytics] API error:', response.status, apiUrl);
+        console.error('[Selldrawer Analytics] API error:', response.status, apiUrl);
       }
-    }).catch(err => console.error('[Upsellity Analytics] Fetch error:', err));
+    }).catch(err => console.error('[Selldrawer Analytics] Fetch error:', err));
   }
 };
 
