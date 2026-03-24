@@ -112,33 +112,7 @@ async function watch() {
     plugins: [createVersionBannerPlugin(join(__dirname, 'assets/fbt-widget.js'), 'FBT Widget')],
   });
 
-  // Watch Nudge Popup
-  const nudgePopupContext = await esbuild.context({
-    entryPoints: [join(__dirname, 'assets/modules/nudge-popup-entry.js')],
-    bundle: true,
-    outfile: join(__dirname, 'assets/nudge-popup.js'),
-    format: 'iife',
-    target: 'es2017',
-    minify: false,
-    sourcemap: false,
-    platform: 'browser',
-    logLevel: 'info',
-    jsx: 'automatic',
-    jsxImportSource: 'react',
-    loader: {
-      '.tsx': 'tsx',
-      '.ts': 'ts',
-      '.jsx': 'jsx',
-      '.js': 'js',
-    },
-    define: {
-      'process.env.NODE_ENV': '"production"',
-      '__NUDGE_VERSION__': `"${version}"`,
-      '__APP_URL__': `"${appUrl}"`
-    },
-    external: [],
-    plugins: [createVersionBannerPlugin(join(__dirname, 'assets/nudge-popup.js'), 'Nudge Popup')],
-  });
+
 
   // Watch Promotional Banner Block
   const promotionalBannerContext = await esbuild.context({
@@ -168,40 +142,12 @@ async function watch() {
     plugins: [createVersionBannerPlugin(join(__dirname, 'assets/promotional-banner.js'), 'Promotional Banner Block')],
   });
 
-  // Watch Milestone Block
-  const milestoneBlockContext = await esbuild.context({
-    entryPoints: [join(__dirname, 'assets/modules/milestone-block-entry.js')],
-    bundle: true,
-    outfile: join(__dirname, 'assets/milestone-block.js'),
-    format: 'iife',
-    target: 'es2017',
-    minify: false,
-    sourcemap: false,
-    platform: 'browser',
-    logLevel: 'info',
-    jsx: 'automatic',
-    jsxImportSource: 'react',
-    loader: {
-      '.tsx': 'tsx',
-      '.ts': 'ts',
-      '.jsx': 'jsx',
-      '.js': 'jsx',
-    },
-    define: {
-      'process.env.NODE_ENV': '"production"',
-      '__MILESTONE_BLOCK_VERSION__': `"${version}"`,
-      '__APP_URL__': `"${appUrl}"`
-    },
-    external: [],
-    plugins: [createVersionBannerPlugin(join(__dirname, 'assets/milestone-block.js'), 'Milestone Block')],
-  });
+
 
   // Start watching all contexts
   await cartDrawerContext.watch();
   await fbtWidgetContext.watch();
-  await nudgePopupContext.watch();
   await promotionalBannerContext.watch();
-  await milestoneBlockContext.watch();
   
 }
 

@@ -12,8 +12,7 @@ import { SavingsDisplay } from '../../../../../app/components/shared/SavingsDisp
 import { FreeShippingMessage } from '../../../../../app/components/shared/FreeShippingMessage.tsx';
 import { CouponCodeField } from '../../../../../app/components/shared/CouponCodeField.tsx';
 import { CartTotals } from '../../../../../app/components/shared/CartTotals.tsx';
-import { MilestonesWidget } from '../../../../../app/components/shared/MilestonesWidget.tsx';
-import { FreeGiftSelector } from '../../../../../app/components/shared/FreeGiftSelector.tsx';
+
 
 export const UnifiedCartDrawer = ({
   config,
@@ -243,48 +242,7 @@ export const UnifiedCartDrawer = ({
         );
       }
 
-      case 'milestones': {
-        const milestones = config?.features?.milestones;
-        if (!milestones || !milestones.length) return null;
 
-        // Import calculateCartTotalExcludingGifts from milestone-reward-manager
-        // to get the ORIGINAL cart total (before discounts) for milestone calculation
-        const MilestoneRewardManager = require('../milestone-reward-manager.js');
-        const cartTotalInCents = MilestoneRewardManager.calculateCartTotalExcludingGifts(cart);
-        const cartTotalInRupees = cartTotalInCents / 100; // Convert cents to rupees
-
-        // Extract shop domain from config or window location
-        const shopDomain = config?.shop || window.Shopify?.shop || window.location.hostname;
-
-        return (
-          <div key={featureId} style={{ marginBottom: '12px' }}>
-            <MilestonesWidget
-              milestones={milestones}
-              cartTotal={cartTotalInRupees}
-              isPreview={false}
-              progressBarColor={config?.features?.milestonesProgressBarColor}
-              allUnlockedMessage={config?.features?.milestonesAllUnlockedMessage}
-              shop={shopDomain}
-              onAddToCart={onAddProductToCart}
-            />
-          </div>
-        );
-      }
-
-      case 'free-gifts': {
-        if (!freeGifts || freeGifts.length === 0) return null;
-
-        return (
-          <div key={featureId} style={{ marginBottom: '12px' }}>
-            <FreeGiftSelector
-              freeGifts={freeGifts}
-              selectedGiftId={selectedGiftId}
-              onSelectGift={onSelectGift}
-              isPreview={false}
-            />
-          </div>
-        );
-      }
 
       default:
         return null;

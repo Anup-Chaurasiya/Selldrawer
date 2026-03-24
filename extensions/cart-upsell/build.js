@@ -101,72 +101,7 @@ async function build() {
     writeFileSync(fbtWidgetFile, fbtWidgetBanner + fbtWidgetContent);
 
 
-    // Build Nudge Popup
-    await esbuild.build({
-      entryPoints: [join(__dirname, 'assets/modules/nudge-popup-entry.js')],
-      bundle: true,
-      outfile: join(__dirname, 'assets/nudge-popup.js'),
-      format: 'iife',
-      target: 'es2017',
-      minify: false,
-      sourcemap: false,
-      platform: 'browser',
-      logLevel: 'info',
-      jsx: 'automatic',
-      jsxImportSource: 'react',
-      loader: {
-        '.tsx': 'tsx',
-        '.ts': 'ts',
-        '.jsx': 'jsx',
-        '.js': 'js',
-      },
-      define: {
-        'process.env.NODE_ENV': '"production"',
-        '__NUDGE_VERSION__': `"${version}"`,
-        '__APP_URL__': `"${appUrl}"`
-      },
-      external: [],
-    });
 
-    // Add version banner to nudge-popup
-    const nudgePopupFile = join(__dirname, 'assets/nudge-popup.js');
-    const nudgePopupContent = readFileSync(nudgePopupFile, 'utf-8');
-    const nudgePopupBanner = `/**\n * Selldrawer Nudge Popup v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
-    writeFileSync(nudgePopupFile, nudgePopupBanner + nudgePopupContent);
-
-
-    // Build Nudge Add Together
-    await esbuild.build({
-      entryPoints: [join(__dirname, 'assets/modules/nudge-add-together-entry.js')],
-      bundle: true,
-      outfile: join(__dirname, 'assets/nudge-add-together.js'),
-      format: 'iife',
-      target: 'es2017',
-      minify: false,
-      sourcemap: false,
-      platform: 'browser',
-      logLevel: 'info',
-      jsx: 'automatic',
-      jsxImportSource: 'react',
-      loader: {
-        '.tsx': 'tsx',
-        '.ts': 'ts',
-        '.jsx': 'jsx',
-        '.js': 'js',
-      },
-      define: {
-        'process.env.NODE_ENV': '"production"',
-        '__NUDGE_ADD_TOGETHER_VERSION__': `"${version}"`,
-        '__APP_URL__': `"${appUrl}"`
-      },
-      external: [],
-    });
-
-    // Add version banner to nudge-add-together
-    const nudgeAddTogetherFile = join(__dirname, 'assets/nudge-add-together.js');
-    const nudgeAddTogetherContent = readFileSync(nudgeAddTogetherFile, 'utf-8');
-    const nudgeAddTogetherBanner = `/**\n * Selldrawer Nudge Add Together v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
-    writeFileSync(nudgeAddTogetherFile, nudgeAddTogetherBanner + nudgeAddTogetherContent);
 
 
     // Build Promotional Banner Block
@@ -203,76 +138,7 @@ async function build() {
     writeFileSync(promotionalBannerFile, promotionalBannerBanner + promotionalBannerContent);
 
 
-    // Build Milestone Block
-    await esbuild.build({
-      entryPoints: [join(__dirname, 'assets/modules/milestone-block-entry.js')],
-      bundle: true,
-      outfile: join(__dirname, 'assets/milestone-block.js'),
-      format: 'iife',
-      target: 'es2017',
-      minify: false,
-      sourcemap: false,
-      platform: 'browser',
-      logLevel: 'info',
-      jsx: 'automatic',
-      jsxImportSource: 'react',
-      loader: {
-        '.tsx': 'tsx',
-        '.ts': 'ts',
-        '.jsx': 'jsx',
-        '.js': 'jsx',
-      },
-      define: {
-        'process.env.NODE_ENV': '"production"',
-        '__MILESTONE_BLOCK_VERSION__': `"${version}"`,
-        '__APP_URL__': `"${appUrl}"`
-      },
-      external: [],
-    });
 
-    // Add version banner to milestone-block
-    const milestoneBlockFile = join(__dirname, 'assets/milestone-block.js');
-    const milestoneBlockContent = readFileSync(milestoneBlockFile, 'utf-8');
-    const milestoneBlockBanner = `/**\n * Selldrawer Milestone Block v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
-    writeFileSync(milestoneBlockFile, milestoneBlockBanner + milestoneBlockContent);
-
-
-    // Build Gifting Block
-    await esbuild.build({
-      entryPoints: [join(__dirname, 'assets/modules/gift-block-entry.js')],
-      bundle: true,
-      outfile: join(__dirname, 'assets/gift-block.js'),
-      format: 'iife',
-      target: 'es2017',
-      minify: false,
-      sourcemap: false,
-      platform: 'browser',
-      logLevel: 'info',
-      jsx: 'automatic',
-      jsxImportSource: 'react',
-      loader: {
-        '.tsx': 'tsx',
-        '.ts': 'ts',
-        '.jsx': 'jsx',
-        '.js': 'jsx',
-      },
-      define: {
-        'process.env.NODE_ENV': '"production"',
-        '__GIFT_BLOCK_VERSION__': `"${version}"`,
-        '__APP_URL__': `"${appUrl}"`
-      },
-      external: [],
-    });
-
-    // Add version banner to gift-block
-    const giftBlockFile = join(__dirname, 'assets/gift-block.js');
-    const giftBlockContent = readFileSync(giftBlockFile, 'utf-8');
-    const giftBlockBanner = `/**
- * Selldrawer Gifting Block v${version}
- * Built: ${new Date().toISOString()}
- */
-`;
-    writeFileSync(giftBlockFile, giftBlockBanner + giftBlockContent);
 
   } catch (error) {
     console.error('❌ Build failed:', error);

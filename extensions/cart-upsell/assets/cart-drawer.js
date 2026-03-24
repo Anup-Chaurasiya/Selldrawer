@@ -1,6 +1,6 @@
 /**
  * Selldrawer Cart Drawer v1.0.11
- * Built: 2026-02-04T13:36:03.904Z
+ * Built: 2026-03-24T18:29:12.304Z
  */
 "use strict";
 (() => {
@@ -27,15 +27,8 @@
     return a;
   };
   var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
-  var __esm = (fn, res) => function __init() {
-    return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-  };
   var __commonJS = (cb, mod) => function __require() {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-  };
-  var __export = (target, all) => {
-    for (var name in all)
-      __defProp(target, name, { get: all[name], enumerable: true });
   };
   var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
@@ -53,7 +46,6 @@
     isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
     mod
   ));
-  var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
   // node_modules/react/cjs/react.production.min.js
   var require_react_production_min = __commonJS({
@@ -7846,347 +7838,6 @@
     }
   });
 
-  // extensions/cart-upsell/assets/modules/milestone-reward-manager.js
-  var milestone_reward_manager_exports = {};
-  __export(milestone_reward_manager_exports, {
-    addGiftToCart: () => addGiftToCart,
-    calculateCartTotalExcludingGifts: () => calculateCartTotalExcludingGifts,
-    evaluateMilestones: () => evaluateMilestones,
-    findGiftInCart: () => findGiftInCart,
-    getAllGiftsInCart: () => getAllGiftsInCart,
-    getCheckoutUrlWithDiscount: () => getCheckoutUrlWithDiscount,
-    handleMilestoneRewards: () => handleMilestoneRewards,
-    normalizeProperties: () => normalizeProperties,
-    removeGiftFromCart: () => removeGiftFromCart,
-    showMilestoneUnlockedNotification: () => showMilestoneUnlockedNotification,
-    syncGiftProducts: () => syncGiftProducts,
-    validateMilestoneForCheckout: () => validateMilestoneForCheckout
-  });
-  function evaluateMilestones(milestones, cart) {
-    if (!milestones || milestones.length === 0 || !cart) {
-      return null;
-    }
-    const cartTotalExcludingGifts = calculateCartTotalExcludingGifts(cart);
-    const cartTotalInRupees = cartTotalExcludingGifts / 100;
-    const unlockedMilestones = milestones.filter((milestone) => {
-      return cartTotalInRupees >= milestone.targetAmount;
-    });
-    if (unlockedMilestones.length === 0) {
-      return null;
-    }
-    const sortedUnlocked = [...unlockedMilestones].sort((a, b) => b.targetAmount - a.targetAmount);
-    return sortedUnlocked[0];
-  }
-  function normalizeProperties(properties) {
-    if (!properties)
-      return {};
-    if (Array.isArray(properties)) {
-      const props = {};
-      properties.forEach((p) => {
-        const key = p.name || p.key;
-        if (key)
-          props[key] = p.value;
-      });
-      return props;
-    }
-    return properties;
-  }
-  function calculateCartTotalExcludingGifts(cart) {
-    if (!cart || !cart.items) {
-      return 0;
-    }
-    let total = 0;
-    for (const item of cart.items) {
-      const props = normalizeProperties(item.properties);
-      const isGift = props[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || props["_gift"] === "true" || props["_gift"] === true || // Fallback: Check if source is set (even if _selldrawer_gift missing)
-      props["_selldrawer_gift_source"] === "gifting_block" || props["_selldrawer_gift_source"] === "milestone";
-      const linePrice = item.original_line_price || item.price * item.quantity;
-      if (!isGift) {
-        total += linePrice;
-      }
-    }
-    return total;
-  }
-  function findGiftInCart(cart, variantId, milestoneId) {
-    if (!cart || !cart.items || !variantId) {
-      return null;
-    }
-    const normalizedVariantId = normalizeVariantId(variantId);
-    return cart.items.find((item) => {
-      const itemVariantId = normalizeVariantId(item.variant_id || item.id);
-      const props = normalizeProperties(item.properties);
-      const isGift = props[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || props["_gift"] === "true" || props["_gift"] === true || props["_selldrawer_gift_source"] === "gifting_block" || props["_selldrawer_gift_source"] === "milestone";
-      if (isGift && itemVariantId === normalizedVariantId) {
-        if (milestoneId && props[GIFT_MILESTONE_ID_KEY]) {
-          return props[GIFT_MILESTONE_ID_KEY] === milestoneId;
-        }
-        return true;
-      }
-      return false;
-    });
-  }
-  function getAllGiftsInCart(cart) {
-    if (!cart || !cart.items) {
-      return [];
-    }
-    return cart.items.filter((item) => {
-      const props = normalizeProperties(item.properties);
-      return props[GIFT_PROPERTY_KEY] === GIFT_PROPERTY_VALUE || props["_gift"] === "true" || props["_gift"] === true || props["_selldrawer_gift_source"] === "gifting_block" || props["_selldrawer_gift_source"] === "milestone";
-    });
-  }
-  async function addGiftToCart(giftProduct, milestoneId, source = "milestone") {
-    if (!giftProduct || !giftProduct.shopifyVariantId) {
-      return false;
-    }
-    try {
-      const variantId = normalizeVariantId(giftProduct.shopifyVariantId);
-      const formData = new FormData();
-      formData.append("id", variantId);
-      formData.append("quantity", "1");
-      formData.append(`properties[${GIFT_PROPERTY_KEY}]`, GIFT_PROPERTY_VALUE);
-      formData.append(`properties[${GIFT_MILESTONE_ID_KEY}]`, milestoneId);
-      formData.append("properties[_gift_title]", giftProduct.title || "Free Gift");
-      formData.append("properties[_selldrawer_gift_source]", source);
-      const response = await fetch("/cart/add.js", {
-        method: "POST",
-        body: formData
-      });
-      if (response.ok) {
-        const cartResponse = await fetch(`/cart.js?v=${(/* @__PURE__ */ new Date()).getTime()}`, {
-          headers: { "Cache-Control": "no-cache", "Pragma": "no-cache" }
-        });
-        const fullCart = await cartResponse.json();
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        document.dispatchEvent(new CustomEvent("cart:updated", { detail: fullCart }));
-        document.dispatchEvent(new CustomEvent("cart:change", { detail: fullCart }));
-        return true;
-      } else {
-        return false;
-      }
-    } catch (error) {
-      return false;
-    }
-  }
-  async function removeGiftFromCart(itemKey) {
-    if (!itemKey) {
-      return false;
-    }
-    try {
-      const response = await fetch("/cart/update.js", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          updates: {
-            [itemKey]: 0
-          }
-        })
-      });
-      if (response.ok) {
-        const cartResponse = await fetch(`/cart.js?v=${(/* @__PURE__ */ new Date()).getTime()}`, {
-          headers: { "Cache-Control": "no-cache", "Pragma": "no-cache" }
-        });
-        const fullCart = await cartResponse.json();
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        document.dispatchEvent(new CustomEvent("cart:updated", { detail: fullCart }));
-        document.dispatchEvent(new CustomEvent("cart:change", { detail: fullCart }));
-        return true;
-      } else {
-        return false;
-      }
-    } catch (error) {
-      return false;
-    }
-  }
-  async function syncGiftProducts(unlockedMilestone, cart, loadCartCallback, source = "milestone") {
-    let cartModified = false;
-    const currentGifts = getAllGiftsInCart(cart);
-    const managedGifts = currentGifts.filter((item) => {
-      const props = normalizeProperties(item.properties);
-      const itemSource = props["_selldrawer_gift_source"];
-      const effectiveSource = itemSource || "milestone";
-      return effectiveSource === source;
-    });
-    if (!unlockedMilestone) {
-      for (const giftItem of managedGifts) {
-        const removed = await removeGiftFromCart(giftItem.key);
-        if (removed) {
-          cartModified = true;
-        }
-      }
-      if (cartModified && loadCartCallback) {
-        await loadCartCallback();
-      }
-      return cartModified;
-    }
-    if (unlockedMilestone.rewardType !== "gift_wrapping") {
-      for (const giftItem of managedGifts) {
-        const removed = await removeGiftFromCart(giftItem.key);
-        if (removed) {
-          cartModified = true;
-        }
-      }
-      if (cartModified && loadCartCallback) {
-        await loadCartCallback();
-      }
-      return cartModified;
-    }
-    const giftProducts = unlockedMilestone.giftProducts || [];
-    if (giftProducts.length === 0) {
-      for (const giftItem of managedGifts) {
-        const removed = await removeGiftFromCart(giftItem.key);
-        if (removed) {
-          cartModified = true;
-        }
-      }
-      if (cartModified && loadCartCallback) {
-        await loadCartCallback();
-      }
-      return cartModified;
-    }
-    const validGiftVariantIds = new Set(
-      giftProducts.map((gp) => normalizeVariantId(gp.shopifyVariantId))
-    );
-    const seenValidGifts = /* @__PURE__ */ new Set();
-    for (const giftItem of managedGifts) {
-      const itemVariantId = normalizeVariantId(giftItem.variant_id || giftItem.id);
-      const props = normalizeProperties(giftItem.properties);
-      const belongsToThisMilestone = props[GIFT_MILESTONE_ID_KEY] === unlockedMilestone.id;
-      const isValidGift = belongsToThisMilestone && validGiftVariantIds.has(itemVariantId);
-      const isDuplicate = seenValidGifts.has(itemVariantId);
-      const shouldRemove = !belongsToThisMilestone || belongsToThisMilestone && !validGiftVariantIds.has(itemVariantId) || isDuplicate;
-      if (shouldRemove) {
-        const removed = await removeGiftFromCart(giftItem.key);
-        if (removed) {
-          cartModified = true;
-        }
-      } else if (isValidGift) {
-        seenValidGifts.add(itemVariantId);
-        if (giftItem.quantity !== 1) {
-          try {
-            const response = await fetch("/cart/change.js", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                id: giftItem.key,
-                quantity: 1
-              })
-            });
-            if (response.ok) {
-              cartModified = true;
-            }
-          } catch (error) {
-          }
-        }
-      }
-    }
-    for (const giftProduct of giftProducts) {
-      const variantId = normalizeVariantId(giftProduct.shopifyVariantId);
-      if (seenValidGifts.has(variantId)) {
-        continue;
-      }
-      const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
-      if (!existingGift) {
-        const added = await addGiftToCart(giftProduct, unlockedMilestone.id, source);
-        if (added) {
-          cartModified = true;
-          seenValidGifts.add(variantId);
-        }
-      }
-    }
-    if (cartModified) {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      if (loadCartCallback) {
-        await loadCartCallback();
-      }
-    }
-    return cartModified;
-  }
-  function getCheckoutUrlWithDiscount(unlockedMilestone) {
-    if (!unlockedMilestone || !unlockedMilestone.discountCode) {
-      return "/checkout";
-    }
-    return `/checkout?discount=${encodeURIComponent(unlockedMilestone.discountCode)}`;
-  }
-  async function validateMilestoneForCheckout(unlockedMilestone, cart) {
-    if (!unlockedMilestone) {
-      return { valid: true, message: "" };
-    }
-    if (!unlockedMilestone.discountCode) {
-      return {
-        valid: false,
-        message: "Milestone reward is not properly configured. Please contact support."
-      };
-    }
-    if (unlockedMilestone.rewardType === "gift_wrapping") {
-      const giftProducts = unlockedMilestone.giftProducts || [];
-      if (giftProducts.length > 0) {
-        let allGiftsPresent = true;
-        for (const giftProduct of giftProducts) {
-          const existingGift = findGiftInCart(cart, giftProduct.shopifyVariantId, unlockedMilestone.id);
-          if (!existingGift) {
-            allGiftsPresent = false;
-            break;
-          }
-        }
-        if (!allGiftsPresent) {
-          return {
-            valid: false,
-            message: "Adding your free gift... Please wait."
-          };
-        }
-      }
-    }
-    return { valid: true, message: "" };
-  }
-  function normalizeVariantId(variantId) {
-    if (!variantId)
-      return "";
-    const idString = String(variantId);
-    if (idString.includes("gid://shopify/ProductVariant/")) {
-      return idString.replace("gid://shopify/ProductVariant/", "");
-    }
-    return idString;
-  }
-  function showMilestoneUnlockedNotification(milestone) {
-    if (!milestone)
-      return;
-    const rewardText = getRewardDescription(milestone);
-  }
-  function getRewardDescription(milestone) {
-    if (!milestone)
-      return "";
-    switch (milestone.rewardType) {
-      case "free_shipping":
-        return "Free shipping will be applied at checkout!";
-      case "discount_percentage":
-        return `${milestone.rewardValue}% discount will be applied at checkout!`;
-      case "discount_fixed":
-        return `\u20B9${milestone.rewardValue} discount will be applied at checkout!`;
-      case "gift_wrapping":
-        return "Your free gift has been added to cart!";
-      default:
-        return "Reward will be applied at checkout!";
-    }
-  }
-  async function handleMilestoneRewards(milestones, cart, loadCartCallback) {
-    const unlockedMilestone = evaluateMilestones(milestones, cart);
-    const cartModified = await syncGiftProducts(unlockedMilestone, cart, loadCartCallback);
-    return unlockedMilestone;
-  }
-  var GIFT_PROPERTY_KEY, GIFT_PROPERTY_VALUE, GIFT_MILESTONE_ID_KEY;
-  var init_milestone_reward_manager = __esm({
-    "extensions/cart-upsell/assets/modules/milestone-reward-manager.js"() {
-      "use strict";
-      GIFT_PROPERTY_KEY = "_selldrawer_gift";
-      GIFT_PROPERTY_VALUE = "true";
-      GIFT_MILESTONE_ID_KEY = "_selldrawer_milestone_id";
-    }
-  });
-
   // node_modules/react/cjs/react-jsx-runtime.production.min.js
   var require_react_jsx_runtime_production_min = __commonJS({
     "node_modules/react/cjs/react-jsx-runtime.production.min.js"(exports) {
@@ -8228,7 +7879,7 @@
   });
 
   // extensions/cart-upsell/assets/modules/cart-drawer-class.js
-  var import_react8 = __toESM(require_react(), 1);
+  var import_react6 = __toESM(require_react(), 1);
   var import_client = __toESM(require_client(), 1);
 
   // extensions/cart-upsell/assets/modules/cart-operations.js
@@ -8808,193 +8459,8 @@
     }
   }
 
-  // extensions/cart-upsell/assets/modules/cart-drawer-class.js
-  init_milestone_reward_manager();
-
-  // extensions/cart-upsell/assets/modules/free-gift-manager.js
-  init_milestone_reward_manager();
-  async function loadFreeGifts(appUrl, shop, cart, cartTotalExcludingGifts = null) {
-    try {
-      const cartTotal = cartTotalExcludingGifts !== null ? cartTotalExcludingGifts : cart.total_price / 100;
-      console.log("Selldrawer Free Gifts: Loading with cart total", cartTotal);
-      const timestamp = (/* @__PURE__ */ new Date()).getTime();
-      const response = await fetch(
-        `${appUrl}/api/free-gifts?shop=${shop}&_t=${timestamp}`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            cartTotal,
-            cartItems: cart.items || []
-          }),
-          headers: {
-            "Content-Type": "application/json",
-            "Cache-Control": "no-cache",
-            "Pragma": "no-cache"
-          }
-        }
-      );
-      const data = await response.json();
-      console.log("Selldrawer Free Gifts: API Response", data);
-      if (data.freeGifts) {
-        console.log("Selldrawer Free Gifts: Loaded", data.freeGifts.length, "offers");
-        return data.freeGifts;
-      }
-      return [];
-    } catch (error) {
-      console.error("Selldrawer: Failed to load free gifts", error);
-      return [];
-    }
-  }
-  function convertFreeGiftToMilestone(freeGift) {
-    if (!freeGift)
-      return null;
-    return {
-      id: freeGift.id,
-      title: freeGift.name,
-      targetAmount: freeGift.triggerValue,
-      rewardType: "gift_wrapping",
-      rewardValue: null,
-      discountCode: freeGift.discountCode,
-      giftProducts: freeGift.giftProducts.map((gp) => ({
-        shopifyVariantId: gp.shopifyVariantId || gp.shopifyProductId,
-        title: gp.title,
-        price: gp.price,
-        compareAtPrice: gp.compareAtPrice,
-        imageUrl: gp.imageUrl,
-        handle: gp.handle
-      })),
-      qualified: freeGift.qualified
-    };
-  }
-  async function syncFreeGiftWithCart(freeGift, cart, loadCartCallback) {
-    var _a2;
-    const source = "gifting_block";
-    if (!freeGift) {
-      return await syncGiftProducts(null, cart, loadCartCallback, source);
-    }
-    const giftProducts = freeGift.giftProducts || [];
-    if (giftProducts.length === 1) {
-      const milestone = convertFreeGiftToMilestone(freeGift);
-      return await syncGiftProducts(milestone, cart, loadCartCallback, source);
-    }
-    const allGifts = getAllGiftsInCart(cart);
-    const validGiftVariantIds = new Set(
-      giftProducts.map((gp) => {
-        const variantId = gp.shopifyVariantId || gp.shopifyProductId;
-        return variantId == null ? void 0 : variantId.toString().replace("gid://shopify/ProductVariant/", "");
-      })
-    );
-    let cartModified = false;
-    for (const giftItem of allGifts) {
-      const itemVariantId = (_a2 = giftItem.variant_id || giftItem.id) == null ? void 0 : _a2.toString();
-      const props = normalizeProperties(giftItem.properties);
-      const belongsToThisOffer = props["_selldrawer_milestone_id"] === freeGift.id;
-      const itemSource = props["_selldrawer_gift_source"];
-      const isManaged = itemSource === source;
-      if (isManaged) {
-        if (!belongsToThisOffer || belongsToThisOffer && !validGiftVariantIds.has(itemVariantId)) {
-          console.log("Selldrawer Free Gifts: Removing invalid gift from this offer", itemVariantId);
-          const removed = await removeGiftFromCart(giftItem.key);
-          if (removed) {
-            cartModified = true;
-          }
-        }
-      }
-    }
-    const selectedGift = allGifts.find((item) => {
-      var _a3;
-      const itemVariantId = (_a3 = item.variant_id || item.id) == null ? void 0 : _a3.toString();
-      const props = normalizeProperties(item.properties);
-      const belongsToThisOffer = props["_selldrawer_milestone_id"] === freeGift.id;
-      const itemSource = props["_selldrawer_gift_source"];
-      return itemSource === source && belongsToThisOffer && validGiftVariantIds.has(itemVariantId);
-    });
-    if (selectedGift) {
-      for (const giftItem of allGifts) {
-        const props = normalizeProperties(giftItem.properties);
-        const itemSource = props["_selldrawer_gift_source"];
-        if (itemSource === source && giftItem.key !== selectedGift.key) {
-          console.log("Selldrawer Free Gifts: Removing duplicate gift");
-          const removed = await removeGiftFromCart(giftItem.key);
-          if (removed) {
-            cartModified = true;
-          }
-        }
-      }
-    } else {
-    }
-    if (cartModified && loadCartCallback) {
-      await loadCartCallback();
-    }
-    return cartModified;
-  }
-  function getSelectedGiftFromCart(cart, freeGift) {
-    if (!cart || !cart.items || !freeGift)
-      return null;
-    const milestone = convertFreeGiftToMilestone(freeGift);
-    if (!milestone)
-      return null;
-    for (const giftProduct of milestone.giftProducts) {
-      const existingGift = findGiftInCart(
-        cart,
-        giftProduct.shopifyVariantId,
-        milestone.id
-      );
-      if (existingGift) {
-        const matchingGift = freeGift.giftProducts.find((gp) => {
-          const variantId = gp.shopifyVariantId || gp.shopifyProductId;
-          return variantId === giftProduct.shopifyVariantId;
-        });
-        return matchingGift ? matchingGift.id : null;
-      }
-    }
-    return null;
-  }
-  async function selectGift(variantId, freeGift, loadCartCallback) {
-    try {
-      console.log("Selldrawer Free Gifts: User selecting gift", variantId);
-      const cartResponse = await fetch("/cart.js");
-      const cart = await cartResponse.json();
-      const milestone = convertFreeGiftToMilestone(freeGift);
-      if (!milestone)
-        return false;
-      const source = "gifting_block";
-      const currentGifts = getAllGiftsInCart(cart).filter((item) => {
-        const props = normalizeProperties(item.properties);
-        const itemSource = props["_selldrawer_gift_source"];
-        return itemSource === source;
-      });
-      for (const giftItem of currentGifts) {
-        await removeGiftFromCart(giftItem.key);
-      }
-      const giftProduct = milestone.giftProducts.find((gp) => {
-        var _a2;
-        const normalizedGiftId = (_a2 = gp.shopifyVariantId) == null ? void 0 : _a2.toString().replace("gid://shopify/ProductVariant/", "");
-        const normalizedVariantId = variantId == null ? void 0 : variantId.toString().replace("gid://shopify/ProductVariant/", "");
-        return normalizedGiftId === normalizedVariantId;
-      });
-      if (!giftProduct) {
-        console.error("Gift product not found");
-        return false;
-      }
-      const added = await addGiftToCart(giftProduct, milestone.id, source);
-      if (added) {
-        await loadCartCallback();
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error("Selldrawer: Error selecting gift", error);
-      return false;
-    }
-  }
-  function getCheckoutUrlWithDiscount2(freeGift) {
-    const milestone = convertFreeGiftToMilestone(freeGift);
-    return getCheckoutUrlWithDiscount(milestone);
-  }
-
   // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
-  var import_react7 = __toESM(require_react(), 1);
+  var import_react5 = __toESM(require_react(), 1);
 
   // app/components/shared/FreeShippingBar.tsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
@@ -11342,1024 +10808,8 @@
     ] });
   };
 
-  // app/components/shared/MilestonesWidget.tsx
-  var import_react6 = __toESM(require_react(), 1);
-
-  // app/components/shared/MilestoneUpsellCarousel.tsx
-  var import_react5 = __toESM(require_react(), 1);
-  var import_jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
-  var MilestoneUpsellCarousel = ({
-    shop,
-    milestoneId,
-    remaining,
-    collectionHandle,
-    onAddToCart,
-    onClose,
-    isPreview = false,
-    upsellHeaderText = "Unlock Your Reward",
-    viewAllLinkText = "View All",
-    source = "cart-drawer"
-    // Default to cart-drawer for backward compatibility
-  }) => {
-    const [products, setProducts] = (0, import_react5.useState)([]);
-    const [loading, setLoading] = (0, import_react5.useState)(true);
-    const [error, setError] = (0, import_react5.useState)(null);
-    const [collectionUrl, setCollectionUrl] = (0, import_react5.useState)(null);
-    const [showLeftArrow, setShowLeftArrow] = (0, import_react5.useState)(false);
-    const [showRightArrow, setShowRightArrow] = (0, import_react5.useState)(false);
-    const carouselRef = (0, import_react5.useRef)(null);
-    (0, import_react5.useEffect)(() => {
-      if (isPreview) {
-        setProducts([
-          {
-            id: "sample-1",
-            title: "Premium Product Sample",
-            handle: "sample-1",
-            featuredImage: { url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop", altText: "Sample" },
-            price: remaining + 100,
-            variantId: "sample-variant-1",
-            availableForSale: true
-          },
-          {
-            id: "sample-2",
-            title: "Featured Product Sample",
-            handle: "sample-2",
-            featuredImage: { url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop", altText: "Sample" },
-            price: remaining + 200,
-            variantId: "sample-variant-2",
-            availableForSale: true
-          }
-        ]);
-        setLoading(false);
-        return;
-      }
-      const fetchProducts = async () => {
-        try {
-          setLoading(true);
-          setError(null);
-          const params = new URLSearchParams({
-            shop,
-            milestoneId,
-            remaining: remaining.toString(),
-            _t: Date.now().toString()
-            // Cache buster
-          });
-          const apiEndpoint = source === "milestone-block" ? "/api/milestone-block-products" : "/api/milestone-products";
-          const apiUrl = typeof window !== "undefined" && window.UPSELLITY_APP_URL ? `${window.UPSELLITY_APP_URL}${apiEndpoint}?${params}` : `${apiEndpoint}?${params}`;
-          const response = await fetch(apiUrl);
-          if (!response.ok) {
-            throw new Error("Failed to fetch products");
-          }
-          const data = await response.json();
-          if (data.error) {
-            throw new Error(data.message || data.error);
-          }
-          setProducts(data.products || []);
-          setCollectionUrl(data.collectionUrl || null);
-          setLoading(false);
-        } catch (err) {
-          console.error("Error fetching milestone products:", err);
-          setError(err instanceof Error ? err.message : "Failed to load products");
-          setLoading(false);
-        }
-      };
-      fetchProducts();
-    }, [shop, milestoneId, remaining, isPreview]);
-    const checkScroll = () => {
-      if (carouselRef.current) {
-        const { scrollLeft: scrollLeft2, scrollWidth, clientWidth } = carouselRef.current;
-        setShowLeftArrow(scrollLeft2 > 0);
-        setShowRightArrow(scrollLeft2 < scrollWidth - clientWidth - 10);
-      }
-    };
-    (0, import_react5.useEffect)(() => {
-      if (products.length > 0) {
-        setTimeout(checkScroll, 100);
-      }
-    }, [products]);
-    const scrollLeft = () => {
-      if (carouselRef.current) {
-        carouselRef.current.scrollBy({ left: -120, behavior: "smooth" });
-      }
-    };
-    const scrollRight = () => {
-      if (carouselRef.current) {
-        carouselRef.current.scrollBy({ left: 120, behavior: "smooth" });
-      }
-    };
-    const handleRetry = () => {
-      setError(null);
-      setLoading(true);
-      window.location.reload();
-    };
-    if (loading) {
-      return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
-        padding: "8px",
-        backgroundColor: "#ffffff",
-        borderRadius: "6px",
-        marginTop: "8px",
-        border: "1px solid #e5e7eb"
-      }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { height: "14px", width: "120px", backgroundColor: "#f3f4f6", borderRadius: "4px" } }),
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-            "button",
-            {
-              onClick: onClose,
-              style: {
-                background: "transparent",
-                border: "none",
-                width: "20px",
-                height: "20px",
-                fontSize: "16px",
-                cursor: "pointer",
-                color: "#6b7280",
-                padding: 0
-              },
-              children: "\xD7"
-            }
-          )
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { display: "flex", gap: "6px", overflowX: "auto" }, children: [1, 2, 3, 4].map((i) => /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { minWidth: "100px", flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { width: "100px", height: "100px", backgroundColor: "#f9fafb", borderRadius: "4px", marginBottom: "4px" } }) }, i)) })
-      ] });
-    }
-    if (error) {
-      return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
-        padding: "12px",
-        backgroundColor: "#ffffff",
-        borderRadius: "6px",
-        marginTop: "8px",
-        border: "1px solid #e5e7eb"
-      }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("span", { style: { margin: 0, color: "#6b7280", fontSize: "11px", fontWeight: 500 }, children: [
-            "Error: ",
-            error
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-            "button",
-            {
-              onClick: onClose,
-              style: {
-                background: "transparent",
-                border: "none",
-                width: "20px",
-                height: "20px",
-                fontSize: "16px",
-                cursor: "pointer",
-                color: "#6b7280",
-                padding: 0
-              },
-              children: "\xD7"
-            }
-          )
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-          "button",
-          {
-            onClick: handleRetry,
-            style: {
-              padding: "6px 12px",
-              background: "#ffffff",
-              color: "#111827",
-              border: "1px solid #e5e7eb",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "10px",
-              fontWeight: 500
-            },
-            children: "Retry"
-          }
-        )
-      ] });
-    }
-    if (products.length === 0) {
-      return null;
-    }
-    return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
-      padding: "8px",
-      backgroundColor: "#ffffff",
-      borderRadius: "6px",
-      marginTop: "8px",
-      border: "1px solid #e5e7eb"
-    }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("h4", { style: {
-          margin: 0,
-          fontSize: "11px",
-          fontWeight: 600,
-          color: "#111827",
-          letterSpacing: "-0.01em"
-        }, children: upsellHeaderText }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-          "button",
-          {
-            onClick: onClose,
-            style: {
-              background: "transparent",
-              border: "none",
-              width: "20px",
-              height: "20px",
-              fontSize: "16px",
-              cursor: "pointer",
-              color: "#6b7280",
-              padding: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            },
-            "aria-label": "Close",
-            children: "\xD7"
-          }
-        )
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { position: "relative" }, children: [
-        showLeftArrow && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-          "button",
-          {
-            onClick: scrollLeft,
-            style: {
-              position: "absolute",
-              left: "-8px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              zIndex: 10,
-              width: "24px",
-              height: "24px",
-              borderRadius: "50%",
-              backgroundColor: "#ffffff",
-              border: "1px solid #d1d5db",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-              fontSize: "14px",
-              color: "#374151",
-              padding: 0
-            },
-            onMouseEnter: (e) => {
-              e.currentTarget.style.backgroundColor = "#f9fafb";
-              e.currentTarget.style.borderColor = "#9ca3af";
-            },
-            onMouseLeave: (e) => {
-              e.currentTarget.style.backgroundColor = "#ffffff";
-              e.currentTarget.style.borderColor = "#d1d5db";
-            },
-            "aria-label": "Scroll left",
-            children: "\u2039"
-          }
-        ),
-        showRightArrow && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-          "button",
-          {
-            onClick: scrollRight,
-            style: {
-              position: "absolute",
-              right: "-8px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              zIndex: 10,
-              width: "24px",
-              height: "24px",
-              borderRadius: "50%",
-              backgroundColor: "#ffffff",
-              border: "1px solid #d1d5db",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-              fontSize: "14px",
-              color: "#374151",
-              padding: 0
-            },
-            onMouseEnter: (e) => {
-              e.currentTarget.style.backgroundColor = "#f9fafb";
-              e.currentTarget.style.borderColor = "#9ca3af";
-            },
-            onMouseLeave: (e) => {
-              e.currentTarget.style.backgroundColor = "#ffffff";
-              e.currentTarget.style.borderColor = "#d1d5db";
-            },
-            "aria-label": "Scroll right",
-            children: "\u203A"
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-          "div",
-          {
-            ref: carouselRef,
-            onScroll: checkScroll,
-            style: {
-              display: "flex",
-              gap: "6px",
-              overflowX: "auto",
-              scrollSnapType: "x mandatory",
-              scrollBehavior: "smooth",
-              paddingBottom: "4px",
-              WebkitOverflowScrolling: "touch",
-              scrollbarWidth: "none",
-              msOverflowStyle: "none"
-            },
-            role: "list",
-            "aria-label": "Product recommendations",
-            children: [
-              products.map((product) => /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
-                "div",
-                {
-                  style: {
-                    minWidth: "100px",
-                    maxWidth: "100px",
-                    flexShrink: 0,
-                    scrollSnapAlign: "start",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "4px",
-                    padding: "6px",
-                    backgroundColor: "#ffffff",
-                    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-                    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                    cursor: "pointer"
-                  },
-                  role: "listitem",
-                  onMouseEnter: (e) => {
-                    e.currentTarget.style.transform = "translateY(-1px)";
-                    e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.1)";
-                    e.currentTarget.style.borderColor = "#d1d5db";
-                  },
-                  onMouseLeave: (e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.05)";
-                    e.currentTarget.style.borderColor = "#e5e7eb";
-                  },
-                  children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { position: "relative", marginBottom: "4px", overflow: "hidden", borderRadius: "4px" }, children: [
-                      product.featuredImage ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                        "img",
-                        {
-                          src: product.featuredImage.url,
-                          alt: product.featuredImage.altText || product.title,
-                          style: {
-                            width: "100%",
-                            height: "88px",
-                            objectFit: "cover",
-                            borderRadius: "4px",
-                            display: "block"
-                          },
-                          loading: "lazy"
-                        }
-                      ) : /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: {
-                        width: "100%",
-                        height: "88px",
-                        background: "#f3f4f6",
-                        borderRadius: "4px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#9ca3af",
-                        fontSize: "20px"
-                      }, children: "\u{1F4E6}" }),
-                      !product.availableForSale && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: {
-                        position: "absolute",
-                        top: "3px",
-                        right: "3px",
-                        background: "#ef4444",
-                        color: "white",
-                        padding: "2px 4px",
-                        borderRadius: "3px",
-                        fontSize: "7px",
-                        fontWeight: 600
-                      }, children: "Out" })
-                    ] }),
-                    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: {
-                      fontSize: "9px",
-                      fontWeight: 500,
-                      marginBottom: "2px",
-                      lineHeight: "1.2",
-                      color: "#111827",
-                      minHeight: "22px",
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      letterSpacing: "-0.01em"
-                    }, children: product.title }),
-                    /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
-                      marginBottom: "4px",
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      color: "#111827",
-                      letterSpacing: "-0.01em"
-                    }, children: [
-                      "\u20B9",
-                      Math.round(product.price)
-                    ] }),
-                    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                      "button",
-                      {
-                        onClick: () => onAddToCart(product.handle, 1),
-                        disabled: !product.availableForSale,
-                        style: {
-                          width: "100%",
-                          padding: "4px 6px",
-                          background: product.availableForSale ? "#111827" : "#e5e7eb",
-                          color: product.availableForSale ? "white" : "#9ca3af",
-                          border: "none",
-                          borderRadius: "3px",
-                          cursor: product.availableForSale ? "pointer" : "not-allowed",
-                          fontSize: "8px",
-                          fontWeight: 600,
-                          transition: "all 0.2s",
-                          letterSpacing: "0.2px"
-                        },
-                        onMouseEnter: (e) => {
-                          if (product.availableForSale) {
-                            e.currentTarget.style.background = "#1f2937";
-                          }
-                        },
-                        onMouseLeave: (e) => {
-                          if (product.availableForSale) {
-                            e.currentTarget.style.background = "#111827";
-                          }
-                        },
-                        children: product.availableForSale ? "ADD" : "N/A"
-                      }
-                    )
-                  ]
-                },
-                product.id
-              )),
-              products.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
-                "a",
-                {
-                  href: collectionUrl || "/collections/all",
-                  style: {
-                    minWidth: "100px",
-                    maxWidth: "100px",
-                    flexShrink: 0,
-                    scrollSnapAlign: "start",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "4px",
-                    padding: "6px",
-                    backgroundColor: "#ffffff",
-                    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-                    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                    cursor: "pointer",
-                    textDecoration: "none",
-                    display: "flex",
-                    flexDirection: "column"
-                  },
-                  onMouseEnter: (e) => {
-                    e.currentTarget.style.transform = "translateY(-1px)";
-                    e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.1)";
-                    e.currentTarget.style.borderColor = "#d1d5db";
-                  },
-                  onMouseLeave: (e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.05)";
-                    e.currentTarget.style.borderColor = "#e5e7eb";
-                  },
-                  children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
-                    position: "relative",
-                    overflow: "hidden",
-                    borderRadius: "4px",
-                    width: "100%",
-                    height: "118px",
-                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexDirection: "column"
-                  }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: {
-                      fontSize: "36px",
-                      filter: "brightness(0) invert(1)",
-                      lineHeight: 1
-                    }, children: "\u2192" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: {
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      color: "#ffffff",
-                      textAlign: "center",
-                      letterSpacing: "0.3px",
-                      textTransform: "uppercase",
-                      padding: "0 8px"
-                    }, children: viewAllLinkText })
-                  ] })
-                }
-              )
-            ]
-          }
-        )
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("style", { children: `
-                div[role="list"]::-webkit-scrollbar {
-                    display: none;
-                }
-            ` })
-    ] });
-  };
-
-  // app/components/shared/MilestonesWidget.tsx
-  var import_jsx_runtime10 = __toESM(require_jsx_runtime(), 1);
-  function MilestonesWidget({
-    milestones,
-    cartTotal = 0,
-    isPreview = false,
-    layout = "vertical",
-    progressBarColor,
-    allUnlockedMessage,
-    shop,
-    onAddToCart,
-    source = "cart-drawer"
-    // Default to cart-drawer for backward compatibility
-  }) {
-    var _a2, _b;
-    const [openUpsellMilestoneId, setOpenUpsellMilestoneId] = (0, import_react6.useState)(null);
-    if (!milestones || milestones.length === 0) {
-      return null;
-    }
-    const milestonesWithFreshStatus = milestones.map((milestone) => {
-      const targetAmount = milestone.targetAmount;
-      let status;
-      if (cartTotal >= targetAmount) {
-        status = "unlocked";
-      } else if (cartTotal > 0) {
-        status = "in_progress";
-      } else {
-        status = "locked";
-      }
-      const progress = Math.min(cartTotal / targetAmount * 100, 100);
-      const remaining = Math.max(targetAmount - cartTotal, 0);
-      return __spreadProps(__spreadValues({}, milestone), {
-        status,
-        progress,
-        remaining
-      });
-    });
-    const sortedMilestones = [...milestonesWithFreshStatus].sort((a, b) => a.targetAmount - b.targetAmount);
-    const maxTarget = ((_a2 = sortedMilestones[sortedMilestones.length - 1]) == null ? void 0 : _a2.targetAmount) || 100;
-    const minTarget = ((_b = sortedMilestones[0]) == null ? void 0 : _b.targetAmount) || 0;
-    const getPosition = (targetAmount) => {
-      const index = sortedMilestones.findIndex((m) => m.targetAmount === targetAmount);
-      if (sortedMilestones.length === 1) {
-        return 50;
-      }
-      if (sortedMilestones.length === 2) {
-        return index === 0 ? 25 : 75;
-      }
-      if (sortedMilestones.length === 3) {
-        return [20, 50, 80][index];
-      }
-      const spacing = 80 / (sortedMilestones.length - 1);
-      return 10 + index * spacing;
-    };
-    const getCurrentProgressPercent = () => {
-      if (sortedMilestones.length === 0)
-        return 0;
-      if (cartTotal < sortedMilestones[0].targetAmount) {
-        const firstPosition = getPosition(sortedMilestones[0].targetAmount);
-        const progress = cartTotal / sortedMilestones[0].targetAmount * firstPosition;
-        return Math.min(progress, firstPosition);
-      }
-      for (let i = 0; i < sortedMilestones.length - 1; i++) {
-        const currentMilestone = sortedMilestones[i];
-        const nextMilestone2 = sortedMilestones[i + 1];
-        if (cartTotal >= currentMilestone.targetAmount && cartTotal < nextMilestone2.targetAmount) {
-          const currentPos = getPosition(currentMilestone.targetAmount);
-          const nextPos = getPosition(nextMilestone2.targetAmount);
-          const segmentProgress = (cartTotal - currentMilestone.targetAmount) / (nextMilestone2.targetAmount - currentMilestone.targetAmount);
-          return currentPos + segmentProgress * (nextPos - currentPos);
-        }
-      }
-      const lastMilestone2 = sortedMilestones[sortedMilestones.length - 1];
-      return getPosition(lastMilestone2.targetAmount);
-    };
-    const currentProgressPercent = getCurrentProgressPercent();
-    const lastMilestone = sortedMilestones[sortedMilestones.length - 1];
-    const lastMilestonePosition = getPosition(lastMilestone.targetAmount);
-    const cappedProgressPercent = Math.min(currentProgressPercent, lastMilestonePosition);
-    const nextMilestone = sortedMilestones.find((m) => m.status !== "unlocked");
-    const allUnlocked = sortedMilestones.every((m) => m.status === "unlocked");
-    const displayMessage = allUnlocked ? sortedMilestones.length === 1 ? sortedMilestones[0].message : allUnlockedMessage || "\u{1F389} Congratulations! All rewards unlocked!" : (nextMilestone == null ? void 0 : nextMilestone.message) || "";
-    const finalProgressBarColor = progressBarColor || "#3b82f6";
-    const hexToRgb2 = (hex) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-      } : null;
-    };
-    const getGradient = (color) => {
-      const rgb = hexToRgb2(color);
-      if (rgb) {
-        const darkerR = Math.max(0, rgb.r - 20);
-        const darkerG = Math.max(0, rgb.g - 20);
-        const darkerB = Math.max(0, rgb.b - 20);
-        return `linear-gradient(90deg, ${color} 0%, rgb(${darkerR}, ${darkerG}, ${darkerB}) 100%)`;
-      }
-      return `linear-gradient(90deg, ${color} 0%, ${color} 100%)`;
-    };
-    const progressBarGradient = getGradient(finalProgressBarColor);
-    return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: {
-      padding: "12px 14px",
-      backgroundColor: "#ffffff",
-      borderRadius: "10px",
-      border: "1px solid #e5e7eb"
-    }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: {
-        marginBottom: "16px",
-        textAlign: "center"
-      }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: {
-        fontSize: "13px",
-        fontWeight: "600",
-        color: allUnlocked ? "#059669" : "#1f2937"
-      }, children: displayMessage }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: {
-        position: "relative",
-        paddingTop: sortedMilestones.length === 1 ? "40px" : sortedMilestones.length === 2 ? "36px" : "32px",
-        paddingBottom: "32px",
-        width: "100%"
-      }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: {
-          position: "absolute",
-          left: 0,
-          top: "50%",
-          transform: "translateY(-50%)",
-          height: "6px",
-          backgroundColor: "#e5e7eb",
-          borderRadius: "10px",
-          width: `${lastMilestonePosition}%`,
-          zIndex: 0
-        }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
-          "div",
-          {
-            style: {
-              position: "absolute",
-              left: 0,
-              top: 0,
-              height: "100%",
-              width: lastMilestonePosition > 0 ? `${Math.max(0, Math.min(cappedProgressPercent / lastMilestonePosition * 100, 100))}%` : "0%",
-              background: progressBarGradient,
-              borderRadius: "10px",
-              transition: "width 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
-              minWidth: cappedProgressPercent > 0 ? "4px" : "0",
-              zIndex: 1,
-              display: "block"
-            },
-            "data-progress-bar-color": finalProgressBarColor,
-            "data-gradient": progressBarGradient
-          }
-        ) }),
-        sortedMilestones.map((milestone, index) => {
-          const position = getPosition(milestone.targetAmount);
-          const isUnlocked = milestone.status === "unlocked";
-          const isInProgress = milestone.status === "in_progress";
-          const hasEligibilityConfig = Boolean(milestone.canShowUpsell);
-          return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
-            "div",
-            {
-              style: {
-                position: "absolute",
-                left: `${position}%`,
-                top: "50%",
-                transform: "translate(-50%, -50%)",
-                zIndex: 10
-              },
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
-                  "div",
-                  {
-                    style: {
-                      position: "absolute",
-                      bottom: "100%",
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      marginBottom: "6px",
-                      textAlign: "center",
-                      width: "max-content",
-                      maxWidth: sortedMilestones.length === 1 ? "200px" : sortedMilestones.length === 2 ? "140px" : "100px"
-                    },
-                    children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: {
-                      fontSize: "11px",
-                      fontWeight: "600",
-                      color: milestone.titleColor || "#1e40af",
-                      whiteSpace: "normal",
-                      lineHeight: "1.3",
-                      display: "block",
-                      wordBreak: "break-word",
-                      hyphens: "auto"
-                    }, children: milestone.title })
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
-                  "div",
-                  {
-                    style: {
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "50%",
-                      backgroundColor: milestone.iconColor || "#3b82f6",
-                      border: `3px solid ${milestone.iconColor || "#3b82f6"}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "16px",
-                      transition: "all 0.3s ease",
-                      boxShadow: isUnlocked || isInProgress ? "0 2px 8px rgba(0, 0, 0, 0.15)" : "none",
-                      position: "relative",
-                      opacity: isUnlocked ? 1 : isInProgress ? 0.9 : 0.5,
-                      cursor: "default"
-                    },
-                    title: `${milestone.title} - \u20B9${milestone.targetAmount}`,
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { children: milestone.icon || "\u{1F381}" }),
-                      isUnlocked && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
-                        "div",
-                        {
-                          style: {
-                            position: "absolute",
-                            right: "-4px",
-                            bottom: "-4px",
-                            width: "16px",
-                            height: "16px",
-                            borderRadius: "50%",
-                            backgroundColor: "#10b981",
-                            border: "2px solid #ffffff",
-                            color: "#ffffff",
-                            fontSize: "10px",
-                            fontWeight: "bold",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center"
-                          },
-                          children: "\u2713"
-                        }
-                      )
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
-                  "div",
-                  {
-                    style: {
-                      position: "absolute",
-                      top: "100%",
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      marginTop: "8px",
-                      textAlign: "center",
-                      whiteSpace: "nowrap"
-                    },
-                    children: !isUnlocked && milestone.canShowUpsell && hasEligibilityConfig && shop && onAddToCart && (() => {
-                      const firstLockedMilestone = sortedMilestones.find((m) => m.status !== "unlocked");
-                      return firstLockedMilestone && firstLockedMilestone.id === milestone.id;
-                    })() && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
-                      "button",
-                      {
-                        onClick: () => {
-                          setOpenUpsellMilestoneId(openUpsellMilestoneId === milestone.id ? null : milestone.id);
-                        },
-                        style: {
-                          marginTop: "4px",
-                          padding: "6px 14px",
-                          fontSize: "10px",
-                          fontWeight: "600",
-                          color: "#ffffff",
-                          backgroundColor: milestone.unlockButtonColor || "#3b82f6",
-                          border: "none",
-                          borderRadius: "6px",
-                          cursor: "pointer",
-                          transition: "all 0.2s ease",
-                          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.12)",
-                          whiteSpace: "nowrap",
-                          letterSpacing: "0.3px"
-                        },
-                        onMouseEnter: (e) => {
-                          const rgb = hexToRgb2(milestone.unlockButtonColor || "#3b82f6");
-                          if (rgb) {
-                            const darkerR = Math.max(0, rgb.r - 30);
-                            const darkerG = Math.max(0, rgb.g - 30);
-                            const darkerB = Math.max(0, rgb.b - 30);
-                            e.currentTarget.style.backgroundColor = `rgb(${darkerR}, ${darkerG}, ${darkerB})`;
-                          }
-                          e.currentTarget.style.transform = "translateY(-1px)";
-                          e.currentTarget.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.18)";
-                        },
-                        onMouseLeave: (e) => {
-                          e.currentTarget.style.backgroundColor = milestone.unlockButtonColor || "#3b82f6";
-                          e.currentTarget.style.transform = "translateY(0)";
-                          e.currentTarget.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.12)";
-                        },
-                        children: milestone.unlockButtonText || "Unlock Reward"
-                      }
-                    )
-                  }
-                )
-              ]
-            },
-            milestone.id
-          );
-        })
-      ] }),
-      openUpsellMilestoneId && shop && onAddToCart && (() => {
-        const openedMilestone = sortedMilestones.find((m) => m.id === openUpsellMilestoneId);
-        if (!openedMilestone || openedMilestone.status === "unlocked") {
-          return null;
-        }
-        return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
-          MilestoneUpsellCarousel,
-          {
-            shop,
-            milestoneId: openedMilestone.id,
-            remaining: openedMilestone.remaining,
-            collectionHandle: openedMilestone.eligibleCollectionHandle,
-            onAddToCart,
-            onClose: () => setOpenUpsellMilestoneId(null),
-            isPreview,
-            upsellHeaderText: openedMilestone.upsellHeaderText,
-            viewAllLinkText: openedMilestone.viewAllLinkText,
-            source
-          }
-        );
-      })()
-    ] });
-  }
-
-  // app/components/shared/FreeGiftSelector.tsx
-  var import_jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
-  function FreeGiftSelector({
-    freeGifts,
-    selectedGiftId,
-    onSelectGift,
-    isPreview = false
-  }) {
-    if (!freeGifts || freeGifts.length === 0) {
-      return null;
-    }
-    const freeGift = freeGifts[0];
-    if (!freeGift || !freeGift.qualified) {
-      return null;
-    }
-    const { giftProducts, customerLimit, name } = freeGift;
-    if (giftProducts.length === 1) {
-      return null;
-    }
-    const hasSelectedGift = giftProducts.some((p) => selectedGiftId === p.id);
-    return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { style: {
-      padding: "12px 14px",
-      backgroundColor: "#f0fdf4",
-      borderRadius: "8px",
-      border: "1px solid #86efac",
-      marginBottom: "12px"
-    }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { style: {
-        display: "flex",
-        alignItems: "center",
-        gap: "12px"
-      }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { style: { fontSize: "20px" }, children: "\u{1F381}" }),
-        /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { style: { flex: 1 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: {
-            fontSize: "14px",
-            fontWeight: "600",
-            color: "#166534",
-            marginBottom: "2px"
-          }, children: name }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: {
-            fontSize: "12px",
-            color: "#15803d"
-          }, children: hasSelectedGift ? "Gift selected - FREE at checkout!" : `Choose ${customerLimit} free gift${customerLimit > 1 ? "s" : ""}` })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: {
-          padding: "6px 12px",
-          backgroundColor: "#16a34a",
-          color: "#ffffff",
-          borderRadius: "6px",
-          fontSize: "12px",
-          fontWeight: "600"
-        }, children: "FREE" })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: {
-        display: "flex",
-        gap: "8px",
-        overflowX: "auto",
-        paddingBottom: "4px",
-        scrollbarWidth: "thin"
-      }, children: giftProducts.map((product) => {
-        const isSelected = selectedGiftId === product.id;
-        return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
-          "div",
-          {
-            onClick: () => {
-              if (!isPreview) {
-                onSelectGift(product.id, product.shopifyVariantId || product.shopifyProductId);
-              }
-            },
-            style: {
-              minWidth: "110px",
-              maxWidth: "110px",
-              border: isSelected ? "2px solid #16a34a" : "1px solid #d1d5db",
-              borderRadius: "8px",
-              padding: "8px",
-              backgroundColor: "#ffffff",
-              cursor: isPreview ? "default" : "pointer",
-              transition: "all 0.2s",
-              position: "relative",
-              boxShadow: isSelected ? "0 2px 8px rgba(22, 101, 52, 0.2)" : "none"
-            },
-            onMouseEnter: (e) => {
-              if (!isPreview) {
-                e.currentTarget.style.borderColor = "#16a34a";
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
-              }
-            },
-            onMouseLeave: (e) => {
-              if (!isPreview && !isSelected) {
-                e.currentTarget.style.borderColor = "#d1d5db";
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "none";
-              } else if (isSelected) {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 2px 8px rgba(22, 101, 52, 0.2)";
-              }
-            },
-            children: [
-              isSelected && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: {
-                position: "absolute",
-                top: "4px",
-                right: "4px",
-                width: "18px",
-                height: "18px",
-                borderRadius: "50%",
-                backgroundColor: "#16a34a",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "10px",
-                fontWeight: "bold",
-                zIndex: 1,
-                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)"
-              }, children: "\u2713" }),
-              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: {
-                width: "100%",
-                aspectRatio: "1",
-                backgroundColor: "#f9fafb",
-                borderRadius: "6px",
-                overflow: "hidden",
-                marginBottom: "6px"
-              }, children: product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
-                "img",
-                {
-                  src: product.imageUrl,
-                  alt: product.title,
-                  style: {
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover"
-                  }
-                }
-              ) : /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: {
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "28px"
-              }, children: "\u{1F381}" }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: {
-                fontSize: "11px",
-                fontWeight: "600",
-                color: "#111827",
-                marginBottom: "4px",
-                lineHeight: "1.2",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                minHeight: "26px"
-              }, children: product.title }),
-              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("div", { style: {
-                fontSize: "10px",
-                color: "#16a34a",
-                fontWeight: "700",
-                textAlign: "center"
-              }, children: "FREE" })
-            ]
-          },
-          product.id
-        );
-      }) })
-    ] });
-  }
-
   // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
-  var import_jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
+  var import_jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
   var UnifiedCartDrawer = ({
     config,
     cart,
@@ -12384,7 +10834,7 @@
     onFeatureClick
   }) => {
     var _a2, _b, _c, _d, _e;
-    import_react7.default.useEffect(() => {
+    import_react5.default.useEffect(() => {
       if (onImpression) {
         onImpression();
       }
@@ -12418,13 +10868,13 @@
       return Math.max(itemLevelSavings, discountSavings);
     };
     const renderFeature = (featureId) => {
-      var _a3, _b2, _c2, _d2, _e2, _f, _g, _h, _i, _j, _k, _l, _m, _n;
+      var _a3, _b2, _c2, _d2, _e2, _f, _g, _h, _i, _j;
       switch (featureId) {
         case "free-shipping-bar": {
           const bar = (_a3 = config == null ? void 0 : config.features) == null ? void 0 : _a3.freeShippingProgressBar;
           if (!bar)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
             FreeShippingBar,
             {
               thresholdMode: bar.thresholdMode || "amount",
@@ -12449,7 +10899,7 @@
           const slides = banner.images || [];
           if (slides.length === 0)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
             PromotionalBannerCard,
             {
               slides,
@@ -12477,7 +10927,7 @@
           const products = recommendations.products || [];
           if (products.length === 0)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
             ProductRecommendations,
             {
               title: recommendations.title || "You may also like",
@@ -12501,7 +10951,7 @@
           const totalSavings = calculateSavings();
           if (totalSavings <= 0)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
             SavingsDisplay,
             {
               message: savingsCfg.message || "You saved {amount}!",
@@ -12517,7 +10967,7 @@
           const msg = (_i = config == null ? void 0 : config.features) == null ? void 0 : _i.freeShippingMessage;
           if (!msg)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
             FreeShippingMessage,
             {
               thresholdAmount: parseFloat(msg.thresholdAmount) || 0,
@@ -12537,7 +10987,7 @@
           const couponField = (_j = config == null ? void 0 : config.features) == null ? void 0 : _j.couponCodeField;
           if (!couponField)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
             CouponCodeField,
             {
               id: "selldrawer-coupon-field",
@@ -12560,47 +11010,13 @@
             }
           ) }, featureId);
         }
-        case "milestones": {
-          const milestones = (_k = config == null ? void 0 : config.features) == null ? void 0 : _k.milestones;
-          if (!milestones || !milestones.length)
-            return null;
-          const MilestoneRewardManager = (init_milestone_reward_manager(), __toCommonJS(milestone_reward_manager_exports));
-          const cartTotalInCents = MilestoneRewardManager.calculateCartTotalExcludingGifts(cart);
-          const cartTotalInRupees = cartTotalInCents / 100;
-          const shopDomain = (config == null ? void 0 : config.shop) || ((_l = window.Shopify) == null ? void 0 : _l.shop) || window.location.hostname;
-          return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
-            MilestonesWidget,
-            {
-              milestones,
-              cartTotal: cartTotalInRupees,
-              isPreview: false,
-              progressBarColor: (_m = config == null ? void 0 : config.features) == null ? void 0 : _m.milestonesProgressBarColor,
-              allUnlockedMessage: (_n = config == null ? void 0 : config.features) == null ? void 0 : _n.milestonesAllUnlockedMessage,
-              shop: shopDomain,
-              onAddToCart: onAddProductToCart
-            }
-          ) }, featureId);
-        }
-        case "free-gifts": {
-          if (!freeGifts || freeGifts.length === 0)
-            return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
-            FreeGiftSelector,
-            {
-              freeGifts,
-              selectedGiftId,
-              onSelectGift,
-              isPreview: false
-            }
-          ) }, featureId);
-        }
         default:
           return null;
       }
     };
     const { beforeItems, afterItems } = getFeatureOrder();
-    return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(import_jsx_runtime12.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
         "button",
         {
           className: "selldrawer-close-btn",
@@ -12609,7 +11025,7 @@
           children: "\xD7"
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
         "h2",
         {
           id: "selldrawer-cart-header",
@@ -12622,7 +11038,7 @@
         }
       ),
       beforeItems.map(renderFeature),
-      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
         CartItems,
         {
           items: cart.items,
@@ -12634,7 +11050,7 @@
         }
       ) }),
       afterItems.map(renderFeature),
-      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
         CartTotals,
         {
           items: cart.items,
@@ -12661,7 +11077,7 @@
           isPreview: false
         }
       ) }),
-      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
         "button",
         {
           className: "selldrawer-checkout-btn",
@@ -12669,7 +11085,7 @@
           children: "Checkout"
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
         textAlign: "center",
         fontSize: "12px",
         color: "#6b7280",
@@ -12679,15 +11095,15 @@
         justifyContent: "center",
         gap: "12px"
       }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "4px" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("rect", { x: "3", y: "11", width: "18", height: "11", rx: "2", ry: "2" }),
-            /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("path", { d: "M7 11V7a5 5 0 0 1 10 0v4" })
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "4px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("rect", { x: "3", y: "11", width: "18", height: "11", rx: "2", ry: "2" }),
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("path", { d: "M7 11V7a5 5 0 0 1 10 0v4" })
           ] }),
           "Secure Checkout"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { children: "\u2022" }),
-        /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { children: "Free Returns" })
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: "\u2022" }),
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: "Free Returns" })
       ] })
     ] });
   };
@@ -12765,6 +11181,27 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-class.js
+  var MilestoneRewardManager = {
+    calculateCartTotalExcludingGifts: (cart) => cart.total_price,
+    handleMilestoneRewards: async () => null,
+    showMilestoneUnlockedNotification: () => {
+    },
+    getAllGiftsInCart: () => [],
+    normalizeProperties: () => ({}),
+    removeGiftFromCart: async () => {
+    },
+    validateMilestoneForCheckout: async () => ({ valid: true, message: "" }),
+    getCheckoutUrlWithDiscount: () => "/checkout"
+  };
+  var FreeGiftManager = {
+    loadFreeGifts: async () => [],
+    syncFreeGiftWithCart: async () => {
+    },
+    getSelectedGiftFromCart: () => null,
+    selectGift: async () => false,
+    getCheckoutUrlWithDiscount: () => "/checkout",
+    getAllGiftsInCart: () => []
+  };
   var SelldrawerCartDrawer = class {
     constructor(appUrl) {
       var _a2;
@@ -12841,12 +11278,12 @@
           console.log("Selldrawer Free Gifts: Already syncing, skipping");
           return;
         }
-        const cartTotalExcludingGifts = calculateCartTotalExcludingGifts(this.cart);
+        const cartTotalExcludingGifts = MilestoneRewardManager.calculateCartTotalExcludingGifts(this.cart);
         console.log("Selldrawer Free Gifts: Cart total check", {
           totalWithGifts: this.cart.total_price / 100,
           totalExcludingGifts: cartTotalExcludingGifts / 100
         });
-        const freeGifts = await loadFreeGifts(
+        const freeGifts = await FreeGiftManager.loadFreeGifts(
           this.appUrl,
           this.shop,
           this.cart,
@@ -12856,7 +11293,7 @@
         this.freeGifts = freeGifts;
         if (freeGifts.length > 0 && freeGifts[0].qualified) {
           console.log("Selldrawer Free Gifts: API returned gifts, syncing");
-          await syncFreeGiftWithCart(
+          await FreeGiftManager.syncFreeGiftWithCart(
             freeGifts[0],
             this.cart,
             async () => {
@@ -12864,7 +11301,7 @@
               this.cart = await response.json();
             }
           );
-          this.selectedGiftId = getSelectedGiftFromCart(this.cart, freeGifts[0]);
+          this.selectedGiftId = FreeGiftManager.getSelectedGiftFromCart(this.cart, freeGifts[0]);
         } else {
           console.log("Selldrawer Free Gifts: No gifts from API, not syncing (milestone has priority)");
           this.selectedGiftId = null;
@@ -12879,7 +11316,7 @@
         const appUrl = (_a2 = document.querySelector("[data-selldrawer-app-url]")) == null ? void 0 : _a2.dataset.selldrawerAppUrl;
         if (!appUrl)
           return;
-        const cartTotalInCents = calculateCartTotalExcludingGifts(this.cart);
+        const cartTotalInCents = MilestoneRewardManager.calculateCartTotalExcludingGifts(this.cart);
         const cartTotal = cartTotalInCents / 100;
         const timestamp = (/* @__PURE__ */ new Date()).getTime();
         const response = await fetch(
@@ -12925,7 +11362,7 @@
         this.isSyncingGifts = true;
         console.log("Selldrawer Milestones: Starting sync");
         const previousMilestone = this.unlockedMilestone;
-        this.unlockedMilestone = await handleMilestoneRewards(
+        this.unlockedMilestone = await MilestoneRewardManager.handleMilestoneRewards(
           this.milestones,
           this.cart,
           async (cartData) => {
@@ -12933,7 +11370,7 @@
           }
         );
         if (this.unlockedMilestone && (!previousMilestone || previousMilestone.id !== this.unlockedMilestone.id)) {
-          showMilestoneUnlockedNotification(this.unlockedMilestone);
+          MilestoneRewardManager.showMilestoneUnlockedNotification(this.unlockedMilestone);
         }
         console.log("Selldrawer Milestones: Sync complete");
       } catch (error) {
@@ -12994,16 +11431,16 @@
         if ((_b = (_a2 = this.config) == null ? void 0 : _a2.features) == null ? void 0 : _b.milestonesEnabled) {
           await this.loadMilestones();
         } else {
-          const allGifts = getAllGiftsInCart(this.cart);
+          const allGifts = MilestoneRewardManager.getAllGiftsInCart(this.cart);
           if (allGifts.length > 0) {
             let cartModified = false;
             for (const giftItem of allGifts) {
-              const props = normalizeProperties(giftItem.properties);
+              const props = MilestoneRewardManager.normalizeProperties(giftItem.properties);
               const source = props["_selldrawer_gift_source"];
               const isMilestoneGift = !source || source === "milestone";
               if (isMilestoneGift) {
                 console.log("Selldrawer Cart Drawer: Cleaning up disabled milestone gift", giftItem.key);
-                await removeGiftFromCart(giftItem.key);
+                await MilestoneRewardManager.removeGiftFromCart(giftItem.key);
                 cartModified = true;
               } else {
                 console.log("Selldrawer Cart Drawer: Ignoring gift from other source", source, giftItem.key);
@@ -13193,7 +11630,7 @@
       });
       const appliedDiscount = this.getDiscountFromCart();
       this.reactRoot.render(
-        import_react8.default.createElement(UnifiedCartDrawer, {
+        import_react6.default.createElement(UnifiedCartDrawer, {
           config: this.config,
           cart: this.cart,
           appliedDiscount,
@@ -13303,7 +11740,7 @@
         console.error("Selldrawer: No free gift available");
         return;
       }
-      const success = await selectGift(variantId, freeGift, async () => {
+      const success = await FreeGiftManager.selectGift(variantId, freeGift, async () => {
         const response = await fetch("/cart.js");
         this.cart = await response.json();
         this.render();
@@ -13326,7 +11763,7 @@
           console.log("Selldrawer: Free gift is qualified, checking discount code");
           if (this.freeGifts[0].discountCode) {
             console.log("Selldrawer: Using free gift discount code", this.freeGifts[0].discountCode);
-            const checkoutUrl = getCheckoutUrlWithDiscount2(this.freeGifts[0]);
+            const checkoutUrl = FreeGiftManager.getCheckoutUrlWithDiscount(this.freeGifts[0]);
             window.location.href = checkoutUrl;
             return;
           } else {
@@ -13335,7 +11772,7 @@
         }
         if (this.unlockedMilestone && this.unlockedMilestone.discountCode) {
           console.log("Selldrawer: Using milestone discount", this.unlockedMilestone.discountCode);
-          const validation = await validateMilestoneForCheckout(
+          const validation = await MilestoneRewardManager.validateMilestoneForCheckout(
             this.unlockedMilestone,
             this.cart
           );
@@ -13349,7 +11786,7 @@
             }
             return;
           }
-          const checkoutUrl = getCheckoutUrlWithDiscount(this.unlockedMilestone);
+          const checkoutUrl = MilestoneRewardManager.getCheckoutUrlWithDiscount(this.unlockedMilestone);
           console.log("Selldrawer: Redirecting to checkout with milestone discount", checkoutUrl);
           window.location.href = checkoutUrl;
           return;

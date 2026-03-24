@@ -1,33 +1,42 @@
-name: Deploy to ECS
+name: Deploy to DEV Environment
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [ main ] # Triggers automatically when code is pushed/merged to main
 
 env:
   AWS_REGION: ap-south-1
-  ECR_REPOSITORY: upsellity/app
-  ECS_SERVICE: upsellity-app-service
-  ECS_CLUSTER: upsellity
-  ECS_TASK_DEFINITION: upsellity-app
+  ECR_REPOSITORY: selldrawer-dev/app
+  ECS_SERVICE: selldrawer-dev-app-service
+  ECS_CLUSTER: selldrawer-dev
+  ECS_TASK_DEFINITION: selldrawer-dev-app
   CONTAINER_NAME: app
 
 jobs:
   deploy:
-    name: Deploy to ECS
+    name: Deploy to Dev
     runs-on: ubuntu-latest
-    environment: production
+    environment: development
 
     steps:
-    - name: Checkout
+    - name: Checkout Code
       uses: actions/checkout@v4
 
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+
+    - name: Install Dependencies
+      run: npm install
+
+    # --- AWS BACKEND DEPLOYMENT ---
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
         aws-region: ${{ env.AWS_REGION }}
 
     - name: Login to Amazon ECR
@@ -40,9 +49,6 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        # Build a docker container and
-        # push it to ECR so that it can
-        # be deployed to ECS.
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
@@ -50,7 +56,6 @@ jobs:
     - name: Download task definition
       run: |
         aws ecs describe-task-definition --task-definition $ECS_TASK_DEFINITION --query taskDefinition > task-definition.json
-        # Remove unsupported fields that cause deployment issues
         jq 'del(.enableFaultInjection, .faultInjectionRules)' task-definition.json > task-definition-clean.json
         mv task-definition-clean.json task-definition.json
 
@@ -63,12 +68,11 @@ jobs:
         image: ${{ steps.build-image.outputs.image }}
         environment-variables: |
           NODE_ENV=production
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
-          SHOPIFY_API_KEY=${{ secrets.SHOPIFY_API_KEY }}
-          SHOPIFY_API_SECRET=${{ secrets.SHOPIFY_API_SECRET }}
-          SHOPIFY_APP_URL=https://app.upsellity.com
+          DATABASE_URL=${{ secrets.DATABASE_URL_DEV }}
+          SHOPIFY_API_KEY=${{ secrets.SHOPIFY_API_KEY_DEV }}
+          SHOPIFY_API_SECRET=${{ secrets.SHOPIFY_API_SECRET_DEV }}
+          SHOPIFY_APP_URL=https://dev.app.selldrawer.com
           SCOPES=write_products,read_products,read_product_listings,write_checkouts,read_checkouts,read_discounts
-          SHOPIFY_CART_UPSELL_EXTENSION_ID=${{ secrets.SHOPIFY_CART_UPSELL_EXTENSION_ID }}
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
@@ -78,9 +82,11 @@ jobs:
         cluster: ${{ env.ECS_CLUSTER }}
         wait-for-service-stability: true
 
-    - name: Deployment Success
+    # --- SHOPIFY EXTENSIONS DEPLOYMENT ---
+    - name: Deploy Shopify App Extensions to DEV
+      env:
+        SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY_DEV }}
+        SHOPIFY_CLI_TTY: 0 
       run: |
-        echo "🚀 Deployment completed successfully!"
-        echo "Service: ${{ env.ECS_SERVICE }}"
-        echo "Cluster: ${{ env.ECS_CLUSTER }}"
-        echo "Image: ${{ steps.build-image.outputs.image }}"
+        echo "Deploying extensions and app config to Dev App..."
+        npm run shopify app deploy -- --force --client-id="${{ secrets.SHOPIFY_API_KEY_DEV }}"

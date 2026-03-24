@@ -9,7 +9,6 @@ export async function deleteShopData(shop: string) {
     db.cartDrawerAnalytics.deleteMany({ where: { shop } }),
     db.appSubscription.deleteMany({ where: { shop } }),
     db.frequentlyBoughtTogether.deleteMany({ where: { shop } }),
-    db.milestoneBlock.deleteMany({ where: { shop } }),
     db.promotionalBannerBlock.deleteMany({ where: { shop } }),
   ]);
 }
