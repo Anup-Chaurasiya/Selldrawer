@@ -1,23 +1,25 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "3f2275d614d4eab5e0f213d540ac9b53"
-name = "SellDrawer"
-application_url = "https://shopify.dev/apps/default-app-home"
+name = "Selldrawer-dev"
+application_url = "https://app.selldrawer.com"
 embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
 
 [webhooks]
-api_version = "2026-04"
+api_version = "2026-01"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "read_products,write_products,read_orders,write_orders,read_customers,write_customers,read_draft_orders,write_draft_orders,read_inventory,write_inventory,read_locations,read_script_tags,write_script_tags,read_fulfillments,write_fulfillments,read_shipping,write_shipping,read_themes,write_themes,read_price_rules,write_price_rules,read_discounts,write_discounts,read_content,write_content,read_publications,write_publications,read_analytics,write_product_listings,read_product_listings"
+optional_scopes = [ ]
+use_legacy_install_flow = false
 
 [auth]
-redirect_urls = [ 
-  "https://shopify.dev/apps/default-app-home/auth/callback",
-  "https://shopify.dev/apps/default-app-home/auth/shopify/callback",
-  "https://shopify.dev/apps/default-app-home/api/auth" 
+redirect_urls = [
+  "https://app.selldrawer.com/auth/callback",
+  "https://app.selldrawer.com/auth/shopify/callback",
+  "https://app.selldrawer.com/api/auth"
 ]

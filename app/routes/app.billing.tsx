@@ -243,7 +243,6 @@ export default function Billing() {
                 <Button
                   variant="primary"
                   url={planSelectionUrl}
-                  external
                 >
                   View Pricing Plans
                 </Button>
@@ -323,7 +322,6 @@ export default function Billing() {
                       <Box paddingBlockStart="200">
                         <Button
                           url="https://partners.shopify.com"
-                          target="_blank"
                         >
                           Go to Partner Dashboard
                         </Button>

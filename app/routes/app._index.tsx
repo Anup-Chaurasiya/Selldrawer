@@ -29,10 +29,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing, session, admin } = await authenticate.admin(request);
   const shop = session.shop;
 
+  // Get URL params to preserve them in redirects
+  const url = new URL(request.url);
+  const searchParams = url.searchParams.toString();
+
   // Check billing - if no active payment, redirect directly to our internal billing page router
   const billingRedirectUrl = await requireBilling(billing);
   if (billingRedirectUrl) {
-    return redirect("/app/billing");
+    // Preserve URL parameters in the redirect
+    return redirect(`/app/billing${searchParams ? `?${searchParams}` : ''}`);
   }
 
   // Get subscription details
