@@ -47,7 +47,6 @@ export default async function handleRequest(
         },
         onError(error) {
           responseStatusCode = 500;
-          console.error(error);
         },
       }
     );

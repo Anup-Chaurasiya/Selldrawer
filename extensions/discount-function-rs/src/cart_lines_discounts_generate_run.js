@@ -1,12 +1,7 @@
-import {
-  DiscountClass,
-  ProductDiscountSelectionStrategy,
-} from '../generated/api';
-
 /**
  * FBT (Frequently Bought Together) Discount Function
  * 
- * This function automatically applies discounts to FBT bundle products based on
+ * This function automaticoducts based on
  * line item properties set when products are added to cart.
  * 
  * Line item properties used:
@@ -14,27 +9,18 @@ import {
  * - _fbt_discount_type: "PERCENTAGE" or "FIXED"
  * - _fbt_discount_value: The discount amount
  * 
- * @typedef {import("../generated/api").CartInput} RunInput
- * @typedef {import("../generated/api").CartLinesDiscountsGenerateRunResult} CartLinesDiscountsGenerateRunResult
+ * @typedef {import("../generated/api").Input} RunInput
+ * @typedef {import("../generated/api").FunctionRunResult} FunctionRunResult
  */
 
 /**
  * @param {RunInput} input
- * @returns {CartLinesDiscountsGenerateRunResult}
+ * @returns {FunctionRunResult}
  */
-export function cartLinesDiscountsGenerateRun(input) {
-  // Return early if no cart lines
+export function run(input) {
+  /y if no cart lines
   if (!input.cart.lines.length) {
-    return { operations: [] };
-  }
-
-  // Check if product discounts are enabled
-  const hasProductDiscountClass = input.discount.discountClasses.includes(
-    DiscountClass.Product,
-  );
-
-  if (!hasProductDiscountClass) {
-    return { operations: [] };
+    return { discounts: [] };
   }
 
   // Group cart lines by FBT bundle ID
@@ -50,14 +36,14 @@ export function cartLinesDiscountsGenerateRun(input) {
       }
       bundleGroups.get(bundleId).push(line);
     }
-  }
+
 
   // If no FBT bundles found, return no discounts
   if (bundleGroups.size === 0) {
-    return { operations: [] };
+    return { discounts: [] };
   }
 
-  const productDiscountCandidates = [];
+  const discounts = [];
 
   // Process each bundle
   for (const [bundleId, bundleLines] of bundleGroups) {
@@ -94,65 +80,41 @@ export function cartLinesDiscountsGenerateRun(input) {
 
     // Apply discount to each line in the bundle
     for (const line of bundleLines) {
-      let discountCandidate;
-
       if (discountType === 'PERCENTAGE') {
-        discountCandidate = {
+        discounts.push({
           message: `FBT Bundle: ${discountValue}% off`,
           targets: [
             {
-              cartLine: {
-                id: line.id,
+              productVariant: {
+                id: line.merchandise.id,
               },
             },
           ],
           value: {
             percentage: {
-              value: discountValue,
+              value: discountValue.toString(),
             },
           },
-        };
+        });
       } else if (discountType === 'FIXED') {
-        discountCandidate = {
-          message: `FBT Bundle: $${discountValue} off`,
+        discounts.push({
+          message: `FBT Bundle: ${discountValue} off`,
           targets: [
             {
-              cartLine: {
-                id: line.id,
+              productVariant: {
+                id: line.merchandise.id,
               },
             },
           ],
           value: {
             fixedAmount: {
-              amount: discountValue,
-              appliesToEachItem: true,
+              amount: discountValue.toString(),
             },
           },
-        };
-      } else {
-        // Skip unknown discount types
-        continue;
+        });
       }
-
-      productDiscountCandidates.push(discountCandidate);
     }
   }
 
-  // Return discounts if any were created
-  if (productDiscountCandidates.length === 0) {
-    return { operations: [] };
-  }
-
-  // Return a single operation with all discount candidates
-  // Use 'All' strategy to ensure discounts are applied to all eligible items
-  return {
-    operations: [
-      {
-        productDiscountsAdd: {
-          candidates: productDiscountCandidates,
-          selectionStrategy: ProductDiscountSelectionStrategy.All,
-        },
-      },
-    ],
-  };
+  return { discounts };
 }

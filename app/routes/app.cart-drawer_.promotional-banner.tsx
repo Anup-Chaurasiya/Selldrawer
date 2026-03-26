@@ -30,7 +30,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const editingVersion = url.searchParams.get("version") || "default";
 
   const cartDrawer = await prisma.cartDrawer.findUnique({
-    where: { shop_version: { shop, version: editingVersion } },
+    where: { shop },
     include: {
       promotionalBanners: {
         where: { isActive: true },
@@ -62,7 +62,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Check if data exists before enabling
     if (enabled) {
       const cartDrawer = await prisma.cartDrawer.findUnique({
-        where: { shop_version: { shop, version: editingVersion } },
+        where: { shop },
         include: {
           promotionalBanners: {
             where: { isActive: true },
@@ -96,7 +96,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     await prisma.cartDrawer.update({
-      where: { shop_version: { shop, version: editingVersion } },
+      where: { shop },
       data: { promotionalBannerEnabled: enabled },
     });
 
@@ -105,7 +105,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "save-banner") {
     const cartDrawer = await prisma.cartDrawer.findUnique({
-      where: { shop_version: { shop, version: editingVersion } },
+      where: { shop },
       include: {
         promotionalBanners: {
           where: { isActive: true },
@@ -132,18 +132,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     } else {
       await prisma.promotionalBanner.create({
         data: {
+          id: crypto.randomUUID(),
           shop,
           cartDrawerId: cartDrawer.id,
           isActive: true,
           bannerType,
           title: formData.get("title") as string || "Promotional Banner",
+          updatedAt: new Date(),
         },
       });
     }
 
     // Auto-enable the feature after creating banner
     await prisma.cartDrawer.update({
-      where: { shop_version: { shop, version: editingVersion } },
+      where: { shop },
       data: { promotionalBannerEnabled: true },
     });
 
@@ -219,6 +221,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     await prisma.promotionalBannerImage.create({
       data: {
+        id: crypto.randomUUID(),
         bannerId,
         imageUrl,
         videoUrl,
@@ -228,12 +231,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         ctaText,
         ctaUrl,
         order: (maxOrder?.order ?? -1) + 1,
+        updatedAt: new Date(),
       },
     });
 
     // Auto-enable the feature after adding a slide
     await prisma.cartDrawer.update({
-      where: { shop_version: { shop, version: editingVersion } },
+      where: { shop },
       data: { promotionalBannerEnabled: true },
     });
 

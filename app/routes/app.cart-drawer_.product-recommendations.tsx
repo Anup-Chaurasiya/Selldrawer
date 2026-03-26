@@ -33,7 +33,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const editingVersion = url.searchParams.get("version") || "default";
 
   const cartDrawer = await prisma.cartDrawer.findUnique({
-    where: { shop_version: { shop, version: editingVersion } },
+    where: { shop },
     include: {
       productRecommendations: {
         where: { isActive: true },
@@ -153,7 +153,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Check if data exists before enabling
     if (enabled) {
       const cartDrawer = await prisma.cartDrawer.findUnique({
-        where: { shop_version: { shop, version: editingVersion } },
+        where: { shop },
         include: {
           productRecommendations: {
             where: { isActive: true },
@@ -185,7 +185,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     await prisma.cartDrawer.update({
-      where: { shop_version: { shop, version: editingVersion } },
+      where: { shop },
       data: { productRecommendationsEnabled: enabled },
     });
 
@@ -200,7 +200,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "save") {
     const cartDrawer = await prisma.cartDrawer.findUnique({
-      where: { shop_version: { shop, version: editingVersion } },
+      where: { shop },
       include: { productRecommendations: { where: { isActive: true } } },
     });
 
@@ -231,10 +231,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     } else {
       recommendation = await prisma.productRecommendation.create({
         data: {
+          id: crypto.randomUUID(),
           ...data,
           shop,
           cartDrawerId: cartDrawer.id,
           isActive: true,
+          updatedAt: new Date(),
         },
       });
     }
@@ -313,6 +315,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
               await prisma.recommendedProduct.create({
                 data: {
+                  id: crypto.randomUUID(),
                   recommendationId: recommendation.id,
                   shopifyProductId: productId, // Store product handle (which is the frontend ID)
                   shopifyVariantId: variantId, // Store the variant ID for add to cart functionality
@@ -337,7 +340,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Auto-enable the feature after saving configuration (only if products were added)
     if (selectedProducts.length > 0) {
       await prisma.cartDrawer.update({
-        where: { shop_version: { shop, version: editingVersion } },
+        where: { shop },
         data: { productRecommendationsEnabled: true },
       });
     }

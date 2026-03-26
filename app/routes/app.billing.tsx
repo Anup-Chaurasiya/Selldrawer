@@ -100,7 +100,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       availablePlans = data.data.currentAppInstallation.allSubscriptions.edges.map((edge: any) => edge.node);
     }
   } catch (error) {
-    console.error("Error fetching plans from Shopify:", error);
+    // Error fetching plans from Shopify
   }
 
   const now = new Date();
@@ -183,7 +183,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     return json({ error: "Invalid action" }, { status: 400 });
   } catch (error: any) {
-    console.error("Billing error:", error);
     return json({ error: error.message || "Failed to process billing" }, { status: 500 });
   }
 };
@@ -226,6 +225,10 @@ export default function Billing() {
     setShowCancelModal(false);
   };
 
+  const openExternalLink = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <Page>
       <TitleBar title="Billing & Plans" />
@@ -233,18 +236,30 @@ export default function Billing() {
         {!hasActivePayment && (
           <Banner tone="warning">
             <BlockStack gap="200">
+              <Text as="p" variant="bodyMd" fontWeight="semibold">
+                No active subscription
+              </Text>
               <Text as="p" variant="bodyMd">
-                You don't have an active subscription. Please subscribe to a plan to use Selldrawer.
+                To use Selldrawer, you need to set up billing plans in your Shopify Partner Dashboard first, then merchants can subscribe.
               </Text>
               <Text as="p" variant="bodySm" tone="subdued">
-                Click the button below to view and select a pricing plan.
+                Steps:
+              </Text>
+              <Text as="p" variant="bodySm" tone="subdued">
+                1. Go to Partner Dashboard → Your App → Pricing
+              </Text>
+              <Text as="p" variant="bodySm" tone="subdued">
+                2. Create pricing plans for your app
+              </Text>
+              <Text as="p" variant="bodySm" tone="subdued">
+                3. Merchants can then subscribe from this page
               </Text>
               <Box paddingBlockStart="200">
                 <Button
                   variant="primary"
-                  url={planSelectionUrl}
+                  onClick={() => openExternalLink("https://partners.shopify.com")}
                 >
-                  View Pricing Plans
+                  Open Partner Dashboard
                 </Button>
               </Box>
             </BlockStack>
@@ -321,7 +336,7 @@ export default function Billing() {
                       </Text>
                       <Box paddingBlockStart="200">
                         <Button
-                          url="https://partners.shopify.com"
+                          onClick={() => openExternalLink("https://partners.shopify.com")}
                         >
                           Go to Partner Dashboard
                         </Button>

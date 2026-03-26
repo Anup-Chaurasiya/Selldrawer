@@ -74,11 +74,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     await prisma.promotionalBannerBlock.create({
       data: {
+        id: crypto.randomUUID(),
         shop,
         configId,
         name,
         isActive: true,
         title: name,
+        updatedAt: new Date(),
       },
     });
 
@@ -208,6 +210,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     await prisma.promotionalBannerBlockImage.create({
       data: {
+        id: crypto.randomUUID(),
         blockId,
         imageUrl,
         videoUrl,
@@ -217,6 +220,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         ctaText,
         ctaUrl,
         order: (maxOrder?.order ?? -1) + 1,
+        updatedAt: new Date(),
       },
     });
 

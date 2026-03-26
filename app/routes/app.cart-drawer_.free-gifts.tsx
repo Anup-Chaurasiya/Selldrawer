@@ -36,7 +36,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Get cart drawer configuration
   let cartDrawer = await prisma.cartDrawer.findUnique({
-    where: { shop_version: { shop, version: editingVersion } },
+    where: { shop },
     include: {
       freeGifts: {
         include: {
@@ -52,7 +52,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (!cartDrawer) {
     cartDrawer = await prisma.cartDrawer.create({
-      data: { shop, version: editingVersion },
+      data: { 
+        id: crypto.randomUUID(),
+        shop, 
+        version: editingVersion,
+        updatedAt: new Date(),
+      },
       include: {
         freeGifts: {
           include: {
@@ -184,12 +189,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   // Get or create cart drawer
   let cartDrawer = await prisma.cartDrawer.findUnique({
-    where: { shop_version: { shop, version: editingVersion } }
+    where: { shop }
   });
 
   if (!cartDrawer) {
     cartDrawer = await prisma.cartDrawer.create({
-      data: { shop, version: editingVersion }
+      data: { 
+        id: crypto.randomUUID(),
+        shop, 
+        version: editingVersion 
+      }
     });
   }
 
@@ -253,6 +262,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
       const freeGift = await prisma.freeGift.create({
         data: {
+          id: crypto.randomUUID(),
           cartDrawerId: cartDrawer.id,
           shop,
           name,
@@ -262,6 +272,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           shopifyDiscountId: discountResult.discountId,
           discountCode: discountResult.code,
           priority,
+          updatedAt: new Date(),
         }
       });
 
@@ -270,6 +281,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const product = giftProducts[i];
         await prisma.freeGiftProduct.create({
           data: {
+            id: crypto.randomUUID(),
             freeGiftId: freeGift.id,
             shopifyProductId: product.shopifyProductId,
             shopifyVariantId: product.shopifyVariantId || null,
@@ -279,6 +291,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             imageUrl: product.imageUrl || null,
             handle: product.handle,
             position: i,
+            updatedAt: new Date(),
           }
         });
       }
@@ -288,9 +301,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         for (const target of targets) {
           await prisma.freeGiftTarget.create({
             data: {
+              id: crypto.randomUUID(),
               freeGiftId: freeGift.id,
               shopifyId: target.shopifyId,
               type: target.type,
+              updatedAt: new Date(),
             }
           });
         }
@@ -383,6 +398,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const product = giftProducts[i];
       await prisma.freeGiftProduct.create({
         data: {
+          id: crypto.randomUUID(),
           freeGiftId,
           shopifyProductId: product.shopifyProductId,
           shopifyVariantId: product.shopifyVariantId || null,
@@ -392,6 +408,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           imageUrl: product.imageUrl || null,
           handle: product.handle,
           position: i,
+          updatedAt: new Date(),
         }
       });
     }
@@ -405,9 +422,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       for (const target of targets) {
         await prisma.freeGiftTarget.create({
           data: {
+            id: crypto.randomUUID(),
             freeGiftId,
             shopifyId: target.shopifyId,
             type: target.type,
+            updatedAt: new Date(),
           }
         });
       }

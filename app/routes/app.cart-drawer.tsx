@@ -45,7 +45,6 @@ import {
 import { checkAppEmbedEnabled } from "../utils/appEmbed.server";
 import { checkPlanAccess } from "../utils/planAccess.server";
 import { requireBilling } from "../utils/billing.server";
-import { initializeDefaultVersion } from "../services/cartDrawerVersions.server";
 import { PromotionalBannerCard } from "../components/shared/PromotionalBannerCard";
 import { ProductRecommendations } from "../components/shared/ProductRecommendations";
 import { FreeShippingBar } from "../components/shared/FreeShippingBar";
@@ -56,7 +55,6 @@ import { CartTotals } from "../components/shared/CartTotals";
 import { CartItems } from "../components/shared/CartItems";
 import { MilestonesWidget } from "../components/shared/MilestonesWidget";
 import { FreeGiftSelector } from "../components/shared/FreeGiftSelector";
-import { VersionManagementModal } from "../components/shared/VersionManagementModal";
 
 // Wrapper component for the preview with state management
 function PromotionalBannerPreview({
@@ -89,21 +87,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const error = url.searchParams.get("error");
 
-  // Get version parameter from URL (default to "default")
-  const editingVersion = url.searchParams.get("version") || "default";
-
-  // CRITICAL: Initialize default version in database if it doesn't exist
-  await initializeDefaultVersion();
-
-  // If no version parameter in URL, redirect to include it
-  // This ensures the URL always shows which version you're editing
-  if (!url.searchParams.has("version")) {
-    const params = new URLSearchParams(url.search);
-    params.set("version", "default");
-    if (error) params.set("error", error);
-    return redirect(`/app/cart-drawer?${params.toString()}`);
-  }
-
   // Check billing - if no active payment, return redirect URL
   const billingRedirectUrl = await requireBilling(billing);
   if (billingRedirectUrl) {
@@ -116,14 +99,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Check if app embed is enabled
   const appEmbedEnabled = await checkAppEmbedEnabled(admin, session);
 
-  // Get or create cart drawer configuration for this version
+  // Get or create cart drawer configuration
   let cartDrawer = await prisma.cartDrawer.findUnique({
-    where: {
-      shop_version: {
-        shop,
-        version: editingVersion
-      }
-    },
+    where: { shop },
     include: {
       freeShippingBars: { where: { isActive: true } },
       promotionalBanners: {
@@ -167,9 +145,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (!cartDrawer) {
     cartDrawer = await prisma.cartDrawer.create({
       data: {
+        id: crypto.randomUUID(),
         shop,
-        version: editingVersion,
         isActive: true,
+        updatedAt: new Date(),
       },
       include: {
         freeShippingBars: true,
@@ -249,7 +228,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (Object.keys(updateData).length > 0) {
     cartDrawer = await prisma.cartDrawer.update({
-      where: { shop_version: { shop, version: editingVersion } },
+      where: { shop },
       data: updateData,
       include: {
         freeShippingBars: { where: { isActive: true } },
@@ -307,17 +286,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     shopDomain: process.env.SHOPIFY_SHOP_DOMAIN || shop,
     error,
     planAccess,
-    editingVersion, // Which version is being edited
   });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
-
-  // Get version from URL or formData
-  const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -329,7 +303,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Check if data exists before enabling any feature
     if (enabled) {
       const cartDrawer = await prisma.cartDrawer.findUnique({
-        where: { shop_version: { shop, version: editingVersion } },
+        where: { shop },
         include: {
           freeShippingBars: { where: { isActive: true } },
           promotionalBanners: {
@@ -366,12 +340,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
 
       if (!cartDrawer) {
-        return redirect(`/app/cart-drawer?version=${editingVersion}&error=feature-not-configured`);
+        return redirect(`/app/cart-drawer?error=feature-not-configured`);
       }
 
       // Check each feature for required data
       if (featureId === 'free-shipping-bar' && cartDrawer.freeShippingBars.length === 0) {
-        return redirect(`/app/cart-drawer?version=${editingVersion}&error=free-shipping-bar-not-configured`);
+        return redirect(`/app/cart-drawer?error=free-shipping-bar-not-configured`);
       }
 
       // Check promotional banner: needs to have images or banner data
@@ -381,7 +355,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             (banner.images && banner.images.length > 0) || (banner.imageUrls && banner.imageUrls.length > 0) || banner.title
           );
         if (!hasBannerData) {
-          return redirect(`/app/cart-drawer?version=${editingVersion}&error=promotional-banner-not-configured`);
+          return redirect(`/app/cart-drawer?error=promotional-banner-not-configured`);
         }
       }
 
@@ -390,20 +364,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const hasProducts = cartDrawer.productRecommendations.length > 0 &&
           cartDrawer.productRecommendations.some(rec => rec.products && rec.products.length > 0);
         if (!hasProducts) {
-          return redirect(`/app/cart-drawer?version=${editingVersion}&error=product-recommendations-not-configured`);
+          return redirect(`/app/cart-drawer?error=product-recommendations-not-configured`);
         }
       }
 
       if (featureId === 'savings-display' && cartDrawer.savingsDisplays.length === 0) {
-        return redirect(`/app/cart-drawer?version=${editingVersion}&error=savings-display-not-configured`);
+        return redirect(`/app/cart-drawer?error=savings-display-not-configured`);
       }
 
       if (featureId === 'free-shipping-message' && cartDrawer.freeShippingMessages.length === 0) {
-        return redirect(`/app/cart-drawer?version=${editingVersion}&error=free-shipping-message-not-configured`);
+        return redirect(`/app/cart-drawer?error=free-shipping-message-not-configured`);
       }
 
       if (featureId === 'cart-totals' && cartDrawer.cartTotals.length === 0) {
-        return redirect(`/app/cart-drawer?version=${editingVersion}&error=cart-totals-not-configured`);
+        return redirect(`/app/cart-drawer?error=cart-totals-not-configured`);
       }
 
       if (featureId === 'coupon-code') {
@@ -411,16 +385,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           where: { shop },
         });
         if (!couponCodeField) {
-          return redirect(`/app/cart-drawer?version=${editingVersion}&error=coupon-code-not-configured`);
+          return redirect(`/app/cart-drawer?error=coupon-code-not-configured`);
         }
       }
 
       if (featureId === 'milestones' && cartDrawer.milestones.length === 0) {
-        return redirect(`/app/cart-drawer?version=${editingVersion}&error=milestones-not-configured`);
+        return redirect(`/app/cart-drawer?error=milestones-not-configured`);
       }
 
       if (featureId === 'free-gifts' && cartDrawer.freeGifts.length === 0) {
-        return redirect(`/app/cart-drawer?version=${editingVersion}&error=free-gifts-not-configured`);
+        return redirect(`/app/cart-drawer?error=free-gifts-not-configured`);
       }
     }
 
@@ -440,10 +414,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const updateData = featureFieldMap[featureId];
     if (updateData) {
       await prisma.cartDrawer.update({
-        where: { shop_version: { shop, version: editingVersion } },
+        where: { shop },
         data: updateData,
       });
-      return redirect(`/app/cart-drawer?version=${editingVersion}`);
+      return redirect(`/app/cart-drawer`);
     }
   }
 
@@ -462,7 +436,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const normalized = normalizeFeatureOrder(parsed as string[]);
 
       await prisma.cartDrawer.update({
-        where: { shop_version: { shop, version: editingVersion } },
+        where: { shop },
         data: { featureOrder: normalized },
       });
 
@@ -920,57 +894,13 @@ export default function CartDrawerIndex() {
     return null;
   }
 
-  const { cartDrawer, couponCodeField, appEmbedEnabled, shopDomain, error, planAccess, editingVersion } = loaderData as Exclude<typeof loaderData, { billingRedirectUrl: string }>;
+  const { cartDrawer, couponCodeField, appEmbedEnabled, shopDomain, error, planAccess } = loaderData as Exclude<typeof loaderData, { billingRedirectUrl: string }>;
 
   const [featureOrder, setFeatureOrder] = useState<string[]>(() =>
     normalizeFeatureOrder(cartDrawer.featureOrder)
   );
   const [draggedFeatureId, setDraggedFeatureId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
-  const [showVersionModal, setShowVersionModal] = useState(false);
-  const [versionDropdownActive, setVersionDropdownActive] = useState(false);
-  const [showNewVersionForm, setShowNewVersionForm] = useState(false);
-  const [versions, setVersions] = useState<any[]>([]);
-  const [newVersionKey, setNewVersionKey] = useState('');
-  const [newVersionName, setNewVersionName] = useState('');
-  const [newVersionDescription, setNewVersionDescription] = useState('');
-
-  const currentVersion = editingVersion; // Alias for clarity in UI
-
-  // Fetch versions when component mounts
-  React.useEffect(() => {
-    fetcher.load('/api/cart-drawer-versions');
-  }, []);
-
-  // Update versions from fetcher data
-  React.useEffect(() => {
-    const data = fetcher.data as any;
-    if (data && data.versions) {
-      setVersions(data.versions);
-    }
-  }, [fetcher.data]);
-
-  const handleCreateVersion = () => {
-    if (!newVersionKey || !newVersionName) {
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('intent', 'create-version');
-    formData.append('key', newVersionKey);
-    formData.append('name', newVersionName);
-    if (newVersionDescription) {
-      formData.append('description', newVersionDescription);
-    }
-
-    fetcher.submit(formData, { method: 'post', action: '/api/cart-drawer-versions' });
-
-    // Reset form
-    setNewVersionKey('');
-    setNewVersionName('');
-    setNewVersionDescription('');
-    setShowNewVersionForm(false);
-  };
 
   React.useEffect(() => {
     setFeatureOrder(normalizeFeatureOrder(cartDrawer.featureOrder));
@@ -1316,52 +1246,6 @@ export default function CartDrawerIndex() {
                     <span>Drag to reorder features</span>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  {/* Version Dropdown */}
-                  <Popover
-                    active={versionDropdownActive}
-                    activator={
-                      <Button
-                        onClick={() => setVersionDropdownActive(!versionDropdownActive)}
-                        disclosure={versionDropdownActive ? "up" : "down"}
-                        size="slim"
-                      >
-                        {versions.find(v => v.key === currentVersion)?.name || currentVersion}
-                      </Button>
-                    }
-                    onClose={() => setVersionDropdownActive(false)}
-                  >
-                    <ActionList
-                      items={[
-                        ...versions.map((version: any) => ({
-                          content: version.name,
-                          active: version.key === currentVersion,
-                          suffix: version.isDefault ? <Badge tone="info">Default</Badge> : undefined,
-                          onAction: () => {
-                            setVersionDropdownActive(false);
-                            if (version.key !== currentVersion) {
-                              navigate(`/app/cart-drawer?version=${version.key}`);
-                            }
-                          },
-                        })),
-                        {
-                          content: '+ New Version',
-                          onAction: () => {
-                            setVersionDropdownActive(false);
-                            setShowNewVersionForm(true);
-                          },
-                        },
-                      ]}
-                    />
-                  </Popover>
-                  <Button
-                    onClick={() => setShowVersionModal(true)}
-                    icon={ChartVerticalIcon}
-                    size="slim"
-                  >
-                    Configure Rollout
-                  </Button>
-                </div>
               </div>
               {orderedFeatureCards.map((item) => {
                 const isCartItems = 'isCartItems' in item && item.isCartItems;
@@ -1461,7 +1345,7 @@ export default function CartDrawerIndex() {
                                 {feature!.enabled ? "Disable" : "Enable"}
                               </Button>
                               <Button
-                                url={`${feature!.path}?version=${editingVersion}`}
+                                url={feature!.path}
                                 variant="primary"
                               >
                                 Configure
@@ -1496,71 +1380,6 @@ export default function CartDrawerIndex() {
           />
         </div>
       </div>
-
-      {/* New Version Creation Modal */}
-      <Modal
-        open={showNewVersionForm}
-        onClose={() => setShowNewVersionForm(false)}
-        title="Create New Version"
-        primaryAction={{
-          content: 'Create Version',
-          onAction: handleCreateVersion,
-          disabled: !newVersionKey || !newVersionName,
-        }}
-        secondaryActions={[
-          {
-            content: 'Cancel',
-            onAction: () => setShowNewVersionForm(false),
-          },
-        ]}
-      >
-        <Modal.Section>
-          <BlockStack gap="400">
-            <TextField
-              label="Version Key"
-              value={newVersionKey}
-              onChange={setNewVersionKey}
-              placeholder="e.g., v2, v3, experimental"
-              helpText="Unique identifier for this version (lowercase, no spaces)"
-              autoComplete="off"
-            />
-
-            <TextField
-              label="Version Name"
-              value={newVersionName}
-              onChange={setNewVersionName}
-              placeholder="e.g., Version 2 - Carousel Milestones"
-              autoComplete="off"
-            />
-
-            <TextField
-              label="Description (optional)"
-              value={newVersionDescription}
-              onChange={setNewVersionDescription}
-              placeholder="What's different in this version?"
-              multiline={2}
-              autoComplete="off"
-            />
-          </BlockStack>
-        </Modal.Section>
-      </Modal>
-
-      {/* Version Management Modal */}
-      <VersionManagementModal
-        open={showVersionModal}
-        onClose={() => setShowVersionModal(false)}
-        currentVersion={currentVersion}
-        onVersionSwitch={(versionKey) => {
-          // Validate versionKey before navigation to prevent version=undefined
-          if (!versionKey || versionKey === 'undefined') {
-            console.error('Invalid version key:', versionKey);
-            setShowVersionModal(false);
-            return;
-          }
-          setShowVersionModal(false);
-          navigate(`/app/cart-drawer?version=${versionKey}`);
-        }}
-      />
     </Page>
   );
 }

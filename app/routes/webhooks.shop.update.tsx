@@ -29,6 +29,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     await db.cartDrawerAnalytics.create({
       data: {
+        id: crypto.randomUUID(),
         shop,
         eventType: "shop_update",
         eventData: JSON.stringify(shopData),

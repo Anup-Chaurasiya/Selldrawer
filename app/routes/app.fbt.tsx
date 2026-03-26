@@ -63,8 +63,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (!fbtConfig) {
     fbtConfig = await prisma.frequentlyBoughtTogether.create({
       data: {
+        id: crypto.randomUUID(),
         shop,
         isActive: false,
+        updatedAt: new Date(),
       },
       include: {
         rules: {
@@ -205,7 +207,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (!fbtConfig) {
     fbtConfig = await prisma.frequentlyBoughtTogether.create({
-      data: { shop }
+      data: { 
+        id: crypto.randomUUID(),
+        shop,
+        updatedAt: new Date(),
+      }
     });
   }
 
@@ -262,11 +268,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Create the rule
     const rule = await prisma.fBTRule.create({
       data: {
+        id: crypto.randomUUID(),
         fbtId: fbtConfig.id,
         triggerType,
         triggerValue,
         triggerProductId,
         triggerTitle,
+        updatedAt: new Date(),
       }
     });
 
@@ -340,6 +348,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
             await prisma.fBTProduct.create({
               data: {
+                id: crypto.randomUUID(),
                 ruleId: rule.id,
                 shopifyProductId: productHandle,
                 shopifyVariantId: variant.id.replace('gid://shopify/ProductVariant/', ''),
@@ -349,6 +358,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 compareAtPrice: variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
                 imageUrl: image?.url || null,
                 position: i,
+                updatedAt: new Date(),
               }
             });
           }
@@ -476,6 +486,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
             await prisma.fBTProduct.create({
               data: {
+                id: crypto.randomUUID(),
                 ruleId: ruleId,
                 shopifyProductId: productHandle,
                 shopifyVariantId: variant.id.replace('gid://shopify/ProductVariant/', ''),
@@ -485,6 +496,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 compareAtPrice: variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
                 imageUrl: image?.url || null,
                 position: i,
+                updatedAt: new Date(),
               }
             });
           }
@@ -1186,14 +1198,9 @@ export default function FrequentlyBoughtTogether() {
                       <Banner tone="success">
                         <BlockStack gap="200">
                           <Text as="p" fontWeight="bold">
-                            🎉 FBT Discount Activated Successfully!
+                            🎉 Discount Activated Successfully!
                           </Text>
                           {'message' in actionData && <Text as="p">{String(actionData.message)}</Text>}
-                          {'discountId' in actionData && (
-                            <Text as="p" variant="bodySm" tone="subdued">
-                              Discount ID: {String(actionData.discountId)}
-                            </Text>
-                          )}
                           <Text as="p" variant="bodySm">
                             ✅ Discounts will now apply automatically at checkout for all FBT bundles!
                           </Text>
@@ -1206,25 +1213,25 @@ export default function FrequentlyBoughtTogether() {
                             ❌ Activation Failed
                           </Text>
                           {'error' in actionData && <Text as="p">{String(actionData.error)}</Text>}
+                          <Text as="p" variant="bodySm">
+                            Please activate automatic discounts from the home page.
+                          </Text>
                         </BlockStack>
                       </Banner>
                     )}
                   </>
                 )}
 
-                <InlineStack align="start" gap="200">
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      const formData = new FormData();
-                      formData.append("intent", "setup-discount");
-                      submit(formData, { method: "post" });
-                    }}
-                    loading={isSubmitting && submittingIntent === 'setup-discount'}
-                  >
-                    Activate FBT Discount
-                  </Button>
-                </InlineStack>
+                <Banner tone="info">
+                  <BlockStack gap="200">
+                    <Text as="p" fontWeight="bold">
+                      💡 Automatic Discounts
+                    </Text>
+                    <Text as="p">
+                      FBT bundle discounts are managed through the <strong>"Selldrawer Automatic Discounts"</strong> in your Shopify admin. If you haven't activated it yet, please go to the home page and click "Activate Automatic Discounts".
+                    </Text>
+                  </BlockStack>
+                </Banner>
 
                 <Banner>
                   <BlockStack gap="200">

@@ -4,13 +4,11 @@ import { cors } from "remix-utils/cors";
 import prisma from "../db.server";
 import { normalizeFeatureOrder } from "../utils/featureOrder";
 import { checkPlanAccess } from "../utils/planAccess.server";
-import { getCartDrawerVersionForCustomer, initializeDefaultVersion } from "../services/cartDrawerVersions.server";
-import { getOrGenerateCustomerId } from "../services/customerIdentifier.server";
 
 /**
  * Public API endpoint for cart drawer data
  * This is called from the theme extension to get configuration
- * URL: /api/cart-drawer?shop=example.myshopify.com&customerId=gid://shopify/Customer/123
+ * URL: /api/cart-drawer?shop=example.myshopify.com
  */
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Handle OPTIONS preflight requests immediately
@@ -28,7 +26,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
-  const customerId = url.searchParams.get("customerId"); // Customer ID for logged-in users
 
   if (!shop) {
     const response = json({ error: "Shop parameter is required" }, { status: 400 });
@@ -44,22 +41,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       return cors(request, response);
     }
 
-    // CRITICAL: Initialize default version to ensure it exists
-    await initializeDefaultVersion();
-
-    // Determine which version this customer/session should see
-    const userIdentifier = getOrGenerateCustomerId(customerId, request, shop);
-    console.log(`[Cart Drawer API] Version selection for identifier: ${userIdentifier}`);
-    const assignedVersion = await getCartDrawerVersionForCustomer(userIdentifier, shop);
-
-
-    // Get cart drawer configuration for this version
+    // Get cart drawer configuration
     let cartDrawer = await prisma.cartDrawer.findUnique({
       where: {
-        shop_version: {
-          shop,
-          version: assignedVersion
-        }
+        shop
       },
       include: {
         freeShippingBars: {
@@ -112,13 +97,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     // If config doesn't exist, create with defaults
     if (!cartDrawer) {
-      console.log(`[API] No config found for shop ${shop}, version ${assignedVersion}. Creating with defaults...`);
-
       cartDrawer = await prisma.cartDrawer.create({
         data: {
+          id: crypto.randomUUID(),
           shop,
-          version: assignedVersion,
           isActive: true,
+          updatedAt: new Date(),
         },
         include: {
           freeShippingBars: { where: { isActive: true } },
@@ -166,11 +150,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       const response = json({
         enabled: false,
         features: {},
-        _version: assignedVersion,
-        _versionMeta: {
-          assignedVersion,
-          configExists: false,
-        }
       });
       return cors(request, response);
     }
@@ -238,12 +217,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       featureOrder: featureOrder ?? [],
       shop, // Add shop domain for milestone upsell API calls
       features,
-      _version: assignedVersion,
-      _versionMeta: {
-        assignedVersion,
-        configExists: true,
-        loadedVersion: cartDrawer.version,
-      }
     }, {
       headers: {
         "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
@@ -254,7 +227,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     return cors(request, response);
   } catch (error) {
-    console.error("Error fetching cart drawer config:", error);
     const response = json({ error: "Internal server error" }, { status: 500 });
     return cors(request, response);
   }

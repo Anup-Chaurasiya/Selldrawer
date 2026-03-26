@@ -13,7 +13,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const editingVersion = url.searchParams.get("version") || "default";
 
   const cartDrawer = await prisma.cartDrawer.findUnique({
-    where: { shop_version: { shop, version: editingVersion } },
+    where: { shop },
     include: {
       freeShippingBars: { where: { isActive: true }, orderBy: { priority: 'desc' } },
       promotionalBanners: { 

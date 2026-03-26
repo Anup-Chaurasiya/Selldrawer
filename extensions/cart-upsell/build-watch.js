@@ -18,7 +18,6 @@ function getConfig() {
       appUrl: appUrlMatch ? appUrlMatch[1] : 'https://app.selldrawer.com'
     };
   } catch (error) {
-    console.warn('⚠️ Could not read config.js, using defaults');
     return {
       version: '1.0.0',
       appUrl: 'https://app.selldrawer.com'
@@ -42,7 +41,6 @@ function createVersionBannerPlugin(outfile, moduleName) {
               writeFileSync(outfile, banner + content);
             }
           } catch (error) {
-            console.error(`Error adding version banner for ${moduleName}:`, error);
           }
         }
       });
@@ -53,8 +51,6 @@ function createVersionBannerPlugin(outfile, moduleName) {
 async function watch() {
   const config = getConfig();
   const { version, appUrl } = config;
-  
-  console.log(`👀 Watching with VERSION: ${version}, APP_URL: ${appUrl}`);
   
   // Watch Cart Drawer
   const cartDrawerContext = await esbuild.context({
@@ -152,7 +148,6 @@ async function watch() {
 }
 
 watch().catch((error) => {
-  console.error('❌ Watch failed:', error);
   process.exit(1);
 });
 

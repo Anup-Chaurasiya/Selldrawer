@@ -16,12 +16,15 @@ type AdminApiContext = {
 export async function getFBTFunctionId(admin: AdminApiContext): Promise<string | null> {
   const query = `
     query {
-      shopifyFunctions(first: 25) {
+      shopifyFunctions(first: 50) {
         nodes {
           id
           apiType
           title
           appKey
+          app {
+            handle
+          }
         }
       }
     }
@@ -34,44 +37,29 @@ export async function getFBTFunctionId(admin: AdminApiContext): Promise<string |
 
     // Try to find FBT function by multiple criteria
     const fbtFunction = functions.find((fn: any) => {
-      // Check if it's a discount function (can be 'discount' or 'product_discounts')
-      if (fn.apiType !== "discount" && fn.apiType !== "product_discounts") {
-        return false;
-      }
-
-      const titleMatch = fn.title?.toLowerCase().includes("fbt") ||
-        fn.title?.toLowerCase().includes("frequently bought together") ||
-        fn.title?.toLowerCase().includes("discount");
-
+      // Check if it matches our app's function by handle/key
       const handleMatch = fn.appKey?.includes("fbt-discount") ||
         fn.appKey?.includes("discount-function");
 
-      return titleMatch || handleMatch;
+      return handleMatch;
     });
 
     if (fbtFunction) {
       return fbtFunction.id;
     }
 
-    // Fallback: Use ANY discount or product_discounts function
-    const anyDiscount = functions.find((fn: any) =>
-      fn.apiType === "discount" || fn.apiType === "product_discounts"
-    );
-    if (anyDiscount) {
-      console.log("⚠️ FBT function not found by name, using first discount function:", anyDiscount.title);
-      return anyDiscount.id;
+    // Fallback: Use ANY discount-related function from our app
+    const anyDiscountFunction = functions.find((fn: any) => {
+      const apiType = fn.apiType?.toLowerCase() || "";
+      return apiType.includes("discount") || apiType.includes("product");
+    });
+    
+    if (anyDiscountFunction) {
+      return anyDiscountFunction.id;
     }
 
-    console.error("❌ No discount functions found at all!");
-    console.error("Available functions:", functions.map((f: any) => ({
-      id: f.id,
-      title: f.title,
-      apiType: f.apiType,
-      appKey: f.appKey
-    })));
     return null;
   } catch (err) {
-    console.error("Error fetching Shopify Functions:", err);
     return null;
   }
 }
@@ -88,11 +76,10 @@ export async function createFBTFunctionDiscount(
     // Get the FBT Function ID
     const functionId = await getFBTFunctionId(admin);
     if (!functionId) {
-      console.error("createFBTFunctionDiscount: FBT Function not found. Please deploy the fbt-discount extension.");
       return null;
     }
 
-    const discountTitle = `FBT Bundle Discount`;
+    const discountTitle = `Selldrawer Automatic Discounts`;
 
     // Check if discount already exists
     const checkQuery = `
@@ -118,7 +105,6 @@ export async function createFBTFunctionDiscount(
     );
 
     if (existingDiscount) {
-      console.log("✅ FBT Bundle Discount already exists:", existingDiscount.automaticDiscount.discountId);
       return existingDiscount.automaticDiscount.discountId;
     }
 
@@ -144,13 +130,27 @@ export async function createFBTFunctionDiscount(
         functionId: functionId,
         startsAt: new Date().toISOString(),
         combinesWith: {
-          orderDiscounts: true,
-          productDiscounts: true,
-          shippingDiscounts: true
-        },
-        discountClasses: ["PRODUCT", "ORDER"]
+          orderDiscounts: false,
+          productDiscounts: false,
+          shippingDiscounts: false
+        }
       }
     };
+
+    // Add discountClass or discountClasses based on API type
+    // For 'discount' API type, we need discountClasses array
+    // For 'product_discount' API type, we don't need it
+    const apiType = await admin.graphql(`
+      query {
+        shopifyFunction(id: "${functionId}") {
+          apiType
+        }
+      }
+    `).then(r => r.json()).then(d => d?.data?.shopifyFunction?.apiType);
+
+    if (apiType === "discount") {
+      (variables.automaticAppDiscount as any).discountClasses = ["PRODUCT"];
+    }
 
     console.log("Creating FBT Function discount:", {
       shop,
@@ -177,7 +177,7 @@ export async function createFBTFunctionDiscount(
       return null;
     }
 
-    console.log("FBT Function discount created successfully:", discountId);
+    console.log("✅ Selldrawer Automatic Discounts created successfully:", discountId);
     return discountId;
   } catch (err) {
     console.error("Exception in createFBTFunctionDiscount:", err);

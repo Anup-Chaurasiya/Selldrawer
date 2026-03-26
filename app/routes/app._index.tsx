@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
-import { useLoaderData, useNavigate, useNavigation, useActionData, Form } from "@remix-run/react";
+import { useLoaderData, useNavigate, useNavigation, useActionData, Form, useSubmit } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -18,12 +18,13 @@ import {
   DataTable,
 } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
-import { CheckIcon } from "@shopify/polaris-icons";
+import { CheckIcon, AlertCircleIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { checkAppEmbedEnabled } from "../utils/appEmbed.server";
 import { requireBilling } from "../utils/billing.server";
 import { ensureStorefrontAccessToken } from "../utils/storefrontToken.server";
+import { createFBTFunctionDiscount, getFBTFunctionId } from "../utils/fbt-discount.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing, session, admin } = await authenticate.admin(request);
@@ -47,12 +48,28 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     await ensureStorefrontAccessToken(request);
   } catch (error) {
-    console.error("Error ensuring storefront access token:", error);
     // Don't block app loading if token creation fails
   }
 
   // Check if app embed is enabled
   const appEmbedEnabled = await checkAppEmbedEnabled(admin, session);
+
+  // Check discount function activation status
+  let appSettings = await prisma.appSettings.findUnique({
+    where: { shop }
+  });
+
+  if (!appSettings) {
+    appSettings = await prisma.appSettings.create({
+      data: { 
+        id: crypto.randomUUID(),
+        shop,
+        updatedAt: new Date()
+      }
+    });
+  }
+
+  const discountFunctionActivated = appSettings.discountFunctionActivated;
 
   // Analytics Data Fetching
   const now = new Date();
@@ -138,6 +155,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     currentSubscription,
     shop,
     appEmbedEnabled,
+    discountFunctionActivated,
     shopDomain: process.env.SHOPIFY_SHOP_DOMAIN || 'admin.shopify.com',
     apiKey: process.env.SHOPIFY_API_KEY || '',
     analytics: aggregatedData,
@@ -145,15 +163,87 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
+  const { session, admin } = await authenticate.admin(request);
+  const shop = session.shop;
+  
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  if (intent === "activate-discount") {
+    try {
+      // Check if function exists
+      const functionId = await getFBTFunctionId(admin);
+
+      if (!functionId) {
+        return json({
+          success: false,
+          error: "Discount function not found. The function was just deployed and may take a few minutes to become available. Please wait 2-3 minutes and try again, or check the server logs for available functions."
+        });
+      }
+
+      // Create the automatic discount
+      const discountId = await createFBTFunctionDiscount(admin, shop);
+
+      if (!discountId) {
+        return json({
+          success: false,
+          error: "Failed to create automatic discount. Check server logs for details."
+        });
+      }
+
+      // Update app settings
+      await prisma.appSettings.upsert({
+        where: { shop },
+        create: {
+          shop,
+          discountFunctionActivated: true,
+          discountFunctionId: functionId,
+          discountId: discountId
+        },
+        update: {
+          discountFunctionActivated: true,
+          discountFunctionId: functionId,
+          discountId: discountId
+        }
+      });
+
+      return json({
+        success: true,
+        message: "Discount function activated successfully!"
+      });
+    } catch (error) {
+      console.error("Error activating discount:", error);
+      return json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    }
+  }
+
   // Redirect to billing page for plan selection
   return redirect("/app/billing");
 };
 
 export default function Index() {
   const data = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
   const navigate = useNavigate();
+  const submit = useSubmit();
+  const navigation = useNavigation();
 
-  const { currentSubscription, appEmbedEnabled, shopDomain, apiKey, analytics } = data;
+  const { currentSubscription, appEmbedEnabled, discountFunctionActivated, shopDomain, apiKey, analytics } = data;
+
+  const isActivatingDiscount = navigation.state === "submitting" && navigation.formData?.get("intent") === "activate-discount";
+
+  const handleActivateDiscount = () => {
+    const formData = new FormData();
+    formData.append("intent", "activate-discount");
+    submit(formData, { method: "post" });
+  };
+
+  const openThemeEditor = () => {
+    window.open(`https://${shopDomain}/admin/themes/current/editor?context=apps&activateAppId=${apiKey}/cart-drawer-embed`, '_blank', 'noopener,noreferrer');
+  };
 
   // User has active subscription (loader redirects if not), show dashboard
   const rows = Object.values(analytics.products).map((product: any) => [
@@ -210,14 +300,61 @@ export default function Index() {
                         <Box paddingBlockStart="300">
                           <Button
                             variant="primary"
-                            url={`https://${shopDomain}/admin/themes/current/editor?context=apps&activateAppId=${apiKey}/cart-drawer-embed`}
-                            target="_blank"
+                            onClick={openThemeEditor}
                           >
                             Enable Selldrawer Bridge
                           </Button>
                         </Box>
                       </>
                     </BlockStack>
+                  </Banner>
+                )}
+
+                {/* Discount Function Activation Banner */}
+                {!discountFunctionActivated && (
+                  <Banner
+                    title="Activate Automatic Discounts"
+                    tone="info"
+                  >
+                    <BlockStack gap="300">
+                      <Text as="p" variant="bodyMd">
+                        Enable automatic discounts for FBT bundles, milestones, and gift rewards. This is a one-time setup that creates a single discount in your Shopify admin called <strong>"Selldrawer Automatic Discounts"</strong>.
+                      </Text>
+                      {actionData && !actionData.success && (
+                        <Banner tone="critical">
+                          <Text as="p" variant="bodyMd">
+                            {actionData.error}
+                          </Text>
+                        </Banner>
+                      )}
+                      {actionData && actionData.success && (
+                        <Banner tone="success">
+                          <Text as="p" variant="bodyMd">
+                            {actionData.message}
+                          </Text>
+                        </Banner>
+                      )}
+                      <Box>
+                        <Button
+                          variant="primary"
+                          onClick={handleActivateDiscount}
+                          loading={isActivatingDiscount}
+                        >
+                          Activate Automatic Discounts
+                        </Button>
+                      </Box>
+                    </BlockStack>
+                  </Banner>
+                )}
+
+                {discountFunctionActivated && (
+                  <Banner tone="success">
+                    <InlineStack gap="200" blockAlign="center">
+                      <Icon source={CheckIcon} tone="success" />
+                      <Text as="p" variant="bodyMd">
+                        Automatic discounts are active. Your FBT bundles, milestones, and gift rewards will automatically apply discounts at checkout.
+                      </Text>
+                    </InlineStack>
                   </Banner>
                 )}
 

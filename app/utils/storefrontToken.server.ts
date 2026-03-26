@@ -30,8 +30,6 @@ export async function createStorefrontAccessToken(
   `;
 
     try {
-        console.log(`[StorefrontToken] Creating token for shop: ${shop}`);
-
         const response = await admin.graphql(mutation, {
             variables: {
                 input: {
@@ -41,11 +39,9 @@ export async function createStorefrontAccessToken(
         });
 
         const data = await response.json();
-        console.log(`[StorefrontToken] GraphQL Response:`, JSON.stringify(data, null, 2));
 
         if (data.data?.storefrontAccessTokenCreate?.userErrors?.length > 0) {
             const errors = data.data.storefrontAccessTokenCreate.userErrors;
-            console.error(`[StorefrontToken] User errors:`, errors);
             throw new Error(
                 `Failed to create storefront access token: ${errors.map((e: any) => e.message).join(", ")}`
             );
@@ -55,18 +51,14 @@ export async function createStorefrontAccessToken(
             data.data?.storefrontAccessTokenCreate?.storefrontAccessToken?.accessToken;
 
         if (!accessToken) {
-            console.error(`[StorefrontToken] No access token in response. Full response:`, data);
             throw new Error("No access token returned from Shopify");
         }
-
-        console.log(`[StorefrontToken] Token created successfully: ${accessToken.substring(0, 10)}...`);
 
         // Save token to database
         await saveStorefrontAccessToken(shop, accessToken);
 
         return accessToken;
     } catch (error) {
-        console.error("[StorefrontToken] Error creating storefront access token:", error);
         throw error;
     }
 }
@@ -79,8 +71,6 @@ export async function saveStorefrontAccessToken(
     token: string
 ): Promise<void> {
     try {
-        console.log(`[StorefrontToken] Attempting to save token for shop: ${shop}`);
-
         // First check if session exists
         const existingSession = await db.session.findFirst({
             where: {
@@ -90,11 +80,8 @@ export async function saveStorefrontAccessToken(
         });
 
         if (!existingSession) {
-            console.error(`[StorefrontToken] ERROR: No offline session found for shop: ${shop}`);
             throw new Error(`No offline session found for shop: ${shop}. Cannot save token.`);
         }
-
-        console.log(`[StorefrontToken] Found session ID: ${existingSession.id}`);
 
         // Update the offline session with the storefront token
         const result = await db.session.updateMany({
@@ -106,8 +93,6 @@ export async function saveStorefrontAccessToken(
                 storefrontAccessToken: token,
             },
         });
-
-        console.log(`[StorefrontToken] Update result: ${result.count} record(s) updated`);
 
         if (result.count === 0) {
             throw new Error(`Failed to update session with token for shop: ${shop}`);
@@ -127,10 +112,7 @@ export async function saveStorefrontAccessToken(
         if (!verifySession?.storefrontAccessToken) {
             throw new Error(`Token verification failed for shop: ${shop}`);
         }
-
-        console.log(`[StorefrontToken] ✅ Successfully saved and verified token for shop: ${shop}`);
     } catch (error) {
-        console.error("[StorefrontToken] Error saving storefront access token:", error);
         throw error;
     }
 }
@@ -161,14 +143,12 @@ export async function getStorefrontAccessToken(
 
         // If no token exists and admin is provided, create one
         if (admin) {
-            console.log(`No storefront token found for ${shop}, creating new one...`);
             return await createStorefrontAccessToken(admin, shop);
         }
 
         // No token and can't create one
         return null;
     } catch (error) {
-        console.error("Error getting storefront access token:", error);
         throw error;
     }
 }

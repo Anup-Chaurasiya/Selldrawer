@@ -52,7 +52,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const { events, shop } = body;
 
     if (!shop || !events || !Array.isArray(events)) {
-      console.warn("[Analytics API] Invalid payload:", { shop, events });
       return new Response(JSON.stringify({ error: "Invalid payload" }), {
         status: 400,
         headers: {
@@ -65,7 +64,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Validate and prepare events
     const validEvents = events.map((event: any) => ({
       shop,
-      version: event.version || 'default',  // Track version (backward compatible)
       eventType: event.eventType,
       component: event.component,
       productId: event.productId ? String(event.productId) : null,
@@ -91,7 +89,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
   } catch (error) {
-    console.error("[Analytics API] Error:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: {

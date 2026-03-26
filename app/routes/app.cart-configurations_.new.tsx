@@ -102,6 +102,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Create the configuration
     const config = await (prisma as any).cartConfiguration.create({
       data: {
+        id: crypto.randomUUID(),
         shop: session.shop,
         name,
         description: description || null,
@@ -112,6 +113,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         actionValue,
         actionMessage,
         targetType,
+        updatedAt: new Date(),
       },
     });
 

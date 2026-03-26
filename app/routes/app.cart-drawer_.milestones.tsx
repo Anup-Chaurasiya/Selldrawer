@@ -39,7 +39,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Get cart drawer configuration
   let cartDrawer = await prisma.cartDrawer.findUnique({
-    where: { shop_version: { shop, version: editingVersion } },
+    where: { shop },
     include: {
       milestones: {
         include: {
@@ -55,7 +55,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (!cartDrawer) {
     cartDrawer = await prisma.cartDrawer.create({
-      data: { shop, version: editingVersion },
+      data: { 
+        id: crypto.randomUUID(),
+        shop, 
+        version: editingVersion,
+        updatedAt: new Date(),
+      },
       include: {
         milestones: {
           include: {
@@ -187,12 +192,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   // Get or create cart drawer
   let cartDrawer = await prisma.cartDrawer.findUnique({
-    where: { shop_version: { shop, version: editingVersion } }
+    where: { shop }
   });
 
   if (!cartDrawer) {
     cartDrawer = await prisma.cartDrawer.create({
-      data: { shop, version: editingVersion }
+      data: { 
+        id: crypto.randomUUID(),
+        shop, 
+        version: editingVersion 
+      }
     });
   }
 
@@ -277,6 +286,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
       const milestone = await prisma.cartMilestone.create({
         data: {
+          id: crypto.randomUUID(),
           cartDrawerId: cartDrawer.id,
           shop,
           title,
@@ -301,6 +311,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           upsellHeaderText: formData.get("upsellHeaderText") as string || "Unlock Your Reward",
           viewAllLinkText: formData.get("viewAllLinkText") as string || "View All",
           unlockButtonText: formData.get("unlockButtonText") as string || "Unlock Reward",
+          updatedAt: new Date(),
         } as any
       });
 
@@ -310,6 +321,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           const product = giftProducts[i];
           await prisma.cartMilestoneGiftProduct.create({
             data: {
+              id: crypto.randomUUID(),
               milestoneId: milestone.id,
               shopifyProductId: product.shopifyProductId,
               shopifyVariantId: product.shopifyVariantId || null,
@@ -319,6 +331,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               imageUrl: product.imageUrl || null,
               handle: product.handle,
               position: i,
+              updatedAt: new Date(),
             }
           });
         }
@@ -439,6 +452,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const product = giftProducts[i];
         await prisma.cartMilestoneGiftProduct.create({
           data: {
+            id: crypto.randomUUID(),
             milestoneId,
             shopifyProductId: product.shopifyProductId,
             shopifyVariantId: product.shopifyVariantId || null,
@@ -448,6 +462,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             imageUrl: product.imageUrl || null,
             handle: product.handle,
             position: i,
+            updatedAt: new Date(),
           }
         });
       }

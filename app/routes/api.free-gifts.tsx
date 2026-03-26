@@ -2,8 +2,6 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { cors } from "remix-utils/cors";
 import prisma from "../db.server";
-import { getCartDrawerVersionForCustomer } from "../services/cartDrawerVersions.server";
-import { getOrGenerateCustomerId } from "../services/customerIdentifier.server";
 
 export async function action({ request }: ActionFunctionArgs) {
   if (request.method !== "POST") {
@@ -13,9 +11,6 @@ export async function action({ request }: ActionFunctionArgs) {
   try {
     const url = new URL(request.url);
     const shop = url.searchParams.get("shop");
-    // Capture customerId if passed in URL or body (frontend update might be needed for body)
-    // For now we trust getOrGenerateCustomerId to handle the rest from request
-    const customerId = url.searchParams.get("customerId");
 
     if (!shop) {
       const response = json({ error: "Shop parameter is required" }, { status: 400 });
@@ -26,11 +21,8 @@ export async function action({ request }: ActionFunctionArgs) {
     const cartTotal = parseFloat(body.cartTotal || "0");
     const cartItems = body.cartItems || [];
 
-    const userIdentifier = getOrGenerateCustomerId(customerId, request, shop);
-
-    return await getFreeGiftsResponse(request, shop, cartTotal, cartItems, userIdentifier);
+    return await getFreeGiftsResponse(request, shop, cartTotal, cartItems);
   } catch (error) {
-    console.error("Error in free-gifts action:", error);
     const response = json({ error: "Failed to fetch free gifts" }, { status: 500 });
     return cors(request, response);
   }
@@ -39,7 +31,6 @@ export async function action({ request }: ActionFunctionArgs) {
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
-  const customerId = url.searchParams.get("customerId"); // Customer ID for logged-in users
   const cartTotal = parseFloat(url.searchParams.get("cartTotal") || "0");
   const cartItemsJson = url.searchParams.get("cartItems");
 
@@ -53,13 +44,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
     try {
       cartItems = JSON.parse(cartItemsJson);
     } catch (e) {
-      console.error("Failed to parse cart items:", e);
     }
   }
 
-  const userIdentifier = getOrGenerateCustomerId(customerId, request, shop);
-
-  return await getFreeGiftsResponse(request, shop, cartTotal, cartItems, userIdentifier);
+  return await getFreeGiftsResponse(request, shop, cartTotal, cartItems);
 }
 
 // Handle CORS preflight requests
@@ -74,20 +62,11 @@ export async function options() {
   });
 }
 
-async function getFreeGiftsResponse(request: Request, shop: string, cartTotal: number, cartItems: any[], userIdentifier?: string) {
+async function getFreeGiftsResponse(request: Request, shop: string, cartTotal: number, cartItems: any[]) {
   try {
-    // Determine which version this customer should see
-    const finalUserIdentifier = userIdentifier || getOrGenerateCustomerId(null, request, shop);
-    const assignedVersion = await getCartDrawerVersionForCustomer(finalUserIdentifier, shop);
-
     // Get cart drawer configuration
     const cartDrawer = await prisma.cartDrawer.findUnique({
-      where: {
-        shop_version: {
-          shop,
-          version: assignedVersion
-        }
-      },
+      where: { shop },
       select: {
         freeGiftsEnabled: true,
         milestonesEnabled: true,
@@ -144,17 +123,14 @@ async function getFreeGiftsResponse(request: Request, shop: string, cartTotal: n
 
           // If free gift has higher threshold, let it take priority
           if (highestFreeGiftThreshold > milestoneThreshold) {
-            console.log('Free Gifts: Free gift has higher threshold, taking priority over milestone');
             // Continue to show free gifts
           } else {
             // Milestone has higher or equal threshold, it takes priority
-            console.log('Free Gifts: Milestone has higher threshold, skipping free gifts');
             const response = json({ freeGifts: [] });
             return cors(request, response);
           }
         } else {
           // No applicable free gifts, milestone takes priority
-          console.log('Free Gifts: Skipping because milestone with gift reward is unlocked');
           const response = json({ freeGifts: [] });
           return cors(request, response);
         }
@@ -200,9 +176,6 @@ async function getFreeGiftsResponse(request: Request, shop: string, cartTotal: n
         case "collections":
           // Check if cart has required quantity from specific collections
           if (freeGift.targets.length === 0) return false;
-          const targetCollectionIds = freeGift.targets
-            .filter(t => t.type === "collection")
-            .map((t) => t.shopifyId);
 
           // For collections: Check if cart has at least triggerValue items
           // Note: We can't verify exact collection membership without additional API calls
@@ -246,7 +219,6 @@ async function getFreeGiftsResponse(request: Request, shop: string, cartTotal: n
     });
     return cors(request, response);
   } catch (error) {
-    console.error("Error fetching free gifts:", error);
     const response = json({ error: "Failed to fetch free gifts" }, { status: 500 });
     return cors(request, response);
   }

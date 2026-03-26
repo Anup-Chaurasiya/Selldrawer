@@ -27,7 +27,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const editingVersion = url.searchParams.get("version") || "default";
 
   const cartDrawer = await prisma.cartDrawer.findUnique({
-    where: { shop_version: { shop, version: editingVersion } },
+    where: { shop },
     include: {
       cartTotals: { where: { isActive: true } },
     },
@@ -53,7 +53,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Check if data exists before enabling
     if (enabled) {
       const cartDrawer = await prisma.cartDrawer.findUnique({
-        where: { shop_version: { shop, version: editingVersion } },
+        where: { shop },
         include: {
           cartTotals: { where: { isActive: true } },
         },
@@ -68,7 +68,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     await prisma.cartDrawer.update({
-      where: { shop_version: { shop, version: editingVersion } },
+      where: { shop },
       data: { cartTotalsEnabled: enabled },
     });
 
@@ -77,7 +77,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "save") {
     const cartDrawer = await prisma.cartDrawer.findUnique({
-      where: { shop_version: { shop, version: editingVersion } },
+      where: { shop },
       include: { cartTotals: { where: { isActive: true } } },
     });
 
@@ -113,17 +113,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     } else {
       await prisma.cartTotals.create({
         data: {
+          id: crypto.randomUUID(),
           ...data,
           shop,
           cartDrawerId: cartDrawer.id,
           isActive: true,
+          updatedAt: new Date(),
         },
       });
     }
 
     // Auto-enable the feature after saving configuration
     await prisma.cartDrawer.update({
-      where: { shop_version: { shop, version: editingVersion } },
+      where: { shop },
       data: { cartTotalsEnabled: true },
     });
 

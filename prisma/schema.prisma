@@ -7,6 +7,631 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model AnalyticsEvent {
+  id        String   @id
+  shop      String
+  eventType String
+  component String
+  productId String?
+  variantId String?
+  value     Decimal?
+  currency  String?  @default("USD")
+  url       String?
+  sessionId String?
+  orderId   String?
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  @@index([shop, component, eventType])
+  @@index([shop, createdAt])
+  @@index([shop, productId])
+}
+
+model AppSettings {
+  id                        String   @id
+  shop                      String   @unique
+  discountFunctionActivated Boolean  @default(false)
+  discountFunctionId        String?
+  discountId                String?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime
+
+  @@index([shop])
+}
+
+model AppSubscription {
+  id                     String    @id
+  shop                   String    @unique
+  planId                 String
+  planName               String
+  status                 String    @default("ACTIVE")
+  amount                 Decimal
+  currencyCode           String
+  interval               String
+  trialDays              Int?
+  trialEndsAt            DateTime?
+  billingOn              DateTime?
+  shopifyChargeId        String?
+  shopifyConfirmationUrl String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime
+  cancelledAt            DateTime?
+
+  @@index([shop])
+  @@index([status])
+}
+
+model CartConfiguration {
+  id                      String                    @id
+  shop                    String
+  name                    String
+  description             String?
+  isActive                Boolean                   @default(true)
+  conditionType           String
+  conditionOperator       String
+  conditionValue          Decimal
+  actionType              String
+  actionValue             Decimal?
+  actionMessage           String
+  targetType              String
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime
+  CartConfigurationTarget CartConfigurationTarget[]
+
+  @@index([shop, isActive])
+}
+
+model CartConfigurationTarget {
+  id                String            @id
+  configurationId   String
+  targetType        String
+  shopifyId         String
+  title             String?
+  CartConfiguration CartConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+
+  @@index([configurationId])
+  @@index([targetType, shopifyId])
+}
+
+model CartDrawer {
+  id                             String                    @id
+  shop                           String                    @unique
+  isActive                       Boolean                   @default(true)
+  theme                          String                    @default("light")
+  primaryColor                   String                    @default("#4F46E5")
+  freeShippingProgressBarEnabled Boolean                   @default(true)
+  promotionalBannerEnabled       Boolean                   @default(true)
+  productRecommendationsEnabled  Boolean                   @default(true)
+  couponCodeFieldEnabled         Boolean                   @default(false)
+  savingsDisplayEnabled          Boolean                   @default(true)
+  freeShippingMessageEnabled     Boolean                   @default(true)
+  cartTotalsEnabled              Boolean                   @default(true)
+  milestonesEnabled              Boolean                   @default(false)
+  milestonesProgressBarColor     String                    @default("#3b82f6")
+  milestonesAllUnlockedMessage   String                    @default("🎉 Congratulations! All rewards unlocked!")
+  freeGiftsEnabled               Boolean                   @default(false)
+  createdAt                      DateTime                  @default(now())
+  updatedAt                      DateTime
+  featureOrder                   String[]                  @default([])
+  itemOrderingEnabled            Boolean                   @default(false)
+  milestones                     CartMilestone[]           @relation("milestones")
+  cartTotals                     CartTotals[]              @relation("cartTotals")
+  freeGifts                      FreeGift[]                @relation("freeGifts")
+  freeShippingMessages           FreeShippingMessage[]     @relation("freeShippingMessages")
+  freeShippingBars               FreeShippingProgressBar[] @relation("freeShippingBars")
+  productRecommendations         ProductRecommendation[]   @relation("productRecommendations")
+  promotionalBanners             PromotionalBanner[]       @relation("promotionalBanners")
+  savingsDisplays                SavingsDisplay[]          @relation("savingsDisplays")
+
+  @@index([shop])
+}
+
+model CartDrawerAnalytics {
+  id         String   @id
+  shop       String
+  eventType  String
+  eventData  String?
+  cartValue  Decimal?
+  itemCount  Int?
+  sessionId  String?
+  customerId String?
+  createdAt  DateTime @default(now())
+
+  @@index([eventType])
+  @@index([shop, createdAt])
+}
+
+model CartMilestone {
+  id                       String                     @id
+  cartDrawerId             String
+  shop                     String
+  isActive                 Boolean                    @default(true)
+  title                    String
+  description              String?
+  targetAmount             Decimal
+  currency                 String                     @default("INR")
+  rewardType               String
+  rewardValue              Decimal?
+  discountCode             String?
+  shopifyDiscountId        String?
+  targetType               String                     @default("store_wide")
+  priority                 Int                        @default(0)
+  icon                     String?
+  unlockedMessage          String?
+  inProgressMessage        String?
+  lockedMessage            String?
+  iconColor                String                     @default("#3b82f6")
+  titleColor               String                     @default("#1e40af")
+  unlockButtonColor        String                     @default("#3b82f6")
+  showProgressBar          Boolean                    @default(true)
+  eligibleCollectionHandle String?
+  eligibleTag              String?
+  eligibleProductIds       String[]                   @default([])
+  eligibilitySource        String?                    @default("none")
+  upsellHeaderText         String?                    @default("Unlock Your Reward")
+  viewAllLinkText          String?                    @default("View All")
+  unlockButtonText         String?                    @default("Unlock Reward")
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime
+  cartDrawer               CartDrawer                 @relation("milestones", fields: [cartDrawerId], references: [id], onDelete: Cascade)
+  giftProducts             CartMilestoneGiftProduct[] @relation("giftProducts")
+  targets                  CartMilestoneTarget[]      @relation("targets")
+
+  @@index([cartDrawerId])
+  @@index([priority])
+  @@index([shop, isActive])
+}
+
+model CartMilestoneGiftProduct {
+  id               String        @id
+  milestoneId      String
+  shopifyProductId String
+  shopifyVariantId String?
+  title            String
+  price            Decimal
+  compareAtPrice   Decimal?
+  imageUrl         String?
+  handle           String
+  position         Int           @default(0)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime
+  cartMilestone    CartMilestone @relation("giftProducts", fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@index([milestoneId])
+  @@index([position])
+}
+
+model CartMilestoneTarget {
+  id            String        @id
+  milestoneId   String
+  targetType    String
+  shopifyId     String
+  title         String?
+  cartMilestone CartMilestone @relation("targets", fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@index([milestoneId])
+  @@index([targetType, shopifyId])
+}
+
+model CartTotals {
+  id                 String     @id
+  cartDrawerId       String
+  shop               String
+  isActive           Boolean    @default(true)
+  showOriginalPrice  Boolean    @default(true)
+  showItemDiscounts  Boolean    @default(true)
+  showSubtotal       Boolean    @default(true)
+  showCouponDiscount Boolean    @default(true)
+  showTaxNotice      Boolean    @default(true)
+  subtotalLabel      String     @default("Subtotal")
+  totalLabel         String     @default("Total")
+  taxNoticeText      String     @default("Taxes and shipping calculated at checkout")
+  originalPriceLabel String     @default("Original Price")
+  itemDiscountsLabel String     @default("Item Discounts")
+  borderColor        String     @default("#e5e7eb")
+  backgroundColor    String     @default("#ffffff")
+  textColor          String     @default("#374151")
+  totalTextColor     String     @default("#111827")
+  discountColor      String     @default("#f59e0b")
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime
+  cartDrawer         CartDrawer @relation("cartTotals", fields: [cartDrawerId], references: [id], onDelete: Cascade)
+
+  @@index([cartDrawerId])
+  @@index([shop, isActive])
+}
+
+model CouponCodeField {
+  id                      String   @id
+  shop                    String   @unique
+  isActive                Boolean  @default(false)
+  placeholder             String   @default("Enter coupon code")
+  buttonText              String   @default("Apply")
+  position                String   @default("above_checkout")
+  successMessage          String   @default("Coupon applied successfully!")
+  errorMessage            String   @default("Invalid coupon code")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime
+  autoApplyStrategy       String   @default("best_value")
+  enableAutoApply         Boolean  @default(false)
+  showAllOffers           Boolean  @default(false)
+  showAllOffersButtonText String   @default("Show all offers")
+  backgroundColor         String   @default("#d1fae5")
+  textColor               String   @default("#065f46")
+  couponCodeColor         String   @default("")
+  borderColor             String   @default("#059669")
+  appliedDiscountText     String   @default("")
+
+  @@index([shop])
+}
+
+model FBTProduct {
+  id               String   @id
+  ruleId           String
+  shopifyProductId String
+  shopifyVariantId String?
+  title            String
+  price            Decimal
+  compareAtPrice   Decimal?
+  imageUrl         String?
+  handle           String
+  position         Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime
+  fbtRule          FBTRule  @relation("products", fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([position])
+  @@index([ruleId])
+}
+
+model FBTRule {
+  id                       String                   @id
+  fbtId                    String
+  triggerType              String
+  triggerValue             String
+  triggerProductId         String?
+  triggerTitle             String?
+  discountType             String?
+  discountValue            Decimal?
+  discountCode             String?
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime
+  products                 FBTProduct[]             @relation("products")
+  frequentlyBoughtTogether FrequentlyBoughtTogether @relation(fields: [fbtId], references: [id], onDelete: Cascade)
+
+  @@index([fbtId])
+  @@index([triggerProductId])
+}
+
+model FreeGift {
+  id                String            @id
+  shop              String
+  cartDrawerId      String
+  name              String
+  isActive          Boolean           @default(true)
+  triggerType       String            @default("spend")
+  triggerValue      Decimal           @default(0)
+  customerLimit     Int               @default(1)
+  priority          Int               @default(0)
+  shopifyDiscountId String?
+  discountCode      String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime
+  cartDrawer        CartDrawer        @relation("freeGifts", fields: [cartDrawerId], references: [id], onDelete: Cascade)
+  giftProducts      FreeGiftProduct[] @relation("giftProducts")
+  targets           FreeGiftTarget[]  @relation("targets")
+
+  @@index([cartDrawerId])
+  @@index([shop])
+}
+
+model FreeGiftProduct {
+  id               String   @id
+  freeGiftId       String
+  shopifyProductId String
+  shopifyVariantId String?
+  title            String
+  price            Decimal
+  compareAtPrice   Decimal?
+  imageUrl         String?
+  handle           String
+  position         Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime
+  freeGift         FreeGift @relation("giftProducts", fields: [freeGiftId], references: [id], onDelete: Cascade)
+
+  @@index([freeGiftId])
+}
+
+model FreeGiftTarget {
+  id         String   @id
+  freeGiftId String
+  shopifyId  String
+  type       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+  freeGift   FreeGift @relation("targets", fields: [freeGiftId], references: [id], onDelete: Cascade)
+
+  @@index([freeGiftId])
+}
+
+model FreeShippingMessage {
+  id                     String     @id
+  cartDrawerId           String
+  shop                   String
+  isActive               Boolean    @default(true)
+  thresholdAmount        Decimal
+  currency               String     @default("INR")
+  beforeThresholdMessage String     @default("Free shipping on orders over {threshold}")
+  afterThresholdMessage  String     @default("Add {remaining} more for FREE shipping")
+  achievedMessage        String     @default("Free shipping applied!")
+  backgroundColor        String     @default("#FEF3C7")
+  textColor              String     @default("#92400E")
+  borderColor            String     @default("#92400E")
+  icon                   String     @default("🚚")
+  iconColor              String     @default("#F59E0B")
+  position               String     @default("above_checkout")
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime
+  cartDrawer             CartDrawer @relation("freeShippingMessages", fields: [cartDrawerId], references: [id], onDelete: Cascade)
+
+  @@index([cartDrawerId])
+  @@index([shop, isActive])
+}
+
+model FreeShippingProgressBar {
+  id                     String     @id
+  cartDrawerId           String
+  shop                   String
+  isActive               Boolean    @default(true)
+  priority               Int        @default(0)
+  thresholdAmount        Decimal?
+  currency               String     @default("INR")
+  beforeThresholdMessage String     @default("Add {remaining} for FREE shipping")
+  afterThresholdMessage  String     @default("You've unlocked FREE shipping!")
+  progressBarColor       String     @default("#FF6B35")
+  backgroundColor        String     @default("#F3F4F6")
+  borderColor            String     @default("#e2e8f0")
+  showPercentage         Boolean    @default(true)
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime
+  thresholdMode          String     @default("amount")
+  thresholdCount         Int?
+  cartDrawer             CartDrawer @relation("freeShippingBars", fields: [cartDrawerId], references: [id], onDelete: Cascade)
+
+  @@index([cartDrawerId])
+  @@index([shop, isActive])
+}
+
+model FrequentlyBoughtTogether {
+  id                      String    @id
+  shop                    String    @unique
+  isActive                Boolean   @default(false)
+  title                   String    @default("Frequently Bought Together")
+  recommendationType      String    @default("manual")
+  algorithm               String    @default("related")
+  useAI                   Boolean   @default(false)
+  useSmartVariantMatching Boolean   @default(false)
+  showOfferIfInCart       Boolean   @default(false)
+  maxUpsellsShown         Int       @default(4)
+  showProductReviews      Boolean   @default(false)
+  layout                  String    @default("horizontal")
+  templateType            String    @default("classic")
+  buttonText              String    @default("Add selected items")
+  buttonColor             String    @default("#000000")
+  buttonTextColor         String    @default("#FFFFFF")
+  showTotalPrice          Boolean   @default(true)
+  showIndividualPrices    Boolean   @default(true)
+  showCheckboxes          Boolean   @default(true)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime
+  FBTRule                 FBTRule[]
+
+  @@index([shop])
+}
+
+model ProductRecommendation {
+  id                        String                      @id
+  cartDrawerId              String
+  shop                      String
+  isActive                  Boolean                     @default(true)
+  priority                  Int                         @default(0)
+  title                     String                      @default("You may also like")
+  maxProducts               Int                         @default(4)
+  layout                    String                      @default("grid")
+  recommendationType        String                      @default("manual")
+  showDiscount              Boolean                     @default(true)
+  showDiscountBadge         Boolean                     @default(true)
+  showAddButton             Boolean                     @default(true)
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime
+  cartDrawer                CartDrawer                  @relation("productRecommendations", fields: [cartDrawerId], references: [id], onDelete: Cascade)
+  rules                     ProductRecommendationRule[] @relation("rules")
+  products                  RecommendedProduct[]        @relation("products")
+
+  @@index([cartDrawerId])
+  @@index([shop, isActive])
+}
+
+model ProductRecommendationRule {
+  id                    String                @id
+  recommendationId      String
+  triggerType           String
+  triggerValue          String
+  recommendProducts     String[]
+  productRecommendation ProductRecommendation @relation("rules", fields: [recommendationId], references: [id], onDelete: Cascade)
+
+  @@index([recommendationId])
+}
+
+model PromotionalBanner {
+  id                                String                             @id
+  cartDrawerId                      String
+  shop                              String
+  isActive                          Boolean                            @default(true)
+  priority                          Int                                @default(0)
+  title                             String
+  subtitle                          String?
+  backgroundColor                   String                             @default("#FF6B35")
+  textColor                         String                             @default("#FFFFFF")
+  titleColor                        String                             @default("#111827")
+  descriptionColor                  String                             @default("#6b7280")
+  ctaTextColor                      String                             @default("#374151")
+  ctaBackgroundColor                String                             @default("#f3f4f6")
+  borderColor                       String                             @default("#e5e7eb")
+  startDate                         DateTime?
+  endDate                           DateTime?
+  minCartValue                      Decimal?
+  maxCartValue                      Decimal?
+  createdAt                         DateTime                           @default(now())
+  updatedAt                         DateTime
+  bannerType                        String                             @default("image")
+  ctaButtonText                     String?
+  ctaEnabled                        Boolean                            @default(false)
+  ctaProductHandle                  String?
+  ctaQuantity                       Int                                @default(1)
+  ctaType                           String?
+  ctaUrl                            String?
+  ctaVariantId                      String?
+  displayType                       String                             @default("text")
+  imageUrls                         String[]
+  cartDrawer                        CartDrawer                         @relation("promotionalBanners", fields: [cartDrawerId], references: [id], onDelete: Cascade)
+  carouselSettings                  PromotionalBannerCarouselSettings? @relation("carouselSettings")
+  conditions                        PromotionalBannerCondition[]       @relation("conditions")
+  images                            PromotionalBannerImage[]           @relation("images")
+
+  @@index([cartDrawerId])
+  @@index([shop, isActive])
+  @@index([startDate, endDate])
+}
+
+model PromotionalBannerBlock {
+  id                                     String                                  @id
+  shop                                   String
+  configId                               String                                  @default("default")
+  name                                   String                                  @default("Default Banner")
+  isActive                               Boolean                                 @default(true)
+  title                                  String                                  @default("Promotional Banner Block")
+  createdAt                              DateTime                                @default(now())
+  updatedAt                              DateTime
+  carouselSettings                       PromotionalBannerBlockCarouselSettings?
+  images                                 PromotionalBannerBlockImage[]
+
+  @@unique([shop, configId])
+  @@index([shop, isActive])
+}
+
+model PromotionalBannerBlockCarouselSettings {
+  id                     String                 @id
+  blockId                String                 @unique
+  autoRotate             Boolean                @default(true)
+  rotationSpeed          Int                    @default(5000)
+  showDots               Boolean                @default(true)
+  showArrows             Boolean                @default(true)
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime
+  promotionalBannerBlock PromotionalBannerBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+}
+
+model PromotionalBannerBlockImage {
+  id                     String                 @id
+  blockId                String
+  imageUrl               String
+  altText                String?
+  order                  Int                    @default(0)
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime
+  ctaText                String?
+  ctaUrl                 String?
+  description            String?
+  title                  String?
+  videoType              String?
+  videoUrl               String?
+  promotionalBannerBlock PromotionalBannerBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+  @@index([blockId])
+}
+
+model PromotionalBannerCarouselSettings {
+  id                String            @id
+  bannerId          String            @unique
+  autoRotate        Boolean           @default(true)
+  rotationSpeed     Int               @default(5000)
+  showDots          Boolean           @default(true)
+  showArrows        Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime
+  promotionalBanner PromotionalBanner @relation("carouselSettings", fields: [bannerId], references: [id], onDelete: Cascade)
+}
+
+model PromotionalBannerCondition {
+  id                String            @id
+  bannerId          String
+  conditionType     String
+  conditionValue    String
+  operator          String            @default("contains")
+  promotionalBanner PromotionalBanner @relation("conditions", fields: [bannerId], references: [id], onDelete: Cascade)
+
+  @@index([bannerId])
+}
+
+model PromotionalBannerImage {
+  id                String            @id
+  bannerId          String
+  imageUrl          String
+  altText           String?
+  order             Int               @default(0)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime
+  ctaText           String?
+  ctaUrl            String?
+  description       String?
+  title             String?
+  videoType         String?
+  videoUrl          String?
+  promotionalBanner PromotionalBanner @relation("images", fields: [bannerId], references: [id], onDelete: Cascade)
+
+  @@index([bannerId])
+}
+
+model RecommendedProduct {
+  id                    String                @id
+  recommendationId      String
+  shopifyProductId      String
+  title                 String
+  price                 Decimal
+  compareAtPrice        Decimal?
+  imageUrl              String?
+  position              Int                   @default(0)
+  shopifyVariantId      String?
+  productRecommendation ProductRecommendation @relation("products", fields: [recommendationId], references: [id], onDelete: Cascade)
+
+  @@index([position])
+  @@index([recommendationId])
+}
+
+model SavingsDisplay {
+  id                      String     @id
+  cartDrawerId            String
+  shop                    String
+  isActive                Boolean    @default(true)
+  message                 String     @default("{amount} Saved so far!")
+  position                String     @default("above_total")
+  backgroundColor         String     @default("#10B981")
+  textColor               String     @default("#FFFFFF")
+  borderColor             String     @default("#FFFFFF")
+  highlightColor          String     @default("#FFFFFF")
+  includeProductDiscounts Boolean    @default(true)
+  includeCartDiscounts    Boolean    @default(true)
+  includeFreeShipping     Boolean    @default(false)
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime
+  cartDrawer              CartDrawer @relation("savingsDisplays", fields: [cartDrawerId], references: [id], onDelete: Cascade)
+
+  @@index([cartDrawerId])
+  @@index([shop, isActive])
+}
+
 model Session {
   id                    String    @id
   shop                  String
@@ -25,657 +650,3 @@ model Session {
   collaborator          Boolean?  @default(false)
   emailVerified         Boolean?  @default(false)
 }
-
-model CartConfiguration {
-  id                String                    @id @default(cuid())
-  shop              String
-  name              String
-  description       String?
-  isActive          Boolean                   @default(true)
-  conditionType     String
-  conditionOperator String
-  conditionValue    Decimal
-  actionType        String
-  actionValue       Decimal?
-  actionMessage     String
-  targetType        String
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
-  targets           CartConfigurationTarget[]
-
-  @@index([shop, isActive])
-}
-
-model CartConfigurationTarget {
-  id              String            @id @default(cuid())
-  configurationId String
-  targetType      String
-  shopifyId       String
-  title           String?
-  configuration   CartConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
-
-  @@index([configurationId])
-  @@index([targetType, shopifyId])
-}
-
-model CartDrawer {
-  id                             String                    @id @default(cuid())
-  shop                           String
-  version                        String                    @default("default")
-  isActive                       Boolean                   @default(true)
-  theme                          String                    @default("light")
-  primaryColor                   String                    @default("#4F46E5")
-  freeShippingProgressBarEnabled Boolean                   @default(true)
-  promotionalBannerEnabled       Boolean                   @default(true)
-  productRecommendationsEnabled  Boolean                   @default(true)
-  couponCodeFieldEnabled         Boolean                   @default(false)
-  savingsDisplayEnabled          Boolean                   @default(true)
-  freeShippingMessageEnabled     Boolean                   @default(true)
-  cartTotalsEnabled              Boolean                   @default(true)
-  milestonesEnabled              Boolean                   @default(false)
-  milestonesProgressBarColor     String                    @default("#3b82f6")
-  milestonesAllUnlockedMessage   String                    @default("🎉 Congratulations! All rewards unlocked!")
-  freeGiftsEnabled               Boolean                   @default(false)
-  createdAt                      DateTime                  @default(now())
-  updatedAt                      DateTime                  @updatedAt
-  featureOrder                   String[]                  @default([])
-  itemOrderingEnabled            Boolean                   @default(false)
-  freeShippingMessages           FreeShippingMessage[]
-  freeShippingBars               FreeShippingProgressBar[]
-  productRecommendations         ProductRecommendation[]
-  promotionalBanners             PromotionalBanner[]
-  savingsDisplays                SavingsDisplay[]
-  cartTotals                     CartTotals[]
-  milestones                     CartMilestone[]
-  freeGifts                      FreeGift[]
-
-  @@unique([shop, version])
-  @@index([shop])
-  @@index([version])
-}
-
-model FreeShippingProgressBar {
-  id                     String     @id @default(cuid())
-  cartDrawerId           String
-  shop                   String
-  isActive               Boolean    @default(true)
-  priority               Int        @default(0)
-  thresholdAmount        Decimal?
-  currency               String     @default("INR")
-  beforeThresholdMessage String     @default("Add {remaining} for FREE shipping")
-  afterThresholdMessage  String     @default("You've unlocked FREE shipping!")
-  progressBarColor       String     @default("#FF6B35")
-  backgroundColor        String     @default("#F3F4F6")
-  borderColor            String     @default("#e2e8f0")
-  showPercentage         Boolean    @default(true)
-  createdAt              DateTime   @default(now())
-  updatedAt              DateTime   @updatedAt
-  thresholdMode          String     @default("amount")
-  thresholdCount         Int?
-  cartDrawer             CartDrawer @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
-
-  @@index([cartDrawerId])
-  @@index([shop, isActive])
-}
-
-model PromotionalBanner {
-  id               String                             @id @default(cuid())
-  cartDrawerId     String
-  shop             String
-  isActive         Boolean                            @default(true)
-  priority         Int                                @default(0)
-  title            String
-  subtitle         String?
-  backgroundColor  String                             @default("#FF6B35")
-  textColor        String                             @default("#FFFFFF")
-  titleColor       String                             @default("#111827")
-  descriptionColor String                             @default("#6b7280")
-  ctaTextColor     String                             @default("#374151")
-  ctaBackgroundColor String                           @default("#f3f4f6")
-  borderColor      String                             @default("#e5e7eb")
-  startDate        DateTime?
-  endDate          DateTime?
-  minCartValue     Decimal?
-  maxCartValue     Decimal?
-  createdAt        DateTime                           @default(now())
-  updatedAt        DateTime                           @updatedAt
-  bannerType       String                             @default("image")
-  ctaButtonText    String?
-  ctaEnabled       Boolean                            @default(false)
-  ctaProductHandle String?
-  ctaQuantity      Int                                @default(1)
-  ctaType          String?
-  ctaUrl           String?
-  ctaVariantId     String?
-  displayType      String                             @default("text")
-  imageUrls        String[]
-  cartDrawer       CartDrawer                         @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
-  carouselSettings PromotionalBannerCarouselSettings?
-  conditions       PromotionalBannerCondition[]
-  images           PromotionalBannerImage[]
-
-  @@index([cartDrawerId])
-  @@index([shop, isActive])
-  @@index([startDate, endDate])
-}
-
-model PromotionalBannerCondition {
-  id             String            @id @default(cuid())
-  bannerId       String
-  conditionType  String
-  conditionValue String
-  operator       String            @default("contains")
-  banner         PromotionalBanner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
-
-  @@index([bannerId])
-}
-
-model PromotionalBannerImage {
-  id          String            @id @default(cuid())
-  bannerId    String
-  imageUrl    String
-  altText     String?
-  order       Int               @default(0)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  ctaText     String?
-  ctaUrl      String?
-  description String?
-  title       String?
-  videoType   String?
-  videoUrl    String?
-  banner      PromotionalBanner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
-
-  @@index([bannerId])
-}
-
-model PromotionalBannerCarouselSettings {
-  id            String            @id @default(cuid())
-  bannerId      String            @unique
-  autoRotate    Boolean           @default(true)
-  rotationSpeed Int               @default(5000)
-  showDots      Boolean           @default(true)
-  showArrows    Boolean           @default(true)
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  banner        PromotionalBanner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
-}
-
-model PromotionalBannerBlock {
-  id               String                                   @id @default(cuid())
-  shop             String
-  configId         String                                   @default("default")
-  name             String                                   @default("Default Banner")
-  isActive         Boolean                                  @default(true)
-  title            String                                   @default("Promotional Banner Block")
-  createdAt        DateTime                                 @default(now())
-  updatedAt        DateTime                                 @updatedAt
-  images           PromotionalBannerBlockImage[]
-  carouselSettings PromotionalBannerBlockCarouselSettings?
-
-  @@unique([shop, configId])
-  @@index([shop, isActive])
-}
-
-model PromotionalBannerBlockImage {
-  id          String                  @id @default(cuid())
-  blockId     String
-  imageUrl    String
-  altText     String?
-  order       Int                     @default(0)
-  createdAt   DateTime                @default(now())
-  updatedAt   DateTime                @updatedAt
-  ctaText     String?
-  ctaUrl      String?
-  description String?
-  title       String?
-  videoType   String?
-  videoUrl    String?
-  block       PromotionalBannerBlock  @relation(fields: [blockId], references: [id], onDelete: Cascade)
-
-  @@index([blockId])
-}
-
-model PromotionalBannerBlockCarouselSettings {
-  id            String                  @id @default(cuid())
-  blockId       String                  @unique
-  autoRotate    Boolean                 @default(true)
-  rotationSpeed Int                     @default(5000)
-  showDots      Boolean                 @default(true)
-  showArrows    Boolean                 @default(true)
-  createdAt     DateTime                @default(now())
-  updatedAt     DateTime                @updatedAt
-  block         PromotionalBannerBlock  @relation(fields: [blockId], references: [id], onDelete: Cascade)
-}
-
-model ProductRecommendation {
-  id                 String                      @id @default(cuid())
-  cartDrawerId       String
-  shop               String
-  isActive           Boolean                     @default(true)
-  priority           Int                         @default(0)
-  title              String                      @default("You may also like")
-  maxProducts        Int                         @default(4)
-  layout             String                      @default("grid")
-  recommendationType String                      @default("manual")
-  showDiscount       Boolean                     @default(true)
-  showDiscountBadge  Boolean                     @default(true)
-  showAddButton      Boolean                     @default(true)
-  createdAt          DateTime                    @default(now())
-  updatedAt          DateTime                    @updatedAt
-  cartDrawer         CartDrawer                  @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
-  rules              ProductRecommendationRule[]
-  products           RecommendedProduct[]
-
-  @@index([cartDrawerId])
-  @@index([shop, isActive])
-}
-
-model ProductRecommendationRule {
-  id                String                @id @default(cuid())
-  recommendationId  String
-  triggerType       String
-  triggerValue      String
-  recommendProducts String[]
-  recommendation    ProductRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
-
-  @@index([recommendationId])
-}
-
-model RecommendedProduct {
-  id               String                @id @default(cuid())
-  recommendationId String
-  shopifyProductId String
-  title            String
-  price            Decimal
-  compareAtPrice   Decimal?
-  imageUrl         String?
-  position         Int                   @default(0)
-  shopifyVariantId String?
-  recommendation   ProductRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
-
-  @@index([recommendationId])
-  @@index([position])
-}
-
-model SavingsDisplay {
-  id                      String     @id @default(cuid())
-  cartDrawerId            String
-  shop                    String
-  isActive                Boolean    @default(true)
-  message                 String     @default("{amount} Saved so far!")
-  position                String     @default("above_total")
-  backgroundColor         String     @default("#10B981")
-  textColor               String     @default("#FFFFFF")
-  borderColor             String     @default("#FFFFFF")
-  highlightColor          String     @default("#FFFFFF")
-  includeProductDiscounts Boolean    @default(true)
-  includeCartDiscounts    Boolean    @default(true)
-  includeFreeShipping     Boolean    @default(false)
-  createdAt               DateTime   @default(now())
-  updatedAt               DateTime   @updatedAt
-  cartDrawer              CartDrawer @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
-
-  @@index([cartDrawerId])
-  @@index([shop, isActive])
-}
-
-model FreeShippingMessage {
-  id                     String     @id @default(cuid())
-  cartDrawerId           String
-  shop                   String
-  isActive               Boolean    @default(true)
-  thresholdAmount        Decimal
-  currency               String     @default("INR")
-  beforeThresholdMessage String     @default("Free shipping on orders over {threshold}")
-  afterThresholdMessage  String     @default("Add {remaining} more for FREE shipping")
-  achievedMessage        String     @default("Free shipping applied!")
-  backgroundColor        String     @default("#FEF3C7")
-  textColor              String     @default("#92400E")
-  borderColor            String     @default("#92400E")
-  icon                   String     @default("🚚")
-  iconColor              String     @default("#F59E0B")
-  position               String     @default("above_checkout")
-  createdAt              DateTime   @default(now())
-  updatedAt              DateTime   @updatedAt
-  cartDrawer             CartDrawer @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
-
-  @@index([cartDrawerId])
-  @@index([shop, isActive])
-}
-
-model CartTotals {
-  id                   String     @id @default(cuid())
-  cartDrawerId         String
-  shop                 String
-  isActive             Boolean    @default(true)
-  showOriginalPrice    Boolean    @default(true)
-  showItemDiscounts    Boolean    @default(true)
-  showSubtotal         Boolean    @default(true)
-  showCouponDiscount   Boolean    @default(true)
-  showTaxNotice        Boolean    @default(true)
-  subtotalLabel        String     @default("Subtotal")
-  totalLabel           String     @default("Total")
-  taxNoticeText        String     @default("Taxes and shipping calculated at checkout")
-  originalPriceLabel   String     @default("Original Price")
-  itemDiscountsLabel   String     @default("Item Discounts")
-  borderColor          String     @default("#e5e7eb")
-  backgroundColor      String     @default("#ffffff")
-  textColor            String     @default("#374151")
-  totalTextColor       String     @default("#111827")
-  discountColor        String     @default("#f59e0b")
-  createdAt            DateTime   @default(now())
-  updatedAt            DateTime   @updatedAt
-  cartDrawer           CartDrawer @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
-
-  @@index([cartDrawerId])
-  @@index([shop, isActive])
-}
-
-model CouponCodeField {
-  id                      String   @id @default(cuid())
-  shop                    String   @unique
-  isActive                Boolean  @default(false)
-  placeholder             String   @default("Enter coupon code")
-  buttonText              String   @default("Apply")
-  position                String   @default("above_checkout")
-  successMessage          String   @default("Coupon applied successfully!")
-  errorMessage            String   @default("Invalid coupon code")
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-  autoApplyStrategy       String   @default("best_value")
-  enableAutoApply         Boolean  @default(false)
-  showAllOffers           Boolean  @default(false)
-  showAllOffersButtonText String   @default("Show all offers")
-  backgroundColor         String   @default("#d1fae5")
-  textColor               String   @default("#065f46")
-  couponCodeColor         String   @default("")
-  borderColor             String   @default("#059669")
-  appliedDiscountText     String   @default("")
-
-  @@index([shop])
-}
-
-model CartDrawerAnalytics {
-  id         String   @id @default(cuid())
-  shop       String
-  eventType  String
-  eventData  String?
-  cartValue  Decimal?
-  itemCount  Int?
-  sessionId  String?
-  customerId String?
-  createdAt  DateTime @default(now())
-
-  @@index([shop, createdAt])
-  @@index([eventType])
-}
-
-model AppSubscription {
-  id                     String    @id @default(cuid())
-  shop                   String    @unique
-  planId                 String
-  planName               String
-  status                 String    @default("ACTIVE")
-  amount                 Decimal
-  currencyCode           String
-  interval               String
-  trialDays              Int?
-  trialEndsAt            DateTime?
-  billingOn              DateTime?
-  shopifyChargeId        String?
-  shopifyConfirmationUrl String?
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
-  cancelledAt            DateTime?
-
-  @@index([shop])
-  @@index([status])
-}
-
-model FrequentlyBoughtTogether {
-  id                      String    @id @default(cuid())
-  shop                    String    @unique
-  isActive                Boolean   @default(false)
-  title                   String    @default("Frequently Bought Together")
-  recommendationType      String    @default("manual")
-  algorithm               String    @default("related")
-  useAI                   Boolean   @default(false)
-  useSmartVariantMatching Boolean   @default(false)
-  showOfferIfInCart       Boolean   @default(false)
-
-  maxUpsellsShown         Int       @default(4)
-  showProductReviews      Boolean   @default(false)
-  layout                  String    @default("horizontal")
-  templateType            String    @default("classic")
-  buttonText              String    @default("Add selected items")
-  buttonColor             String    @default("#000000")
-  buttonTextColor         String    @default("#FFFFFF")
-  showTotalPrice          Boolean   @default(true)
-  showIndividualPrices    Boolean   @default(true)
-  showCheckboxes          Boolean   @default(true)
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-  rules                   FBTRule[]
-
-  @@index([shop])
-}
-
-model FBTRule {
-  id               String                   @id @default(cuid())
-  fbtId            String
-  triggerType      String
-  triggerValue     String
-  triggerProductId String?
-  triggerTitle     String?
-  discountType     String?                  // "percentage" | "fixed"
-  discountValue    Decimal?
-  discountCode     String?                  // Generated Shopify discount code ID
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
-  products         FBTProduct[]
-  fbt              FrequentlyBoughtTogether @relation(fields: [fbtId], references: [id], onDelete: Cascade)
-
-  @@index([fbtId])
-  @@index([triggerProductId])
-}
-
-model FBTProduct {
-  id               String   @id @default(cuid())
-  ruleId           String
-  shopifyProductId String
-  shopifyVariantId String?
-  title            String
-  price            Decimal
-  compareAtPrice   Decimal?
-  imageUrl         String?
-  handle           String
-  position         Int      @default(0)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  rule             FBTRule  @relation(fields: [ruleId], references: [id], onDelete: Cascade)
-
-  @@index([ruleId])
-  @@index([position])
-}
-
-
-
-
-model CartMilestone {
-  id                      String                 @id @default(cuid())
-  cartDrawerId            String
-  shop                    String
-  isActive                Boolean                @default(true)
-  title                   String
-  description             String?
-  targetAmount            Decimal
-  currency                String                 @default("INR")
-  rewardType              String
-  rewardValue             Decimal?
-  discountCode            String?
-  shopifyDiscountId       String?
-  targetType              String                 @default("store_wide")
-  priority                Int                    @default(0)
-  icon                    String?
-  unlockedMessage         String?
-  inProgressMessage       String?
-  lockedMessage           String?
-  iconColor               String                 @default("#3b82f6")
-  titleColor              String                 @default("#1e40af")
-  unlockButtonColor       String                 @default("#3b82f6")
-  showProgressBar         Boolean                @default(true)
-  eligibleCollectionHandle String?
-  eligibleTag             String?
-  eligibleProductIds      String[]               @default([])
-  eligibilitySource       String?                @default("none") // "none" | "collection" | "products" | "all_products"
-  upsellHeaderText        String?                @default("Unlock Your Reward")
-  viewAllLinkText         String?                @default("View All")
-  unlockButtonText        String?                @default("Unlock Reward")
-  createdAt               DateTime               @default(now())
-  updatedAt               DateTime               @updatedAt
-  cartDrawer              CartDrawer                @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
-  targets                 CartMilestoneTarget[]
-  giftProducts            CartMilestoneGiftProduct[]
-
-  @@index([cartDrawerId])
-  @@index([shop, isActive])
-  @@index([priority])
-}
-
-model CartMilestoneTarget {
-  id          String        @id @default(cuid())
-  milestoneId String
-  targetType  String
-  shopifyId   String
-  title       String?
-  milestone   CartMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
-
-  @@index([milestoneId])
-  @@index([targetType, shopifyId])
-}
-
-model CartMilestoneGiftProduct {
-  id               String        @id @default(cuid())
-  milestoneId      String
-  shopifyProductId String
-  shopifyVariantId String?
-  title            String
-  price            Decimal
-  compareAtPrice   Decimal?
-  imageUrl         String?
-  handle           String
-  position         Int           @default(0)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  milestone        CartMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
-
-  @@index([milestoneId])
-  @@index([position])
-}
-
-
-
-model AnalyticsEvent {
-  id          String   @id @default(cuid())
-  shop        String
-  version     String   @default("default")  // Track which cart drawer version
-  eventType   String
-  component   String
-  productId   String?
-  variantId   String?
-  value       Decimal?
-  currency    String?  @default("USD")
-  url         String?
-  sessionId   String?
-  orderId     String?
-  metadata    String?
-  createdAt   DateTime @default(now())
-
-  @@index([shop, createdAt])
-  @@index([shop, component, eventType])
-  @@index([shop, productId])
-  @@index([shop, version])  // For version queries
-}
-
-
-
-
-
-model FreeGift {
-  id                String           @id @default(cuid())
-  shop              String
-  cartDrawerId      String
-  name              String
-  isActive          Boolean          @default(true)
-  triggerType       String           @default("spend") // spend, item-set, quantity, products, collections
-  triggerValue      Decimal          @default(0)
-  customerLimit     Int              @default(1) // How many gifts customer can choose
-  priority          Int              @default(0)
-  shopifyDiscountId String?
-  discountCode      String?
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  cartDrawer        CartDrawer       @relation(fields: [cartDrawerId], references: [id], onDelete: Cascade)
-  giftProducts      FreeGiftProduct[]
-  targets           FreeGiftTarget[]
-
-  @@index([shop])
-  @@index([cartDrawerId])
-}
-
-model FreeGiftProduct {
-  id               String   @id @default(cuid())
-  freeGiftId       String
-  shopifyProductId String
-  shopifyVariantId String?
-  title            String
-  price            Decimal
-  compareAtPrice   Decimal?
-  imageUrl         String?
-  handle           String
-  position         Int      @default(0)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  freeGift         FreeGift @relation(fields: [freeGiftId], references: [id], onDelete: Cascade)
-
-  @@index([freeGiftId])
-}
-
-model FreeGiftTarget {
-  id         String   @id @default(cuid())
-  freeGiftId String
-  shopifyId  String   // Product or Collection ID
-  type       String   // "product" or "collection"
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  freeGift   FreeGift @relation(fields: [freeGiftId], references: [id], onDelete: Cascade)
-
-  @@index([freeGiftId])
-}
-
-// Cart Drawer Version Management for Customer-based A/B Testing
-model CartDrawerVersion {
-  id                String   @id @default(cuid())
-  key               String   @unique // e.g., "default", "v2", "v3"
-  name              String   // e.g., "Version 1 - Original", "Version 2 - Carousel"
-  description       String?
-  isActive          Boolean  @default(false)
-  isDefault         Boolean  @default(false)
-  targetingMode     String   @default("percentage") // "percentage" or "segment"
-  rolloutPercentage Int      @default(0) // 0-100 (used when targetingMode is "percentage")
-  segmentIds        String[] @default([]) // Shopify customer segment IDs (used when targetingMode is "segment")
-  priority          Int      @default(0) // Higher priority = newer version
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  @@index([isActive])
-  @@index([isDefault])
-  @@index([key])
-}
-
-
-// Gifting Block - Standalone free gifts feature for theme extension
-
-
-

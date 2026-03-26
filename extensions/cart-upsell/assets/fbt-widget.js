@@ -1,6 +1,6 @@
 /**
  * Selldrawer FBT Widget v1.0.11
- * Built: 2026-03-24T19:40:10.525Z
+ * Built: 2026-03-26T20:02:35.172Z
  */
 "use strict";
 (() => {
@@ -9398,7 +9398,6 @@
     },
     setVersion(version) {
       this.version = version || "default";
-      console.log("[Selldrawer Analytics] Version set to:", this.version);
     },
     getSessionId() {
       try {
@@ -9414,11 +9413,9 @@
     },
     track(event) {
       if (!this.shop) {
-        console.warn("[Selldrawer Analytics] Shop not detected, skipping tracking");
         return;
       }
       if (!this.appUrl) {
-        console.warn("[Selldrawer Analytics] App URL not configured, skipping tracking");
         return;
       }
       const payload = {
@@ -9435,7 +9432,6 @@
         const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
         const sent = navigator.sendBeacon(apiUrl, blob);
         if (!sent) {
-          console.warn("[Selldrawer Analytics] sendBeacon failed, falling back to fetch");
           this.fallbackFetch(apiUrl, payload);
         }
       } else {
@@ -9452,14 +9448,14 @@
         keepalive: true
       }).then((response) => {
         if (!response.ok) {
-          console.error("[Selldrawer Analytics] API error:", response.status, apiUrl);
         }
-      }).catch((err) => console.error("[Selldrawer Analytics] Fetch error:", err));
+      }).catch((err) => {
+      });
     }
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://app.selldrawer.com" : "https://app.selldrawer.com";
+  var APP_URL = true ? "https://compete-platform-lets-newspapers.trycloudflare.com" : "https://app.selldrawer.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;

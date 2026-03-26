@@ -30,12 +30,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Ensure CartDrawer exists
   let cartDrawer = await prisma.cartDrawer.findUnique({
-    where: { shop_version: { shop, version: editingVersion } },
+    where: { shop },
   });
 
   if (!cartDrawer) {
     cartDrawer = await prisma.cartDrawer.create({
-      data: { shop, version: editingVersion, isActive: true },
+      data: { 
+        id: crypto.randomUUID(),
+        shop, 
+        version: editingVersion, 
+        isActive: true,
+        updatedAt: new Date(),
+      },
     });
   }
 
@@ -46,7 +52,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Create default if doesn't exist
   if (!couponCodeField) {
     couponCodeField = await prisma.couponCodeField.create({
-      data: { shop },
+      data: { 
+        id: crypto.randomUUID(),
+        shop,
+        updatedAt: new Date(),
+      },
     });
   }
 
@@ -67,7 +77,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Ensure CartDrawer exists
     await prisma.cartDrawer.upsert({
-      where: { shop_version: { shop, version: editingVersion } },
+      where: { shop },
       update: { couponCodeFieldEnabled: enabled },
       create: { shop, couponCodeFieldEnabled: enabled, isActive: true },
     });
@@ -101,7 +111,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Ensure CartDrawer exists and enable coupon code field
     await prisma.cartDrawer.upsert({
-      where: { shop_version: { shop, version: editingVersion } },
+      where: { shop },
       update: { couponCodeFieldEnabled: true },
       create: { shop, couponCodeFieldEnabled: true, isActive: true },
     });

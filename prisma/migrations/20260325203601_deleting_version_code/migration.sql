@@ -55,7 +55,6 @@ CREATE TABLE "CartConfigurationTarget" (
 CREATE TABLE "CartDrawer" (
     "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
-    "version" TEXT NOT NULL DEFAULT 'default',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "theme" TEXT NOT NULL DEFAULT 'light',
     "primaryColor" TEXT NOT NULL DEFAULT '#4F46E5',
@@ -539,7 +538,6 @@ CREATE TABLE "CartMilestoneGiftProduct" (
 CREATE TABLE "AnalyticsEvent" (
     "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
-    "version" TEXT NOT NULL DEFAULT 'default',
     "eventType" TEXT NOT NULL,
     "component" TEXT NOT NULL,
     "productId" TEXT,
@@ -605,21 +603,16 @@ CREATE TABLE "FreeGiftTarget" (
 );
 
 -- CreateTable
-CREATE TABLE "CartDrawerVersion" (
+CREATE TABLE "AppSettings" (
     "id" TEXT NOT NULL,
-    "key" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "description" TEXT,
-    "isActive" BOOLEAN NOT NULL DEFAULT false,
-    "isDefault" BOOLEAN NOT NULL DEFAULT false,
-    "targetingMode" TEXT NOT NULL DEFAULT 'percentage',
-    "rolloutPercentage" INTEGER NOT NULL DEFAULT 0,
-    "segmentIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "priority" INTEGER NOT NULL DEFAULT 0,
+    "shop" TEXT NOT NULL,
+    "discountFunctionActivated" BOOLEAN NOT NULL DEFAULT false,
+    "discountFunctionId" TEXT,
+    "discountId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "CartDrawerVersion_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "AppSettings_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -632,13 +625,10 @@ CREATE INDEX "CartConfigurationTarget_configurationId_idx" ON "CartConfiguration
 CREATE INDEX "CartConfigurationTarget_targetType_shopifyId_idx" ON "CartConfigurationTarget"("targetType", "shopifyId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "CartDrawer_shop_key" ON "CartDrawer"("shop");
+
+-- CreateIndex
 CREATE INDEX "CartDrawer_shop_idx" ON "CartDrawer"("shop");
-
--- CreateIndex
-CREATE INDEX "CartDrawer_version_idx" ON "CartDrawer"("version");
-
--- CreateIndex
-CREATE UNIQUE INDEX "CartDrawer_shop_version_key" ON "CartDrawer"("shop", "version");
 
 -- CreateIndex
 CREATE INDEX "FreeShippingProgressBar_cartDrawerId_idx" ON "FreeShippingProgressBar"("cartDrawerId");
@@ -779,9 +769,6 @@ CREATE INDEX "AnalyticsEvent_shop_component_eventType_idx" ON "AnalyticsEvent"("
 CREATE INDEX "AnalyticsEvent_shop_productId_idx" ON "AnalyticsEvent"("shop", "productId");
 
 -- CreateIndex
-CREATE INDEX "AnalyticsEvent_shop_version_idx" ON "AnalyticsEvent"("shop", "version");
-
--- CreateIndex
 CREATE INDEX "FreeGift_shop_idx" ON "FreeGift"("shop");
 
 -- CreateIndex
@@ -794,16 +781,10 @@ CREATE INDEX "FreeGiftProduct_freeGiftId_idx" ON "FreeGiftProduct"("freeGiftId")
 CREATE INDEX "FreeGiftTarget_freeGiftId_idx" ON "FreeGiftTarget"("freeGiftId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "CartDrawerVersion_key_key" ON "CartDrawerVersion"("key");
+CREATE UNIQUE INDEX "AppSettings_shop_key" ON "AppSettings"("shop");
 
 -- CreateIndex
-CREATE INDEX "CartDrawerVersion_isActive_idx" ON "CartDrawerVersion"("isActive");
-
--- CreateIndex
-CREATE INDEX "CartDrawerVersion_isDefault_idx" ON "CartDrawerVersion"("isDefault");
-
--- CreateIndex
-CREATE INDEX "CartDrawerVersion_key_idx" ON "CartDrawerVersion"("key");
+CREATE INDEX "AppSettings_shop_idx" ON "AppSettings"("shop");
 
 -- AddForeignKey
 ALTER TABLE "CartConfigurationTarget" ADD CONSTRAINT "CartConfigurationTarget_configurationId_fkey" FOREIGN KEY ("configurationId") REFERENCES "CartConfiguration"("id") ON DELETE CASCADE ON UPDATE CASCADE;

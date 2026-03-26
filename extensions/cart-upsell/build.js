@@ -18,7 +18,6 @@ function getConfig() {
       appUrl: appUrlMatch ? appUrlMatch[1] : 'https://app.selldrawer.com'
     };
   } catch (error) {
-    console.warn('⚠️ Could not read config.js, using defaults');
     return {
       version: '1.0.0',
       appUrl: 'https://app.selldrawer.com'
@@ -30,8 +29,6 @@ async function build() {
   try {
     const config = getConfig();
     const { version, appUrl } = config;
-
-    console.log(`📦 Building with VERSION: ${version}, APP_URL: ${appUrl}`);
 
     // Build Cart Drawer
     await esbuild.build({
@@ -141,7 +138,6 @@ async function build() {
 
 
   } catch (error) {
-    console.error('❌ Build failed:', error);
     process.exit(1);
   }
 }

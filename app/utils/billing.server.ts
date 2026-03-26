@@ -6,23 +6,29 @@
  * @returns The plan selection URL if no active payment, null otherwise
  */
 export async function requireBilling(billing: any): Promise<string | null> {
+  // DEVELOPMENT MODE: Disable billing requirement for testing
+  // Comment out the line below when you're ready to enforce billing
+  return null;
+  
+  /* Uncomment this block when you want to enforce billing:
   const { hasActivePayment } = await billing.check();
   
   if (!hasActivePayment) {
-    const isDev = process.env.NODE_ENV === "development";
-    const appHandle = isDev ? "selldrawer-ai-dev" : "selldrawer-ai";
-    return `https://admin.shopify.com/charges/${appHandle}/pricing_plans`;
+    return `https://partners.shopify.com`;
   }
   
   return null;
+  */
 }
 
 /**
  * Get the Shopify managed plan selection URL
+ * For now, this points to Partner Dashboard where you can configure billing
+ * Once billing is set up, this should point to the actual pricing plans page
  */
 export function getPlanSelectionUrl(): string {
-  const isDev = process.env.NODE_ENV === "development";
-  const appHandle = isDev ? "selldrawer-ai-dev" : "selldrawer-ai";
-  return `https://admin.shopify.com/charges/${appHandle}/pricing_plans`;
+  // Return Partner Dashboard URL for now
+  // You'll need to set up billing plans in Partner Dashboard first
+  return `https://partners.shopify.com/organizations`;
 }
 

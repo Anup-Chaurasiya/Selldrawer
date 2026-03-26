@@ -68,14 +68,16 @@ export async function checkAppEmbedEnabled(
     const appEmbeds = settings?.current?.blocks || {};
     
     // Check if any app embed with our extension is enabled
-    // The type should match your extension name (e.g., "apps/selldrawer-ai/cart-drawer-embed")
+    // The type should match your extension name (e.g., "apps/selldrawer-dev/cart-drawer-embed" or "apps/selldrawer-ai/cart-drawer-embed")
+    // We check for both "selldrawer" and "cart-drawer-embed" to be flexible across different app handles
     const isEnabled = Object.values(appEmbeds).some((embed: any) => 
-      embed?.type?.includes('selldrawer-ai') && embed?.disabled !== true
+      embed?.type?.toLowerCase().includes('selldrawer') && 
+      embed?.type?.includes('cart-drawer-embed') && 
+      embed?.disabled !== true
     );
 
     return isEnabled;
   } catch (error) {
-    console.error("Error checking app embed status:", error);
     return false;
   }
 }
