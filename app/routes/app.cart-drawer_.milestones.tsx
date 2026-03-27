@@ -988,203 +988,298 @@ export default function CartMilestones() {
 
       <Layout>
         <Layout.Section variant="oneHalf">
-          <BlockStack gap="400">
-            {/* Info Banner */}
-            <Banner tone={hasReachedMaxMilestones ? "warning" : "info"}>
-              <p>
-                {hasReachedMaxMilestones ? (
-                  <>
-                    <strong>Maximum milestones reached!</strong> You can configure up to 3 milestones.
-                    Delete an existing milestone to add a new one.
-                  </>
-                ) : (
-                  <>
-                    Cart Milestones show customers rewards they can unlock by reaching specific cart values.
-                    Create up to 3 milestones like "Free Shipping at ₹5,000" or "Extra 5% Discount at ₹8,000" to encourage higher cart values.
-                    {cartDrawer.milestones && cartDrawer.milestones.length > 0 && (
-                      <> ({3 - cartDrawer.milestones.length} remaining)</>
+          <BlockStack gap="500">
+            {/* Premium Header/Intro */}
+            <div style={{
+              background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+              border: '1px solid rgba(226, 232, 240, 0.8)',
+              borderRadius: '16px',
+              padding: '28px',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <BlockStack gap="200">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="h2" variant="headingLg" fontWeight="bold">
+                      Reward Milestones
+                    </Text>
+                    {hasReachedMaxMilestones ? (
+                      <Badge tone="warning">Max Reached (3/3)</Badge>
+                    ) : (
+                      <Badge tone="info">{cartDrawer.milestones?.length || 0}/3 Active</Badge>
                     )}
-                  </>
-                )}
-              </p>
-            </Banner>
+                  </InlineStack>
+                  <Text as="p" variant="bodyMd" tone="subdued">
+                    Motivate customers to spend more by offering tiered rewards like Free Shipping or Discounts.
+                  </Text>
+                </BlockStack>
+              </div>
+              {/* Decorative gradient orb */}
+              <div style={{
+                position: 'absolute', right: '-15%', top: '-30%', width: '200px', height: '200px',
+                background: 'radial-gradient(circle, rgba(59,130,246,0.08) 0%, rgba(255,255,255,0) 70%)',
+                borderRadius: '50%', pointerEvents: 'none'
+              }}/>
+            </div>
 
-            {/* Global Milestones Configuration */}
-            <Card>
+            {/* Global Settings Panel */}
+            <div style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              border: '1px solid #e5e7eb',
+              padding: '24px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+            }}>
               <BlockStack gap="400">
-                <Text as="h2" variant="headingMd">
-                  Global Milestones Settings
+                <Text as="h3" variant="headingMd" fontWeight="semibold">
+                  Global Configuration
                 </Text>
-                <FormLayout>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '16px',
+                  alignItems: 'end'
+                }}>
                   <TextField
-                    label="Progress Bar Color"
+                    label="Progress Bar Theme Color"
                     value={globalSettings.progressBarColor}
                     onChange={(value) => setGlobalSettings({ ...globalSettings, progressBarColor: value })}
                     autoComplete="off"
                     {...({ type: "color" } as any)}
-                    helpText="This color will be used for the progress bar across all milestones"
+                    helpText="Applies to all milestones"
                   />
                   <TextField
                     label="All Unlocked Message"
                     value={globalSettings.allUnlockedMessage}
                     onChange={(value) => setGlobalSettings({ ...globalSettings, allUnlockedMessage: value })}
                     autoComplete="off"
-                    helpText="Message shown when all milestones are unlocked"
                     placeholder="🎉 Congratulations! All rewards unlocked!"
                   />
-                </FormLayout>
+                </div>
               </BlockStack>
-            </Card>
+            </div>
 
-            {/* Milestones List */}
-            <Card>
-              <BlockStack gap="400">
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="h2" variant="headingMd">
-                    Configured Milestones
-                  </Text>
-                  <Button
-                    variant="primary"
-                    onClick={() => handleOpenModal()}
-                    disabled={hasReachedMaxMilestones}
-                  >
-                    Add Milestone
-                  </Button>
-                </InlineStack>
+            {/* Configured Milestones List */}
+            <div style={{ marginTop: '8px' }}>
+              <InlineStack align="space-between" blockAlign="center">
+                <Text as="h3" variant="headingMd" fontWeight="semibold">
+                  Active Milestones
+                </Text>
+                <Button variant="primary" onClick={() => handleOpenModal()} disabled={hasReachedMaxMilestones}>
+                  Add New Milestone
+                </Button>
+              </InlineStack>
 
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '20px' }}>
                 {cartDrawer.milestones && cartDrawer.milestones.length > 0 ? (
-                  <ResourceList
-                    resourceName={{ singular: 'milestone', plural: 'milestones' }}
-                    items={cartDrawer.milestones}
-                    renderItem={(milestone) => {
-                      const { id, title, targetAmount, rewardType, rewardValue, isActive, icon } = milestone;
+                  cartDrawer.milestones.map((milestone: any, index: number) => {
+                    const { id, title, targetAmount, rewardType, rewardValue, isActive, icon } = milestone;
+                    return (
+                      <div key={id} style={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid',
+                        borderColor: isActive ? '#e5e7eb' : '#f3f4f6',
+                        borderRadius: '16px',
+                        padding: '20px',
+                        boxShadow: isActive ? '0 4px 12px rgba(0,0,0,0.03)' : 'none',
+                        opacity: isActive ? 1 : 0.65,
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (isActive) {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.06)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (isActive) {
+                          e.currentTarget.style.transform = 'none';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.03)';
+                        }
+                      }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <div style={{
+                            width: '56px', height: '56px',
+                            borderRadius: '16px',
+                            backgroundColor: isActive ? '#eff6ff' : '#f3f4f6',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '28px',
+                            border: `1px solid ${isActive ? '#bfdbfe' : '#e5e7eb'}`,
+                            boxShadow: isActive ? 'inset 0 2px 4px rgba(255,255,255,0.5)' : 'none'
+                          }}>
+                            {icon || '🎁'}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <InlineStack gap="200" blockAlign="center">
+                              <Text as="h4" variant="headingMd" fontWeight="semibold">
+                                {title}
+                              </Text>
+                              <div style={{
+                                padding: '2px 8px', borderRadius: '100px', fontSize: '12px', fontWeight: 600,
+                                backgroundColor: isActive ? '#dcfce7' : '#f3f4f6',
+                                color: isActive ? '#166534' : '#4b5563',
+                                border: `1px solid ${isActive ? '#bbf7d0' : '#e5e7eb'}`,
+                              }}>
+                                {isActive ? 'Active' : 'Disabled'}
+                              </div>
+                            </InlineStack>
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              Spend <strong style={{ color: '#111827' }}>₹{targetAmount.toString()}</strong> for {getRewardTypeLabel(rewardType)}
+                              {rewardValue && ` (${rewardValue}${rewardType.includes('percentage') ? '%' : ''})`}
+                            </Text>
+                          </div>
+                        </div>
 
-                      return (
-                        <ResourceItem
-                          id={id}
-                          accessibilityLabel={`View details for ${title}`}
-                          onClick={() => { }}
-                        >
-                          <BlockStack gap="300">
-                            <BlockStack gap="200">
-                              <InlineStack gap="300" blockAlign="center">
-                                <div style={{
-                                  fontSize: '32px',
-                                  lineHeight: '1'
-                                }}>
-                                  {icon || '🎁'}
-                                </div>
-                                <BlockStack gap="100">
-                                  <InlineStack gap="150" blockAlign="center">
-                                    <Text as="h3" variant="headingMd">
-                                      {title}
-                                    </Text>
-                                    <Badge tone={isActive ? "success" : undefined}>
-                                      {isActive ? "Active" : "Inactive"}
-                                    </Badge>
-                                  </InlineStack>
-                                  <Text as="p" variant="bodySm" tone="subdued">
-                                    Target: ₹{targetAmount.toString()} | Reward: {getRewardTypeLabel(rewardType)}
-                                    {rewardValue && ` (${rewardValue}${rewardType.includes('percentage') ? '%' : ''})`}
-                                  </Text>
-                                </BlockStack>
-                              </InlineStack>
-                              <InlineStack gap="200" blockAlign="center">
-                                <Button
-                                  onClick={() => handleToggleMilestone(id, isActive)}
-                                  variant="secondary"
-                                >
-                                  {isActive ? "Disable" : "Enable"}
-                                </Button>
-                                <Button
-                                  onClick={() => handleOpenModal(milestone)}
-                                  variant="primary"
-                                >
-                                  Edit
-                                </Button>
-                                <Button
-                                  icon={DeleteIcon}
-                                  variant="plain"
-                                  tone="critical"
-                                  onClick={() => handleDeleteMilestone(id)}
-                                />
-                              </InlineStack>
-                            </BlockStack>
-                          </BlockStack>
-                        </ResourceItem>
-                      );
-                    }}
-                  />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                            <span style={{ fontSize: '13px', color: '#4b5563', fontWeight: 500 }}>
+                              {isActive ? 'On' : 'Off'}
+                            </span>
+                            <div 
+                              onClick={(e) => { e.preventDefault(); handleToggleMilestone(id, isActive); }}
+                              style={{
+                                width: '40px', height: '22px', borderRadius: '12px',
+                                backgroundColor: isActive ? '#000000' : '#d1d5db',
+                                position: 'relative', transition: 'background-color 0.2s ease',
+                                boxShadow: isActive ? 'inset 0 1px 3px rgba(0,0,0,0.3)' : 'inset 0 1px 3px rgba(0,0,0,0.1)'
+                              }}>
+                              <div style={{
+                                width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#ffffff',
+                                position: 'absolute', top: '2px', left: isActive ? '20px' : '2px',
+                                transition: 'left 0.2s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                              }}/>
+                            </div>
+                          </label>
+                          <div style={{ width: '1px', height: '28px', backgroundColor: '#e5e7eb' }}/>
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <Button variant="plain" onClick={() => handleOpenModal(milestone)}>Edit</Button>
+                            <Button variant="plain" tone="critical" onClick={() => handleDeleteMilestone(id)}>Delete</Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
                 ) : (
-                  <EmptyState
-                    heading="No milestones configured"
-                    image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                  >
-                    <p>Add milestones to encourage customers to reach specific cart values for rewards.</p>
-                  </EmptyState>
+                  <div style={{
+                    padding: '40px 20px',
+                    textAlign: 'center',
+                    border: '1px dashed #d1d5db',
+                    borderRadius: '16px',
+                    backgroundColor: '#f9fafb',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center'
+                  }}>
+                    <div style={{
+                      width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#f3f4f6',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', fontSize: '24px'
+                    }}>
+                      📦
+                    </div>
+                    <Text as="h4" variant="headingMd">No milestones configured</Text>
+                    <div style={{ marginTop: '8px', color: '#6b7280', fontSize: '14px', marginBottom: '20px', maxWidth: '300px' }}>
+                      Add milestones to encourage customers to reach specific cart values for rewards.
+                    </div>
+                    <Button variant="primary" onClick={() => handleOpenModal()}>Create First Milestone</Button>
+                  </div>
                 )}
-              </BlockStack>
-            </Card>
+              </div>
+            </div>
           </BlockStack>
         </Layout.Section>
 
-        {/* Preview Section */}
+        {/* Live Preview Section */}
         <Layout.Section variant="oneHalf">
-          <Card>
-            <BlockStack gap="400">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text as="h3" variant="headingMd">
-                  Preview
+          <div style={{ position: 'sticky', top: '24px' }}>
+            <div style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '24px',
+              border: '1px solid #e5e7eb',
+              padding: '0',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              <div style={{
+                padding: '24px 24px 20px',
+                borderBottom: '1px solid #e5e7eb',
+                background: 'linear-gradient(to bottom, #fafafa, #ffffff)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <Text as="h3" variant="headingMd" fontWeight="semibold">
+                  Live Preview
                 </Text>
-                <Badge tone={(() => {
-                  const activeMilestones = cartDrawer.milestones?.filter((m: any) => m.isActive) || [];
-                  return activeMilestones.length > 0 ? 'success' : 'info';
-                })()}>
+                <div style={{
+                  padding: '4px 10px', borderRadius: '100px', fontSize: '12px', fontWeight: 600,
+                  backgroundColor: '#e0e7ff', color: '#4338ca',
+                  border: '1px solid #c7d2fe'
+                }}>
                   {(() => {
                     const activeMilestones = cartDrawer.milestones?.filter((m: any) => m.isActive) || [];
-                    return activeMilestones.length > 0
-                      ? `${activeMilestones.length} milestone${activeMilestones.length > 1 ? 's' : ''}`
-                      : 'Sample';
+                    return activeMilestones.length > 0 ? `${activeMilestones.length} active` : 'Sample mode';
                   })()}
-                </Badge>
+                </div>
               </div>
 
-              <div style={{
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                padding: '16px',
-                backgroundColor: '#ffffff',
-                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                minHeight: '200px',
+              <div style={{ 
+                padding: '40px 24px', 
+                background: '#f8fafc', 
+                minHeight: '320px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.02)'
               }}>
-                <MilestonesWidget
-                  milestones={previewMilestones}
-                  cartTotal={6000}
-                  isPreview={true}
-                  layout="vertical"
-                  progressBarColor={globalSettings.progressBarColor}
-                  allUnlockedMessage={globalSettings.allUnlockedMessage}
-                />
+                <div style={{ 
+                  width: '100%', 
+                  maxWidth: '420px',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '16px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
+                  padding: '16px',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <MilestonesWidget
+                    milestones={previewMilestones}
+                    cartTotal={6000}
+                    isPreview={true}
+                    layout="vertical"
+                    progressBarColor={globalSettings.progressBarColor}
+                    allUnlockedMessage={globalSettings.allUnlockedMessage}
+                  />
+                </div>
               </div>
 
-              <div style={{
-                padding: '12px',
-                backgroundColor: '#f0f9ff',
-                borderRadius: '8px',
-                border: '1px solid #bfdbfe'
+              <div style={{ 
+                padding: '16px 24px', 
+                backgroundColor: '#ffffff', 
+                borderTop: '1px solid #e5e7eb',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
               }}>
-                <Text as="p" variant="bodySm">
-                  <strong>💡 Preview Tip:</strong> {cartDrawer.milestones && cartDrawer.milestones.length > 0
-                    ? 'Showing your configured milestones with a sample cart value of ₹6,000. Add or edit milestones to see changes.'
-                    : 'Configure milestones to see how they will appear in your cart drawer.'}
+                <div style={{ 
+                  width: '24px', height: '24px', borderRadius: '50%', background: '#fef3c7', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' 
+                }}>
+                  💡
+                </div>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Showing sample cart value (₹6,000) for demonstration purposes.
                 </Text>
               </div>
-
-              <Text as="p" variant="bodyMd" tone="subdued">
-                This preview shows how milestones will appear in your cart drawer. The sample cart value is ₹6,000 for demonstration.
-              </Text>
-            </BlockStack>
-          </Card>
+            </div>
+          </div>
         </Layout.Section>
       </Layout>
 

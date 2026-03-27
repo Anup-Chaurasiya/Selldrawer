@@ -21,6 +21,7 @@ import {
   Modal,
   TextField,
   Spinner,
+  Divider,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import {
@@ -975,7 +976,7 @@ export default function CartDrawerIndex() {
   const features = [
     {
       id: 'free-shipping-bar',
-      title: 'Free Shipping Progress Bar',
+      title: 'Free Shipping Booster',
       description: 'Display remaining amount for free shipping.',
       icon: ChartVerticalIcon,
       enabled: cartDrawer.freeShippingProgressBarEnabled,
@@ -985,7 +986,7 @@ export default function CartDrawerIndex() {
     },
     {
       id: 'milestones',
-      title: 'Cart Milestones',
+      title: 'Unlock Rewards & Milestones',
       description: 'Rewards at cart value thresholds',
       icon: GiftCardIcon,
       enabled: cartDrawer.milestonesEnabled,
@@ -995,7 +996,7 @@ export default function CartDrawerIndex() {
     },
     {
       id: 'free-gifts',
-      title: 'Free Gifts',
+      title: 'Free Gift Offers',
       description: 'Let customers choose free gifts on orders',
       icon: GiftCardIcon,
       enabled: cartDrawer.freeGiftsEnabled,
@@ -1005,7 +1006,7 @@ export default function CartDrawerIndex() {
     },
     {
       id: 'promotional-banner',
-      title: 'Promotional Banner',
+      title: 'In-Cart Offers & Deals',
       description: 'Display promotional offers and sales in the cart',
       icon: MegaphoneIcon,
       enabled: cartDrawer.promotionalBannerEnabled,
@@ -1020,7 +1021,7 @@ export default function CartDrawerIndex() {
     },
     {
       id: 'product-recommendations',
-      title: 'Product Recommendations',
+      title: 'Smart Upsells & Cross-Sells',
       description: 'Upsell related products with "You may also like"',
       icon: ProductIcon,
       enabled: cartDrawer.productRecommendationsEnabled,
@@ -1033,7 +1034,7 @@ export default function CartDrawerIndex() {
     },
     {
       id: 'coupon-code',
-      title: 'Coupon Code Field',
+      title: 'Discount Code Box',
       description: 'Allow customers to apply discount codes in cart',
       icon: DiscountIcon,
       enabled: cartDrawer.couponCodeFieldEnabled,
@@ -1043,7 +1044,7 @@ export default function CartDrawerIndex() {
     },
     {
       id: 'savings-display',
-      title: 'Savings Display',
+      title: 'You’re Saving Indicator',
       description: 'Show total amount saved to encourage checkout',
       icon: CashDollarIcon,
       enabled: cartDrawer.savingsDisplayEnabled,
@@ -1053,7 +1054,7 @@ export default function CartDrawerIndex() {
     },
     {
       id: 'free-shipping-message',
-      title: 'Free Shipping Message',
+      title: 'Free Shipping Reminder',
       description: 'Display free shipping threshold at bottom of cart',
       icon: DeliveryIcon,
       enabled: cartDrawer.freeShippingMessageEnabled,
@@ -1063,7 +1064,7 @@ export default function CartDrawerIndex() {
     },
     {
       id: 'cart-totals',
-      title: 'Cart Totals',
+      title: 'Order Summary',
       description: 'Customize cart totals display and styling',
       icon: CalculatorIcon,
       enabled: cartDrawer.cartTotalsEnabled,
@@ -1097,27 +1098,77 @@ export default function CartDrawerIndex() {
   }, [featureLookup, featureOrder, features]);
 
   return (
-    <Page>
-      <TitleBar title="Cart Drawer Customization" />
+    <Page fullWidth>
+      <TitleBar title="Cart Experience Builder" />
+      <style>{`
+        .dense-row {
+          transition: background-color 0.15s ease;
+          display: flex;
+          align-items: center;
+          padding: 12px 16px;
+          gap: 16px;
+        }
+        .dense-row:hover {
+          background-color: var(--p-color-bg-surface-hover);
+        }
+        .dense-row-active {
+          background-color: var(--p-color-bg-surface-selected);
+          box-shadow: inset 2px 0 0 0 var(--p-color-border-focus);
+        }
+        .drag-grab {
+          cursor: grab;
+          color: var(--p-color-icon-subdued);
+          display: flex;
+          padding: 6px;
+          border-radius: 4px;
+        }
+        .drag-grab:hover {
+          color: var(--p-color-icon);
+          background-color: var(--p-color-bg-surface-tertiary);
+        }
+        .drag-grab:active {
+          cursor: grabbing;
+        }
+        /* Custom scrollbar for compactness if needed */
+        .feature-list-container {
+          border: 1px solid var(--p-color-border);
+          border-radius: 8px;
+          background: var(--p-color-bg-surface);
+          overflow: hidden;
+        }
+        .feature-list-header {
+          background: var(--p-color-bg-surface-secondary);
+          padding: 8px 16px;
+          border-bottom: 1px solid var(--p-color-border);
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--p-color-text-subdued);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          display: flex;
+          justify-content: space-between;
+        }
+        .circled-btn {
+          border-radius: 9999px;
+          border: 1px solid var(--p-color-border-strong);
+          padding: 2px 14px;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+        }
+        .circled-btn:hover {
+          background-color: var(--p-color-bg-surface-secondary);
+        }
+      `}</style>
 
-      {/* Loading Overlay for Version Switching */}
+      {/* Loading Overlay */}
       {isLoadingVersion && (
         <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          gap: '16px',
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(2px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
         }}>
-          <Spinner size="large" />
-          <Text as="p" variant="bodyLg">Loading version configuration...</Text>
+          <Spinner size="small" />
         </div>
       )}
 
@@ -1126,9 +1177,10 @@ export default function CartDrawerIndex() {
         gap: '24px',
         minHeight: 'calc(100vh - 200px)',
         padding: '0',
-        opacity: isLoadingVersion ? 0.3 : 1,
+        opacity: isLoadingVersion ? 0.5 : 1,
         pointerEvents: isLoadingVersion ? 'none' : 'auto',
-        transition: 'opacity 0.2s ease-in-out',
+        transition: 'opacity 0.2s',
+        paddingTop: '16px'
       }}>
         {/* LEFT SIDE - Configuration Options */}
         <div style={{
@@ -1136,239 +1188,149 @@ export default function CartDrawerIndex() {
           minWidth: '500px',
           paddingRight: '12px'
         }}>
-          <BlockStack gap="500">
-            {/* Header Card */}
-            <Card>
-              <BlockStack gap="400">
-                <InlineStack align="space-between" blockAlign="center">
-                  <BlockStack gap="100">
-                    <InlineStack gap="200" blockAlign="center">
-                      <Text as="h2" variant="headingLg">
-                        Customize Your Cart Drawer
-                      </Text>
-                      <Badge tone={appEmbedEnabled ? "success" : "warning"}>
-                        {appEmbedEnabled ? "Enabled" : "Disabled"}
-                      </Badge>
-                    </InlineStack>
-                    {!appEmbedEnabled &&
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Enable and configure features to enhance your cart drawer. Toggle features on/off to see how they enhance the shopping experience.
-                      </Text>}
-                  </BlockStack>
-                  {!appEmbedEnabled &&
-                    <Button
-                      url="/app/cart-drawer/installation"
-                      variant="secondary"
-                    >
-                      View Installation Instructions
-                    </Button>
-                  }
-                </InlineStack>
-              </BlockStack>
-            </Card>
+          <BlockStack gap="400">
 
-            {/* App Embed Activation Banner */}
-            {!appEmbedEnabled && (
-              <Card>
-                <BlockStack gap="400">
-                  <InlineStack gap="200" blockAlign="start">
-                    <Box>
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        backgroundColor: '#FEF3C7',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '20px'
-                      }}>
-                        ⚠️
-                      </div>
-                    </Box>
-                    <BlockStack gap="200">
-                      <Text as="h3" variant="headingMd">
-                        Please connect Selldrawer Bridge
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Now that you've installed Selldrawer, you need to enable the <strong>Selldrawer Bridge</strong> in your Shopify theme. This will not set your cart live yet.
-                      </Text>
-                      <BlockStack gap="200">
-                        <Text as="p" variant="bodyMd">
-                          <strong>1.</strong> Click the button below to enable the Selldrawer Bridge from your theme editor.
-                        </Text>
-                        <Text as="p" variant="bodyMd">
-                          <strong>2.</strong> Ensure the Selldrawer Bridge is toggled on and click <strong>save</strong>.
-                        </Text>
-                      </BlockStack>
-                      <Box paddingBlockStart="200">
-                        <Button
-                          variant="primary"
-                          url={`https://admin.shopify.com/store/${shopDomain.split('.')[0]}/themes/current/editor?context=apps`}
-                          target="_blank"
-                        >
-                          Click here to enable the Selldrawer Bridge
-                        </Button>
-                      </Box>
-                    </BlockStack>
-                  </InlineStack>
-                </BlockStack>
-              </Card>
-            )}
-
-            {/* Feature Configuration Cards */}
-            <BlockStack gap="400">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '4px 8px',
-                    color: '#6b7280',
-                    fontSize: '12px',
-                    fontWeight: 600
-                  }}>
-                    <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style={{ opacity: 0.7 }}>
-                        <circle cx="5" cy="5" r="1.5" />
-                        <circle cx="10" cy="5" r="1.5" />
-                        <circle cx="15" cy="5" r="1.5" />
-                        <circle cx="5" cy="10" r="1.5" />
-                        <circle cx="10" cy="10" r="1.5" />
-                        <circle cx="15" cy="10" r="1.5" />
-                      </svg>
-                    </span>
-                    <span>Drag to reorder features</span>
-                  </div>
-                </div>
+            {/* COMPACT TOP BAR */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
+              <div>
+                <Text as="h1" variant="headingXl">Cart Layout & Flow</Text>
+                <Text as="p" variant="bodySm" tone="subdued">Build & reorder your cart drawer stack.</Text>
               </div>
-              {orderedFeatureCards.map((item) => {
-                const isCartItems = 'isCartItems' in item && item.isCartItems;
-                const feature = isCartItems ? null : item as (typeof features)[number];
-                const itemId = isCartItems ? FEATURE_ORDER_SENTINEL : feature!.id;
+              {!appEmbedEnabled ? (
+                <Button
+                  url={`https://admin.shopify.com/store/${shopDomain.split('.')[0]}/themes/current/editor?context=apps`}
+                  target="_blank"
+                  size="micro"
+                  tone="critical"
+                >
+                  Enable Theme App Embed
+                </Button>
+              ) : (
+                <Badge tone="success">Live</Badge>
+              )}
+            </div>
 
-                return (
-                  <div
-                    key={itemId}
-                    draggable
-                    onDragStart={handleDragStart(itemId)}
-                    onDragOver={handleDragOver}
-                    onDrop={handleDrop(itemId)}
-                    onDragEnd={handleDragEnd}
-                    onDragEnter={() => setDragOverId(itemId)}
-                    onDragLeave={(e) => {
-                      if (e.currentTarget === e.target) {
-                        setDragOverId((current) => (current === itemId ? null : current));
-                      }
-                    }}
-                    style={{
-                      cursor: 'grab',
-                      opacity: draggedFeatureId === itemId ? 0.6 : 1,
-                      transition: 'box-shadow 0.15s ease, transform 0.15s ease, background-color 0.15s ease',
-                      boxShadow: dragOverId === itemId ? '0 0 0 2px #93c5fd inset, 0 2px 8px rgba(59,130,246,0.15)' : 'none',
-                      backgroundColor: dragOverId === itemId ? '#f8fafc' : 'transparent',
-                      borderRadius: '12px'
-                    }}
-                  >
-                    <Card>
-                      <BlockStack gap="400">
-                        <InlineStack align="space-between" blockAlign="center">
-                          <InlineStack gap="300" blockAlign="center">
-                            <Box>
-                              <div
-                                aria-label="Drag to reorder"
-                                title="Drag to reorder"
-                                style={{
-                                  width: '20px',
-                                  height: '28px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  color: '#9ca3af',
-                                  cursor: 'grab',
-                                }}
-                              >
-                                <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
-                                  <circle cx="3" cy="3" r="1.3" />
-                                  <circle cx="9" cy="3" r="1.3" />
-                                  <circle cx="3" cy="8" r="1.3" />
-                                  <circle cx="9" cy="8" r="1.3" />
-                                  <circle cx="3" cy="13" r="1.3" />
-                                  <circle cx="9" cy="13" r="1.3" />
-                                </svg>
-                              </div>
-                            </Box>
-                            <Box>
-                              <Icon source={isCartItems ? ProductIcon : feature!.icon} tone="base" />
-                            </Box>
-                            <BlockStack gap="100">
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                <Text as="h3" variant="headingMd">
-                                  {isCartItems ? 'Selected Items' : feature!.title}
-                                </Text>
-                                {!isCartItems && !feature!.isConfigured && (
-                                  <span style={{
-                                    fontSize: '9px',
-                                    color: '#92400e',
-                                    backgroundColor: '#fef3c7',
-                                    padding: '2px 10px',
-                                    borderRadius: '10px',
-                                    fontWeight: 600,
-                                    lineHeight: '1.4',
-                                    whiteSpace: 'nowrap',
-                                    border: '1px solidrgb(227, 171, 30)'
-                                  }}>
-                                    Not Configured
-                                  </span>
-                                )}
-                                {isCartItems && (
-                                  <Badge tone="info">Cart Items</Badge>
-                                )}
-                              </div>
-                              <Text as="p" variant="bodyMd" tone="subdued">
-                                {isCartItems ? 'Products added to cart by the customer' : feature!.description}
-                              </Text>
-                            </BlockStack>
-                          </InlineStack>
-                          {!isCartItems && (
-                            <InlineStack gap="200">
-                              <Button
-                                onClick={() => handleToggleFeature(feature!.id, feature!.enabled)}
-                                variant={feature!.enabled ? "secondary" : "primary"}
-                                disabled={!feature!.isConfigured && !feature!.enabled}
-                              >
-                                {feature!.enabled ? "Disable" : "Enable"}
-                              </Button>
-                              <Button
-                                url={feature!.path}
-                                variant="primary"
-                              >
-                                Configure
-                              </Button>
-                            </InlineStack>
-                          )}
-                        </InlineStack>
-                      </BlockStack>
-                    </Card>
-                  </div>
-                );
-              })}
-            </BlockStack>
+            {/* ULTRA DENSE LIST TABLE */}
+            <div className="feature-list-container">
+              <div className="feature-list-header">
+                <span>Stack Order</span>
+                <span>Status & Actions</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {orderedFeatureCards.map((item, index) => {
+                  const isCartItems = 'isCartItems' in item && item.isCartItems;
+                  const feature = isCartItems ? null : item as (typeof features)[number];
+                  const itemId = isCartItems ? FEATURE_ORDER_SENTINEL : feature!.id;
+
+                  const isDragged = draggedFeatureId === itemId;
+                  const isDraggedOver = dragOverId === itemId;
+
+                  return (
+                    <React.Fragment key={itemId}>
+                      <div
+                        className={`dense-row ${isDraggedOver ? 'dense-row-active' : ''}`}
+                        draggable
+                        onDragStart={handleDragStart(itemId)}
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop(itemId)}
+                        onDragEnd={handleDragEnd}
+                        onDragEnter={() => setDragOverId(itemId)}
+                        onDragLeave={(e) => {
+                          if (e.currentTarget === e.target) setDragOverId((c) => (c === itemId ? null : c));
+                        }}
+                        style={{ opacity: isDragged ? 0.3 : 1 }}
+                      >
+                        {/* Left: Drag + Icon + Title */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                          <div className="drag-grab">
+                            <svg width="10" height="14" viewBox="0 0 12 16" fill="currentColor">
+                              <circle cx="3" cy="3" r="1.2" />
+                              <circle cx="9" cy="3" r="1.2" />
+                              <circle cx="3" cy="8" r="1.2" />
+                              <circle cx="9" cy="8" r="1.2" />
+                              <circle cx="3" cy="13" r="1.2" />
+                              <circle cx="9" cy="13" r="1.2" />
+                            </svg>
+                          </div>
+
+                          <div style={{ color: isCartItems ? 'var(--p-color-icon)' : (feature!.enabled ? 'var(--p-color-icon-magic)' : 'var(--p-color-icon-subdued)'), display: 'flex' }}>
+                            <Icon source={isCartItems ? ProductIcon : feature!.icon} tone="inherit" />
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <Text as="span" variant="bodyMd" fontWeight="semibold" tone={isCartItems ? 'base' : (feature!.enabled ? 'base' : 'subdued')}>
+                              {isCartItems ? 'Customer Cart Items' : feature!.title}
+                            </Text>
+                            <Text as="span" variant="bodySm" tone="subdued">
+                              {isCartItems ? 'Displays the items customers have added to their cart.' : feature!.description}
+                            </Text>
+                          </div>
+                        </div>
+
+                        {/* Right: Badges & Actions */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          {/* Badges */}
+                          <div style={{ width: '90px', display: 'flex', justifyContent: 'flex-end' }}>
+                            {isCartItems ? (
+                              <Badge tone="new" size="small">Core</Badge>
+                            ) : feature!.enabled ? (
+                              <Badge tone="success" size="small">Active</Badge>
+                            ) : !feature!.isConfigured ? (
+                              <Badge tone="warning" size="small">Setup</Badge>
+                            ) : (
+                              <Badge size="small">Off</Badge>
+                            )}
+                          </div>
+
+                          {/* Actions */}
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', alignItems: 'center', width: '160px' }}>
+                            {!isCartItems && (
+                              <>
+                                <Button
+                                  variant="plain"
+                                  tone={feature!.enabled ? "critical" : "success"}
+                                  onClick={() => handleToggleFeature(feature!.id, feature!.enabled)}
+                                  disabled={!feature!.isConfigured && !feature!.enabled}
+                                >
+                                  {feature!.enabled ? "Disable" : "Enable"}
+                                </Button>
+                                <Text as="span" variant="bodySm" tone="subdued">|</Text>
+                                <div className="circled-btn" style={{ fontWeight: 600 }}>
+                                  <Button
+                                    url={feature!.path}
+                                    variant="plain"
+                                  >
+                                    Configure
+                                  </Button>
+                                </div>
+                              </>
+                            )}
+                            {isCartItems && (
+                              <Text as="span" variant="bodySm" tone="subdued">Non-editable</Text>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {index < orderedFeatureCards.length - 1 && (
+                        <div style={{ height: '1px', backgroundColor: 'var(--p-color-border-subdued)', marginLeft: '32px' }} />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </div>
           </BlockStack>
         </div>
 
-        {/* RIGHT SIDE - Live Preview */}
+        {/* RIGHT SIDE PREVIEW */}
         <div style={{
           flex: '0 0 40%',
-          minWidth: '350px',
+          minWidth: '370px',
           paddingLeft: '12px',
           position: 'sticky',
-          top: '0',
+          top: '10px',
+          marginTop: '10px',
           height: 'fit-content',
           maxHeight: 'calc(100vh)',
           overflowY: 'auto'

@@ -653,140 +653,262 @@ export default function FreeGifts() {
   return (
     <Page
       backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
-      title="Free Gifts"
+      title="Free Gifts Configuration"
       primaryAction={{
-        content: "Save",
+        content: "Save changes",
         onAction: handleEnableFreeGifts,
         loading: isSubmitting,
       }}
     >
-      <TitleBar title="Free Gifts" />
+      <style>{`
+        /* Premium UI CSS */
+        .premium-card {
+          background: #ffffff;
+          border-radius: 12px;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+          overflow: hidden;
+          transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+          margin-bottom: 20px;
+        }
+        .premium-card:hover {
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+          transform: translateY(-2px);
+        }
+        .premium-card-header {
+          padding: 20px 24px;
+          border-bottom: 1px solid #f3f4f6;
+          background: linear-gradient(to right, #f8fafc, #ffffff);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .premium-card-body {
+          padding: 24px;
+        }
+        
+        .icon-circle {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+          color: #d97706;
+          font-size: 20px;
+        }
+
+        .gift-card {
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          padding: 20px;
+          background: #ffffff;
+          transition: all 0.3s ease;
+          position: relative;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .gift-card:hover {
+          box-shadow: 0 8px 12px -3px rgba(0, 0, 0, 0.08);
+          border-color: #cbd5e1;
+          transform: translateY(-2px);
+        }
+        .gift-card-active {
+          border-left: 4px solid #10b981;
+        }
+        .gift-card-inactive {
+          border-left: 4px solid #9ca3af;
+          background: #f9fafb;
+        }
+
+        /* Custom Toggle Switch */
+        .premium-toggle-label {
+          position: relative;
+          display: inline-block;
+          width: 44px;
+          height: 24px;
+          margin: 0;
+        }
+        .premium-toggle-label input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+        .premium-toggle-slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #e2e8f0;
+          transition: .3s;
+          border-radius: 24px;
+          border: 1px solid #cbd5e1;
+        }
+        .premium-toggle-slider:before {
+          position: absolute;
+          content: "";
+          height: 18px;
+          width: 18px;
+          left: 2px;
+          bottom: 2px;
+          background-color: white;
+          transition: .3s cubic-bezier(0.4, 0.0, 0.2, 1);
+          border-radius: 50%;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        .premium-toggle-label input:checked + .premium-toggle-slider {
+          background-color: #10b981;
+          border-color: #10b981;
+        }
+        .premium-toggle-label input:checked + .premium-toggle-slider:before {
+          transform: translateX(20px);
+        }
+        
+        .status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 600;
+        }
+        .status-badge.active {
+          background-color: rgba(16, 185, 129, 0.1);
+          color: #059669;
+        }
+        .status-badge.inactive {
+          background-color: #e5e7eb;
+          color: #6b7280;
+        }
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+        }
+        .status-dot.active {
+          background-color: #10b981;
+        }
+        .status-dot.inactive {
+          background-color: #9ca3af;
+        }
+      `}</style>
 
       <Layout>
         <Layout.Section variant="oneHalf">
-          <BlockStack gap="400">
-            {/* Info Banner */}
-            <Banner tone="info">
-              <p>
-                Configure free gift offers that customers can choose when they meet certain conditions.
-                Set up triggers like minimum spend, quantity, or specific products to unlock gift options.
-              </p>
-            </Banner>
-
-            {/* Free Gifts List */}
-            <Card>
-              <BlockStack gap="400">
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="h2" variant="headingMd">
-                    Configured Free Gifts
+          <div className="premium-card">
+            <div className="premium-card-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="icon-circle">
+                  🎁
+                </div>
+                <div>
+                  <Text as="h2" variant="headingMd" fontWeight="bold">
+                    Free Gift Offers
                   </Text>
-                  <Button
-                    variant="primary"
-                    onClick={() => handleOpenModal()}
-                  >
-                    Add Free Gift
-                  </Button>
-                </InlineStack>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Configure gifts customers can choose when conditions are met
+                  </Text>
+                </div>
+              </div>
+              <Button variant="primary" onClick={() => handleOpenModal()}>
+                Add New Gift
+              </Button>
+            </div>
 
-                {cartDrawer.freeGifts && cartDrawer.freeGifts.length > 0 ? (
-                  <ResourceList
-                    resourceName={{ singular: 'free gift', plural: 'free gifts' }}
-                    items={cartDrawer.freeGifts}
-                    renderItem={(freeGift) => {
-                      const { id, name, triggerType, triggerValue, customerLimit, isActive, giftProducts, targets } = freeGift;
-
-                      return (
-                        <ResourceItem
-                          id={id}
-                          accessibilityLabel={`View details for ${name}`}
-                          onClick={() => { }}
-                        >
-                          <BlockStack gap="300">
-                            <BlockStack gap="200">
-                              <InlineStack gap="300" blockAlign="center">
-                                <div style={{ fontSize: '32px', lineHeight: '1' }}>
-                                  🎁
-                                </div>
-                                <BlockStack gap="100">
-                                  <InlineStack gap="150" blockAlign="center">
-                                    <Text as="h3" variant="headingMd">
-                                      {name}
-                                    </Text>
-                                    <Badge tone={isActive ? "success" : undefined}>
-                                      {isActive ? "Active" : "Inactive"}
-                                    </Badge>
-                                  </InlineStack>
-                                  <Text as="p" variant="bodySm" tone="subdued">
-                                    Trigger: {getTriggerTypeLabel(triggerType)}
-                                    {triggerType === "spend" && ` (₹${triggerValue.toString()})`}
-                                    {triggerType === "quantity" && ` (${triggerValue.toString()} items)`}
-                                    {triggerType === "products" && ` (${triggerValue.toString()} qty from ${targets?.length || 0} products)`}
-                                    {triggerType === "collections" && ` (${triggerValue.toString()} qty from ${targets?.length || 0} collections)`}
-                                    {' | '}
-                                    Choose {customerLimit} gift{customerLimit > 1 ? 's' : ''} |
-                                    {giftProducts.length} product{giftProducts.length > 1 ? 's' : ''}
-                                  </Text>
-                                </BlockStack>
-                              </InlineStack>
-                              <InlineStack gap="200" blockAlign="center">
-                                <Button
-                                  onClick={() => handleToggle(id, isActive)}
-                                  variant="secondary"
-                                >
-                                  {isActive ? "Disable" : "Enable"}
-                                </Button>
-                                <Button
-                                  onClick={() => handleOpenModal(freeGift)}
-                                  variant="primary"
-                                >
-                                  Edit
-                                </Button>
-                                <Button
-                                  icon={DeleteIcon}
-                                  variant="plain"
-                                  tone="critical"
-                                  onClick={() => handleDelete(id)}
-                                />
-                              </InlineStack>
-                            </BlockStack>
-                          </BlockStack>
-                        </ResourceItem>
-                      );
-                    }}
-                  />
-                ) : (
-                  <EmptyState
-                    heading="No free gifts configured"
-                    image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                  >
-                    <p>Add free gift offers to incentivize purchases and delight customers.</p>
-                  </EmptyState>
-                )}
-              </BlockStack>
-            </Card>
-          </BlockStack>
+            <div className="premium-card-body" style={{ background: '#f8fafc' }}>
+              {cartDrawer.freeGifts && cartDrawer.freeGifts.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {cartDrawer.freeGifts.map((freeGift: any) => {
+                    const { id, name, triggerType, triggerValue, customerLimit, isActive, giftProducts, targets } = freeGift;
+                    return (
+                      <div key={id} className={`gift-card ${isActive ? 'gift-card-active' : 'gift-card-inactive'}`}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                <Text as="h3" variant="headingMd" fontWeight="semibold">
+                                  {name}
+                                </Text>
+                                <span className={`status-badge ${isActive ? 'active' : 'inactive'}`}>
+                                  <span className={`status-dot ${isActive ? 'active' : 'inactive'}`}></span>
+                                  {isActive ? 'Active' : 'Disabled'}
+                                </span>
+                              </div>
+                              <Text as="p" variant="bodySm" tone="subdued">
+                                <strong>Trigger:</strong> {getTriggerTypeLabel(triggerType)}
+                                {triggerType === "spend" && ` (₹${triggerValue.toString()})`}
+                                {triggerType === "quantity" && ` (${triggerValue.toString()} items)`}
+                                {triggerType === "products" && ` (${triggerValue.toString()} qty from ${targets?.length || 0} products)`}
+                                {triggerType === "collections" && ` (${triggerValue.toString()} qty from ${targets?.length || 0} collections)`}
+                              </Text>
+                              <Text as="p" variant="bodySm" tone="subdued" style={{ marginTop: '4px' }}>
+                                <strong>Contains:</strong> {giftProducts.length} product{giftProducts.length > 1 ? 's' : ''} • Choose {customerLimit}
+                              </Text>
+                            </div>
+                          </div>
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <label className="premium-toggle-label">
+                              <input 
+                                type="checkbox" 
+                                checked={isActive} 
+                                onChange={() => handleToggle(id, isActive)}
+                                disabled={isSubmitting}
+                              />
+                              <span className="premium-toggle-slider"></span>
+                            </label>
+                            
+                            <div style={{ display: 'flex', gap: '8px', borderLeft: '1px solid #e5e7eb', paddingLeft: '12px' }}>
+                              <Button variant="secondary" onClick={() => handleOpenModal(freeGift)}>
+                                Edit
+                              </Button>
+                              <Button variant="plain" tone="critical" onClick={() => handleDelete(id)}>
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <EmptyState
+                  heading="No free gifts configured"
+                  image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                >
+                  <p>Add free gift offers to incentivize purchases and delight customers.</p>
+                </EmptyState>
+              )}
+            </div>
+          </div>
         </Layout.Section>
 
         {/* Preview Section */}
         <Layout.Section variant="oneHalf">
-          <Card>
-            <BlockStack gap="400">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text as="h3" variant="headingMd">
-                  Preview
+          <div className="premium-card">
+            <div className="premium-card-header" style={{ padding: '16px 20px', background: '#f8fafc' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <Text as="h3" variant="headingMd" fontWeight="medium">
+                  Live Preview
                 </Text>
                 <Badge tone={previewFreeGifts.length > 0 ? 'success' : 'info'}>
                   {previewFreeGifts.length > 0 ? `${previewFreeGifts.length} offer${previewFreeGifts.length > 1 ? 's' : ''}` : 'Sample'}
                 </Badge>
               </div>
-
+            </div>
+            <div className="premium-card-body" style={{ background: '#f1f5f9' }}>
               <div style={{
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                padding: '16px',
                 backgroundColor: '#ffffff',
-                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                minHeight: '200px',
+                padding: '16px',
+                borderRadius: '8px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
               }}>
                 <FreeGiftSelector
                   freeGifts={previewFreeGifts}
@@ -796,11 +918,13 @@ export default function FreeGifts() {
                 />
               </div>
 
-              <Text as="p" variant="bodyMd" tone="subdued">
-                This preview shows how free gift offers will appear in your cart drawer when customers qualify.
-              </Text>
-            </BlockStack>
-          </Card>
+              <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  This preview shows how free gift offers will appear in your cart drawer.
+                </Text>
+              </div>
+            </div>
+          </div>
         </Layout.Section>
       </Layout>
 

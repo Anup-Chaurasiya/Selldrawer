@@ -486,9 +486,9 @@ export default function ProductRecommendations() {
   return (
     <Page
       backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
-      title="Product Recommendations"
+      title="Product Recommendations Configuration"
       primaryAction={{
-        content: "Save",
+        content: "Save changes",
         onAction: handleSubmit,
         loading: isLoading,
       }}
@@ -568,121 +568,298 @@ export default function ProductRecommendations() {
             transform: translateX(-50%) translateY(0);
           }
         }
+        
+        /* Premium UI CSS */
+        .premium-card {
+          background: #ffffff;
+          border-radius: 12px;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+          overflow: hidden;
+          transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+          margin-bottom: 20px;
+        }
+        .premium-card:hover {
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+          transform: translateY(-2px);
+        }
+        .premium-card-header {
+          padding: 20px 24px;
+          border-bottom: 1px solid #f3f4f6;
+          background: linear-gradient(to right, #f8fafc, #ffffff);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .premium-card-body {
+          padding: 24px;
+        }
+        
+        /* Custom Toggle Switch */
+        .premium-toggle-label {
+          position: relative;
+          display: inline-block;
+          width: 44px;
+          height: 24px;
+          margin: 0;
+        }
+        .premium-toggle-label input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+        .premium-toggle-slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #e2e8f0;
+          transition: .3s;
+          border-radius: 24px;
+          border: 1px solid #cbd5e1;
+        }
+        .premium-toggle-slider:before {
+          position: absolute;
+          content: "";
+          height: 18px;
+          width: 18px;
+          left: 2px;
+          bottom: 2px;
+          background-color: white;
+          transition: .3s cubic-bezier(0.4, 0.0, 0.2, 1);
+          border-radius: 50%;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        .premium-toggle-label input:checked + .premium-toggle-slider {
+          background-color: #10b981;
+          border-color: #10b981;
+        }
+        .premium-toggle-label input:focus + .premium-toggle-slider {
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+        .premium-toggle-label input:checked + .premium-toggle-slider:before {
+          transform: translateX(20px);
+        }
+        .premium-toggle-container {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        
+        .status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 600;
+        }
+        .status-badge.active {
+          background-color: rgba(16, 185, 129, 0.1);
+          color: #059669;
+        }
+        .status-badge.inactive {
+          background-color: #f3f4f6;
+          color: #6b7280;
+        }
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+        }
+        .status-dot.active {
+          background-color: #10b981;
+        }
+        .status-dot.inactive {
+          background-color: #9ca3af;
+        }
+        
+        .icon-circle {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+          color: #db2777;
+          font-size: 20px;
+        }
+
+        .product-card {
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 16px;
+          background-color: #ffffff;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          gap: 12px;
+          align-items: center;
+        }
+        .product-card:hover {
+          border-color: #3b82f6;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+          transform: translateY(-1px);
+        }
+        .product-card.selected {
+          border: 2px solid #3b82f6;
+          background-color: #f0f9ff;
+        }
       `}</style>
 
       <Layout>
         <Layout.Section>
-          <BlockStack gap="400">
-            <Card>
-              <BlockStack gap="400">
-                <InlineStack align="space-between">
-                  <Text as="h2" variant="headingMd">
-                    Configuration
+          <div className="premium-card">
+            <div className="premium-card-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="icon-circle">
+                  🛍️
+                </div>
+                <div>
+                  <Text as="h2" variant="headingMd" fontWeight="bold">
+                    Product Recommendations
                   </Text>
-                  <Button onClick={handleToggle} loading={isLoading}>
-                    {cartDrawer?.productRecommendationsEnabled ? "Disable" : "Enable"}
-                  </Button>
-                </InlineStack>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Increase average order value by suggesting additional products
+                  </Text>
+                </div>
+              </div>
+              <div className="premium-toggle-container">
+                <span className={`status-badge ${cartDrawer?.productRecommendationsEnabled ? 'active' : 'inactive'}`}>
+                  <span className={`status-dot ${cartDrawer?.productRecommendationsEnabled ? 'active' : 'inactive'}`}></span>
+                  {cartDrawer?.productRecommendationsEnabled ? 'Active' : 'Disabled'}
+                </span>
+                <label className="premium-toggle-label">
+                  <input 
+                    type="checkbox" 
+                    checked={cartDrawer?.productRecommendationsEnabled || false} 
+                    onChange={handleToggle}
+                    disabled={isLoading}
+                  />
+                  <span className="premium-toggle-slider"></span>
+                </label>
+              </div>
+            </div>
 
+            <div className="premium-card-body">
+              <BlockStack gap="500">
                 {!cartDrawer?.productRecommendationsEnabled && (
                   <Banner tone="warning">
                     This feature is currently disabled. Enable it to show product recommendations in your cart.
                   </Banner>
                 )}
 
-                <FormLayout>
-                  <TextField
-                    label="Section Title"
-                    value={formState.title}
-                    onChange={(value) => setFormState({ ...formState, title: value })}
-                    helpText="Heading for the recommendations section"
-                    autoComplete="off"
-                  />
+                <div>
+                  <Text as="h3" variant="headingSm" fontWeight="medium">
+                    Display Settings
+                  </Text>
+                  <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <TextField
+                      label="Section Title"
+                      value={formState.title}
+                      onChange={(value) => setFormState({ ...formState, title: value })}
+                      helpText="Heading for the recommendations section"
+                      autoComplete="off"
+                    />
 
-                  <TextField
-                    label="Maximum Products to Show"
-                    type="number"
-                    value={formState.maxProducts}
-                    onChange={(value) => setFormState({ ...formState, maxProducts: value })}
-                    helpText="Number of recommended products to display"
-                    autoComplete="off"
-                  />
+                    <TextField
+                      label="Maximum Products to Show"
+                      type="number"
+                      value={formState.maxProducts}
+                      onChange={(value) => setFormState({ ...formState, maxProducts: value })}
+                      autoComplete="off"
+                    />
+                  </div>
+                  
+                  <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <Select
+                      label="Layout Format"
+                      options={[
+                        { label: "Grid View", value: "grid" },
+                        { label: "Carousel Slider", value: "carousel" },
+                      ]}
+                      value={formState.layout}
+                      onChange={(value) => setFormState({ ...formState, layout: value })}
+                    />
 
-                  <Select
-                    label="Layout"
-                    options={[
-                      { label: "Grid", value: "grid" },
-                      { label: "Carousel", value: "carousel" },
-                    ]}
-                    value={formState.layout}
-                    onChange={(value) => setFormState({ ...formState, layout: value })}
-                  />
+                    <Select
+                      label="Recommendation Engine"
+                      options={[
+                        { label: "Manual Selection", value: "manual" },
+                        { label: "Auto: Related Products", value: "related" },
+                        { label: "Auto: Complementary", value: "complementary" },
+                      ]}
+                      value={formState.recommendationType}
+                      onChange={(value) => setFormState({ ...formState, recommendationType: value })}
+                      helpText="Related/Complementary use Shopify's AI engine based on cart contents"
+                    />
+                  </div>
 
-                  <Select
-                    label="Recommendation Type"
-                    options={[
-                      { label: "Manual Selection", value: "manual" },
-                      { label: "Related Products", value: "related" },
-                      { label: "Complementary Products", value: "complementary" },
-                    ]}
-                    value={formState.recommendationType}
-                    onChange={(value) => setFormState({ ...formState, recommendationType: value })}
-                    helpText="How to select products to recommend. Related and Complementary use Shopify's recommendation engine."
-                  />
+                  <div style={{ marginTop: '16px', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+                    <Checkbox
+                      label="Display product discounts"
+                      checked={formState.showDiscount}
+                      onChange={(value) => setFormState({ ...formState, showDiscount: value })}
+                    />
+                    <Checkbox
+                      label="Show discount percentage badge"
+                      checked={formState.showDiscountBadge}
+                      onChange={(value) => setFormState({ ...formState, showDiscountBadge: value })}
+                    />
+                    <Checkbox
+                      label="Include Add to Cart button"
+                      checked={formState.showAddButton}
+                      onChange={(value) => setFormState({ ...formState, showAddButton: value })}
+                    />
+                  </div>
+                </div>
 
-                  <Checkbox
-                    label="Show discount information"
-                    checked={formState.showDiscount}
-                    onChange={(value) => setFormState({ ...formState, showDiscount: value })}
-                  />
-
-                  <Checkbox
-                    label="Show discount badge"
-                    checked={formState.showDiscountBadge}
-                    onChange={(value) => setFormState({ ...formState, showDiscountBadge: value })}
-                  />
-
-                  <Checkbox
-                    label="Show add to cart button"
-                    checked={formState.showAddButton}
-                    onChange={(value) => setFormState({ ...formState, showAddButton: value })}
-                  />
-                </FormLayout>
+                <div style={{ height: '1px', background: '#e5e7eb', margin: '8px 0' }}></div>
 
                 {/* Product Selection Section */}
                 {formState.recommendationType === "manual" && (
-                  <Card>
-                    <BlockStack gap="400">
-                      <Text as="h3" variant="headingMd">
-                        Select Products to Recommend
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Choose which products to show as recommendations. You can select up to {formState.maxProducts} products.
-                      </Text>
-
-                      <TextField
-                        label="Search Products"
-                        value={searchQuery}
-                        onChange={setSearchQuery}
-                        placeholder="Search for products..."
-                        autoComplete="off"
-                      />
-
-                      {/* Product count info */}
-                      <div style={{
-                        padding: '8px 12px',
-                        backgroundColor: '#f0f9ff',
-                        border: '1px solid #bae6fd',
-                        borderRadius: '4px',
-                        fontSize: '12px',
-                        color: '#0c4a6e'
-                      }}>
-                        {shopProducts.length} products from your store
-                        {searchQuery && ` • ${filteredProducts.length} matching "${searchQuery}"`}
-                        {selectedProducts.length > 0 && ` • ${selectedProducts.length} selected`}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '16px' }}>
+                      <div>
+                        <Text as="h3" variant="headingSm" fontWeight="medium">
+                          Select Products to Recommend
+                        </Text>
+                        <div style={{ marginTop: '4px' }}>
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            Choose specific products to recommend. Showing up to {String(formState.maxProducts)} products.
+                          </Text>
+                        </div>
                       </div>
+                      <Badge tone="info">{`${selectedProducts.length} Selected`}</Badge>
+                    </div>
 
-                      <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '16px' }}>
+                    <TextField
+                      label=""
+                      value={searchQuery}
+                      onChange={setSearchQuery}
+                      placeholder="Search for products by name..."
+                      autoComplete="off"
+                    />
+
+                    {/* Product count info */}
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
+                      backgroundColor: '#f0f9ff',
+                      border: '1px solid #bae6fd',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      color: '#0c4a6e'
+                    }}>
+                      {shopProducts.length} products total
+                      {searchQuery && ` • ${filteredProducts.length} matching "${searchQuery}"`}
+                    </div>
+
+                    <div style={{ marginTop: '16px', maxHeight: '400px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '16px', backgroundColor: '#f9fafb' }}>
                         {filteredProducts.length > 0 ? (
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
                             {filteredProducts.map((product: any) => {
@@ -695,84 +872,65 @@ export default function ProductRecommendations() {
                               return (
                                 <div
                                   key={product.id}
-                                  style={{
-                                    border: isSelected ? '2px solid #3b82f6' : '1px solid #e5e7eb',
-                                    borderRadius: '8px',
-                                    padding: '16px',
-                                    backgroundColor: isSelected ? '#f0f9ff' : '#ffffff',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s ease'
-                                  }}
+                                  className={`product-card ${isSelected ? 'selected' : ''}`}
                                   onClick={() => handleProductToggle(product.id)}
                                 >
-                                  <div style={{ display: 'flex', gap: '12px' }}>
-                                    <div style={{ flexShrink: 0 }}>
-                                      {product.images?.[0]?.src ? (
-                                        <img
-                                          src={product.images[0].src}
-                                          alt={product.title}
-                                          style={{
-                                            width: '80px',
-                                            height: '80px',
-                                            objectFit: 'cover',
-                                            borderRadius: '6px',
-                                            border: '1px solid #e5e7eb'
-                                          }}
-                                        />
-                                      ) : (
-                                        <div style={{
-                                          width: '80px',
-                                          height: '80px',
-                                          backgroundColor: '#f3f4f6',
+                                  <div style={{ flexShrink: 0 }}>
+                                    {product.images?.[0]?.src ? (
+                                      <img
+                                        src={product.images[0].src}
+                                        alt={product.title}
+                                        style={{
+                                          width: '64px',
+                                          height: '64px',
+                                          objectFit: 'cover',
                                           borderRadius: '6px',
-                                          border: '1px solid #e5e7eb',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          fontSize: '32px'
-                                        }}>
-                                          📦
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                                        <h4 style={{
-                                          fontSize: '14px',
-                                          fontWeight: '600',
-                                          margin: 0,
-                                          color: '#111827',
-                                          lineHeight: '1.4'
-                                        }}>
-                                          {product.title}
-                                        </h4>
-                                        <Checkbox
-                                          label=""
-                                          checked={isSelected}
-                                          onChange={() => handleProductToggle(product.id)}
-                                        />
+                                          border: '1px solid #e5e7eb'
+                                        }}
+                                      />
+                                    ) : (
+                                      <div style={{
+                                        width: '64px',
+                                        height: '64px',
+                                        backgroundColor: '#f3f4f6',
+                                        borderRadius: '6px',
+                                        border: '1px solid #e5e7eb',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '24px'
+                                      }}>
+                                        📦
                                       </div>
+                                    )}
+                                  </div>
+                                  <div style={{ flex: 1, minWidth: 0, paddingRight: '12px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                                      <h4 style={{
+                                        fontSize: '14px',
+                                        fontWeight: '600',
+                                        margin: 0,
+                                        color: '#111827',
+                                        lineHeight: '1.4',
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis'
+                                      }}>
+                                        {product.title}
+                                      </h4>
+                                    </div>
 
-                                      <div style={{ marginBottom: '8px' }}>
-                                        {comparePrice && comparePrice > price ? (
-                                          <div>
-                                            <span style={{
-                                              textDecoration: 'line-through',
-                                              color: '#9ca3af',
-                                              fontSize: '12px',
-                                              marginRight: '6px'
-                                            }}>
-                                              ₹{Math.round(comparePrice)}
-                                            </span>
-                                            <span style={{
-                                              fontWeight: '600',
-                                              fontSize: '14px',
-                                              color: '#111827'
-                                            }}>
-                                              ₹{Math.round(price)}
-                                            </span>
-                                          </div>
-                                        ) : (
+                                    <div style={{ marginBottom: '6px' }}>
+                                      {comparePrice && comparePrice > price ? (
+                                        <div>
+                                          <span style={{
+                                            textDecoration: 'line-through',
+                                            color: '#9ca3af',
+                                            fontSize: '12px',
+                                            marginRight: '6px'
+                                          }}>
+                                            ₹{Math.round(comparePrice)}
+                                          </span>
                                           <span style={{
                                             fontWeight: '600',
                                             fontSize: '14px',
@@ -780,20 +938,35 @@ export default function ProductRecommendations() {
                                           }}>
                                             ₹{Math.round(price)}
                                           </span>
-                                        )}
-                                      </div>
-
-                                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                        <Badge tone={product.status === 'active' ? 'success' : 'warning'}>
-                                          {product.status}
-                                        </Badge>
-                                        {discountPercent > 0 && (
-                                          <Badge tone="info">
-                                            {`${discountPercent}% off`}
-                                          </Badge>
-                                        )}
-                                      </div>
+                                        </div>
+                                      ) : (
+                                        <span style={{
+                                          fontWeight: '600',
+                                          fontSize: '14px',
+                                          color: '#111827'
+                                        }}>
+                                          ₹{Math.round(price)}
+                                        </span>
+                                      )}
                                     </div>
+
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                      <Badge tone={product.status === 'active' ? 'success' : 'warning'}>
+                                        {product.status}
+                                      </Badge>
+                                      {discountPercent > 0 && (
+                                        <Badge tone="info">
+                                          {`${discountPercent}% off`}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div style={{ paddingRight: '8px' }}>
+                                    <Checkbox
+                                      label=""
+                                      checked={isSelected}
+                                      onChange={() => handleProductToggle(product.id)}
+                                    />
                                   </div>
                                 </div>
                               );
@@ -802,15 +975,15 @@ export default function ProductRecommendations() {
                         ) : (
                           <div style={{ padding: '40px 20px', textAlign: 'center' }}>
                             <div style={{
-                              width: '80px',
-                              height: '80px',
+                              width: '64px',
+                              height: '64px',
                               backgroundColor: '#f3f4f6',
                               borderRadius: '50%',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               margin: '0 auto 16px',
-                              fontSize: '32px'
+                              fontSize: '24px'
                             }}>
                               📦
                             </div>
@@ -818,237 +991,166 @@ export default function ProductRecommendations() {
                               No products found
                             </h3>
                             <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
-                              Try adjusting your search terms or check if you have products in your store.
+                              Try adjusting your search terms or check your store inventory.
                             </p>
                           </div>
                         )}
                       </div>
 
                       {selectedProducts.length > 0 && (
-                        <div>
-                          <div style={{ marginBottom: '12px' }}>
-                            <Text as="p" variant="bodyMd" fontWeight="semibold">
-                              Selected Products ({selectedProducts.length}/{formState.maxProducts})
-                            </Text>
-                          </div>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+                        <div style={{ marginTop: '24px' }}>
+                          <Text as="h4" variant="headingSm" fontWeight="medium">
+                            {`Selected Products (${selectedProducts.length}/${formState.maxProducts})`}
+                          </Text>
+                          <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
                             {selectedProducts.map((productId, index) => {
                               const product = shopProducts.find((p: any) => p.id === productId);
                               if (!product) return null;
 
                               const variant = product.variants?.[0];
                               const price = variant ? parseFloat(variant.price) : 0;
-                              const comparePrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null;
-                              const discountPercent = comparePrice && comparePrice > price ? Math.round(((comparePrice - price) / comparePrice) * 100) : 0;
 
                               return (
                                 <div key={productId} style={{
                                   border: '1px solid #e5e7eb',
-                                  borderRadius: '8px',
-                                  padding: '12px',
+                                  borderRadius: '6px',
+                                  padding: '8px 12px',
                                   backgroundColor: '#f8fafc',
-                                  position: 'relative'
+                                  position: 'relative',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '12px'
                                 }}>
-                                  <div style={{ display: 'flex', gap: '8px' }}>
-                                    <div style={{ flexShrink: 0 }}>
-                                      {product.images?.[0]?.src ? (
-                                        <img
-                                          src={product.images[0].src}
-                                          alt={product.title}
-                                          style={{
-                                            width: '60px',
-                                            height: '60px',
-                                            objectFit: 'cover',
-                                            borderRadius: '4px',
-                                            border: '1px solid #e5e7eb'
-                                          }}
-                                        />
-                                      ) : (
-                                        <div style={{
-                                          width: '60px',
-                                          height: '60px',
-                                          backgroundColor: '#f3f4f6',
-                                          borderRadius: '4px',
-                                          border: '1px solid #e5e7eb',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          fontSize: '24px'
-                                        }}>
-                                          📦
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                      <h5 style={{
-                                        fontSize: '12px',
-                                        fontWeight: '600',
-                                        margin: '0 0 4px',
-                                        color: '#111827',
-                                        lineHeight: '1.3'
-                                      }}>
-                                        {product.title.length > 20 ? product.title.substring(0, 20) + '...' : product.title}
-                                      </h5>
-
-                                      <div style={{ marginBottom: '4px' }}>
-                                        {comparePrice && comparePrice > price ? (
-                                          <div>
-                                            <span style={{
-                                              textDecoration: 'line-through',
-                                              color: '#9ca3af',
-                                              fontSize: '10px',
-                                              marginRight: '4px'
-                                            }}>
-                                              ₹{Math.round(comparePrice)}
-                                            </span>
-                                            <span style={{
-                                              fontWeight: '600',
-                                              fontSize: '12px',
-                                              color: '#111827'
-                                            }}>
-                                              ₹{Math.round(price)}
-                                            </span>
-                                          </div>
-                                        ) : (
-                                          <span style={{
-                                            fontWeight: '600',
-                                            fontSize: '12px',
-                                            color: '#111827'
-                                          }}>
-                                            ₹{Math.round(price)}
-                                          </span>
-                                        )}
-                                      </div>
-
-                                      {discountPercent > 0 && (
-                                        <Badge tone="info" size="small">
-                                          {`${discountPercent}% off`}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  <div style={{
-                                    position: 'absolute',
-                                    top: '8px',
-                                    right: '8px',
-                                    display: 'flex',
-                                    gap: '4px'
+                                  <span style={{
+                                    fontSize: '11px',
+                                    color: '#64748b',
+                                    backgroundColor: '#e2e8f0',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    fontWeight: '600'
                                   }}>
-                                    <span style={{
-                                      fontSize: '10px',
-                                      color: '#6b7280',
-                                      backgroundColor: '#f3f4f6',
-                                      padding: '2px 6px',
-                                      borderRadius: '4px',
-                                      fontWeight: '600'
+                                    #{String(index + 1)}
+                                  </span>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <h5 style={{
+                                      fontSize: '13px',
+                                      fontWeight: '600',
+                                      margin: '0 0 2px',
+                                      color: '#111827',
+                                      whiteSpace: 'nowrap',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis'
                                     }}>
-                                      #{String(index + 1)}
-                                    </span>
-                                    <button
-                                      onClick={() => handleProductToggle(productId)}
-                                      style={{
-                                        width: '20px',
-                                        height: '20px',
-                                        border: 'none',
-                                        backgroundColor: '#ef4444',
-                                        color: 'white',
-                                        borderRadius: '50%',
-                                        cursor: 'pointer',
-                                        fontSize: '12px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                      }}
-                                    >
-                                      ×
-                                    </button>
+                                      {product.title}
+                                    </h5>
+                                    <div style={{ fontSize: '12px', color: '#64748b' }}>₹{Math.round(price)}</div>
                                   </div>
+                                  <button
+                                    onClick={() => handleProductToggle(productId)}
+                                    style={{
+                                      width: '24px',
+                                      height: '24px',
+                                      border: 'none',
+                                      backgroundColor: 'transparent',
+                                      color: '#ef4444',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      transition: 'background-color 0.2s'
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fee2e2'}
+                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                  >
+                                    ×
+                                  </button>
                                 </div>
                               );
                             })}
                           </div>
                         </div>
                       )}
-                    </BlockStack>
-                  </Card>
+                  </div>
                 )}
 
                 {/* Info message for Shopify recommendation types */}
                 {(formState.recommendationType === "related" || formState.recommendationType === "complementary") && (
-                  <Card>
-                    <BlockStack gap="400">
-                      <Banner tone="info">
-                        <Text as="p" variant="bodyMd">
-                          {formState.recommendationType === "related"
-                            ? "Related Products"
-                            : "Complementary Products"} will be automatically fetched from Shopify's recommendation engine based on the products in the customer's cart. No manual product selection is needed.
-                        </Text>
-                      </Banner>
-                    </BlockStack>
-                  </Card>
+                  <Banner tone="info">
+                    <Text as="p" variant="bodyMd">
+                      <strong>{formState.recommendationType === "related" ? "Related Products" : "Complementary Products"}</strong> will be automatically fetched from Shopify's recommendation engine based on the products in the customer's cart. No manual product selection is needed.
+                    </Text>
+                  </Banner>
                 )}
               </BlockStack>
-            </Card>
-
-          </BlockStack>
+            </div>
+          </div>
         </Layout.Section>
 
         <Layout.Section variant="oneThird">
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h3" variant="headingMd">
-                Preview
+          <div className="premium-card">
+            <div className="premium-card-header" style={{ padding: '16px 20px', background: '#f8fafc' }}>
+              <Text as="h3" variant="headingMd" fontWeight="medium">
+                Live Preview
               </Text>
+            </div>
+            <div className="premium-card-body" style={{ background: '#f1f5f9' }}>
+              <div style={{
+                backgroundColor: '#ffffff',
+                padding: '16px',
+                borderRadius: '8px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+              }}>
+                {(() => {
+                  // Prepare products for the shared component
+                  const previewProducts = selectedProducts.length > 0
+                    ? selectedProducts.slice(0, parseInt(formState.maxProducts)).map((productId) => {
+                      const product = shopProducts.find((p: any) => p.id === productId);
+                      if (!product) return null;
 
-              {/* Preview using shared component */}
-              {(() => {
-                // Prepare products for the shared component
-                const previewProducts = selectedProducts.length > 0
-                  ? selectedProducts.slice(0, parseInt(formState.maxProducts)).map((productId) => {
-                    const product = shopProducts.find((p: any) => p.id === productId);
-                    if (!product) return null;
+                      const variant = product.variants?.[0];
+                      const price = variant ? parseFloat(variant.price) : 0;
+                      const comparePrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null;
 
-                    const variant = product.variants?.[0];
-                    const price = variant ? parseFloat(variant.price) : 0;
-                    const comparePrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null;
+                      return {
+                        id: product.id,
+                        title: product.title,
+                        price: price ? parseFloat(price.toString()) : 0,
+                        compareAtPrice: comparePrice ? parseFloat(comparePrice.toString()) : null,
+                        imageUrl: product.images?.[0]?.src || null,
+                        variantId: product.shopifyProductId || product.id,
+                      };
+                    }).filter(Boolean)
+                    : [
+                      { id: 'sample1', title: 'Sample Product 1', price: 99900, compareAtPrice: 149900, imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=60&h=60&fit=crop&crop=center', variantId: 'sample1' },
+                      { id: 'sample2', title: 'Sample Product 2', price: 129900, compareAtPrice: null, imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=60&h=60&fit=crop&crop=center', variantId: 'sample2' },
+                      { id: 'sample3', title: 'Sample Product 3', price: 159900, compareAtPrice: 199900, imageUrl: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=60&h=60&fit=crop&crop=center', variantId: 'sample3' },
+                      { id: 'sample4', title: 'Sample Product 4', price: 89900, compareAtPrice: null, imageUrl: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=60&h=60&fit=crop&crop=center', variantId: 'sample4' }
+                    ];
 
-                    return {
-                      id: product.id,
-                      title: product.title,
-                      price: price ? parseFloat(price.toString()) : 0,
-                      compareAtPrice: comparePrice ? parseFloat(comparePrice.toString()) : null,
-                      imageUrl: product.images?.[0]?.src || null,
-                      variantId: product.shopifyProductId || product.id,
-                    };
-                  }).filter(Boolean)
-                  : [
-                    { id: 'sample1', title: 'Sample Product 1', price: 99900, compareAtPrice: 149900, imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=60&h=60&fit=crop&crop=center', variantId: 'sample1' },
-                    { id: 'sample2', title: 'Sample Product 2', price: 129900, compareAtPrice: null, imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=60&h=60&fit=crop&crop=center', variantId: 'sample2' },
-                    { id: 'sample3', title: 'Sample Product 3', price: 159900, compareAtPrice: 199900, imageUrl: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=60&h=60&fit=crop&crop=center', variantId: 'sample3' },
-                    { id: 'sample4', title: 'Sample Product 4', price: 89900, compareAtPrice: null, imageUrl: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=60&h=60&fit=crop&crop=center', variantId: 'sample4' }
-                  ];
+                  return (
+                    <ProductRecommendationsComponent
+                      title={formState.title}
+                      products={previewProducts as any}
+                      layout={formState.layout as 'grid' | 'carousel'}
+                      maxProducts={parseInt(formState.maxProducts)}
+                      showDiscount={formState.showDiscount}
+                      showDiscountBadge={formState.showDiscountBadge}
+                      showAddButton={formState.showAddButton}
+                      onAddToCart={() => { }}
+                      isPreview={true}
+                    />
+                  );
+                })()}
+              </div>
 
-                return (
-                  <ProductRecommendationsComponent
-                    title={formState.title}
-                    products={previewProducts as any}
-                    layout={formState.layout as 'grid' | 'carousel'}
-                    maxProducts={parseInt(formState.maxProducts)}
-                    showDiscount={formState.showDiscount}
-                    showDiscountBadge={formState.showDiscountBadge}
-                    showAddButton={formState.showAddButton}
-                    onAddToCart={() => { }}
-                    isPreview={true}
-                  />
-                );
-              })()}
-
-              <Text as="p" variant="bodyMd" tone="subdued">
-                This is how recommendations will appear in your cart drawer.
-              </Text>
-            </BlockStack>
-          </Card>
+              <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  This preview simulates how your products will render in the drawer.
+                </Text>
+              </div>
+            </div>
+          </div>
         </Layout.Section>
       </Layout>
     </Page>

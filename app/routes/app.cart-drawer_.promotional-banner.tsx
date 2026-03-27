@@ -377,11 +377,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await prisma.promotionalBannerCarouselSettings.upsert({
       where: { bannerId },
       create: {
+        id: crypto.randomUUID(),
         bannerId,
         autoRotate,
         rotationSpeed,
         showDots,
         showArrows,
+        updatedAt: new Date(),
       },
       update: {
         autoRotate,
@@ -432,11 +434,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await prisma.promotionalBannerCarouselSettings.upsert({
       where: { bannerId },
       create: {
+        id: crypto.randomUUID(),
         bannerId,
         autoRotate,
         rotationSpeed,
         showDots,
         showArrows,
+        updatedAt: new Date(),
       },
       update: {
         autoRotate,
@@ -529,80 +533,84 @@ function SlideEditor({
   const hasValidationErrors = !!(titleError || descriptionError || ctaTextError);
 
   return (
-    <Card>
-      <BlockStack gap="400">
-        <Text as="h3" variant="headingMd">
+    <div className="premium-card" style={{ border: '2px solid #3b82f6', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.15)' }}>
+      <div className="premium-card-header" style={{ background: '#eff6ff', borderBottom: '1px solid #bfdbfe' }}>
+        <Text as="h3" variant="headingMd" fontWeight="semibold">
           {slide ? `Edit Slide ${slide.order + 1}` : "Add New Slide"}
         </Text>
+      </div>
 
-        <FormLayout>
-          <TextField
-            label="Media URL (Image or Video)"
-            value={formData.mediaUrl}
-            onChange={(value) => setFormData({ ...formData, mediaUrl: value })}
-            placeholder="https://... (jpg, png, mp4, YouTube, Vimeo)"
-            helpText="Images: 360×200px or 720×400px. Videos: 1280×720 or 1920×1080, 5-10 sec, under 3MB. Use 16:9 ratio for best results."
-            autoComplete="off"
-            requiredIndicator
-          />
+      <div className="premium-card-body">
+        <BlockStack gap="400">
+          <FormLayout>
+            <TextField
+              label="Media URL (Image or Video)"
+              value={formData.mediaUrl}
+              onChange={(value) => setFormData({ ...formData, mediaUrl: value })}
+              placeholder="https://... (jpg, png, mp4, YouTube, Vimeo)"
+              helpText="Images: 360×200px or 720×400px. Videos: 1280×720 or 1920×1080."
+              autoComplete="off"
+              requiredIndicator
+            />
 
-          <TextField
-            label="Slide Title"
-            value={formData.title}
-            onChange={(value) => setFormData({ ...formData, title: value })}
-            placeholder="Summer Sale"
-            helpText={`${formData.title.length}/${MAX_TITLE_LENGTH} characters (min ${MIN_TITLE_LENGTH})`}
-            autoComplete="off"
-            error={titleError}
-            maxLength={MAX_TITLE_LENGTH}
-          />
+            <TextField
+              label="Slide Title"
+              value={formData.title}
+              onChange={(value) => setFormData({ ...formData, title: value })}
+              placeholder="Summer Sale"
+              helpText={`${formData.title.length}/${MAX_TITLE_LENGTH} characters (min ${MIN_TITLE_LENGTH})`}
+              autoComplete="off"
+              error={titleError}
+              maxLength={MAX_TITLE_LENGTH}
+            />
 
-          <TextField
-            label="Slide Description"
-            value={formData.description}
-            onChange={(value) => setFormData({ ...formData, description: value })}
-            placeholder="Get 20% off all summer items"
-            helpText={`${formData.description.length}/${MAX_DESCRIPTION_LENGTH} characters (min ${MIN_DESCRIPTION_LENGTH})`}
-            autoComplete="off"
-            multiline={2}
-            error={descriptionError}
-            maxLength={MAX_DESCRIPTION_LENGTH}
-          />
+            <TextField
+              label="Slide Description"
+              value={formData.description}
+              onChange={(value) => setFormData({ ...formData, description: value })}
+              placeholder="Get 20% off all summer items"
+              helpText={`${formData.description.length}/${MAX_DESCRIPTION_LENGTH} characters (min ${MIN_DESCRIPTION_LENGTH})`}
+              autoComplete="off"
+              multiline={2}
+              error={descriptionError}
+              maxLength={MAX_DESCRIPTION_LENGTH}
+            />
 
-          <TextField
-            label="CTA Button Text"
-            value={formData.ctaText}
-            onChange={(value) => setFormData({ ...formData, ctaText: value })}
-            placeholder="Shop Now"
-            helpText={`${formData.ctaText.length}/${MAX_CTA_TEXT_LENGTH} characters`}
-            autoComplete="off"
-            error={ctaTextError}
-            maxLength={MAX_CTA_TEXT_LENGTH}
-          />
+            <TextField
+              label="CTA Button Text"
+              value={formData.ctaText}
+              onChange={(value) => setFormData({ ...formData, ctaText: value })}
+              placeholder="Shop Now"
+              helpText={`${formData.ctaText.length}/${MAX_CTA_TEXT_LENGTH} characters`}
+              autoComplete="off"
+              error={ctaTextError}
+              maxLength={MAX_CTA_TEXT_LENGTH}
+            />
 
-          <TextField
-            label="CTA Button URL"
-            value={formData.ctaUrl}
-            onChange={(value) => setFormData({ ...formData, ctaUrl: value })}
-            placeholder="/collections/summer"
-            helpText="Link when button is clicked"
-            autoComplete="off"
-          />
-        </FormLayout>
+            <TextField
+              label="CTA Button URL"
+              value={formData.ctaUrl}
+              onChange={(value) => setFormData({ ...formData, ctaUrl: value })}
+              placeholder="/collections/summer"
+              helpText="Link when button is clicked"
+              autoComplete="off"
+            />
+          </FormLayout>
 
-        <InlineStack gap="200" align="end">
-          <Button onClick={onCancel}>Cancel</Button>
-          <Button
-            variant="primary"
-            onClick={() => onSave(formData)}
-            loading={isLoading}
-            disabled={!formData.mediaUrl || hasValidationErrors}
-          >
-            {slide ? "Update Slide" : "Add Slide"}
-          </Button>
-        </InlineStack>
-      </BlockStack>
-    </Card>
+          <InlineStack gap="200" align="end">
+            <Button onClick={onCancel}>Cancel</Button>
+            <Button
+              variant="primary"
+              onClick={() => onSave(formData)}
+              loading={isLoading}
+              disabled={!formData.mediaUrl || hasValidationErrors}
+            >
+              {slide ? "Update Slide" : "Add Slide"}
+            </Button>
+          </InlineStack>
+        </BlockStack>
+      </div>
+    </div>
   );
 }
 
@@ -806,9 +814,9 @@ export default function PromotionalBanner() {
   return (
     <Page
       backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
-      title="Promotional Banner - Carousel Mode"
+      title="Promotional Banner Configuration"
       primaryAction={{
-        content: "Save",
+        content: "Save changes",
         onAction: handleSaveAll,
         loading: isLoading,
       }}
@@ -888,111 +896,240 @@ export default function PromotionalBanner() {
             transform: translateX(-50%) translateY(0);
           }
         }
+        
+        /* Premium UI CSS */
+        .premium-card {
+          background: #ffffff;
+          border-radius: 12px;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+          overflow: hidden;
+          transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+          margin-bottom: 20px;
+        }
+        .premium-card:hover {
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+        }
+        .premium-card-header {
+          padding: 20px 24px;
+          border-bottom: 1px solid #f3f4f6;
+          background: linear-gradient(to right, #f8fafc, #ffffff);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .premium-card-body {
+          padding: 24px;
+        }
+        
+        /* Custom Toggle Switch */
+        .premium-toggle-label {
+          position: relative;
+          display: inline-block;
+          width: 44px;
+          height: 24px;
+          margin: 0;
+        }
+        .premium-toggle-label input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+        .premium-toggle-slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #e2e8f0;
+          transition: .3s;
+          border-radius: 24px;
+          border: 1px solid #cbd5e1;
+        }
+        .premium-toggle-slider:before {
+          position: absolute;
+          content: "";
+          height: 18px;
+          width: 18px;
+          left: 2px;
+          bottom: 2px;
+          background-color: white;
+          transition: .3s cubic-bezier(0.4, 0.0, 0.2, 1);
+          border-radius: 50%;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        .premium-toggle-label input:checked + .premium-toggle-slider {
+          background-color: #10b981;
+          border-color: #10b981;
+        }
+        .premium-toggle-label input:focus + .premium-toggle-slider {
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+        .premium-toggle-label input:checked + .premium-toggle-slider:before {
+          transform: translateX(20px);
+        }
+        .premium-toggle-container {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        
+        .status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 600;
+        }
+        .status-badge.active {
+          background-color: rgba(16, 185, 129, 0.1);
+          color: #059669;
+        }
+        .status-badge.inactive {
+          background-color: #f3f4f6;
+          color: #6b7280;
+        }
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+        }
+        .status-dot.active {
+          background-color: #10b981;
+        }
+        .status-dot.inactive {
+          background-color: #9ca3af;
+        }
+        
+        .icon-circle {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+          color: #2563eb;
+          font-size: 20px;
+        }
       `}</style>
 
       <Layout>
         <Layout.Section>
-          <BlockStack gap="400">
-            {/* Header Card */}
-            <Card>
-              <BlockStack gap="400">
-                <InlineStack align="space-between">
-                  <Text as="h2" variant="headingMd">
-                    Carousel Configuration
+          <div className="premium-card">
+            <div className="premium-card-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="icon-circle">
+                  🖼️
+                </div>
+                <div>
+                  <Text as="h2" variant="headingMd" fontWeight="bold">
+                    Promotional Banner
                   </Text>
-                  <Button onClick={handleToggle} loading={isLoading}>
-                    {cartDrawer?.promotionalBannerEnabled ? "Disable" : "Enable"}
-                  </Button>
-                </InlineStack>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Create a stunning carousel with per-slide content, video support, and customizable controls.
+                  </Text>
+                </div>
+              </div>
+              <div className="premium-toggle-container">
+                <span className={`status-badge ${cartDrawer?.promotionalBannerEnabled ? 'active' : 'inactive'}`}>
+                  <span className={`status-dot ${cartDrawer?.promotionalBannerEnabled ? 'active' : 'inactive'}`}></span>
+                  {cartDrawer?.promotionalBannerEnabled ? 'Active' : 'Disabled'}
+                </span>
+                <label className="premium-toggle-label">
+                  <input 
+                    type="checkbox" 
+                    checked={cartDrawer?.promotionalBannerEnabled || false} 
+                    onChange={handleToggle}
+                    disabled={isLoading}
+                  />
+                  <span className="premium-toggle-slider"></span>
+                </label>
+              </div>
+            </div>
 
-                {!cartDrawer?.promotionalBannerEnabled && (
+            <div className="premium-card-body">
+              {!cartDrawer?.promotionalBannerEnabled && (
+                <div style={{ marginBottom: '16px' }}>
                   <Banner tone="warning">
-                    This feature is currently disabled. Enable it to show the carousel in your cart.
+                    This feature is currently disabled. Enable it to show the promotional banner in your cart.
                   </Banner>
-                )}
-
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  Create a stunning carousel with per-slide content, video support, and customizable controls.
-                </Text>
-
-                {/* Image Size Recommendations */}
-                <Banner tone="info">
+                </div>
+              )}
+              
+              {/* Image Size Recommendations */}
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
                   <BlockStack gap="200">
                     <Text as="p" variant="bodyMd" fontWeight="semibold">
                       📐 Recommended Sizes for Cart Drawer
                     </Text>
-                    <Text as="p" variant="bodyMd">
-                      For optimal display in the cart drawer, use these dimensions:
-                    </Text>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '8px' }}>
+                      {/* Image Sizes */}
+                      <div>
+                        <Text as="p" variant="bodySm" fontWeight="semibold">
+                          Images:
+                        </Text>
+                        <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <Text as="p" variant="bodySm" tone="subdued">• <strong>Recommended</strong>: 360×200px (16:9 aspect ratio)</Text>
+                          <Text as="p" variant="bodySm" tone="subdued">• <strong>Retina displays</strong>: 720×400px or 540×300px (same 16:9 ratio)</Text>
+                          <Text as="p" variant="bodySm" tone="subdued">• <strong>Format</strong>: JPG or PNG, optimized for web</Text>
+                        </div>
+                      </div>
 
-                    {/* Image Sizes */}
-                    <BlockStack gap="100">
-                      <Text as="p" variant="bodySm" fontWeight="semibold">
-                        Images:
-                      </Text>
-                      <Text as="p" variant="bodySm">
-                        • <strong>Recommended</strong>: 360×200px (16:9 aspect ratio)
-                      </Text>
-                      <Text as="p" variant="bodySm">
-                        • <strong>Retina displays</strong>: 720×400px or 540×300px (same 16:9 ratio)
-                      </Text>
-                      <Text as="p" variant="bodySm">
-                        • <strong>Format</strong>: JPG or PNG, optimized for web
-                      </Text>
-                    </BlockStack>
-
-                    {/* Video Recommendations */}
-                    <BlockStack gap="100">
-                      <Text as="p" variant="bodySm" fontWeight="semibold">
-                        Videos (MP4, YouTube, Vimeo):
-                      </Text>
-                      <Text as="p" variant="bodySm">
-                        • <strong>Standard</strong>: 640×360px (matches 360×200 container)
-                      </Text>
-                      <Text as="p" variant="bodySm">
-                        • <strong>High quality</strong>: 1280×720 (HD) or 720×405px
-                      </Text>
-                      <Text as="p" variant="bodySm">
-                        • <strong>Retina displays</strong>: 1920×1080 (Full HD)
-                      </Text>
-                      <Text as="p" variant="bodySm">
-                        • <strong>Format</strong>: MP4 (H.264) for best compatibility
-                      </Text>
-                    </BlockStack>
-
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      💡 Pro Tips: Videos auto-play muted in cart drawer. Keep videos short and engaging. Higher resolution images (720×400px) look sharper on retina displays.
-                    </Text>
+                      {/* Video Recommendations */}
+                      <div>
+                        <Text as="p" variant="bodySm" fontWeight="semibold">
+                          Videos (MP4, YouTube, Vimeo):
+                        </Text>
+                        <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <Text as="p" variant="bodySm" tone="subdued">• <strong>Standard</strong>: 640×360px (matches 360×200 container)</Text>
+                          <Text as="p" variant="bodySm" tone="subdued">• <strong>High quality</strong>: 1280×720 (HD) or 720×405px</Text>
+                          <Text as="p" variant="bodySm" tone="subdued">• <strong>Format</strong>: MP4 (H.264) for best compatibility</Text>
+                        </div>
+                      </div>
+                    </div>
                   </BlockStack>
-                </Banner>
-              </BlockStack>
-            </Card>
+              </div>
+            </div>
+          </div>
 
-            {/* Slides Management */}
-            {!isAddingSlide && !editingSlide && (
-              <Card>
-                <BlockStack gap="400">
-                  <InlineStack align="space-between">
-                    <Text as="h2" variant="headingMd">
-                      Slides ({slides.length})
-                    </Text>
-                    <Button variant="primary" onClick={() => setIsAddingSlide(true)}>
-                      Add Slide
-                    </Button>
-                  </InlineStack>
-
+          {!isAddingSlide && !editingSlide && (
+            <div className="premium-card">
+              <div className="premium-card-header">
+                <Text as="h3" variant="headingMd" fontWeight="medium">
+                  Slides ({slides.length})
+                </Text>
+                <Button variant="primary" onClick={() => setIsAddingSlide(true)}>
+                  Add Slide
+                </Button>
+              </div>
+              <div className="premium-card-body">
                   {slides.length > 0 ? (
                     <BlockStack gap="300">
                       {slides.map((slide: any, index: number) => (
-                        <Card key={slide.id}>
-                          <InlineStack align="space-between" blockAlign="center">
-                            <InlineStack gap="300" blockAlign="center">
+                        <div key={slide.id} style={{ 
+                          border: '1px solid #e5e7eb', 
+                          borderRadius: '8px', 
+                          padding: '12px 16px', 
+                          backgroundColor: '#ffffff',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.borderColor = '#bfdbfe'}
+                        onMouseOut={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                               {slide.videoUrl && !slide.imageUrl ? (
                                 <div
                                   style={{
-                                    width: '40px',
-                                    height: '40px',
-                                    borderRadius: '8px',
+                                    width: '48px',
+                                    height: '48px',
+                                    borderRadius: '6px',
                                     backgroundColor: '#FA003F',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -1003,13 +1140,19 @@ export default function PromotionalBanner() {
                                   <Icon source={PlayIcon} tone="base" />
                                 </div>
                               ) : (
-                                <Thumbnail
-                                  source={slide.imageUrl || slide.videoUrl}
+                                <img
+                                  src={slide.imageUrl || slide.videoUrl}
                                   alt={`Slide ${index + 1}`}
-                                  size="small"
+                                  style={{
+                                    width: '84px',
+                                    height: '48px',
+                                    objectFit: 'cover',
+                                    borderRadius: '4px',
+                                    border: '1px solid #e5e7eb'
+                                  }}
                                 />
                               )}
-                              <BlockStack gap="100">
+                              <div>
                                 <Text as="p" variant="bodyMd" fontWeight="semibold">
                                   Slide {index + 1}
                                 </Text>
@@ -1018,50 +1161,51 @@ export default function PromotionalBanner() {
                                     {slide.title}
                                   </Text>
                                 )}
-                              </BlockStack>
-                            </InlineStack>
-                            <InlineStack gap="200">
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px' }}>
                               <Button onClick={() => setEditingSlide(slide)}>Edit</Button>
                               <Button tone="critical" onClick={() => handleDeleteSlide(slide.id)}>
                                 Delete
                               </Button>
-                            </InlineStack>
-                          </InlineStack>
-                        </Card>
+                            </div>
+                        </div>
                       ))}
                     </BlockStack>
                   ) : (
-                    <Banner tone="info">
-                      No slides added yet. Click "Add Slide" to create your first slide.
-                    </Banner>
+                    <div style={{ padding: '32px 0', textAlign: 'center' }}>
+                      <Text as="p" variant="bodyMd" tone="subdued">
+                        No slides added yet. Click "Add Slide" to create your first slide.
+                      </Text>
+                    </div>
                   )}
-                </BlockStack>
-              </Card>
-            )}
+              </div>
+            </div>
+          )}
 
-            {/* Add/Edit Slide */}
-            {(isAddingSlide || editingSlide) && (
-              <SlideEditor
-                slide={editingSlide}
-                onSave={editingSlide ? handleUpdateSlide : handleAddSlide}
-                onCancel={() => {
-                  setIsAddingSlide(false);
-                  setEditingSlide(null);
-                }}
-                isLoading={isLoading}
-              />
-            )}
+          {/* Add/Edit Slide */}
+          {(isAddingSlide || editingSlide) && (
+            <SlideEditor
+              slide={editingSlide}
+              onSave={editingSlide ? handleUpdateSlide : handleAddSlide}
+              onCancel={() => {
+                setIsAddingSlide(false);
+                setEditingSlide(null);
+              }}
+              isLoading={isLoading}
+            />
+          )}
 
-            {/* Carousel Settings */}
-            {!isAddingSlide && !editingSlide && promotionalBanner?.id && (
-              <>
-                <Card>
-                  <BlockStack gap="400">
-                    <Text as="h2" variant="headingMd">
-                      Carousel Settings
-                    </Text>
-
-                    <FormLayout>
+          {/* Carousel Settings */}
+          {!isAddingSlide && !editingSlide && promotionalBanner?.id && (
+              <div className="premium-card">
+                <div className="premium-card-header">
+                  <Text as="h3" variant="headingMd" fontWeight="medium">
+                    Carousel Settings
+                  </Text>
+                </div>
+                <div className="premium-card-body">
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
                       <Checkbox
                         label="Auto-rotate slides"
                         checked={carouselSettings.autoRotate}
@@ -1092,18 +1236,21 @@ export default function PromotionalBanner() {
                         checked={carouselSettings.showArrows}
                         onChange={(checked) => setCarouselSettings({ ...carouselSettings, showArrows: checked })}
                       />
-                    </FormLayout>
-                  </BlockStack>
-                </Card>
-
-                {/* Color Settings */}
-                <Card>
-                  <BlockStack gap="400">
-                    <Text as="h2" variant="headingMd">
-                      Color Settings
-                    </Text>
-
-                    <FormLayout>
+                    </div>
+                </div>
+              </div>
+          )}
+          
+          {/* Color Settings */}
+          {!isAddingSlide && !editingSlide && promotionalBanner?.id && (
+              <div className="premium-card">
+                <div className="premium-card-header">
+                  <Text as="h3" variant="headingMd" fontWeight="medium">
+                    Color Profile
+                  </Text>
+                </div>
+                <div className="premium-card-body">
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
                       <TextField
                         label="Slide Title Color"
                         {...({ type: "color" } as any)}
@@ -1121,7 +1268,7 @@ export default function PromotionalBanner() {
                       />
 
                       <TextField
-                        label="CTA Button Text Color"
+                        label="CTA Button Text"
                         {...({ type: "color" } as any)}
                         value={colorSettings.ctaTextColor}
                         onChange={(value) => setColorSettings({ ...colorSettings, ctaTextColor: value })}
@@ -1129,7 +1276,7 @@ export default function PromotionalBanner() {
                       />
 
                       <TextField
-                        label="CTA Button Background Color"
+                        label="CTA Button Background"
                         {...({ type: "color" } as any)}
                         value={colorSettings.ctaBackgroundColor}
                         onChange={(value) => setColorSettings({ ...colorSettings, ctaBackgroundColor: value })}
@@ -1143,37 +1290,45 @@ export default function PromotionalBanner() {
                         onChange={(value) => setColorSettings({ ...colorSettings, borderColor: value })}
                         autoComplete="off"
                       />
-                    </FormLayout>
-                  </BlockStack>
-                </Card>
-              </>
-            )}
-          </BlockStack>
+                    </div>
+                </div>
+              </div>
+          )}
         </Layout.Section>
 
         {/* Preview Section */}
         <Layout.Section variant="oneThird">
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h3" variant="headingMd">
+          <div className="premium-card">
+            <div className="premium-card-header" style={{ padding: '16px 20px', background: '#f8fafc' }}>
+              <Text as="h3" variant="headingMd" fontWeight="medium">
                 Live Preview
               </Text>
+            </div>
+            <div className="premium-card-body" style={{ background: '#f1f5f9' }}>
+              <div style={{
+                backgroundColor: '#ffffff',
+                padding: '16px',
+                borderRadius: '8px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+              }}>
+                <CarouselPreview
+                  slides={slides}
+                  carouselSettings={carouselSettings}
+                  titleColor={colorSettings.titleColor}
+                  descriptionColor={colorSettings.descriptionColor}
+                  ctaTextColor={colorSettings.ctaTextColor}
+                  ctaBackgroundColor={colorSettings.ctaBackgroundColor}
+                  borderColor={colorSettings.borderColor}
+                />
+              </div>
 
-              <CarouselPreview
-                slides={slides}
-                carouselSettings={carouselSettings}
-                titleColor={colorSettings.titleColor}
-                descriptionColor={colorSettings.descriptionColor}
-                ctaTextColor={colorSettings.ctaTextColor}
-                ctaBackgroundColor={colorSettings.ctaBackgroundColor}
-                borderColor={colorSettings.borderColor}
-              />
-
-              <Text as="p" variant="bodySm" tone="subdued">
-                Features: Fixed 200px media container, separate white text section below, title/description (left), CTA button (right), responsive mobile layout, auto-rotate, navigation arrows, and dot indicators.
-              </Text>
-            </BlockStack>
-          </Card>
+              <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Features: Responsive mobile layout, auto-rotate, navigation arrows, and dot indicators.
+                </Text>
+              </div>
+            </div>
+          </div>
         </Layout.Section>
       </Layout>
     </Page>

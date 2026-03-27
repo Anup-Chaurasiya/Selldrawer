@@ -275,28 +275,171 @@ export default function SavingsDisplay() {
             transform: translateX(-50%) translateY(0);
           }
         }
+        
+        /* Premium UI CSS */
+        .premium-card {
+          background: #ffffff;
+          border-radius: 12px;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+          overflow: hidden;
+          transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+          margin-bottom: 20px;
+        }
+        .premium-card:hover {
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+        }
+        .premium-card-header {
+          padding: 20px 24px;
+          border-bottom: 1px solid #f3f4f6;
+          background: linear-gradient(to right, #f8fafc, #ffffff);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .premium-card-body {
+          padding: 24px;
+        }
+        
+        /* Custom Toggle Switch */
+        .premium-toggle-label {
+          position: relative;
+          display: inline-block;
+          width: 44px;
+          height: 24px;
+          margin: 0;
+        }
+        .premium-toggle-label input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+        .premium-toggle-slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #e2e8f0;
+          transition: .3s;
+          border-radius: 24px;
+          border: 1px solid #cbd5e1;
+        }
+        .premium-toggle-slider:before {
+          position: absolute;
+          content: "";
+          height: 18px;
+          width: 18px;
+          left: 2px;
+          bottom: 2px;
+          background-color: white;
+          transition: .3s cubic-bezier(0.4, 0.0, 0.2, 1);
+          border-radius: 50%;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        .premium-toggle-label input:checked + .premium-toggle-slider {
+          background-color: #10b981;
+          border-color: #10b981;
+        }
+        .premium-toggle-label input:focus + .premium-toggle-slider {
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+        .premium-toggle-label input:checked + .premium-toggle-slider:before {
+          transform: translateX(20px);
+        }
+        .premium-toggle-container {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        
+        .status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 600;
+        }
+        .status-badge.active {
+          background-color: rgba(16, 185, 129, 0.1);
+          color: #059669;
+        }
+        .status-badge.inactive {
+          background-color: #f3f4f6;
+          color: #6b7280;
+        }
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+        }
+        .status-dot.active {
+          background-color: #10b981;
+        }
+        .status-dot.inactive {
+          background-color: #9ca3af;
+        }
+        
+        .icon-circle {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+          color: #ffffff;
+          font-size: 20px;
+        }
       `}</style>
 
       <Layout>
         <Layout.Section>
-          <BlockStack gap="400">
-            <Card>
-              <BlockStack gap="400">
-                <InlineStack align="space-between">
-                  <Text as="h2" variant="headingMd">
-                    Configuration
+          <div className="premium-card">
+            <div className="premium-card-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="icon-circle">
+                  💰
+                </div>
+                <div>
+                  <Text as="h2" variant="headingMd" fontWeight="bold">
+                    Savings Display
                   </Text>
-                  <Button onClick={handleToggle} loading={isLoading}>
-                    {cartDrawer?.savingsDisplayEnabled ? "Disable" : "Enable"}
-                  </Button>
-                </InlineStack>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Show customers how much they're saving to encourage checkout.
+                  </Text>
+                </div>
+              </div>
+              <div className="premium-toggle-container">
+                <span className={`status-badge ${cartDrawer?.savingsDisplayEnabled ? 'active' : 'inactive'}`}>
+                  <span className={`status-dot ${cartDrawer?.savingsDisplayEnabled ? 'active' : 'inactive'}`}></span>
+                  {cartDrawer?.savingsDisplayEnabled ? 'Active' : 'Disabled'}
+                </span>
+                <label className="premium-toggle-label">
+                  <input 
+                    type="checkbox" 
+                    checked={cartDrawer?.savingsDisplayEnabled || false} 
+                    onChange={handleToggle}
+                    disabled={isLoading}
+                  />
+                  <span className="premium-toggle-slider"></span>
+                </label>
+              </div>
+            </div>
 
-                {!cartDrawer?.savingsDisplayEnabled && (
+            <div className="premium-card-body">
+              {!cartDrawer?.savingsDisplayEnabled && (
+                <div style={{ marginBottom: '20px' }}>
                   <Banner tone="warning">
                     This feature is currently disabled. Enable it to show savings in your cart.
                   </Banner>
-                )}
-
+                </div>
+              )}
+                
+              <BlockStack gap="400">
                 <FormLayout>
                   <TextField
                     label="Message"
@@ -316,7 +459,20 @@ export default function SavingsDisplay() {
                     value={formState.position}
                     onChange={(value) => setFormState({ ...formState, position: value })}
                   />
-
+                </FormLayout>
+              </BlockStack>
+            </div>
+          </div>
+          
+          <div className="premium-card">
+            <div className="premium-card-header">
+              <Text as="h3" variant="headingMd" fontWeight="medium">
+                Color Profile
+              </Text>
+            </div>
+            
+            <div className="premium-card-body">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
                   <TextField
                     label="Background Color"
                     type={"color" as any}
@@ -340,19 +496,19 @@ export default function SavingsDisplay() {
                     onChange={(value) => setFormState({ ...formState, borderColor: value })}
                     autoComplete="off"
                   />
-                </FormLayout>
-              </BlockStack>
-            </Card>
-          </BlockStack>
+                </div>
+            </div>
+          </div>
         </Layout.Section>
 
         <Layout.Section variant="oneThird">
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h3" variant="headingMd">
-                Preview
+          <div className="premium-card">
+            <div className="premium-card-header" style={{ padding: '16px 20px', background: '#f8fafc' }}>
+              <Text as="h3" variant="headingMd" fontWeight="medium">
+                Live Preview
               </Text>
-
+            </div>
+            <div className="premium-card-body" style={{ background: '#f8fafc' }}>
               <SavingsDisplayComponent
                 message={formState.message}
                 amount={330000} // Sample amount in cents (₹3300)
@@ -362,11 +518,13 @@ export default function SavingsDisplay() {
                 isPreview={true}
               />
 
-              <Text as="p" variant="bodyMd" tone="subdued">
-                This is how the savings display will appear in your cart drawer.
-              </Text>
-            </BlockStack>
-          </Card>
+              <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  This is how the savings display will appear in your cart drawer.
+                </Text>
+              </div>
+            </div>
+          </div>
         </Layout.Section>
       </Layout>
     </Page>

@@ -201,9 +201,9 @@ export default function CouponCode() {
   return (
     <Page
       backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
-      title="Coupon Code Field"
+      title="Coupon Code Configuration"
       primaryAction={{
-        content: "Save",
+        content: "Save changes",
         onAction: handleSubmit,
         loading: isLoading,
       }}
@@ -283,95 +283,272 @@ export default function CouponCode() {
             transform: translateX(-50%) translateY(0);
           }
         }
+        
+        /* Premium UI CSS */
+        .premium-card {
+          background: #ffffff;
+          border-radius: 12px;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+          overflow: hidden;
+          transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+          margin-bottom: 20px;
+        }
+        .premium-card:hover {
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+          transform: translateY(-2px);
+        }
+        .premium-card-header {
+          padding: 20px 24px;
+          border-bottom: 1px solid #f3f4f6;
+          background: linear-gradient(to right, #f8fafc, #ffffff);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .premium-card-body {
+          padding: 24px;
+        }
+        
+        /* Custom Toggle Switch */
+        .premium-toggle-label {
+          position: relative;
+          display: inline-block;
+          width: 44px;
+          height: 24px;
+          margin: 0;
+        }
+        .premium-toggle-label input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+        .premium-toggle-slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #e2e8f0;
+          transition: .3s;
+          border-radius: 24px;
+          border: 1px solid #cbd5e1;
+        }
+        .premium-toggle-slider:before {
+          position: absolute;
+          content: "";
+          height: 18px;
+          width: 18px;
+          left: 2px;
+          bottom: 2px;
+          background-color: white;
+          transition: .3s cubic-bezier(0.4, 0.0, 0.2, 1);
+          border-radius: 50%;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        .premium-toggle-label input:checked + .premium-toggle-slider {
+          background-color: #10b981;
+          border-color: #10b981;
+        }
+        .premium-toggle-label input:focus + .premium-toggle-slider {
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+        .premium-toggle-label input:checked + .premium-toggle-slider:before {
+          transform: translateX(20px);
+        }
+        .premium-toggle-container {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        
+        .status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 600;
+        }
+        .status-badge.active {
+          background-color: rgba(16, 185, 129, 0.1);
+          color: #059669;
+        }
+        .status-badge.inactive {
+          background-color: #f3f4f6;
+          color: #6b7280;
+        }
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+        }
+        .status-dot.active {
+          background-color: #10b981;
+        }
+        .status-dot.inactive {
+          background-color: #9ca3af;
+        }
+        
+        /* Modern Input Group */
+        .color-picker-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 6px 12px 6px 6px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          background: #ffffff;
+          transition: all 0.2s;
+        }
+        .color-picker-wrapper:focus-within {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+        .color-picker-input {
+          width: 32px;
+          height: 32px;
+          padding: 0;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          background: transparent;
+        }
+        .color-picker-input::-webkit-color-swatch-wrapper {
+          padding: 0;
+        }
+        .color-picker-input::-webkit-color-swatch {
+          border: none;
+          border-radius: 4px;
+          box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+        }
+        
+        .icon-circle {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+          color: #10b981;
+          font-size: 20px;
+        }
       `}</style>
 
       <Layout>
         <Layout.Section>
-          <BlockStack gap="400">
-            <Card>
-              <BlockStack gap="400">
-                <InlineStack align="space-between">
-                  <Text as="h2" variant="headingMd">
-                    Configuration
+          <div className="premium-card">
+            <div className="premium-card-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="icon-circle">
+                  🏷️
+                </div>
+                <div>
+                  <Text as="h2" variant="headingMd" fontWeight="bold">
+                    Coupon Code Display
                   </Text>
-                  <Button onClick={handleToggle} loading={isLoading}>
-                    {cartDrawer?.couponCodeFieldEnabled ? "Disable" : "Enable"}
-                  </Button>
-                </InlineStack>
-
-                {!cartDrawer?.couponCodeFieldEnabled && (
-                  <Banner tone="warning">
-                    This feature is currently disabled. Enable it to show the coupon field in your cart.
-                  </Banner>
-                )}
-
-                <FormLayout>
-                  <TextField
-                    label="Placeholder Text"
-                    value={formState.placeholder}
-                    onChange={(value) => setFormState({ ...formState, placeholder: value })}
-                    autoComplete="off"
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Allow customers to apply discounts directly in the cart
+                  </Text>
+                </div>
+              </div>
+              <div className="premium-toggle-container">
+                <span className={`status-badge ${cartDrawer?.couponCodeFieldEnabled ? 'active' : 'inactive'}`}>
+                  <span className={`status-dot ${cartDrawer?.couponCodeFieldEnabled ? 'active' : 'inactive'}`}></span>
+                  {cartDrawer?.couponCodeFieldEnabled ? 'Active' : 'Disabled'}
+                </span>
+                <label className="premium-toggle-label">
+                  <input 
+                    type="checkbox" 
+                    checked={cartDrawer?.couponCodeFieldEnabled || false} 
+                    onChange={handleToggle}
+                    disabled={isLoading}
                   />
+                  <span className="premium-toggle-slider"></span>
+                </label>
+              </div>
+            </div>
 
-                  <TextField
-                    label="Button Text"
-                    value={formState.buttonText}
-                    onChange={(value) => setFormState({ ...formState, buttonText: value })}
-                    autoComplete="off"
-                  />
+            <div className="premium-card-body">
+              <BlockStack gap="500">
+                <div>
+                  <Text as="h3" variant="headingSm" fontWeight="medium">
+                    Basic Settings
+                  </Text>
+                  <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'minmax(200px, 1fr) minmax(200px, 1fr)', gap: '16px' }}>
+                    <TextField
+                      label="Placeholder Text"
+                      value={formState.placeholder}
+                      onChange={(value) => setFormState({ ...formState, placeholder: value })}
+                      autoComplete="off"
+                    />
+                    <TextField
+                      label="Button Text"
+                      value={formState.buttonText}
+                      onChange={(value) => setFormState({ ...formState, buttonText: value })}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'minmax(200px, 1fr) minmax(200px, 1fr)', gap: '16px' }}>
+                    <TextField
+                      label="Success Message"
+                      value={formState.successMessage}
+                      onChange={(value) => setFormState({ ...formState, successMessage: value })}
+                      helpText="Message shown when coupon is applied successfully"
+                      autoComplete="off"
+                    />
+                    <TextField
+                      label="Error Message"
+                      value={formState.errorMessage}
+                      onChange={(value) => setFormState({ ...formState, errorMessage: value })}
+                      helpText="Message shown when coupon is invalid"
+                      autoComplete="off"
+                    />
+                  </div>
+                </div>
 
-                  <TextField
-                    label="Success Message"
-                    value={formState.successMessage}
-                    onChange={(value) => setFormState({ ...formState, successMessage: value })}
-                    helpText="Message shown when coupon is applied successfully"
-                    autoComplete="off"
-                  />
+                <div style={{ height: '1px', background: '#e5e7eb', margin: '8px 0' }}></div>
 
-                  <TextField
-                    label="Error Message"
-                    value={formState.errorMessage}
-                    onChange={(value) => setFormState({ ...formState, errorMessage: value })}
-                    helpText="Message shown when coupon is invalid"
-                    autoComplete="off"
-                  />
-
-                  <Divider />
-
-                  <BlockStack gap="300">
-                    <Text as="h3" variant="headingMd">
-                      Auto-Apply Best Offer
-                    </Text>
-
+                <div>
+                  <Text as="h3" variant="headingSm" fontWeight="medium">
+                    Auto-Apply Best Offer
+                  </Text>
+                  <div style={{ marginTop: '16px', backgroundColor: '#f8fafc', padding: '16px', border: '1px solid #f1f5f9', borderRadius: '8px' }}>
                     <Checkbox
                       label="Automatically apply best qualifying discount"
                       checked={formState.enableAutoApply}
                       onChange={(checked) => setFormState({ ...formState, enableAutoApply: checked })}
                       helpText="When enabled, the best discount will be automatically applied when the cart loads"
                     />
-
+                    
                     {formState.enableAutoApply && (
-                      <Select
-                        label="Auto-apply Strategy"
-                        options={[
-                          { label: 'Best Value (Maximum savings)', value: 'best_value' },
-                          { label: 'Highest Percentage', value: 'highest_percentage' },
-                          { label: 'First Available', value: 'first_available' },
-                        ]}
-                        value={formState.autoApplyStrategy}
-                        onChange={(value) => setFormState({ ...formState, autoApplyStrategy: value })}
-                        helpText="Choose how to select the best discount to apply"
-                      />
+                      <div style={{ marginTop: '16px' }}>
+                        <Select
+                          label="Auto-apply Strategy"
+                          options={[
+                            { label: 'Best Value (Maximum savings)', value: 'best_value' },
+                            { label: 'Highest Percentage', value: 'highest_percentage' },
+                            { label: 'First Available', value: 'first_available' },
+                          ]}
+                          value={formState.autoApplyStrategy}
+                          onChange={(value) => setFormState({ ...formState, autoApplyStrategy: value })}
+                          helpText="Choose how to select the best discount to apply"
+                        />
+                      </div>
                     )}
-                  </BlockStack>
+                  </div>
+                </div>
 
-                  <Divider />
+                <div style={{ height: '1px', background: '#e5e7eb', margin: '8px 0' }}></div>
 
-                  <BlockStack gap="300">
-                    <Text as="h3" variant="headingMd">
-                      Show All Offers
-                    </Text>
-
+                <div>
+                  <Text as="h3" variant="headingSm" fontWeight="medium">
+                    Show All Offers
+                  </Text>
+                  <div style={{ marginTop: '16px', backgroundColor: '#f8fafc', padding: '16px', border: '1px solid #f1f5f9', borderRadius: '8px' }}>
                     <Checkbox
                       label="Show 'Show all offers' button"
                       checked={formState.showAllOffers}
@@ -380,113 +557,146 @@ export default function CouponCode() {
                     />
 
                     {formState.showAllOffers && (
-                      <TextField
-                        label="Button Text"
-                        value={formState.showAllOffersButtonText}
-                        onChange={(value) => setFormState({ ...formState, showAllOffersButtonText: value })}
-                        autoComplete="off"
-                        helpText="Text shown on the 'Show all offers' button"
-                      />
+                      <div style={{ marginTop: '16px' }}>
+                        <TextField
+                          label="Button Text"
+                          value={formState.showAllOffersButtonText}
+                          onChange={(value) => setFormState({ ...formState, showAllOffersButtonText: value })}
+                          autoComplete="off"
+                          helpText="Text shown on the 'Show all offers' button"
+                        />
+                      </div>
                     )}
-                  </BlockStack>
+                  </div>
+                </div>
 
-                  <Divider />
+                <div style={{ height: '1px', background: '#e5e7eb', margin: '8px 0' }}></div>
 
-                  <BlockStack gap="300">
-                    <Text as="h3" variant="headingMd">
-                      Applied Discount Styling
-                    </Text>
+                <div>
+                  <Text as="h3" variant="headingSm" fontWeight="medium">
+                    Applied Discount Styling
+                  </Text>
+                  <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <TextField
+                        label="Applied Discount Text"
+                        value={formState.appliedDiscountText}
+                        onChange={(value) => setFormState({ ...formState, appliedDiscountText: value })}
+                        helpText="Custom text shown below the discount code"
+                        autoComplete="off"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Text as="p" variant="bodyMd" tone="subdued">Background Color</Text>
+                      <div className="color-picker-wrapper" style={{ marginTop: '8px' }}>
+                        <input
+                          type="color"
+                          className="color-picker-input"
+                          value={formState.backgroundColor}
+                          onChange={(e) => setFormState({ ...formState, backgroundColor: e.target.value })}
+                        />
+                        <span style={{ fontSize: '14px', fontFamily: 'monospace' }}>{formState.backgroundColor}</span>
+                      </div>
+                    </div>
 
-                    <TextField
-                      label="Applied Discount Text"
-                      value={formState.appliedDiscountText}
-                      onChange={(value) => setFormState({ ...formState, appliedDiscountText: value })}
-                      helpText="Custom text shown below the discount code (e.g., 'Best offer automatically applied'). Leave empty to use default."
-                      autoComplete="off"
-                    />
+                    <div>
+                      <Text as="p" variant="bodyMd" tone="subdued">Border Color</Text>
+                      <div className="color-picker-wrapper" style={{ marginTop: '8px' }}>
+                        <input
+                          type="color"
+                          className="color-picker-input"
+                          value={formState.borderColor}
+                          onChange={(e) => setFormState({ ...formState, borderColor: e.target.value })}
+                        />
+                        <span style={{ fontSize: '14px', fontFamily: 'monospace' }}>{formState.borderColor}</span>
+                      </div>
+                    </div>
 
-                    <TextField
-                      label="Background Color"
-                      type={"color" as any}
-                      value={formState.backgroundColor}
-                      onChange={(value) => setFormState({ ...formState, backgroundColor: value })}
-                      autoComplete="off"
-                    />
+                    <div>
+                      <Text as="p" variant="bodyMd" tone="subdued">Text Color</Text>
+                      <div className="color-picker-wrapper" style={{ marginTop: '8px' }}>
+                        <input
+                          type="color"
+                          className="color-picker-input"
+                          value={formState.textColor}
+                          onChange={(e) => setFormState({ ...formState, textColor: e.target.value })}
+                        />
+                        <span style={{ fontSize: '14px', fontFamily: 'monospace' }}>{formState.textColor}</span>
+                      </div>
+                    </div>
 
-                    <TextField
-                      label="Text Color"
-                      type={"color" as any}
-                      value={formState.textColor}
-                      onChange={(value) => setFormState({ ...formState, textColor: value })}
-                      helpText="Color for the applied discount message text"
-                      autoComplete="off"
-                    />
-
-                    <TextField
-                      label="Coupon Code Color"
-                      type={"color" as any}
-                      value={formState.couponCodeColor || formState.textColor}
-                      onChange={(value) => setFormState({ ...formState, couponCodeColor: value })}
-                      helpText="Color for the coupon code text (e.g., 'SUMMER20 - 20% OFF'). Leave empty to use text color."
-                      autoComplete="off"
-                    />
-
-                    <TextField
-                      label="Border Color"
-                      type={"color" as any}
-                      value={formState.borderColor}
-                      onChange={(value) => setFormState({ ...formState, borderColor: value })}
-                      autoComplete="off"
-                    />
-                  </BlockStack>
-                </FormLayout>
+                    <div>
+                      <Text as="p" variant="bodyMd" tone="subdued">Coupon Code Color</Text>
+                      <div className="color-picker-wrapper" style={{ marginTop: '8px' }}>
+                        <input
+                          type="color"
+                          className="color-picker-input"
+                          value={formState.couponCodeColor || formState.textColor}
+                          onChange={(e) => setFormState({ ...formState, couponCodeColor: e.target.value })}
+                        />
+                        <span style={{ fontSize: '14px', fontFamily: 'monospace' }}>{formState.couponCodeColor || formState.textColor}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </BlockStack>
-            </Card>
-          </BlockStack>
+            </div>
+          </div>
         </Layout.Section>
 
         <Layout.Section variant="oneThird">
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h3" variant="headingMd">
-                Preview
+          <div className="premium-card">
+            <div className="premium-card-header" style={{ padding: '16px 20px', background: '#f8fafc' }}>
+              <Text as="h3" variant="headingMd" fontWeight="medium">
+                Live Preview
               </Text>
+            </div>
+            <div className="premium-card-body" style={{ background: '#f1f5f9' }}>
+              <div style={{
+                backgroundColor: '#ffffff',
+                padding: '16px',
+                borderRadius: '8px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+              }}>
+                <CouponCodeFieldComponent
+                  id="selldrawer-coupon-field-preview"
+                  placeholder={formState.placeholder}
+                  buttonText={formState.buttonText}
+                  showAllOffers={formState.showAllOffers}
+                  showAllOffersButtonText={formState.showAllOffersButtonText}
+                  enableAutoApply={formState.enableAutoApply}
+                  appliedDiscount={formState.enableAutoApply ? {
+                    code: 'SUMMER20',
+                    title: 'Summer Sale',
+                    description: '20% OFF',
+                    type: 'percentage',
+                    value: 20
+                  } : null}
+                  availableDiscounts={formState.showAllOffers ? [
+                    { code: 'SAVE10', title: 'Welcome Offer', description: '10% OFF', type: 'percentage', value: 10 },
+                    { code: 'SUMMER20', title: 'Summer Sale', description: '20% OFF', type: 'percentage', value: 20 },
+                    { code: 'FLAT500', title: 'Flat Discount', description: '₹500 OFF', type: 'fixed', value: 500 }
+                  ] : []}
+                  backgroundColor={formState.backgroundColor}
+                  textColor={formState.textColor}
+                  couponCodeColor={formState.couponCodeColor}
+                  borderColor={formState.borderColor}
+                  appliedDiscountText={formState.appliedDiscountText}
+                  onApplyCoupon={() => { }}
+                  onRemoveDiscount={() => { }}
+                  onSwitchDiscount={() => { }}
+                  isPreview={true}
+                />
+              </div>
 
-              <CouponCodeFieldComponent
-                id="selldrawer-coupon-field-preview"
-                placeholder={formState.placeholder}
-                buttonText={formState.buttonText}
-                showAllOffers={formState.showAllOffers}
-                showAllOffersButtonText={formState.showAllOffersButtonText}
-                enableAutoApply={formState.enableAutoApply}
-                appliedDiscount={formState.enableAutoApply ? {
-                  code: 'SUMMER20',
-                  title: 'Summer Sale',
-                  description: '20% OFF',
-                  type: 'percentage',
-                  value: 20
-                } : null}
-                availableDiscounts={formState.showAllOffers ? [
-                  { code: 'SAVE10', title: 'Welcome Offer', description: '10% OFF', type: 'percentage', value: 10 },
-                  { code: 'SUMMER20', title: 'Summer Sale', description: '20% OFF', type: 'percentage', value: 20 },
-                  { code: 'FLAT500', title: 'Flat Discount', description: '₹500 OFF', type: 'fixed', value: 500 }
-                ] : []}
-                backgroundColor={formState.backgroundColor}
-                textColor={formState.textColor}
-                couponCodeColor={formState.couponCodeColor}
-                borderColor={formState.borderColor}
-                appliedDiscountText={formState.appliedDiscountText}
-                onApplyCoupon={() => { }}
-                onRemoveDiscount={() => { }}
-                onSwitchDiscount={() => { }}
-                isPreview={true}
-              />
-
-              <Text as="p" variant="bodyMd" tone="subdued">
-                This is how the coupon field will appear in your cart drawer.
-              </Text>
-            </BlockStack>
-          </Card>
+              <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  This is how the coupon field will appear in your cart drawer.
+                </Text>
+              </div>
+            </div>
+          </div>
         </Layout.Section>
       </Layout>
     </Page>

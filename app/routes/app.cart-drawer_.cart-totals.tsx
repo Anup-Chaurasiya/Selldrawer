@@ -234,9 +234,9 @@ export default function CartTotals() {
   return (
     <Page
       backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
-      title="Cart Totals"
+      title="Cart Totals Configuration"
       primaryAction={{
-        content: "Save",
+        content: "Save changes",
         onAction: handleSubmit,
         loading: isLoading,
       }}
@@ -316,180 +316,373 @@ export default function CartTotals() {
             transform: translateX(-50%) translateY(0);
           }
         }
+        
+        /* Premium UI CSS */
+        .premium-card {
+          background: #ffffff;
+          border-radius: 12px;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+          overflow: hidden;
+          transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+          margin-bottom: 20px;
+        }
+        .premium-card:hover {
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+          transform: translateY(-2px);
+        }
+        .premium-card-header {
+          padding: 20px 24px;
+          border-bottom: 1px solid #f3f4f6;
+          background: linear-gradient(to right, #f8fafc, #ffffff);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .premium-card-body {
+          padding: 24px;
+        }
+        
+        /* Custom Toggle Switch */
+        .premium-toggle-label {
+          position: relative;
+          display: inline-block;
+          width: 44px;
+          height: 24px;
+          margin: 0;
+        }
+        .premium-toggle-label input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+        .premium-toggle-slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #e2e8f0;
+          transition: .3s;
+          border-radius: 24px;
+          border: 1px solid #cbd5e1;
+        }
+        .premium-toggle-slider:before {
+          position: absolute;
+          content: "";
+          height: 18px;
+          width: 18px;
+          left: 2px;
+          bottom: 2px;
+          background-color: white;
+          transition: .3s cubic-bezier(0.4, 0.0, 0.2, 1);
+          border-radius: 50%;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        .premium-toggle-label input:checked + .premium-toggle-slider {
+          background-color: #10b981;
+          border-color: #10b981;
+        }
+        .premium-toggle-label input:focus + .premium-toggle-slider {
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+        .premium-toggle-label input:checked + .premium-toggle-slider:before {
+          transform: translateX(20px);
+        }
+        .premium-toggle-container {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        
+        .status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 600;
+        }
+        .status-badge.active {
+          background-color: rgba(16, 185, 129, 0.1);
+          color: #059669;
+        }
+        .status-badge.inactive {
+          background-color: #f3f4f6;
+          color: #6b7280;
+        }
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+        }
+        .status-dot.active {
+          background-color: #10b981;
+        }
+        .status-dot.inactive {
+          background-color: #9ca3af;
+        }
+        
+        /* Modern Input Group */
+        .color-picker-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 6px 12px 6px 6px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          background: #ffffff;
+          transition: all 0.2s;
+        }
+        .color-picker-wrapper:focus-within {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+        .color-picker-input {
+          width: 32px;
+          height: 32px;
+          padding: 0;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          background: transparent;
+        }
+        .color-picker-input::-webkit-color-swatch-wrapper {
+          padding: 0;
+        }
+        .color-picker-input::-webkit-color-swatch {
+          border: none;
+          border-radius: 4px;
+          box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+        }
+        
+        .icon-circle {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          color: #0ea5e9;
+          font-size: 20px;
+        }
       `}</style>
 
       <Layout>
         <Layout.Section>
-          <BlockStack gap="400">
-            <Card>
-              <BlockStack gap="400">
-                <InlineStack align="space-between">
-                  <Text as="h2" variant="headingMd">
-                    Configuration
+          {/* Main Configuration Card */}
+          <div className="premium-card">
+            <div className="premium-card-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="icon-circle">
+                  💰
+                </div>
+                <div>
+                  <Text as="h2" variant="headingMd" fontWeight="bold">
+                    Cart Totals Display
                   </Text>
-                  <Button onClick={handleToggle} loading={isLoading}>
-                    {cartDrawer?.cartTotalsEnabled ? "Disable" : "Enable"}
-                  </Button>
-                </InlineStack>
-
-                {!cartDrawer?.cartTotalsEnabled && (
-                  <Banner tone="warning">
-                    This feature is currently disabled. Enable it to show customized cart totals.
-                  </Banner>
-                )}
-
-                <Text as="h3" variant="headingSm">
-                  Display Options
-                </Text>
-
-                <FormLayout>
-                  <Checkbox
-                    label="Show Original Price (when items have discounts)"
-                    checked={formState.showOriginalPrice}
-                    onChange={(value) => setFormState({ ...formState, showOriginalPrice: value })}
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Configure how prices, discounts, and taxes are displayed
+                  </Text>
+                </div>
+              </div>
+              <div className="premium-toggle-container">
+                <span className={`status-badge ${cartDrawer?.cartTotalsEnabled ? 'active' : 'inactive'}`}>
+                  <span className={`status-dot ${cartDrawer?.cartTotalsEnabled ? 'active' : 'inactive'}`}></span>
+                  {cartDrawer?.cartTotalsEnabled ? 'Active' : 'Disabled'}
+                </span>
+                <label className="premium-toggle-label">
+                  <input 
+                    type="checkbox" 
+                    checked={cartDrawer?.cartTotalsEnabled || false} 
+                    onChange={handleToggle}
+                    disabled={isLoading}
                   />
+                  <span className="premium-toggle-slider"></span>
+                </label>
+              </div>
+            </div>
 
-                  <Checkbox
-                    label="Show Item Discounts Breakdown"
-                    checked={formState.showItemDiscounts}
-                    onChange={(value) => setFormState({ ...formState, showItemDiscounts: value })}
-                  />
+            <div className="premium-card-body">
+              <BlockStack gap="500">
+                <div>
+                  <Text as="h3" variant="headingSm" fontWeight="medium">
+                    Display Options
+                  </Text>
+                  <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                    <Checkbox
+                      label="Show Original Price"
+                      checked={formState.showOriginalPrice}
+                      onChange={(value) => setFormState({ ...formState, showOriginalPrice: value })}
+                      helpText="When items have discounts"
+                    />
+                    <Checkbox
+                      label="Show Item Discounts"
+                      checked={formState.showItemDiscounts}
+                      onChange={(value) => setFormState({ ...formState, showItemDiscounts: value })}
+                      helpText="Detailed breakdown"
+                    />
+                    <Checkbox
+                      label="Show Subtotal"
+                      checked={formState.showSubtotal}
+                      onChange={(value) => setFormState({ ...formState, showSubtotal: value })}
+                    />
+                    <Checkbox
+                      label="Show Coupon Discount"
+                      checked={formState.showCouponDiscount}
+                      onChange={(value) => setFormState({ ...formState, showCouponDiscount: value })}
+                      helpText="When applied"
+                    />
+                    <Checkbox
+                      label="Show Tax & Shipping Notice"
+                      checked={formState.showTaxNotice}
+                      onChange={(value) => setFormState({ ...formState, showTaxNotice: value })}
+                    />
+                  </div>
+                </div>
 
-                  <Checkbox
-                    label="Show Subtotal"
-                    checked={formState.showSubtotal}
-                    onChange={(value) => setFormState({ ...formState, showSubtotal: value })}
-                  />
+                <div style={{ height: '1px', background: '#e5e7eb', margin: '8px 0' }}></div>
 
-                  <Checkbox
-                    label="Show Coupon Discount (when applied)"
-                    checked={formState.showCouponDiscount}
-                    onChange={(value) => setFormState({ ...formState, showCouponDiscount: value })}
-                  />
+                <div>
+                  <Text as="h3" variant="headingSm" fontWeight="medium">
+                    Labels & Text
+                  </Text>
+                  <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <TextField
+                      label="Subtotal Label"
+                      value={formState.subtotalLabel}
+                      onChange={(value) => setFormState({ ...formState, subtotalLabel: value })}
+                      autoComplete="off"
+                    />
+                    <TextField
+                      label="Total Label"
+                      value={formState.totalLabel}
+                      onChange={(value) => setFormState({ ...formState, totalLabel: value })}
+                      autoComplete="off"
+                    />
+                    <TextField
+                      label="Original Price Label"
+                      value={formState.originalPriceLabel}
+                      onChange={(value) => setFormState({ ...formState, originalPriceLabel: value })}
+                      autoComplete="off"
+                    />
+                    <TextField
+                      label="Item Discounts Label"
+                      value={formState.itemDiscountsLabel}
+                      onChange={(value) => setFormState({ ...formState, itemDiscountsLabel: value })}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div style={{ marginTop: '16px' }}>
+                    <TextField
+                      label="Tax Notice Text"
+                      value={formState.taxNoticeText}
+                      onChange={(value) => setFormState({ ...formState, taxNoticeText: value })}
+                      autoComplete="off"
+                      multiline={2}
+                    />
+                  </div>
+                </div>
 
-                  <Checkbox
-                    label="Show Tax & Shipping Notice"
-                    checked={formState.showTaxNotice}
-                    onChange={(value) => setFormState({ ...formState, showTaxNotice: value })}
-                  />
-                </FormLayout>
+                <div style={{ height: '1px', background: '#e5e7eb', margin: '8px 0' }}></div>
+
+                <div>
+                  <Text as="h3" variant="headingSm" fontWeight="medium">
+                    Styling
+                  </Text>
+                  <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+                    
+                    <div>
+                      <Text as="p" variant="bodyMd" tone="subdued">Background Color</Text>
+                      <div className="color-picker-wrapper" style={{ marginTop: '8px' }}>
+                        <input
+                          type="color"
+                          className="color-picker-input"
+                          value={formState.backgroundColor}
+                          onChange={(e) => setFormState({ ...formState, backgroundColor: e.target.value })}
+                        />
+                        <span style={{ fontSize: '14px', fontFamily: 'monospace' }}>{formState.backgroundColor}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Text as="p" variant="bodyMd" tone="subdued">Border Color</Text>
+                      <div className="color-picker-wrapper" style={{ marginTop: '8px' }}>
+                        <input
+                          type="color"
+                          className="color-picker-input"
+                          value={formState.borderColor}
+                          onChange={(e) => setFormState({ ...formState, borderColor: e.target.value })}
+                        />
+                        <span style={{ fontSize: '14px', fontFamily: 'monospace' }}>{formState.borderColor}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Text as="p" variant="bodyMd" tone="subdued">Text Color</Text>
+                      <div className="color-picker-wrapper" style={{ marginTop: '8px' }}>
+                        <input
+                          type="color"
+                          className="color-picker-input"
+                          value={formState.textColor}
+                          onChange={(e) => setFormState({ ...formState, textColor: e.target.value })}
+                        />
+                        <span style={{ fontSize: '14px', fontFamily: 'monospace' }}>{formState.textColor}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Text as="p" variant="bodyMd" tone="subdued">Total Text Color</Text>
+                      <div className="color-picker-wrapper" style={{ marginTop: '8px' }}>
+                        <input
+                          type="color"
+                          className="color-picker-input"
+                          value={formState.totalTextColor}
+                          onChange={(e) => setFormState({ ...formState, totalTextColor: e.target.value })}
+                        />
+                        <span style={{ fontSize: '14px', fontFamily: 'monospace' }}>{formState.totalTextColor}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Text as="p" variant="bodyMd" tone="subdued">Discount Color</Text>
+                      <div className="color-picker-wrapper" style={{ marginTop: '8px' }}>
+                        <input
+                          type="color"
+                          className="color-picker-input"
+                          value={formState.discountColor}
+                          onChange={(e) => setFormState({ ...formState, discountColor: e.target.value })}
+                        />
+                        <span style={{ fontSize: '14px', fontFamily: 'monospace' }}>{formState.discountColor}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </BlockStack>
-            </Card>
-
-            <Card>
-              <BlockStack gap="400">
-                <Text as="h3" variant="headingMd">
-                  Labels & Text
-                </Text>
-
-                <FormLayout>
-                  <TextField
-                    label="Subtotal Label"
-                    value={formState.subtotalLabel}
-                    onChange={(value) => setFormState({ ...formState, subtotalLabel: value })}
-                    autoComplete="off"
-                  />
-
-                  <TextField
-                    label="Total Label"
-                    value={formState.totalLabel}
-                    onChange={(value) => setFormState({ ...formState, totalLabel: value })}
-                    autoComplete="off"
-                  />
-
-                  <TextField
-                    label="Original Price Label"
-                    value={formState.originalPriceLabel}
-                    onChange={(value) => setFormState({ ...formState, originalPriceLabel: value })}
-                    autoComplete="off"
-                  />
-
-                  <TextField
-                    label="Item Discounts Label"
-                    value={formState.itemDiscountsLabel}
-                    onChange={(value) => setFormState({ ...formState, itemDiscountsLabel: value })}
-                    autoComplete="off"
-                  />
-
-                  <TextField
-                    label="Tax Notice Text"
-                    value={formState.taxNoticeText}
-                    onChange={(value) => setFormState({ ...formState, taxNoticeText: value })}
-                    autoComplete="off"
-                    multiline={2}
-                  />
-                </FormLayout>
-              </BlockStack>
-            </Card>
-
-            <Card>
-              <BlockStack gap="400">
-                <Text as="h3" variant="headingMd">
-                  Styling
-                </Text>
-
-                <FormLayout>
-                  <TextField
-                    label="Border Color"
-                    type={"color" as any}
-                    value={formState.borderColor}
-                    onChange={(value) => setFormState({ ...formState, borderColor: value })}
-                    autoComplete="off"
-                  />
-
-                  <TextField
-                    label="Background Color"
-                    type={"color" as any}
-                    value={formState.backgroundColor}
-                    onChange={(value) => setFormState({ ...formState, backgroundColor: value })}
-                    autoComplete="off"
-                  />
-
-                  <TextField
-                    label="Text Color"
-                    type={"color" as any}
-                    value={formState.textColor}
-                    onChange={(value) => setFormState({ ...formState, textColor: value })}
-                    autoComplete="off"
-                  />
-
-                  <TextField
-                    label="Total Text Color"
-                    type={"color" as any}
-                    value={formState.totalTextColor}
-                    onChange={(value) => setFormState({ ...formState, totalTextColor: value })}
-                    autoComplete="off"
-                  />
-
-                  <TextField
-                    label="Discount Color"
-                    type={"color" as any}
-                    value={formState.discountColor}
-                    onChange={(value) => setFormState({ ...formState, discountColor: value })}
-                    autoComplete="off"
-                  />
-                </FormLayout>
-              </BlockStack>
-            </Card>
-          </BlockStack>
+            </div>
+          </div>
         </Layout.Section>
 
         <Layout.Section variant="oneThird">
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h3" variant="headingMd">
-                Preview
+          <div className="premium-card">
+            <div className="premium-card-header" style={{ padding: '16px 20px', background: '#f8fafc' }}>
+              <Text as="h3" variant="headingMd" fontWeight="medium">
+                Live Preview
               </Text>
-
+            </div>
+            <div className="premium-card-body" style={{ background: '#f1f5f9' }}>
               <div style={{
                 backgroundColor: formState.backgroundColor,
                 padding: '16px',
-                borderRadius: '8px'
+                borderRadius: '8px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
               }}>
                 <CartTotalsComponent
                   items={sampleCartItems}
                   totalPrice={sampleTotalPrice}
-
                   config={{
                     showOriginalPrice: formState.showOriginalPrice,
                     showItemDiscounts: formState.showItemDiscounts,
@@ -511,11 +704,13 @@ export default function CartTotals() {
                 />
               </div>
 
-              <Text as="p" variant="bodyMd" tone="subdued">
-                This is how the cart totals will appear in your cart drawer with sample data including discounts.
-              </Text>
-            </BlockStack>
-          </Card>
+              <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Sample data used for preview
+                </Text>
+              </div>
+            </div>
+          </div>
         </Layout.Section>
       </Layout>
     </Page>
