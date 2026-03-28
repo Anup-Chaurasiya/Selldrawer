@@ -1,9 +1,9 @@
 /**
  * Shared Free Shipping Progress Bar Component
- * Used in both production cart drawer and Remix preview
+ * Premium redesign — works in any Shopify theme (light)
  */
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface Cart {
   item_count: number;
@@ -32,17 +32,20 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
   beforeThresholdMessage = 'Add {remaining} for FREE shipping',
   afterThresholdMessage = "🎉 You qualify for FREE shipping!",
   backgroundColor = '#f0f9ff',
-  progressBarColor = '#3b82f6',
-  borderColor = '#e2e8f0',
+  progressBarColor = '#7c3aed',
+  borderColor = '#e8e0ff',
   showPercentage = true,
   currency = 'INR',
   cart,
   isPreview = false
 }) => {
-  // Calculate progress and remaining
+  const [animatedProgress, setAnimatedProgress] = useState(0);
+  const [celebrated, setCelebrated] = useState(false);
+  const prevCompleteRef = useRef(false);
+
   const calculateProgress = () => {
     if (thresholdMode === 'amount' && thresholdAmount) {
-      const cartTotal = cart.total_price / 100; // Convert cents to currency
+      const cartTotal = cart.total_price / 100;
       return Math.min((cartTotal / thresholdAmount) * 100, 100);
     } else if (thresholdMode === 'count' && thresholdCount) {
       return Math.min((cart.item_count / thresholdCount) * 100, 100);
@@ -64,87 +67,195 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
   const remaining = calculateRemaining();
   const isComplete = progress >= 100;
 
-  // Format message
-  const getMessage = () => {
-    if (isComplete) {
-      return afterThresholdMessage;
-    } else {
-      let message = beforeThresholdMessage;
-      if (thresholdMode === 'amount') {
-        const currencySymbol = currency === 'INR' ? '₹' : '$';
-        message = message.replace('{remaining}', `${currencySymbol}${Math.round(remaining)}`);
-      } else {
-        message = message.replace('{remaining}', `${Math.round(remaining)} more items`);
-      }
-      return message;
+  // Animate progress on mount and change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnimatedProgress(progress);
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [progress]);
+
+  // Celebration trigger
+  useEffect(() => {
+    if (isComplete && !prevCompleteRef.current) {
+      setCelebrated(true);
+      const t = setTimeout(() => setCelebrated(false), 2000);
+      return () => clearTimeout(t);
     }
+    prevCompleteRef.current = isComplete;
+  }, [isComplete]);
+
+  const currencySymbol = currency === 'INR' ? '₹' : '$';
+
+  const getMessage = () => {
+    if (isComplete) return afterThresholdMessage;
+    let message = beforeThresholdMessage;
+    if (thresholdMode === 'amount') {
+      message = message.replace('{remaining}', `${currencySymbol}${Math.round(remaining)}`);
+    } else {
+      message = message.replace('{remaining}', `${Math.round(remaining)} more items`);
+    }
+    return message;
   };
 
   const message = getMessage();
 
-  // Color gradients
-  const backgroundGradient = `linear-gradient(135deg, ${backgroundColor} 0%, ${backgroundColor}dd 100%)`;
-  const completeGradient = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-  const incompleteGradient = `linear-gradient(135deg, ${progressBarColor} 0%, ${progressBarColor}dd 100%)`;
-  const percentageGradient = isComplete ? completeGradient : incompleteGradient;
+  // Derive fill color from prop
+  const fillColor = isComplete ? '#10b981' : progressBarColor;
+  const glowColor = isComplete ? 'rgba(16,185,129,0.35)' : `${progressBarColor}55`;
+
+  const keyframes = `
+    @keyframes sd-truck-slide {
+      0% { transform: translateX(-4px); }
+      50% { transform: translateX(2px); }
+      100% { transform: translateX(-4px); }
+    }
+    @keyframes sd-shimmer-bar {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+    @keyframes sd-celebrate-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.04); opacity: 0.9; }
+    }
+    @keyframes sd-flash-in {
+      0% { opacity: 0; transform: translateY(6px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+  `;
 
   return (
-    <div style={{
-      padding: '10px 12px',
-      background: backgroundGradient,
-      borderRadius: '12px',
-      border: `2px solid ${borderColor}`,
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
-    }}>
-      {/* Progress Text and Percentage */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '8px',
-        fontSize: '14px',
-        fontWeight: '600'
-      }}>
-        <span style={{ color: '#374151', flex: 1 }}>
-          {message}
-        </span>
-        {showPercentage && (
-          <span style={{
-            background: percentageGradient,
-            color: 'white',
-            padding: '3px 10px',
-            borderRadius: '20px',
-            fontSize: '12px',
-            fontWeight: '700',
-            boxShadow: `0 2px 4px ${progressBarColor}40`,
-            marginLeft: '8px'
-          }}>
-            {progress.toFixed(0)}%
-          </span>
+    <>
+      <style>{keyframes}</style>
+      <div
+        style={{
+          background: isComplete
+            ? 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)'
+            : 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+          borderRadius: '14px',
+          border: `1.5px solid ${isComplete ? '#6ee7b7' : borderColor}`,
+          padding: '12px 16px',
+          boxShadow: isComplete
+            ? '0 4px 20px rgba(16,185,129,0.12)'
+            : '0 4px 20px rgba(124,58,237,0.08)',
+          animation: celebrated ? 'sd-celebrate-pulse 0.5s ease-in-out 2' : undefined,
+          transition: 'all 0.4s cubic-bezier(0.4,0,0.2,1)',
+        }}
+      >
+        {/* Top row: truck icon + message + badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+          {/* Truck icon */}
+          <div
+            style={{
+              fontSize: '20px',
+              lineHeight: 1,
+              flexShrink: 0,
+              animation: isComplete ? undefined : 'sd-truck-slide 1.8s ease-in-out infinite',
+              transition: 'all 0.4s ease',
+            }}
+            aria-hidden="true"
+          >
+            {isComplete ? '🎉' : '🚚'}
+          </div>
+
+          {/* Message */}
+          <div
+            style={{
+              flex: 1,
+              fontSize: '13px',
+              fontWeight: '600',
+              color: isComplete ? '#065f46' : '#4c1d95',
+              lineHeight: '1.35',
+              letterSpacing: '-0.01em',
+              animation: 'sd-flash-in 0.35s ease',
+            }}
+          >
+            {message}
+          </div>
+
+          {/* Percentage badge */}
+          {showPercentage && (
+            <div
+              style={{
+                flexShrink: 0,
+                fontSize: '11px',
+                fontWeight: '700',
+                color: isComplete ? '#065f46' : '#5b21b6',
+                background: isComplete ? 'rgba(16,185,129,0.15)' : 'rgba(124,58,237,0.12)',
+                padding: '3px 9px',
+                borderRadius: '20px',
+                letterSpacing: '0.02em',
+                border: `1px solid ${isComplete ? 'rgba(16,185,129,0.3)' : 'rgba(124,58,237,0.2)'}`,
+              }}
+            >
+              {isComplete ? '✓ FREE' : `${Math.round(progress)}%`}
+            </div>
+          )}
+        </div>
+
+        {/* Progress bar */}
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            height: '8px',
+            borderRadius: '100px',
+            background: isComplete ? 'rgba(16,185,129,0.15)' : 'rgba(124,58,237,0.12)',
+            overflow: 'visible',
+            display: 'block',
+          }}
+        >
+          {/* Fill */}
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              height: '100%',
+              width: `${animatedProgress}%`,
+              borderRadius: '100px',
+              background: isComplete
+                ? 'linear-gradient(90deg, #34d399, #10b981)'
+                : `linear-gradient(90deg, ${fillColor}cc, ${fillColor})`,
+              boxShadow: `0 0 10px ${glowColor}`,
+              transition: 'width 0.7s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease',
+              backgroundSize: '200% 100%',
+              animation: !isComplete && animatedProgress > 5
+                ? 'sd-shimmer-bar 2.5s linear infinite'
+                : undefined,
+              display: 'block',
+            }}
+          />
+
+          {/* Thumb dot at progress edge */}
+          {!isComplete && animatedProgress > 3 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: `${animatedProgress}%`,
+                transform: 'translate(-50%, -50%)',
+                width: '14px',
+                height: '14px',
+                borderRadius: '50%',
+                background: fillColor,
+                boxShadow: `0 0 0 3px white, 0 0 0 5px ${fillColor}44`,
+                transition: 'left 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
+                zIndex: 2,
+              }}
+            />
+          )}
+        </div>
+
+        {/* Milestone ticks (if amount mode) */}
+        {!isComplete && thresholdMode === 'amount' && thresholdAmount && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '5px' }}>
+            <span style={{ fontSize: '10px', color: '#7c3aed', fontWeight: '600', opacity: 0.7 }}>
+              {currencySymbol}{Math.round(thresholdAmount)} for free shipping
+            </span>
+          </div>
         )}
       </div>
-
-      {/* Progress Bar Track */}
-      <div style={{
-        width: '100%',
-        height: '10px',
-        borderRadius: '8px',
-        overflow: 'hidden',
-        background: backgroundColor,
-        position: 'relative',
-        boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)'
-      }}>
-        {/* Progress Bar Fill */}
-        <div style={{
-          width: `${progress}%`,
-          height: '100%',
-          display: 'block',
-          background: isComplete ? completeGradient : incompleteGradient,
-          borderRadius: '8px',
-          transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
-        }} />
-      </div>
-    </div>
+    </>
   );
 };
-

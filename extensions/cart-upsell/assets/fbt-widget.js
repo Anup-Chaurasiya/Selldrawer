@@ -1,6 +1,6 @@
 /**
  * Selldrawer FBT Widget v1.0.11
- * Built: 2026-03-26T20:02:35.172Z
+ * Built: 2026-03-28T18:14:21.032Z
  */
 "use strict";
 (() => {
@@ -9455,7 +9455,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://compete-platform-lets-newspapers.trycloudflare.com" : "https://app.selldrawer.com";
+  var APP_URL = true ? "https://low-tunnel-tribute-that.trycloudflare.com" : "https://app.selldrawer.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;

@@ -171,7 +171,7 @@ export class SelldrawerCartDrawer {
 
   async loadMilestones() {
     try {
-      const appUrl = document.querySelector('[data-selldrawer-app-url]')?.dataset.selldrawerAppUrl;
+      const appUrl = this.appUrl;
       if (!appUrl) return;
 
       // CRITICAL FIX: Use original cart total (before discounts) for milestone calculation

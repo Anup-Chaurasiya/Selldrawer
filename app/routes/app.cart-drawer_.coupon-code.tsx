@@ -38,7 +38,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       data: { 
         id: crypto.randomUUID(),
         shop, 
-        version: editingVersion, 
         isActive: true,
         updatedAt: new Date(),
       },
@@ -78,14 +77,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Ensure CartDrawer exists
     await prisma.cartDrawer.upsert({
       where: { shop },
-      update: { couponCodeFieldEnabled: enabled },
-      create: { shop, couponCodeFieldEnabled: enabled, isActive: true },
+      update: { couponCodeFieldEnabled: enabled, updatedAt: new Date() },
+      create: { id: crypto.randomUUID(), shop, couponCodeFieldEnabled: enabled, isActive: true, updatedAt: new Date() },
     });
 
     await prisma.couponCodeField.upsert({
       where: { shop },
-      update: { isActive: enabled },
-      create: { shop, isActive: enabled },
+      update: { isActive: enabled, updatedAt: new Date() },
+      create: { id: crypto.randomUUID(), shop, isActive: enabled, updatedAt: new Date() },
     });
 
     return json({ success: true });
@@ -112,14 +111,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Ensure CartDrawer exists and enable coupon code field
     await prisma.cartDrawer.upsert({
       where: { shop },
-      update: { couponCodeFieldEnabled: true },
-      create: { shop, couponCodeFieldEnabled: true, isActive: true },
+      update: { couponCodeFieldEnabled: true, updatedAt: new Date() },
+      create: { id: crypto.randomUUID(), shop, couponCodeFieldEnabled: true, isActive: true, updatedAt: new Date() },
     });
 
     await prisma.couponCodeField.upsert({
       where: { shop },
-      update: data,
-      create: { ...data, shop },
+      update: { ...data, updatedAt: new Date() },
+      create: { id: crypto.randomUUID(), ...data, shop, updatedAt: new Date() },
     });
 
     return redirect(`/app/cart-drawer?version=${editingVersion}`);

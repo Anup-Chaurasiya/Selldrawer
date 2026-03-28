@@ -1,6 +1,6 @@
 /**
  * Shared Free Shipping Message Component
- * Used in both production cart drawer and Remix preview
+ * Premium redesign — works in any Shopify theme (light)
  */
 
 import React from 'react';
@@ -32,62 +32,137 @@ export const FreeShippingMessage: React.FC<FreeShippingMessageProps> = ({
 }) => {
   const cartTotalInCurrency = cartTotal / 100;
   const remaining = Math.max(thresholdAmount - cartTotalInCurrency, 0);
+  const isAchieved = remaining <= 0;
   const currencySymbol = currency === 'INR' ? '₹' : '$';
-  
-  const message = remaining > 0
-    ? beforeThresholdMessage
+
+  const message = isAchieved
+    ? achievedMessage
+    : beforeThresholdMessage
         .replace('{threshold}', `${currencySymbol}${Math.round(thresholdAmount)}`)
-        .replace('{remaining}', `${currencySymbol}${Math.round(remaining)}`)
-    : achievedMessage;
+        .replace('{remaining}', `${currencySymbol}${Math.round(remaining)}`);
+
+  const keyframes = `
+    @keyframes sd-msg-slide-in {
+      0% { opacity: 0; transform: translateX(-12px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes sd-pill-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+    }
+    @keyframes sd-icon-bob {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+  `;
 
   return (
-    <div style={{
-      backgroundColor: backgroundColor,
-      color: textColor,
-      border: `2px solid ${borderColor}`,
-      padding: '14px 18px',
-      borderRadius: '12px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      fontSize: '14px',
-      fontWeight: '700',
-      boxShadow: '0 3px 6px rgba(0, 0, 0, 0.1)',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      {/* Gradient overlay */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'linear-gradient(45deg, rgba(255,255,255,0.2) 0%, transparent 50%)',
-        pointerEvents: 'none'
-      }} />
-      
-      {/* Icon */}
-      <div style={{
-        fontSize: '20px',
-        flexShrink: 0,
-        position: 'relative',
-        zIndex: 1,
-        ...(isPreview ? {} : { height: '20px', top: '-8px' })
-      }}>
-        {icon}
+    <>
+      <style>{keyframes}</style>
+      <div
+        style={{
+          position: 'relative',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          background: isAchieved
+            ? 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)'
+            : 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+          border: `1.5px solid ${isAchieved ? '#6ee7b7' : '#fcd34d'}`,
+          boxShadow: isAchieved
+            ? '0 4px 16px rgba(16,185,129,0.12)'
+            : '0 4px 16px rgba(245,158,11,0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '12px 14px',
+          animation: 'sd-msg-slide-in 0.35s cubic-bezier(0.4,0,0.2,1)',
+        }}
+      >
+        {/* Left accent bar */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: '4px',
+            background: isAchieved
+              ? 'linear-gradient(180deg, #34d399, #10b981)'
+              : 'linear-gradient(180deg, #fbbf24, #f59e0b)',
+            borderRadius: '12px 0 0 12px',
+          }}
+        />
+
+        {/* Icon */}
+        <div
+          style={{
+            fontSize: '22px',
+            lineHeight: 1,
+            flexShrink: 0,
+            paddingLeft: '4px',
+            animation: 'sd-icon-bob 2s ease-in-out infinite',
+          }}
+          aria-hidden="true"
+        >
+          {isAchieved ? '🎉' : icon}
+        </div>
+
+        {/* Text */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: '13px',
+              fontWeight: '600',
+              color: isAchieved ? '#065f46' : '#78350f',
+              lineHeight: '1.4',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            {message}
+          </div>
+        </div>
+
+        {/* Status pill */}
+        {isAchieved && (
+          <div
+            style={{
+              flexShrink: 0,
+              fontSize: '10px',
+              fontWeight: '700',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              color: '#065f46',
+              background: '#d1fae5',
+              border: '1px solid #6ee7b7',
+              padding: '3px 10px',
+              borderRadius: '100px',
+              animation: 'sd-pill-pulse 1.5s ease-in-out infinite',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            ✓ Unlocked
+          </div>
+        )}
+
+        {/* Remaining amount chip */}
+        {!isAchieved && remaining > 0 && (
+          <div
+            style={{
+              flexShrink: 0,
+              fontSize: '11px',
+              fontWeight: '700',
+              color: '#92400e',
+              background: 'rgba(245,158,11,0.15)',
+              border: '1px solid rgba(245,158,11,0.3)',
+              padding: '3px 10px',
+              borderRadius: '100px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {currencySymbol}{Math.round(remaining)} left
+          </div>
+        )}
       </div>
-      
-      {/* Message */}
-      <span style={{
-        position: 'relative',
-        zIndex: 1,
-        textShadow: '0 1px 2px rgba(0,0,0,0.1)',
-        flex: 1
-      }}>
-        {message}
-      </span>
-    </div>
+    </>
   );
 };
-

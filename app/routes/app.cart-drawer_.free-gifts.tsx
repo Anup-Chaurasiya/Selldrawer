@@ -55,7 +55,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       data: { 
         id: crypto.randomUUID(),
         shop, 
-        version: editingVersion,
         updatedAt: new Date(),
       },
       include: {
@@ -196,8 +195,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     cartDrawer = await prisma.cartDrawer.create({
       data: { 
         id: crypto.randomUUID(),
-        shop, 
-        version: editingVersion 
+        shop,
+        updatedAt: new Date(),
       }
     });
   }

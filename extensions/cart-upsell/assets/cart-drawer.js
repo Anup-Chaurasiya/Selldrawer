@@ -1,6 +1,6 @@
 /**
  * Selldrawer Cart Drawer v1.0.11
- * Built: 2026-03-26T20:02:35.176Z
+ * Built: 2026-03-28T18:14:20.996Z
  */
 "use strict";
 (() => {
@@ -7879,7 +7879,7 @@
   });
 
   // extensions/cart-upsell/assets/modules/cart-drawer-class.js
-  var import_react6 = __toESM(require_react(), 1);
+  var import_react8 = __toESM(require_react(), 1);
   var import_client = __toESM(require_client(), 1);
 
   // extensions/cart-upsell/assets/modules/cart-operations.js
@@ -8460,9 +8460,10 @@
   }
 
   // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
-  var import_react5 = __toESM(require_react(), 1);
+  var import_react7 = __toESM(require_react(), 1);
 
   // app/components/shared/FreeShippingBar.tsx
+  var import_react = __toESM(require_react(), 1);
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
   var FreeShippingBar = ({
     thresholdMode,
@@ -8471,13 +8472,16 @@
     beforeThresholdMessage = "Add {remaining} for FREE shipping",
     afterThresholdMessage = "\u{1F389} You qualify for FREE shipping!",
     backgroundColor = "#f0f9ff",
-    progressBarColor = "#3b82f6",
-    borderColor = "#e2e8f0",
+    progressBarColor = "#7c3aed",
+    borderColor = "#e8e0ff",
     showPercentage = true,
     currency = "INR",
     cart,
     isPreview = false
   }) => {
+    const [animatedProgress, setAnimatedProgress] = (0, import_react.useState)(0);
+    const [celebrated, setCelebrated] = (0, import_react.useState)(false);
+    const prevCompleteRef = (0, import_react.useRef)(false);
     const calculateProgress = () => {
       if (thresholdMode === "amount" && thresholdAmount) {
         const cartTotal = cart.total_price / 100;
@@ -8499,85 +8503,206 @@
     const progress = calculateProgress();
     const remaining = calculateRemaining();
     const isComplete = progress >= 100;
-    const getMessage = () => {
-      if (isComplete) {
-        return afterThresholdMessage;
-      } else {
-        let message2 = beforeThresholdMessage;
-        if (thresholdMode === "amount") {
-          const currencySymbol = currency === "INR" ? "\u20B9" : "$";
-          message2 = message2.replace("{remaining}", `${currencySymbol}${Math.round(remaining)}`);
-        } else {
-          message2 = message2.replace("{remaining}", `${Math.round(remaining)} more items`);
-        }
-        return message2;
+    (0, import_react.useEffect)(() => {
+      const timer = setTimeout(() => {
+        setAnimatedProgress(progress);
+      }, 80);
+      return () => clearTimeout(timer);
+    }, [progress]);
+    (0, import_react.useEffect)(() => {
+      if (isComplete && !prevCompleteRef.current) {
+        setCelebrated(true);
+        const t = setTimeout(() => setCelebrated(false), 2e3);
+        return () => clearTimeout(t);
       }
+      prevCompleteRef.current = isComplete;
+    }, [isComplete]);
+    const currencySymbol = currency === "INR" ? "\u20B9" : "$";
+    const getMessage = () => {
+      if (isComplete)
+        return afterThresholdMessage;
+      let message2 = beforeThresholdMessage;
+      if (thresholdMode === "amount") {
+        message2 = message2.replace("{remaining}", `${currencySymbol}${Math.round(remaining)}`);
+      } else {
+        message2 = message2.replace("{remaining}", `${Math.round(remaining)} more items`);
+      }
+      return message2;
     };
     const message = getMessage();
-    const backgroundGradient = `linear-gradient(135deg, ${backgroundColor} 0%, ${backgroundColor}dd 100%)`;
-    const completeGradient = "linear-gradient(135deg, #10b981 0%, #059669 100%)";
-    const incompleteGradient = `linear-gradient(135deg, ${progressBarColor} 0%, ${progressBarColor}dd 100%)`;
-    const percentageGradient = isComplete ? completeGradient : incompleteGradient;
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-      padding: "10px 12px",
-      background: backgroundGradient,
-      borderRadius: "12px",
-      border: `2px solid ${borderColor}`,
-      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)"
-    }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "8px",
-        fontSize: "14px",
-        fontWeight: "600"
-      }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { color: "#374151", flex: 1 }, children: message }),
-        showPercentage && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: {
-          background: percentageGradient,
-          color: "white",
-          padding: "3px 10px",
-          borderRadius: "20px",
-          fontSize: "12px",
-          fontWeight: "700",
-          boxShadow: `0 2px 4px ${progressBarColor}40`,
-          marginLeft: "8px"
-        }, children: [
-          progress.toFixed(0),
-          "%"
-        ] })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-        width: "100%",
-        height: "10px",
-        borderRadius: "8px",
-        overflow: "hidden",
-        background: backgroundColor,
-        position: "relative",
-        boxShadow: "inset 0 1px 3px rgba(0, 0, 0, 0.1)"
-      }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-        width: `${progress}%`,
-        height: "100%",
-        display: "block",
-        background: isComplete ? completeGradient : incompleteGradient,
-        borderRadius: "8px",
-        transition: "width 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
-      } }) })
+    const fillColor = isComplete ? "#10b981" : progressBarColor;
+    const glowColor = isComplete ? "rgba(16,185,129,0.35)" : `${progressBarColor}55`;
+    const keyframes = `
+    @keyframes sd-truck-slide {
+      0% { transform: translateX(-4px); }
+      50% { transform: translateX(2px); }
+      100% { transform: translateX(-4px); }
+    }
+    @keyframes sd-shimmer-bar {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+    @keyframes sd-celebrate-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.04); opacity: 0.9; }
+    }
+    @keyframes sd-flash-in {
+      0% { opacity: 0; transform: translateY(6px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+  `;
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("style", { children: keyframes }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+        "div",
+        {
+          style: {
+            background: isComplete ? "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)" : "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)",
+            borderRadius: "14px",
+            border: `1.5px solid ${isComplete ? "#6ee7b7" : borderColor}`,
+            padding: "12px 16px",
+            boxShadow: isComplete ? "0 4px 20px rgba(16,185,129,0.12)" : "0 4px 20px rgba(124,58,237,0.08)",
+            animation: celebrated ? "sd-celebrate-pulse 0.5s ease-in-out 2" : void 0,
+            transition: "all 0.4s cubic-bezier(0.4,0,0.2,1)"
+          },
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "div",
+                {
+                  style: {
+                    fontSize: "20px",
+                    lineHeight: 1,
+                    flexShrink: 0,
+                    animation: isComplete ? void 0 : "sd-truck-slide 1.8s ease-in-out infinite",
+                    transition: "all 0.4s ease"
+                  },
+                  "aria-hidden": "true",
+                  children: isComplete ? "\u{1F389}" : "\u{1F69A}"
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "div",
+                {
+                  style: {
+                    flex: 1,
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    color: isComplete ? "#065f46" : "#4c1d95",
+                    lineHeight: "1.35",
+                    letterSpacing: "-0.01em",
+                    animation: "sd-flash-in 0.35s ease"
+                  },
+                  children: message
+                }
+              ),
+              showPercentage && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "div",
+                {
+                  style: {
+                    flexShrink: 0,
+                    fontSize: "11px",
+                    fontWeight: "700",
+                    color: isComplete ? "#065f46" : "#5b21b6",
+                    background: isComplete ? "rgba(16,185,129,0.15)" : "rgba(124,58,237,0.12)",
+                    padding: "3px 9px",
+                    borderRadius: "20px",
+                    letterSpacing: "0.02em",
+                    border: `1px solid ${isComplete ? "rgba(16,185,129,0.3)" : "rgba(124,58,237,0.2)"}`
+                  },
+                  children: isComplete ? "\u2713 FREE" : `${Math.round(progress)}%`
+                }
+              )
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "div",
+              {
+                style: {
+                  position: "relative",
+                  width: "100%",
+                  height: "8px",
+                  borderRadius: "100px",
+                  background: isComplete ? "rgba(16,185,129,0.15)" : "rgba(124,58,237,0.12)",
+                  overflow: "visible",
+                  display: "block"
+                },
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    "div",
+                    {
+                      style: {
+                        position: "absolute",
+                        left: 0,
+                        top: 0,
+                        height: "100%",
+                        width: `${animatedProgress}%`,
+                        borderRadius: "100px",
+                        background: isComplete ? "linear-gradient(90deg, #34d399, #10b981)" : `linear-gradient(90deg, ${fillColor}cc, ${fillColor})`,
+                        boxShadow: `0 0 10px ${glowColor}`,
+                        transition: "width 0.7s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease",
+                        backgroundSize: "200% 100%",
+                        animation: !isComplete && animatedProgress > 5 ? "sd-shimmer-bar 2.5s linear infinite" : void 0,
+                        display: "block"
+                      }
+                    }
+                  ),
+                  !isComplete && animatedProgress > 3 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    "div",
+                    {
+                      style: {
+                        position: "absolute",
+                        top: "50%",
+                        left: `${animatedProgress}%`,
+                        transform: "translate(-50%, -50%)",
+                        width: "14px",
+                        height: "14px",
+                        borderRadius: "50%",
+                        background: fillColor,
+                        boxShadow: `0 0 0 3px white, 0 0 0 5px ${fillColor}44`,
+                        transition: "left 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
+                        zIndex: 2
+                      }
+                    }
+                  )
+                ]
+              }
+            ),
+            !isComplete && thresholdMode === "amount" && thresholdAmount && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", justifyContent: "flex-end", marginTop: "5px" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { fontSize: "10px", color: "#7c3aed", fontWeight: "600", opacity: 0.7 }, children: [
+              currencySymbol,
+              Math.round(thresholdAmount),
+              " for free shipping"
+            ] }) })
+          ]
+        }
+      )
     ] });
   };
 
   // app/components/shared/PromotionalBannerCard.tsx
-  var import_react = __toESM(require_react(), 1);
+  var import_react2 = __toESM(require_react(), 1);
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
-  var hexToRgb = (hex) => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : null;
-  };
+  var PROMO_KEYFRAMES = `
+  @keyframes sd-promo-fade-in {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes sd-promo-slide-up {
+    0% { opacity: 0; transform: translateY(16px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes sd-promo-dot-expand {
+    0% { width: 6px; }
+    100% { width: 20px; }
+  }
+  @keyframes sd-promo-shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+  @keyframes sd-promo-cta-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.2); }
+    50% { box-shadow: 0 0 0 6px rgba(255,255,255,0); }
+  }
+`;
   var getYouTubeEmbedUrl = (url) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
@@ -8607,19 +8732,20 @@
     ctaBackgroundColor = "#f3f4f6",
     borderColor = "#e5e7eb"
   }) => {
-    const [currentIndex, setCurrentIndex] = (0, import_react.useState)(0);
-    const [canScrollLeft, setCanScrollLeft] = (0, import_react.useState)(false);
-    const [canScrollRight, setCanScrollRight] = (0, import_react.useState)(false);
-    const scrollContainerRef = (0, import_react.useRef)(null);
-    const isScrolling = (0, import_react.useRef)(false);
-    const currentIndexRef = (0, import_react.useRef)(0);
-    const impressionTracked = (0, import_react.useRef)(false);
-    const [isMuted, setIsMuted] = (0, import_react.useState)(
+    const [currentIndex, setCurrentIndex] = (0, import_react2.useState)(0);
+    const [canScrollLeft, setCanScrollLeft] = (0, import_react2.useState)(false);
+    const [canScrollRight, setCanScrollRight] = (0, import_react2.useState)(false);
+    const [containerHovered, setContainerHovered] = (0, import_react2.useState)(false);
+    const scrollContainerRef = (0, import_react2.useRef)(null);
+    const isScrolling = (0, import_react2.useRef)(false);
+    const currentIndexRef = (0, import_react2.useRef)(0);
+    const impressionTracked = (0, import_react2.useRef)(false);
+    const [isMuted, setIsMuted] = (0, import_react2.useState)(
       () => slides.reduce((acc, _, idx) => __spreadProps(__spreadValues({}, acc), { [idx]: true }), {})
     );
-    const videoRefs = (0, import_react.useRef)({});
+    const videoRefs = (0, import_react2.useRef)({});
     const isBlockContext = context === "block";
-    (0, import_react.useEffect)(() => {
+    (0, import_react2.useEffect)(() => {
       if (!impressionTracked.current && onImpression && !isPreview && slides.length > 0) {
         onImpression();
         impressionTracked.current = true;
@@ -8640,10 +8766,10 @@
       setCurrentIndex(newIndex);
       currentIndexRef.current = newIndex;
     };
-    (0, import_react.useEffect)(() => {
+    (0, import_react2.useEffect)(() => {
       currentIndexRef.current = currentIndex;
     }, [currentIndex]);
-    (0, import_react.useEffect)(() => {
+    (0, import_react2.useEffect)(() => {
       updateScrollState();
       const container = scrollContainerRef.current;
       if (container && slides.length > 1) {
@@ -8655,14 +8781,12 @@
         };
       }
     }, [slides]);
-    (0, import_react.useEffect)(() => {
-      if (!slides || slides.length <= 1 || !carouselSettings || carouselSettings.autoRotate === false) {
+    (0, import_react2.useEffect)(() => {
+      if (!slides || slides.length <= 1 || !carouselSettings || carouselSettings.autoRotate === false)
         return;
-      }
       const interval = setInterval(() => {
-        if (isScrolling.current) {
+        if (isScrolling.current)
           return;
-        }
         const container = scrollContainerRef.current;
         if (!container)
           return;
@@ -8674,17 +8798,14 @@
         const targetScroll = nextIndex * slideWidth;
         setCurrentIndex(nextIndex);
         currentIndexRef.current = nextIndex;
-        container.scrollTo({
-          left: targetScroll,
-          behavior: "smooth"
-        });
+        container.scrollTo({ left: targetScroll, behavior: "smooth" });
         setTimeout(() => {
           isScrolling.current = false;
         }, 500);
       }, (carouselSettings == null ? void 0 : carouselSettings.rotationSpeed) || 5e3);
       return () => clearInterval(interval);
     }, [slides.length, carouselSettings == null ? void 0 : carouselSettings.autoRotate, carouselSettings == null ? void 0 : carouselSettings.rotationSpeed, isBlockContext]);
-    (0, import_react.useEffect)(() => {
+    (0, import_react2.useEffect)(() => {
       if (!slides || slides.length <= 1)
         return;
       slides.forEach((slide, index) => {
@@ -8700,29 +8821,17 @@
             });
           } else if (slide.videoType === "youtube" && videoElement instanceof HTMLIFrameElement) {
             try {
-              (_a2 = videoElement.contentWindow) == null ? void 0 : _a2.postMessage(
-                JSON.stringify({ event: "command", func: "playVideo", args: [] }),
-                "*"
-              );
+              (_a2 = videoElement.contentWindow) == null ? void 0 : _a2.postMessage(JSON.stringify({ event: "command", func: "playVideo", args: [] }), "*");
               const muteCommand = isMuted[index] ? "mute" : "unMute";
-              (_b = videoElement.contentWindow) == null ? void 0 : _b.postMessage(
-                JSON.stringify({ event: "command", func: muteCommand, args: [] }),
-                "*"
-              );
+              (_b = videoElement.contentWindow) == null ? void 0 : _b.postMessage(JSON.stringify({ event: "command", func: muteCommand, args: [] }), "*");
             } catch (error) {
               console.error("[PromotionalBanner] YouTube play/mute error:", error);
             }
           } else if (slide.videoType === "vimeo" && videoElement instanceof HTMLIFrameElement) {
             try {
-              (_c = videoElement.contentWindow) == null ? void 0 : _c.postMessage(
-                JSON.stringify({ method: "play" }),
-                "*"
-              );
+              (_c = videoElement.contentWindow) == null ? void 0 : _c.postMessage(JSON.stringify({ method: "play" }), "*");
               const volume = isMuted[index] ? 0 : 1;
-              (_d = videoElement.contentWindow) == null ? void 0 : _d.postMessage(
-                JSON.stringify({ method: "setVolume", value: volume }),
-                "*"
-              );
+              (_d = videoElement.contentWindow) == null ? void 0 : _d.postMessage(JSON.stringify({ method: "setVolume", value: volume }), "*");
             } catch (error) {
               console.error("[PromotionalBanner] Vimeo play/mute error:", error);
             }
@@ -8733,27 +8842,15 @@
             videoElement.muted = true;
           } else if (slide.videoType === "youtube" && videoElement instanceof HTMLIFrameElement) {
             try {
-              (_e = videoElement.contentWindow) == null ? void 0 : _e.postMessage(
-                JSON.stringify({ event: "command", func: "pauseVideo", args: [] }),
-                "*"
-              );
-              (_f = videoElement.contentWindow) == null ? void 0 : _f.postMessage(
-                JSON.stringify({ event: "command", func: "mute", args: [] }),
-                "*"
-              );
+              (_e = videoElement.contentWindow) == null ? void 0 : _e.postMessage(JSON.stringify({ event: "command", func: "pauseVideo", args: [] }), "*");
+              (_f = videoElement.contentWindow) == null ? void 0 : _f.postMessage(JSON.stringify({ event: "command", func: "mute", args: [] }), "*");
             } catch (error) {
               console.error("[PromotionalBanner] YouTube pause/mute error:", error);
             }
           } else if (slide.videoType === "vimeo" && videoElement instanceof HTMLIFrameElement) {
             try {
-              (_g = videoElement.contentWindow) == null ? void 0 : _g.postMessage(
-                JSON.stringify({ method: "pause" }),
-                "*"
-              );
-              (_h = videoElement.contentWindow) == null ? void 0 : _h.postMessage(
-                JSON.stringify({ method: "setVolume", value: 0 }),
-                "*"
-              );
+              (_g = videoElement.contentWindow) == null ? void 0 : _g.postMessage(JSON.stringify({ method: "pause" }), "*");
+              (_h = videoElement.contentWindow) == null ? void 0 : _h.postMessage(JSON.stringify({ method: "setVolume", value: 0 }), "*");
             } catch (error) {
               console.error("[PromotionalBanner] Vimeo pause/mute error:", error);
             }
@@ -8761,176 +8858,22 @@
         }
       });
     }, [currentIndex, slides, isMuted]);
-    if (!slides || slides.length === 0) {
-      return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-        borderRadius: "12px",
-        overflow: "hidden",
-        backgroundColor: "#fff",
-        border: `1px solid ${borderColor}`,
-        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
-      }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-          position: "relative",
-          overflow: "hidden",
-          height: "200px",
-          backgroundColor: "#f9fafb"
-        }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-            "img",
-            {
-              src: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=200&fit=crop&crop=center",
-              alt: "Sample promotional banner",
-              style: {
-                width: "100%",
-                height: "100%",
-                objectFit: "cover"
-              }
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-            position: "absolute",
-            bottom: "6px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            gap: "4px",
-            zIndex: 10
-          }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-              width: "6px",
-              height: "6px",
-              borderRadius: "50%",
-              backgroundColor: "#007bff",
-              border: "1px solid rgba(255,255,255,0.9)",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.2)"
-            } }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-              width: "6px",
-              height: "6px",
-              borderRadius: "50%",
-              backgroundColor: "rgba(255,255,255,0.6)",
-              border: "1px solid rgba(255,255,255,0.9)",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.2)"
-            } })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-            "button",
-            {
-              style: {
-                position: "absolute",
-                left: "4px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                backgroundColor: "rgba(255,255,255,0.9)",
-                borderRadius: "50%",
-                width: "24px",
-                height: "24px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                border: "none",
-                fontSize: "14px",
-                fontWeight: "bold",
-                color: "#333",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                transition: "all 0.2s ease"
-              },
-              children: "\u2039"
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-            "button",
-            {
-              style: {
-                position: "absolute",
-                right: "4px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                backgroundColor: "rgba(255,255,255,0.9)",
-                borderRadius: "50%",
-                width: "24px",
-                height: "24px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                border: "none",
-                fontSize: "14px",
-                fontWeight: "bold",
-                color: "#333",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                transition: "all 0.2s ease"
-              },
-              children: "\u203A"
-            }
-          )
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-          backgroundColor: "#fff",
-          padding: "10px 14px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "6px"
-        }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-            fontWeight: "700",
-            fontSize: "15px",
-            color: "#111827",
-            lineHeight: "1.2",
-            textAlign: "left",
-            wordBreak: "break-word"
-          }, children: "Summer Sale" }),
-          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "10px"
-          }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-              fontSize: "12px",
-              color: "#6b7280",
-              lineHeight: "1.3",
-              textAlign: "left",
-              flex: 1,
-              minWidth: 0,
-              wordBreak: "break-word"
-            }, children: "Get 20% Off on Summer Items" }),
-            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { style: {
-              backgroundColor: "#f3f4f6",
-              color: "#374151",
-              border: "1px solid #e5e7eb",
-              padding: "6px 14px",
-              borderRadius: "8px",
-              fontWeight: "500",
-              cursor: "pointer",
-              fontSize: "13px",
-              transition: "all 0.2s ease",
-              whiteSpace: "nowrap"
-            }, children: "shop" }) })
-          ] })
-        ] })
-      ] });
-    }
     const normalizeImageUrl = (url) => {
-      if (!url || typeof url !== "string" || url.trim() === "") {
+      if (!url || typeof url !== "string" || url.trim() === "")
         return null;
-      }
       const trimmedUrl = url.trim();
-      if (/^https?:\/\//i.test(trimmedUrl)) {
+      if (/^https?:\/\//i.test(trimmedUrl))
         return trimmedUrl;
-      }
-      if (trimmedUrl.startsWith("//")) {
+      if (trimmedUrl.startsWith("//"))
         return `https:${trimmedUrl}`;
-      }
       if (trimmedUrl.startsWith("/")) {
-        console.warn("[PromotionalBanner] Invalid relative image URL detected:", trimmedUrl);
+        console.warn("[PromotionalBanner] Invalid relative image URL:", trimmedUrl);
         return null;
       }
       console.warn("[PromotionalBanner] Potentially invalid image URL:", trimmedUrl);
       return null;
     };
-    const handleMuteToggle = (0, import_react.useCallback)((slideIndex, e) => {
+    const handleMuteToggle = (0, import_react2.useCallback)((slideIndex, e) => {
       if (e) {
         e.stopPropagation();
         e.preventDefault();
@@ -8947,21 +8890,14 @@
         } else if ((slide == null ? void 0 : slide.videoType) === "youtube" && videoElement instanceof HTMLIFrameElement) {
           try {
             const command = newMuted ? "mute" : "unMute";
-            (_a2 = videoElement.contentWindow) == null ? void 0 : _a2.postMessage(
-              JSON.stringify({ event: "command", func: command, args: [] }),
-              "*"
-            );
+            (_a2 = videoElement.contentWindow) == null ? void 0 : _a2.postMessage(JSON.stringify({ event: "command", func: command, args: [] }), "*");
           } catch (error) {
             console.error("[PromotionalBanner] YouTube mute control error:", error);
           }
         } else if ((slide == null ? void 0 : slide.videoType) === "vimeo" && videoElement instanceof HTMLIFrameElement) {
           try {
-            const method = newMuted ? "setVolume" : "setVolume";
             const value = newMuted ? 0 : 1;
-            (_b = videoElement.contentWindow) == null ? void 0 : _b.postMessage(
-              JSON.stringify({ method, value }),
-              "*"
-            );
+            (_b = videoElement.contentWindow) == null ? void 0 : _b.postMessage(JSON.stringify({ method: "setVolume", value }), "*");
           } catch (error) {
             console.error("[PromotionalBanner] Vimeo mute control error:", error);
           }
@@ -8974,13 +8910,7 @@
         if (slide.videoType === "youtube") {
           const embedUrl = getYouTubeEmbedUrl(slide.videoUrl);
           if (embedUrl) {
-            return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              borderRadius: "12px",
-              position: "relative"
-            }, children: [
+            return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { width: "100%", height: "100%", position: "relative" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
                 "iframe",
                 {
@@ -8988,29 +8918,12 @@
                     videoRefs.current[slideIndex] = el;
                   },
                   src: embedUrl,
-                  style: {
-                    position: "absolute",
-                    top: "-60px",
-                    left: "0",
-                    width: "100%",
-                    height: "calc(100% + 120px)",
-                    border: "none",
-                    pointerEvents: "none"
-                  },
+                  style: { position: "absolute", top: "-60px", left: "0", width: "100%", height: "calc(100% + 120px)", border: "none", pointerEvents: "none" },
                   allow: "autoplay; encrypted-media",
                   allowFullScreen: true
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-                position: "absolute",
-                bottom: "0",
-                left: "0",
-                width: "100%",
-                height: "80px",
-                background: "transparent",
-                pointerEvents: "auto",
-                zIndex: 10
-              } })
+              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { position: "absolute", bottom: "0", left: "0", width: "100%", height: "80px", background: "transparent", pointerEvents: "auto", zIndex: 10 } })
             ] });
           }
         } else if (slide.videoType === "vimeo") {
@@ -9023,13 +8936,7 @@
                   videoRefs.current[slideIndex] = el;
                 },
                 src: embedUrl,
-                style: {
-                  width: "100%",
-                  height: "100%",
-                  border: "none",
-                  objectFit: "cover",
-                  pointerEvents: "none"
-                },
+                style: { width: "100%", height: "100%", border: "none", objectFit: "cover", pointerEvents: "none" },
                 allow: "autoplay; encrypted-media",
                 allowFullScreen: true
               }
@@ -9045,18 +8952,12 @@
                   videoRefs.current[slideIndex] = el;
                 },
                 src: normalizedVideoUrl,
-                style: {
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  pointerEvents: "none"
-                },
+                style: { width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" },
                 autoPlay: true,
                 loop: true,
                 muted: true,
                 playsInline: true,
                 onError: (e) => {
-                  console.error("[PromotionalBanner] Video failed to load:", normalizedVideoUrl);
                   e.currentTarget.style.display = "none";
                 }
               }
@@ -9071,17 +8972,12 @@
           {
             src: normalizedImageUrl,
             alt: slide.title || "Promotional banner",
-            style: {
-              width: "100%",
-              height: "100%",
-              objectFit: "cover"
-            },
+            style: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
             onError: (e) => {
-              console.error("[PromotionalBanner] Image failed to load:", normalizedImageUrl);
               e.currentTarget.style.display = "none";
               const parent = e.currentTarget.parentElement;
               if (parent) {
-                parent.innerHTML = '<div style="width: 100%; height: 100%; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 48px;">\u{1F5BC}\uFE0F</div>';
+                parent.innerHTML = '<div style="width:100%;height:100%;background:linear-gradient(135deg,#f5f3ff,#ede9fe);display:flex;align-items:center;justify-content:center;font-size:48px">\u{1F5BC}\uFE0F</div>';
               }
             }
           }
@@ -9090,7 +8986,7 @@
       return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
         width: "100%",
         height: "100%",
-        backgroundColor: "#f3f4f6",
+        background: "linear-gradient(135deg, #f5f3ff, #ede9fe)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -9106,416 +9002,376 @@
       currentIndexRef.current = index;
       const gap = isBlockContext ? 16 : 8;
       const slideWidth = container.clientWidth + gap;
-      const targetScroll = index * slideWidth;
-      container.scrollTo({
-        left: targetScroll,
-        behavior: "smooth"
-      });
+      container.scrollTo({ left: index * slideWidth, behavior: "smooth" });
       setTimeout(() => {
         isScrolling.current = false;
       }, 500);
     };
     const handlePrevious = (e) => {
-      if (e) {
+      if (e)
         e.stopPropagation();
-      }
-      const newIndex = currentIndex > 0 ? currentIndex - 1 : slides.length - 1;
-      scrollToIndex(newIndex);
+      scrollToIndex(currentIndex > 0 ? currentIndex - 1 : slides.length - 1);
     };
     const handleNext = (e) => {
-      if (e) {
+      if (e)
         e.stopPropagation();
-      }
-      const newIndex = currentIndex < slides.length - 1 ? currentIndex + 1 : 0;
-      scrollToIndex(newIndex);
+      scrollToIndex(currentIndex < slides.length - 1 ? currentIndex + 1 : 0);
     };
     const handleDotClick = (index, e) => {
-      if (e) {
+      if (e)
         e.stopPropagation();
-      }
       scrollToIndex(index);
     };
     const handleCtaClick = (slide, e) => {
-      if (e) {
+      if (e)
         e.stopPropagation();
-      }
-      if (slide.ctaUrl && onCtaClick) {
+      if (slide.ctaUrl && onCtaClick)
         onCtaClick(slide.ctaUrl);
-      }
     };
     const handleBannerClick = (slide) => {
-      if (slide.ctaUrl && onCtaClick) {
+      if (slide.ctaUrl && onCtaClick)
         onCtaClick(slide.ctaUrl);
-      }
     };
-    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: isBlockContext ? "0" : "16px" }, children: [
+    if (!slides || slides.length === 0) {
+      return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+        borderRadius: "16px",
+        overflow: "hidden",
+        position: "relative",
+        border: `1.5px solid ${borderColor}`,
+        boxShadow: "0 4px 20px rgba(0,0,0,0.08)"
+      }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative", aspectRatio: "16/9", overflow: "hidden", background: "linear-gradient(135deg, #f5f3ff, #ede9fe)" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "img",
+          {
+            src: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=200&fit=crop&crop=center",
+            alt: "Sample promotional banner",
+            style: { width: "100%", height: "100%", objectFit: "cover" }
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.15) 50%, transparent 100%)" } }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "absolute", bottom: 0, left: 0, right: 0, padding: "14px 16px", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "12px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "16px", fontWeight: "700", color: "white", marginBottom: "3px", textShadow: "0 1px 4px rgba(0,0,0,0.3)" }, children: "Summer Sale" }),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "12px", color: "rgba(255,255,255,0.8)" }, children: "Get 20% Off on Summer Items" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { style: {
+            background: "rgba(255,255,255,0.15)",
+            backdropFilter: "blur(8px)",
+            color: "white",
+            border: "1px solid rgba(255,255,255,0.3)",
+            padding: "8px 16px",
+            borderRadius: "10px",
+            fontWeight: "600",
+            fontSize: "13px",
+            cursor: "pointer",
+            flexShrink: 0,
+            whiteSpace: "nowrap"
+          }, children: "Shop Now" })
+        ] })
+      ] }) });
+    }
+    return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("style", { children: `
-        .selldrawer-promo-scroll::-webkit-scrollbar {
-          display: none;
-        }
-        .selldrawer-promo-scroll {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        
-        /* Ensure indicators are always visible */
-        .selldrawer-promo-indicators {
-          display: flex !important;
-          visibility: visible !important;
-          opacity: 1 !important;
-        }
-        
-        .selldrawer-promo-indicator {
-          display: block !important;
-          visibility: visible !important;
-          opacity: 1 !important;
-        }
-        
-        /* Block context responsive styles */
+        ${PROMO_KEYFRAMES}
+        .sd-promo-scroll::-webkit-scrollbar { display: none; }
+        .sd-promo-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         ${isBlockContext ? `
-          .selldrawer-promo-block-media {
-            height: ${maxHeight === "auto" ? "auto" : maxHeight};
-            ${maxHeight === "auto" ? "aspect-ratio: 16 / 9;" : ""}
-          }
-          
-          @media (max-width: 768px) {
-            .selldrawer-promo-block-media {
-              height: ${maxHeight === "auto" ? "auto" : `calc(${maxHeight} * 0.78)`};
-              ${maxHeight === "auto" ? "aspect-ratio: 16 / 9;" : ""}
-            }
-          }
-          
-          @media (max-width: 480px) {
-            .selldrawer-promo-block-media {
-              height: ${maxHeight === "auto" ? "auto" : `calc(${maxHeight} * 0.67)`};
-              ${maxHeight === "auto" ? "aspect-ratio: 16 / 9;" : ""}
-            }
-          }
+          .sd-promo-block-media { height: ${maxHeight === "auto" ? "auto" : maxHeight}; ${maxHeight === "auto" ? "aspect-ratio: 16/9;" : ""} }
+          @media (max-width: 768px) { .sd-promo-block-media { height: ${maxHeight === "auto" ? "auto" : `calc(${maxHeight} * 0.78)`}; ${maxHeight === "auto" ? "aspect-ratio: 16/9;" : ""} } }
+          @media (max-width: 480px) { .sd-promo-block-media { height: ${maxHeight === "auto" ? "auto" : `calc(${maxHeight} * 0.67)`}; ${maxHeight === "auto" ? "aspect-ratio: 16/9;" : ""} } }
         ` : ""}
       ` }),
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { position: "relative", overflow: "visible" }, children: [
-        slides.length > 1 && canScrollLeft && (carouselSettings == null ? void 0 : carouselSettings.showArrows) !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-          "button",
-          {
-            onClick: (e) => handlePrevious(e),
-            style: {
-              position: "absolute",
-              left: "8px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
-              borderRadius: "50%",
-              width: "32px",
-              height: "32px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              zIndex: 20,
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
-              transition: "all 0.2s ease"
-            },
-            onMouseEnter: (e) => {
-              e.currentTarget.style.background = "#f9fafb";
-              e.currentTarget.style.borderColor = "#d1d5db";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
-              e.currentTarget.style.transform = "translateY(-50%) scale(1.05)";
-            },
-            onMouseLeave: (e) => {
-              e.currentTarget.style.background = "#ffffff";
-              e.currentTarget.style.borderColor = "#e5e7eb";
-              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.12)";
-              e.currentTarget.style.transform = "translateY(-50%) scale(1)";
-            },
-            children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px", color: "#374151", fontWeight: "300" }, children: "\u2039" })
-          }
-        ),
-        slides.length > 1 && canScrollRight && (carouselSettings == null ? void 0 : carouselSettings.showArrows) !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-          "button",
-          {
-            onClick: (e) => handleNext(e),
-            style: {
-              position: "absolute",
-              right: "8px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
-              borderRadius: "50%",
-              width: "32px",
-              height: "32px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              zIndex: 20,
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
-              transition: "all 0.2s ease"
-            },
-            onMouseEnter: (e) => {
-              e.currentTarget.style.background = "#f9fafb";
-              e.currentTarget.style.borderColor = "#d1d5db";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
-              e.currentTarget.style.transform = "translateY(-50%) scale(1.05)";
-            },
-            onMouseLeave: (e) => {
-              e.currentTarget.style.background = "#ffffff";
-              e.currentTarget.style.borderColor = "#e5e7eb";
-              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.12)";
-              e.currentTarget.style.transform = "translateY(-50%) scale(1)";
-            },
-            children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("span", { style: { fontSize: "18px", color: "#374151", fontWeight: "300" }, children: "\u203A" })
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-          "div",
-          {
-            ref: scrollContainerRef,
-            className: "selldrawer-promo-scroll",
-            style: {
-              display: "flex",
-              gap: isBlockContext ? "16px" : "8px",
-              overflowX: "auto",
-              scrollBehavior: "smooth",
-              scrollSnapType: "x mandatory",
-              WebkitOverflowScrolling: "touch"
-            },
-            children: slides.map((slide, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-              "div",
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { marginBottom: isBlockContext ? "0" : "4px" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+        "div",
+        {
+          style: { position: "relative", overflow: "visible" },
+          onMouseEnter: () => setContainerHovered(true),
+          onMouseLeave: () => setContainerHovered(false),
+          children: [
+            slides.length > 1 && canScrollLeft && (carouselSettings == null ? void 0 : carouselSettings.showArrows) !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              "button",
               {
-                onClick: () => handleBannerClick(slide),
+                onClick: (e) => handlePrevious(e),
                 style: {
-                  minWidth: slides.length > 1 ? isBlockContext ? "100%" : "80%" : "100%",
-                  maxWidth: slides.length > 1 ? isBlockContext ? "100%" : "80%" : "100%",
-                  flexShrink: 0,
-                  scrollSnapAlign: "start",
-                  borderRadius: isBlockContext ? "" : "12px",
-                  overflow: "hidden",
-                  backgroundColor: "#fff",
-                  border: isBlockContext ? "none" : `1px solid ${borderColor}`,
-                  boxShadow: isBlockContext ? "none" : "0 1px 3px rgba(0, 0, 0, 0.1)",
-                  cursor: slide.ctaUrl ? "pointer" : "default",
-                  transition: "transform 0.2s ease, box-shadow 0.2s ease"
-                },
-                children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
-                    "div",
-                    {
-                      className: isBlockContext ? "selldrawer-promo-block-media" : "",
-                      style: __spreadProps(__spreadValues({
-                        position: "relative",
-                        overflow: "hidden"
-                      }, isBlockContext ? {
-                        width: "100%"
-                      } : {
-                        aspectRatio: "16 / 9",
-                        width: "100%",
-                        height: "auto"
-                      }), {
-                        backgroundColor: "#f9fafb",
-                        borderRadius: isBlockContext ? "" : "12px"
-                      }),
-                      children: [
-                        renderMedia(slide, index),
-                        slide.videoUrl && slide.videoType && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                          "button",
-                          {
-                            onClick: (e) => handleMuteToggle(index, e),
-                            style: {
-                              position: "absolute",
-                              bottom: "12px",
-                              right: "12px",
-                              background: "rgba(0, 0, 0, 0.6)",
-                              border: "none",
-                              borderRadius: "4px",
-                              width: "32px",
-                              height: "32px",
-                              cursor: "pointer",
-                              zIndex: 15,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              transition: "all 0.2s ease",
-                              pointerEvents: "auto",
-                              padding: "6px"
-                            },
-                            onMouseEnter: (e) => {
-                              e.currentTarget.style.background = "rgba(0, 0, 0, 0.8)";
-                              e.currentTarget.style.transform = "scale(1.1)";
-                            },
-                            onMouseLeave: (e) => {
-                              e.currentTarget.style.background = "rgba(0, 0, 0, 0.6)";
-                              e.currentTarget.style.transform = "scale(1)";
-                            },
-                            "aria-label": isMuted[index] ? "Unmute video" : "Mute video",
-                            children: isMuted[index] ? (
-                              // Muted icon (speaker with X)
-                              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                                "svg",
-                                {
-                                  width: "20",
-                                  height: "20",
-                                  viewBox: "0 0 24 24",
-                                  fill: "white",
-                                  style: { display: "block" },
-                                  children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M3.63 3.63a.996.996 0 000 1.41L7.29 8.7 7 9H4c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h3l3.29 3.29c.63.63 1.71.18 1.71-.71v-4.17l4.18 4.18c-.49.37-1.02.68-1.6.91-.36.15-.58.53-.58.92 0 .72.73 1.18 1.39.91.8-.33 1.55-.77 2.22-1.31l1.34 1.34a.996.996 0 101.41-1.41L5.05 3.63c-.39-.39-1.02-.39-1.42 0zM19 12c0 .82-.15 1.61-.41 2.34l1.53 1.53c.56-1.17.88-2.48.88-3.87 0-3.83-2.4-7.11-5.78-8.4-.59-.23-1.22.23-1.22.86v.19c0 .38.25.71.61.85C17.18 6.54 19 9.06 19 12zm-8.71-6.29l-.17.17L12 7.76V6.41c0-.89-1.08-1.33-1.71-.7zM16.5 12A4.5 4.5 0 0014 7.97v1.79l2.48 2.48c.01-.08.02-.16.02-.24z" })
-                                }
-                              )
-                            ) : (
-                              // Unmuted icon (speaker with sound waves)
-                              /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                                "svg",
-                                {
-                                  width: "20",
-                                  height: "20",
-                                  viewBox: "0 0 24 24",
-                                  fill: "white",
-                                  style: { display: "block" },
-                                  children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M3 10v4c0 .55.45 1 1 1h3l3.29 3.29c.63.63 1.71.18 1.71-.71V6.41c0-.89-1.08-1.34-1.71-.71L7 9H4c-.55 0-1 .45-1 1zm13.5 2A4.5 4.5 0 0014 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 4.45v.2c0 .38.25.71.6.85C17.18 6.53 19 9.06 19 12s-1.82 5.47-4.4 6.5c-.36.14-.6.47-.6.85v.2c0 .63.63 1.07 1.21.85C18.6 19.11 21 15.84 21 12s-2.4-7.11-5.79-8.4c-.58-.23-1.21.22-1.21.85z" })
-                                }
-                              )
-                            )
-                          }
-                        )
-                      ]
-                    }
-                  ),
-                  (slide.title || slide.description || slide.ctaText) && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-                    backgroundColor: "#fff",
-                    padding: isBlockContext ? "12px 16px" : "10px 14px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: isBlockContext ? "16px" : "10px"
-                  }, children: [
-                    (slide.title || slide.description) && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "4px",
-                      flex: 1,
-                      minWidth: 0
-                    }, children: [
-                      slide.title && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-                        fontWeight: isBlockContext ? "600" : "700",
-                        fontSize: isBlockContext ? "16px" : "15px",
-                        color: titleColor,
-                        lineHeight: "1.3",
-                        textAlign: "left",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap"
-                      }, children: slide.title }),
-                      slide.description && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
-                        fontSize: isBlockContext ? "13px" : "12px",
-                        color: descriptionColor,
-                        lineHeight: "1.4",
-                        textAlign: "left",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap"
-                      }, children: slide.description })
-                    ] }),
-                    slide.ctaText && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { flexShrink: 0, alignSelf: "stretch", display: "flex", alignItems: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-                      "button",
-                      {
-                        onClick: (e) => handleCtaClick(slide, e),
-                        style: {
-                          backgroundColor: isBlockContext ? ctaBackgroundColor : ctaBackgroundColor,
-                          color: isBlockContext ? ctaTextColor : ctaTextColor,
-                          border: isBlockContext ? "none" : `1px solid ${ctaBackgroundColor}`,
-                          padding: isBlockContext ? "8px 20px" : "6px 14px",
-                          borderRadius: isBlockContext ? "6px" : "8px",
-                          fontWeight: "600",
-                          cursor: "pointer",
-                          fontSize: isBlockContext ? "14px" : "13px",
-                          transition: "all 0.2s ease",
-                          whiteSpace: "nowrap"
-                        },
-                        onMouseEnter: (e) => {
-                          const rgb = hexToRgb(ctaBackgroundColor);
-                          if (rgb) {
-                            const darkened = `rgb(${Math.max(0, rgb.r - 20)}, ${Math.max(0, rgb.g - 20)}, ${Math.max(0, rgb.b - 20)})`;
-                            e.currentTarget.style.backgroundColor = darkened;
-                          }
-                        },
-                        onMouseLeave: (e) => {
-                          e.currentTarget.style.backgroundColor = ctaBackgroundColor;
-                        },
-                        children: slide.ctaText
-                      }
-                    ) })
-                  ] })
-                ]
-              },
-              index
-            ))
-          }
-        ),
-        slides.length > 1 && (carouselSettings == null ? void 0 : carouselSettings.showDots) !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-          "div",
-          {
-            className: "selldrawer-promo-indicators",
-            style: {
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: isBlockContext ? "6px" : "5px",
-              marginTop: isBlockContext ? "" : "8px",
-              padding: isBlockContext ? "8px 0" : "4px 0",
-              minHeight: isBlockContext ? "8px" : "6px",
-              width: "100%",
-              position: "relative",
-              zIndex: 10,
-              visibility: "visible",
-              opacity: 1,
-              boxSizing: "border-box"
-            },
-            children: slides.map((_, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-              "div",
-              {
-                className: `selldrawer-promo-indicator ${index === currentIndex ? "active" : ""}`,
-                onClick: (e) => handleDotClick(index, e),
-                style: {
-                  width: isBlockContext ? "24px" : "20px",
-                  height: isBlockContext ? "4px" : "3px",
-                  borderRadius: "2px",
-                  backgroundColor: index === currentIndex ? "#000000" : "#d1d5db",
-                  transition: "all 0.3s ease",
+                  position: "absolute",
+                  left: "10px",
+                  top: "50%",
+                  transform: `translateY(-50%) scale(${containerHovered ? 1 : 0.85})`,
+                  background: "rgba(0,0,0,0.45)",
+                  backdropFilter: "blur(6px)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  borderRadius: "50%",
+                  width: "34px",
+                  height: "34px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   cursor: "pointer",
-                  opacity: index === currentIndex ? 1 : 0.6,
-                  transform: index === currentIndex ? "scaleY(1.2)" : "scaleY(1)",
-                  flexShrink: 0,
-                  visibility: "visible",
-                  display: "block",
-                  boxSizing: "border-box",
-                  minWidth: isBlockContext ? "24px" : "20px",
-                  minHeight: isBlockContext ? "4px" : "3px"
+                  zIndex: 20,
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+                  transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
+                  opacity: containerHovered ? 1 : 0
                 },
                 onMouseEnter: (e) => {
-                  if (index !== currentIndex) {
-                    e.currentTarget.style.opacity = "0.8";
-                    e.currentTarget.style.transform = "scaleY(1.1)";
-                  }
+                  e.currentTarget.style.background = "rgba(0,0,0,0.65)";
+                  e.currentTarget.style.transform = "translateY(-50%) scale(1.08)";
                 },
                 onMouseLeave: (e) => {
-                  if (index !== currentIndex) {
-                    e.currentTarget.style.opacity = "0.6";
-                    e.currentTarget.style.transform = "scaleY(1)";
-                  }
-                }
-              },
-              `indicator-${index}`
-            ))
-          }
-        )
-      ] })
+                  e.currentTarget.style.background = "rgba(0,0,0,0.45)";
+                  e.currentTarget.style.transform = "translateY(-50%) scale(1)";
+                },
+                children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "white", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("polyline", { points: "15 18 9 12 15 6" }) })
+              }
+            ),
+            slides.length > 1 && canScrollRight && (carouselSettings == null ? void 0 : carouselSettings.showArrows) !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              "button",
+              {
+                onClick: (e) => handleNext(e),
+                style: {
+                  position: "absolute",
+                  right: "10px",
+                  top: "50%",
+                  transform: `translateY(-50%) scale(${containerHovered ? 1 : 0.85})`,
+                  background: "rgba(0,0,0,0.45)",
+                  backdropFilter: "blur(6px)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  borderRadius: "50%",
+                  width: "34px",
+                  height: "34px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  zIndex: 20,
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+                  transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
+                  opacity: containerHovered ? 1 : 0
+                },
+                onMouseEnter: (e) => {
+                  e.currentTarget.style.background = "rgba(0,0,0,0.65)";
+                  e.currentTarget.style.transform = "translateY(-50%) scale(1.08)";
+                },
+                onMouseLeave: (e) => {
+                  e.currentTarget.style.background = "rgba(0,0,0,0.45)";
+                  e.currentTarget.style.transform = "translateY(-50%) scale(1)";
+                },
+                children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "white", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("polyline", { points: "9 18 15 12 9 6" }) })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+              "div",
+              {
+                ref: scrollContainerRef,
+                className: "sd-promo-scroll",
+                style: {
+                  display: "flex",
+                  gap: isBlockContext ? "16px" : "8px",
+                  overflowX: "auto",
+                  scrollBehavior: "smooth",
+                  scrollSnapType: "x mandatory",
+                  WebkitOverflowScrolling: "touch",
+                  borderRadius: "16px"
+                },
+                children: slides.map((slide, index) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                  "div",
+                  {
+                    onClick: () => handleBannerClick(slide),
+                    style: {
+                      minWidth: slides.length > 1 ? isBlockContext ? "100%" : "92%" : "100%",
+                      maxWidth: slides.length > 1 ? isBlockContext ? "100%" : "92%" : "100%",
+                      flexShrink: 0,
+                      scrollSnapAlign: "start",
+                      borderRadius: "16px",
+                      overflow: "hidden",
+                      border: `1.5px solid ${borderColor}`,
+                      boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                      cursor: slide.ctaUrl ? "pointer" : "default",
+                      position: "relative",
+                      transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                      background: "#f4f4f8"
+                    },
+                    children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
+                      "div",
+                      {
+                        className: isBlockContext ? "sd-promo-block-media" : "",
+                        style: __spreadProps(__spreadValues({
+                          position: "relative",
+                          overflow: "hidden"
+                        }, isBlockContext ? { width: "100%" } : { aspectRatio: "16/9", width: "100%", height: "auto" }), {
+                          backgroundColor: "#f4f4f8"
+                        }),
+                        children: [
+                          renderMedia(slide, index),
+                          (slide.title || slide.description || slide.ctaText) && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                            position: "absolute",
+                            inset: 0,
+                            background: "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.3) 45%, transparent 100%)",
+                            pointerEvents: "none",
+                            zIndex: 2
+                          } }),
+                          (slide.title || slide.description || slide.ctaText) && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+                            position: "absolute",
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            padding: isBlockContext ? "16px 18px 14px" : "12px 14px 12px",
+                            display: "flex",
+                            alignItems: "flex-end",
+                            justifyContent: "space-between",
+                            gap: "12px",
+                            zIndex: 3,
+                            animation: "sd-promo-slide-up 0.4s ease"
+                          }, children: [
+                            (slide.title || slide.description) && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
+                              slide.title && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                                fontSize: isBlockContext ? "18px" : "15px",
+                                fontWeight: "700",
+                                color: "white",
+                                lineHeight: "1.25",
+                                marginBottom: slide.description ? "4px" : "0",
+                                textShadow: "0 1px 6px rgba(0,0,0,0.4)",
+                                letterSpacing: "-0.02em",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap"
+                              }, children: slide.title }),
+                              slide.description && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                                fontSize: isBlockContext ? "13px" : "12px",
+                                color: "rgba(255,255,255,0.85)",
+                                lineHeight: "1.35",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap"
+                              }, children: slide.description })
+                            ] }),
+                            slide.ctaText && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                              "button",
+                              {
+                                onClick: (e) => handleCtaClick(slide, e),
+                                style: {
+                                  flexShrink: 0,
+                                  background: "rgba(255,255,255,0.15)",
+                                  backdropFilter: "blur(8px)",
+                                  color: "white",
+                                  border: "1px solid rgba(255,255,255,0.3)",
+                                  padding: isBlockContext ? "9px 18px" : "7px 14px",
+                                  borderRadius: "10px",
+                                  fontWeight: "700",
+                                  fontSize: isBlockContext ? "13px" : "12px",
+                                  cursor: "pointer",
+                                  whiteSpace: "nowrap",
+                                  letterSpacing: "0.01em",
+                                  transition: "all 0.2s ease",
+                                  boxShadow: "0 2px 12px rgba(0,0,0,0.2)"
+                                },
+                                onMouseEnter: (e) => {
+                                  e.currentTarget.style.background = "rgba(255,255,255,0.28)";
+                                  e.currentTarget.style.transform = "translateY(-1px)";
+                                  e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.3)";
+                                },
+                                onMouseLeave: (e) => {
+                                  e.currentTarget.style.background = "rgba(255,255,255,0.15)";
+                                  e.currentTarget.style.transform = "translateY(0)";
+                                  e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.2)";
+                                },
+                                children: slide.ctaText
+                              }
+                            )
+                          ] }),
+                          slide.videoUrl && slide.videoType && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                            "button",
+                            {
+                              onClick: (e) => handleMuteToggle(index, e),
+                              style: {
+                                position: "absolute",
+                                top: "10px",
+                                right: "10px",
+                                background: "rgba(0,0,0,0.5)",
+                                backdropFilter: "blur(4px)",
+                                border: "1px solid rgba(255,255,255,0.15)",
+                                borderRadius: "8px",
+                                width: "32px",
+                                height: "32px",
+                                cursor: "pointer",
+                                zIndex: 15,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                transition: "all 0.2s ease"
+                              },
+                              onMouseEnter: (e) => {
+                                e.currentTarget.style.background = "rgba(0,0,0,0.7)";
+                                e.currentTarget.style.transform = "scale(1.08)";
+                              },
+                              onMouseLeave: (e) => {
+                                e.currentTarget.style.background = "rgba(0,0,0,0.5)";
+                                e.currentTarget.style.transform = "scale(1)";
+                              },
+                              "aria-label": isMuted[index] ? "Unmute video" : "Mute video",
+                              children: isMuted[index] ? /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "white", style: { display: "block" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M3.63 3.63a.996.996 0 000 1.41L7.29 8.7 7 9H4c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h3l3.29 3.29c.63.63 1.71.18 1.71-.71v-4.17l4.18 4.18c-.49.37-1.02.68-1.6.91-.36.15-.58.53-.58.92 0 .72.73 1.18 1.39.91.8-.33 1.55-.77 2.22-1.31l1.34 1.34a.996.996 0 101.41-1.41L5.05 3.63c-.39-.39-1.02-.39-1.42 0zM19 12c0 .82-.15 1.61-.41 2.34l1.53 1.53c.56-1.17.88-2.48.88-3.87 0-3.83-2.4-7.11-5.78-8.4-.59-.23-1.22.23-1.22.86v.19c0 .38.25.71.61.85C17.18 6.54 19 9.06 19 12zm-8.71-6.29l-.17.17L12 7.76V6.41c0-.89-1.08-1.33-1.71-.7zM16.5 12A4.5 4.5 0 0014 7.97v1.79l2.48 2.48c.01-.08.02-.16.02-.24z" }) }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "white", style: { display: "block" }, children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("path", { d: "M3 10v4c0 .55.45 1 1 1h3l3.29 3.29c.63.63 1.71.18 1.71-.71V6.41c0-.89-1.08-1.34-1.71-.71L7 9H4c-.55 0-1 .45-1 1zm13.5 2A4.5 4.5 0 0014 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 4.45v.2c0 .38.25.71.6.85C17.18 6.53 19 9.06 19 12s-1.82 5.47-4.4 6.5c-.36.14-.6.47-.6.85v.2c0 .63.63 1.07 1.21.85C18.6 19.11 21 15.84 21 12s-2.4-7.11-5.79-8.4c-.58-.23-1.21.22-1.21.85z" }) })
+                            }
+                          ),
+                          slides.length > 1 && (carouselSettings == null ? void 0 : carouselSettings.showDots) !== false && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: {
+                            position: "absolute",
+                            bottom: slide.title || slide.description || slide.ctaText ? "72px" : "10px",
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            display: "flex",
+                            gap: "4px",
+                            zIndex: 10
+                          }, children: slides.map((_, dotIdx) => /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+                            "div",
+                            {
+                              onClick: (e) => handleDotClick(dotIdx, e),
+                              style: {
+                                height: "3px",
+                                width: dotIdx === currentIndex ? "20px" : "6px",
+                                borderRadius: "3px",
+                                background: dotIdx === currentIndex ? "white" : "rgba(255,255,255,0.45)",
+                                cursor: "pointer",
+                                transition: "all 0.35s cubic-bezier(0.4,0,0.2,1)",
+                                boxShadow: dotIdx === currentIndex ? "0 1px 4px rgba(0,0,0,0.3)" : "none"
+                              }
+                            },
+                            `dot-${dotIdx}`
+                          )) })
+                        ]
+                      }
+                    )
+                  },
+                  index
+                ))
+              }
+            )
+          ]
+        }
+      ) })
     ] });
   };
 
   // app/components/shared/CartItems.tsx
-  var import_react2 = __toESM(require_react(), 1);
+  var import_react3 = __toESM(require_react(), 1);
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
+  var CART_ITEM_KEYFRAMES = `
+  @keyframes sd-item-enter {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes sd-remove-spin {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(90deg) scale(0.85); }
+    100% { transform: rotate(90deg) scale(0.85); }
+  }
+  @keyframes sd-qty-bump {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+  @keyframes sd-pending-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+`;
   var CartItemRow = ({
     item,
     productCompareAtPrices,
@@ -9527,10 +9383,14 @@
     calculateItemPrices
   }) => {
     var _a2;
-    const [inputValue, setInputValue] = (0, import_react2.useState)(item.quantity.toString());
-    const [isEditing, setIsEditing] = (0, import_react2.useState)(false);
-    const [error, setError] = (0, import_react2.useState)(null);
-    const [isUpdating, setIsUpdating] = (0, import_react2.useState)(false);
+    const [inputValue, setInputValue] = (0, import_react3.useState)(item.quantity.toString());
+    const [isEditing, setIsEditing] = (0, import_react3.useState)(false);
+    const [error, setError] = (0, import_react3.useState)(null);
+    const [isUpdating, setIsUpdating] = (0, import_react3.useState)(false);
+    const [isHovered, setIsHovered] = (0, import_react3.useState)(false);
+    const [imgHovered, setImgHovered] = (0, import_react3.useState)(false);
+    const [removeHovered, setRemoveHovered] = (0, import_react3.useState)(false);
+    const [qtyBump, setQtyBump] = (0, import_react3.useState)(false);
     const handleInputChange = (e) => {
       const value = e.target.value;
       if (value === "" || /^\d+$/.test(value)) {
@@ -9542,18 +9402,19 @@
       setIsEditing(false);
       const newQuantity = parseInt(inputValue, 10);
       if (!inputValue || isNaN(newQuantity) || newQuantity < 1) {
-        setError("Please enter a valid quantity");
+        setError("Enter a valid quantity");
         setInputValue(item.quantity.toString());
         setTimeout(() => setError(null), 3e3);
         return;
       }
-      if (newQuantity === item.quantity) {
+      if (newQuantity === item.quantity)
         return;
-      }
       setIsUpdating(true);
       try {
         await onUpdateQuantity(item.key, newQuantity);
         setError(null);
+        setQtyBump(true);
+        setTimeout(() => setQtyBump(false), 300);
       } catch (err) {
         const errorMessage = (err == null ? void 0 : err.message) || "Failed to update quantity";
         setError(errorMessage);
@@ -9563,270 +9424,319 @@
         setIsUpdating(false);
       }
     };
-    const handleFocus = () => {
-      setIsEditing(true);
-    };
+    const handleFocus = () => setIsEditing(true);
     const handleKeyDown = (e) => {
-      if (e.key === "Enter") {
+      if (e.key === "Enter")
         e.currentTarget.blur();
+    };
+    import_react3.default.useEffect(() => {
+      if (!isEditing)
+        setInputValue(item.quantity.toString());
+    }, [item.quantity, isEditing]);
+    const handleQtyChange = async (newQty) => {
+      if (isPreview || isUpdating || isPending)
+        return;
+      if (newQty < 1)
+        return;
+      setIsUpdating(true);
+      try {
+        await onUpdateQuantity(item.key, newQty);
+        setQtyBump(true);
+        setTimeout(() => setQtyBump(false), 300);
+      } finally {
+        setIsUpdating(false);
       }
     };
-    import_react2.default.useEffect(() => {
-      if (!isEditing) {
-        setInputValue(item.quantity.toString());
-      }
-    }, [item.quantity, isEditing]);
     const prices = calculateItemPrices(item);
     const imageUrl = ((_a2 = item.featured_image) == null ? void 0 : _a2.url) || item.image || "";
     const isGiftItem = item.properties && (item.properties["_selldrawer_gift"] === "true" || item.properties["_gift"] === "true" || item.properties["_gift"] === true);
+    const isDisabled = isPreview || isUpdating || isPending;
     return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
       "div",
       {
+        onMouseEnter: () => setIsHovered(true),
+        onMouseLeave: () => setIsHovered(false),
         style: {
           display: "flex",
           gap: "12px",
-          padding: "12px 0",
-          borderBottom: "1px solid #e5e7eb"
+          padding: "14px 0",
+          borderBottom: "1px solid rgba(0,0,0,0.06)",
+          animation: "sd-item-enter 0.35s cubic-bezier(0.4,0,0.2,1)",
+          opacity: isPending ? 0.7 : 1,
+          transition: "opacity 0.25s ease",
+          position: "relative"
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-            "img",
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+            "div",
             {
-              src: imageUrl,
-              alt: item.title,
               style: {
-                width: "70px",
-                height: "70px",
-                objectFit: "cover",
-                borderRadius: "6px",
-                border: "1px solid #e5e7eb",
-                flexShrink: 0
-              }
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
-              fontSize: "14px",
-              fontWeight: "600",
-              color: "#111827",
-              marginBottom: "2px",
-              lineHeight: "1.3"
-            }, children: item.title }),
-            item.variant_title && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
-              fontSize: "12px",
-              color: "#6b7280",
-              marginBottom: "6px"
-            }, children: item.variant_title }),
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { marginBottom: "8px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                flexWrap: "wrap"
-              }, children: isGiftItem ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
-                  textDecoration: "line-through",
-                  color: "#9ca3af",
-                  fontSize: "13px"
-                }, children: formatMoney(prices.itemSubtotal) }),
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
-                  fontWeight: "700",
-                  fontSize: "16px",
-                  color: "#059669"
-                }, children: "FREE" }),
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
-                  background: "#dcfce7",
-                  color: "#15803d",
-                  padding: "2px 6px",
-                  borderRadius: "4px",
-                  fontSize: "10px",
-                  fontWeight: "600"
-                }, children: "\u{1F381} GIFT" })
-              ] }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-                prices.hasItemDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
-                    textDecoration: "line-through",
-                    color: "#9ca3af",
-                    fontSize: "13px"
-                  }, children: formatMoney(prices.originalLinePrice) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
-                    fontWeight: "700",
-                    fontSize: "16px",
-                    color: "#f59e0b"
-                  }, children: formatMoney(prices.itemSubtotal) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { style: {
-                    background: "#fef3c7",
-                    color: "#92400e",
-                    padding: "2px 6px",
-                    borderRadius: "4px",
-                    fontSize: "10px",
-                    fontWeight: "600"
-                  }, children: [
-                    prices.itemDiscountPercent,
-                    "% OFF"
-                  ] })
-                ] }),
-                !prices.hasItemDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
-                  fontWeight: "700",
-                  fontSize: "16px",
-                  color: "#111827"
-                }, children: formatMoney(prices.itemSubtotal) })
-              ] }) }),
-              error && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
-                fontSize: "11px",
-                color: "#dc2626",
-                marginTop: "2px",
-                fontWeight: "500"
-              }, children: error })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
-              display: "flex",
-              alignItems: "center"
-            }, children: isGiftItem ? (
-              /* Gift items: Show locked quantity with tooltip */
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "8px 12px",
-                backgroundColor: "#f9fafb",
-                borderRadius: "6px",
-                border: "1px solid #e5e7eb"
-              }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "#6b7280", strokeWidth: "2", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("rect", { x: "3", y: "11", width: "18", height: "11", rx: "2", ry: "2" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M7 11V7a5 5 0 0 1 10 0v4" })
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  color: "#6b7280"
-                }, children: "Qty: 1" }),
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
-                  fontSize: "11px",
-                  color: "#9ca3af",
-                  fontStyle: "italic"
-                }, children: "(Auto-added)" })
-              ] })
-            ) : (
-              /* Regular items: Show normal quantity controls */
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+                position: "relative",
+                flexShrink: 0,
+                width: "80px",
+                height: "80px",
+                borderRadius: "12px",
+                overflow: "hidden",
+                background: "#f4f4f8",
+                border: "1.5px solid rgba(0,0,0,0.07)",
+                boxShadow: imgHovered ? "0 8px 24px rgba(0,0,0,0.14)" : "0 2px 8px rgba(0,0,0,0.07)",
+                transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)",
+                cursor: "default"
+              },
+              onMouseEnter: () => setImgHovered(true),
+              onMouseLeave: () => setImgHovered(false),
+              children: [
+                imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  "img",
+                  {
+                    src: imageUrl,
+                    alt: item.title,
+                    style: {
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                      transform: imgHovered ? "scale(1.08)" : "scale(1)",
+                      transition: "transform 0.4s cubic-bezier(0.4,0,0.2,1)"
+                    }
+                  }
+                ) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
+                  width: "100%",
+                  height: "100%",
                   display: "flex",
                   alignItems: "center",
-                  gap: "8px",
-                  border: "1px solid #e5e7eb",
+                  justifyContent: "center",
+                  fontSize: "28px"
+                }, children: "\u{1F4E6}" }),
+                isGiftItem && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
+                  position: "absolute",
+                  top: "5px",
+                  left: "5px",
+                  background: "linear-gradient(135deg, #7c3aed, #a78bfa)",
+                  color: "white",
+                  fontSize: "8px",
+                  fontWeight: "700",
+                  padding: "2px 6px",
                   borderRadius: "6px",
-                  padding: "4px"
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  boxShadow: "0 2px 6px rgba(124,58,237,0.3)"
+                }, children: "\u{1F381} FREE" }),
+                !isGiftItem && prices.hasItemDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+                  position: "absolute",
+                  top: "5px",
+                  left: "5px",
+                  background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                  color: "white",
+                  fontSize: "8px",
+                  fontWeight: "700",
+                  padding: "2px 6px",
+                  borderRadius: "6px",
+                  letterSpacing: "0.04em",
+                  boxShadow: "0 2px 6px rgba(245,158,11,0.3)"
                 }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                    "button",
-                    {
-                      onClick: () => !isPreview && !isUpdating && !isPending && onUpdateQuantity(item.key, item.quantity - 1),
-                      disabled: isPreview || item.quantity <= 1 || isUpdating || isPending,
-                      style: {
-                        width: "24px",
-                        height: "24px",
-                        border: "none",
-                        backgroundColor: isPreview || item.quantity <= 1 || isUpdating || isPending ? "#f3f4f6" : "#ffffff",
-                        color: isPreview || item.quantity <= 1 || isUpdating || isPending ? "#9ca3af" : "#374151",
-                        borderRadius: "4px",
-                        cursor: isPreview || item.quantity <= 1 || isUpdating || isPending ? "not-allowed" : "pointer",
-                        fontSize: "16px",
-                        fontWeight: "700",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        transition: "background-color 0.2s",
-                        opacity: isPending ? 0.6 : 1
-                      },
-                      children: "\u2212"
-                    }
-                  ),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                    "input",
-                    {
-                      type: "text",
-                      inputMode: "numeric",
-                      value: inputValue,
-                      onChange: handleInputChange,
-                      onBlur: handleBlur,
-                      onFocus: handleFocus,
-                      onKeyDown: handleKeyDown,
-                      disabled: isPreview || isUpdating || isPending,
-                      style: {
-                        minWidth: "32px",
-                        maxWidth: "48px",
-                        textAlign: "center",
-                        fontSize: "14px",
-                        fontWeight: "600",
-                        color: "#111827",
-                        border: "none",
-                        outline: "none",
-                        backgroundColor: "transparent",
-                        cursor: isPreview || isUpdating || isPending ? "not-allowed" : "text",
-                        padding: "2px 4px",
-                        borderRadius: "2px",
-                        transition: "background-color 0.2s",
-                        opacity: isPending ? 0.6 : 1
-                      }
-                    }
-                  ),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-                    "button",
-                    {
-                      onClick: () => !isPreview && !isUpdating && !isPending && onUpdateQuantity(item.key, item.quantity + 1),
-                      disabled: isPreview || isUpdating || isPending,
-                      style: {
-                        width: "24px",
-                        height: "24px",
-                        border: "none",
-                        backgroundColor: isPreview || isUpdating || isPending ? "#f3f4f6" : "#ffffff",
-                        color: isPreview || isUpdating || isPending ? "#9ca3af" : "#374151",
-                        borderRadius: "4px",
-                        cursor: isPreview || isUpdating || isPending ? "not-allowed" : "pointer",
-                        fontSize: "16px",
-                        fontWeight: "700",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        transition: "background-color 0.2s",
-                        opacity: isPending ? 0.6 : 1
-                      },
-                      children: "+"
-                    }
-                  )
+                  prices.itemDiscountPercent,
+                  "% OFF"
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                !isGiftItem && !isPreview && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                   "button",
                   {
-                    onClick: () => !isPreview && !isPending && onRemoveItem(item.key),
-                    disabled: isPreview || isPending,
-                    title: "Remove item",
+                    onClick: () => !isPending && onRemoveItem(item.key),
+                    onMouseEnter: () => setRemoveHovered(true),
+                    onMouseLeave: () => setRemoveHovered(false),
+                    disabled: isPending,
+                    "aria-label": "Remove item",
                     style: {
-                      width: "32px",
-                      height: "32px",
+                      position: "absolute",
+                      top: "4px",
+                      right: "4px",
+                      width: "22px",
+                      height: "22px",
+                      borderRadius: "50%",
+                      background: removeHovered ? "#ef4444" : "rgba(0,0,0,0.55)",
                       border: "none",
-                      backgroundColor: "transparent",
-                      color: "#4a4a4a",
-                      cursor: isPreview || isPending ? "not-allowed" : "pointer",
-                      borderRadius: "6px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      transition: "background-color 0.2s",
-                      opacity: isPending ? 0.6 : 1
+                      cursor: "pointer",
+                      opacity: isHovered ? 1 : 0,
+                      transform: isHovered ? "scale(1)" : "scale(0.7)",
+                      transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
+                      zIndex: 5
                     },
-                    children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("polyline", { points: "3,6 5,6 21,6" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "10", y1: "11", x2: "10", y2: "17" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "14", y1: "11", x2: "14", y2: "17" })
+                    children: /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "10", height: "10", viewBox: "0 0 24 24", fill: "none", stroke: "white", strokeWidth: "3", strokeLinecap: "round", children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "18", y1: "6", x2: "6", y2: "18" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "6", y1: "6", x2: "18", y2: "18" })
                     ] })
                   }
                 )
+              ]
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
+                fontSize: "13px",
+                fontWeight: "700",
+                color: "#111827",
+                lineHeight: "1.3",
+                marginBottom: "3px",
+                letterSpacing: "-0.01em",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden"
+              }, children: item.title }),
+              item.variant_title && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
+                display: "inline-block",
+                fontSize: "10px",
+                fontWeight: "600",
+                color: "#6b7280",
+                background: "#f3f4f6",
+                border: "1px solid #e5e7eb",
+                padding: "1px 7px",
+                borderRadius: "6px",
+                letterSpacing: "0.02em",
+                marginBottom: "6px"
+              }, children: item.variant_title })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: { display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }, children: isGiftItem ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: { textDecoration: "line-through", color: "#d1d5db", fontSize: "12px" }, children: formatMoney(prices.itemSubtotal) }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: { fontWeight: "800", fontSize: "14px", color: "#059669", letterSpacing: "-0.02em" }, children: "FREE" })
+              ] }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+                prices.hasItemDiscount && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: { textDecoration: "line-through", color: "#d1d5db", fontSize: "12px" }, children: formatMoney(prices.originalLinePrice) }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: {
+                  fontWeight: "800",
+                  fontSize: "15px",
+                  color: prices.hasItemDiscount ? "#d97706" : "#111827",
+                  letterSpacing: "-0.02em"
+                }, children: formatMoney(prices.itemSubtotal) })
+              ] }) }),
+              isGiftItem ? /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "5px 10px",
+                borderRadius: "8px",
+                background: "#f9fafb",
+                border: "1px solid #e5e7eb"
+              }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "11", height: "11", viewBox: "0 0 24 24", fill: "none", stroke: "#9ca3af", strokeWidth: "2.5", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("rect", { x: "3", y: "11", width: "18", height: "11", rx: "2", ry: "2" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M7 11V7a5 5 0 0 1 10 0v4" })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { style: { fontSize: "12px", fontWeight: "600", color: "#6b7280" }, children: "Qty: 1" })
+              ] }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+                display: "flex",
+                alignItems: "center",
+                background: "#f9fafb",
+                border: "1.5px solid #e5e7eb",
+                borderRadius: "10px",
+                overflow: "hidden",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.05)"
+              }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  "button",
+                  {
+                    onClick: () => handleQtyChange(item.quantity - 1),
+                    disabled: isDisabled || item.quantity <= 1,
+                    style: {
+                      width: "30px",
+                      height: "30px",
+                      border: "none",
+                      background: "transparent",
+                      color: isDisabled || item.quantity <= 1 ? "#d1d5db" : "#374151",
+                      cursor: isDisabled || item.quantity <= 1 ? "not-allowed" : "pointer",
+                      fontSize: "17px",
+                      fontWeight: "400",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "background 0.15s ease, color 0.15s ease"
+                    },
+                    onMouseEnter: (e) => {
+                      if (!isDisabled && item.quantity > 1)
+                        e.currentTarget.style.background = "#f0f0f5";
+                    },
+                    onMouseLeave: (e) => {
+                      e.currentTarget.style.background = "transparent";
+                    },
+                    children: "\u2212"
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  "input",
+                  {
+                    type: "text",
+                    inputMode: "numeric",
+                    value: inputValue,
+                    onChange: handleInputChange,
+                    onBlur: handleBlur,
+                    onFocus: handleFocus,
+                    onKeyDown: handleKeyDown,
+                    disabled: isDisabled,
+                    style: {
+                      width: "30px",
+                      textAlign: "center",
+                      fontSize: "13px",
+                      fontWeight: "700",
+                      color: "#111827",
+                      border: "none",
+                      background: "transparent",
+                      outline: "none",
+                      cursor: isDisabled ? "not-allowed" : "text",
+                      animation: qtyBump ? "sd-qty-bump 0.25s ease" : void 0
+                    }
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                  "button",
+                  {
+                    onClick: () => handleQtyChange(item.quantity + 1),
+                    disabled: isDisabled,
+                    style: {
+                      width: "30px",
+                      height: "30px",
+                      border: "none",
+                      background: "transparent",
+                      color: isDisabled ? "#d1d5db" : "#374151",
+                      cursor: isDisabled ? "not-allowed" : "pointer",
+                      fontSize: "17px",
+                      fontWeight: "400",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "background 0.15s ease, color 0.15s ease"
+                    },
+                    onMouseEnter: (e) => {
+                      if (!isDisabled)
+                        e.currentTarget.style.background = "#f0f0f5";
+                    },
+                    onMouseLeave: (e) => {
+                      e.currentTarget.style.background = "transparent";
+                    },
+                    children: "+"
+                  }
+                )
               ] })
-            ) })
+            ] }),
+            error && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: {
+              fontSize: "11px",
+              color: "#dc2626",
+              fontWeight: "500",
+              marginTop: "4px",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px"
+            }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "10", height: "10", viewBox: "0 0 24 24", fill: "#dc2626", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("circle", { cx: "12", cy: "12", r: "10" }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "12", y1: "8", x2: "12", y2: "12", stroke: "white", strokeWidth: "2" }),
+                /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "12", y1: "16", x2: "12.01", y2: "16", stroke: "white", strokeWidth: "2" })
+              ] }),
+              error
+            ] })
           ] })
         ]
       }
@@ -9871,32 +9781,50 @@
       const hasItemDiscount = originalLinePrice > linePrice;
       const itemDiscountPercent = hasItemDiscount && originalLinePrice > 0 ? Math.round((originalLinePrice - linePrice) / originalLinePrice * 100) : 0;
       const itemSubtotal = linePrice;
-      return {
-        originalLinePrice,
-        itemSubtotal,
-        hasItemDiscount,
-        itemDiscountPercent
-      };
+      return { originalLinePrice, itemSubtotal, hasItemDiscount, itemDiscountPercent };
     };
-    return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(import_jsx_runtime3.Fragment, { children: items.map((item) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
-      CartItemRow,
-      {
-        item,
-        productCompareAtPrices,
-        isPending: pendingOperations == null ? void 0 : pendingOperations.has(item.key),
-        onUpdateQuantity,
-        onRemoveItem,
-        isPreview,
-        formatMoney,
-        calculateItemPrices
-      },
-      item.key
-    )) });
+    return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(import_jsx_runtime3.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("style", { children: CART_ITEM_KEYFRAMES }),
+      items.map((item) => /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+        CartItemRow,
+        {
+          item,
+          productCompareAtPrices,
+          isPending: pendingOperations == null ? void 0 : pendingOperations.has(item.key),
+          onUpdateQuantity,
+          onRemoveItem,
+          isPreview,
+          formatMoney,
+          calculateItemPrices
+        },
+        item.key
+      ))
+    ] });
   };
 
   // app/components/shared/ProductRecommendations.tsx
-  var import_react3 = __toESM(require_react(), 1);
+  var import_react4 = __toESM(require_react(), 1);
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
+  var RECO_KEYFRAMES = `
+  @keyframes sd-reco-slide-in {
+    0% { opacity: 0; transform: translateX(20px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes sd-reco-add-success {
+    0% { transform: scale(1); }
+    40% { transform: scale(0.9); }
+    70% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+  @keyframes sd-reco-quick-add-up {
+    0% { opacity: 0; transform: translateY(100%); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes sd-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
   var ProductRecommendations = ({
     title = "You may also like",
     products = [],
@@ -9910,13 +9838,17 @@
     onProductClick,
     isPreview = false
   }) => {
-    const [canScrollLeft, setCanScrollLeft] = (0, import_react3.useState)(false);
-    const [canScrollRight, setCanScrollRight] = (0, import_react3.useState)(false);
-    const scrollContainerRef = (0, import_react3.useRef)(null);
-    const impressionTracked = (0, import_react3.useRef)(false);
+    const [canScrollLeft, setCanScrollLeft] = (0, import_react4.useState)(false);
+    const [canScrollRight, setCanScrollRight] = (0, import_react4.useState)(false);
+    const [containerHovered, setContainerHovered] = (0, import_react4.useState)(false);
+    const [addingIds, setAddingIds] = (0, import_react4.useState)(/* @__PURE__ */ new Set());
+    const [addedIds, setAddedIds] = (0, import_react4.useState)(/* @__PURE__ */ new Set());
+    const [hoveredId, setHoveredId] = (0, import_react4.useState)(null);
+    const scrollContainerRef = (0, import_react4.useRef)(null);
+    const impressionTracked = (0, import_react4.useRef)(false);
     const isGrid = layout === "grid";
     const displayProducts = products.slice(0, maxProducts);
-    (0, import_react3.useEffect)(() => {
+    (0, import_react4.useEffect)(() => {
       if (!impressionTracked.current && onImpression && !isPreview && displayProducts.length > 0) {
         onImpression();
         impressionTracked.current = true;
@@ -9931,7 +9863,7 @@
       setCanScrollLeft(currentScroll > 5);
       setCanScrollRight(currentScroll < maxScrollLeft - 5);
     };
-    (0, import_react3.useEffect)(() => {
+    (0, import_react4.useEffect)(() => {
       updateScrollState();
       const container = scrollContainerRef.current;
       if (container && !isGrid) {
@@ -9943,16 +9875,31 @@
       const container = scrollContainerRef.current;
       if (!container)
         return;
-      const scrollAmount = 140;
-      container.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
-        behavior: "smooth"
-      });
+      container.scrollBy({ left: direction === "left" ? -160 : 160, behavior: "smooth" });
     };
-    const handleAddClick = (product) => {
+    const handleAddClick = async (product, e) => {
+      e.stopPropagation();
       const variantId = product.shopifyVariantId || product.shopifyProductId;
-      if (variantId && onAddToCart) {
+      if (!variantId || !onAddToCart || isPreview)
+        return;
+      setAddingIds((prev) => /* @__PURE__ */ new Set([...prev, product.id]));
+      try {
         onAddToCart(variantId);
+        await new Promise((r) => setTimeout(r, 600));
+        setAddedIds((prev) => /* @__PURE__ */ new Set([...prev, product.id]));
+        setTimeout(() => {
+          setAddedIds((prev) => {
+            const next = new Set(prev);
+            next.delete(product.id);
+            return next;
+          });
+        }, 1500);
+      } finally {
+        setAddingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(product.id);
+          return next;
+        });
       }
     };
     const handleCardClick = (product) => {
@@ -9960,316 +9907,346 @@
         const variantId = product.shopifyVariantId || product.shopifyProductId;
         onProductClick(product.id, variantId);
       }
-      if (!isPreview && product.id) {
-      }
     };
-    if (displayProducts.length === 0) {
+    if (displayProducts.length === 0)
       return null;
-    }
-    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { marginTop: "8px" }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("style", { children: `
-        .selldrawer-product-recommendations-scroll::-webkit-scrollbar {
-          display: none;
-        }
-        .selldrawer-product-recommendations-scroll {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      ` }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h4", { style: {
-        fontSize: "13px",
-        fontWeight: "600",
-        marginBottom: "4px",
-        color: "#111827",
-        letterSpacing: "-0.01em"
-      }, children: title }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
-        position: "relative",
-        overflow: "hidden"
-      }, children: [
-        !isGrid && canScrollLeft && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-          "button",
-          {
-            onClick: () => handleScroll("left"),
-            style: {
-              position: "absolute",
-              left: "4px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
-              borderRadius: "50%",
-              width: "36px",
-              height: "36px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              zIndex: 10,
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
-              transition: "all 0.2s ease"
-            },
-            onMouseEnter: (e) => {
-              e.currentTarget.style.background = "#f9fafb";
-              e.currentTarget.style.borderColor = "#d1d5db";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
-              e.currentTarget.style.transform = "translateY(-50%) scale(1.05)";
-            },
-            onMouseLeave: (e) => {
-              e.currentTarget.style.background = "#ffffff";
-              e.currentTarget.style.borderColor = "#e5e7eb";
-              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.12)";
-              e.currentTarget.style.transform = "translateY(-50%) scale(1)";
-            },
-            children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontSize: "18px", color: "#374151", fontWeight: "300" }, children: "\u2039" })
-          }
-        ),
-        !isGrid && canScrollRight && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-          "button",
-          {
-            onClick: () => handleScroll("right"),
-            style: {
-              position: "absolute",
-              right: "4px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
-              borderRadius: "50%",
-              width: "36px",
-              height: "36px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              zIndex: 10,
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
-              transition: "all 0.2s ease"
-            },
-            onMouseEnter: (e) => {
-              e.currentTarget.style.background = "#f9fafb";
-              e.currentTarget.style.borderColor = "#d1d5db";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
-              e.currentTarget.style.transform = "translateY(-50%) scale(1.05)";
-            },
-            onMouseLeave: (e) => {
-              e.currentTarget.style.background = "#ffffff";
-              e.currentTarget.style.borderColor = "#e5e7eb";
-              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.12)";
-              e.currentTarget.style.transform = "translateY(-50%) scale(1)";
-            },
-            children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontSize: "18px", color: "#374151", fontWeight: "300" }, children: "\u203A" })
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("style", { children: RECO_KEYFRAMES }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { marginTop: "8px" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          marginBottom: "12px"
+        }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
+            width: "3px",
+            height: "16px",
+            background: "linear-gradient(180deg, #7c3aed, #a78bfa)",
+            borderRadius: "100px",
+            flexShrink: 0
+          } }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h4", { style: {
+            fontSize: "13px",
+            fontWeight: "700",
+            color: "#111827",
+            letterSpacing: "-0.01em",
+            margin: 0
+          }, children: title }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
+            marginLeft: "auto",
+            fontSize: "10px",
+            fontWeight: "600",
+            color: "#7c3aed",
+            background: "#f5f3ff",
+            padding: "2px 8px",
+            borderRadius: "100px",
+            border: "1px solid #ede9fe"
+          }, children: [
+            displayProducts.length,
+            " picks"
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
           "div",
           {
-            ref: scrollContainerRef,
-            className: !isGrid ? "selldrawer-product-recommendations-scroll" : "",
-            style: isGrid ? {
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-              gap: "6px",
-              paddingBottom: "0px"
-            } : {
-              display: "flex",
-              gap: "6px",
-              overflowX: "auto",
-              scrollBehavior: "smooth",
-              paddingBottom: "5px",
-              paddingTop: "5px",
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-              WebkitOverflowScrolling: "touch",
-              paddingLeft: canScrollLeft ? "44px" : "0",
-              paddingRight: canScrollRight ? "44px" : "0"
-            },
-            children: displayProducts.map((product) => {
-              const discount = product.compareAtPrice && product.compareAtPrice > product.price ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
-              return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
-                "div",
+            style: { position: "relative", overflow: "hidden" },
+            onMouseEnter: () => setContainerHovered(true),
+            onMouseLeave: () => setContainerHovered(false),
+            children: [
+              !isGrid && canScrollLeft && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                "button",
                 {
-                  onClick: () => handleCardClick(product),
-                  style: isGrid ? {
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "6px",
-                    padding: "6px",
-                    backgroundColor: "#ffffff",
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
-                    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                    overflow: "hidden",
+                  onClick: () => handleScroll("left"),
+                  style: {
+                    position: "absolute",
+                    left: "0",
+                    top: "50%",
+                    transform: `translateY(-50%) ${containerHovered ? "scale(1)" : "scale(0.8)"}`,
+                    background: "rgba(255,255,255,0.95)",
+                    border: "1.5px solid #e5e7eb",
+                    borderRadius: "50%",
+                    width: "34px",
+                    height: "34px",
                     display: "flex",
-                    flexDirection: "column",
-                    height: "100%"
-                  } : {
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "6px",
-                    padding: "6px",
-                    minWidth: "120px",
-                    maxWidth: "120px",
-                    flexShrink: 0,
-                    backgroundColor: "#ffffff",
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
-                    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                    overflow: "hidden",
-                    display: "flex",
-                    flexDirection: "column",
-                    cursor: "pointer"
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    zIndex: 10,
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+                    transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
+                    opacity: containerHovered ? 1 : 0
                   },
                   onMouseEnter: (e) => {
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.12)";
-                    e.currentTarget.style.borderColor = "#d1d5db";
+                    e.currentTarget.style.background = "#7c3aed";
+                    e.currentTarget.style.borderColor = "#7c3aed";
                   },
                   onMouseLeave: (e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.08)";
+                    e.currentTarget.style.background = "rgba(255,255,255,0.95)";
                     e.currentTarget.style.borderColor = "#e5e7eb";
                   },
-                  children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
-                      position: "relative",
-                      marginBottom: "4px",
-                      borderRadius: "4px",
-                      overflow: "hidden",
-                      backgroundColor: "#f9fafb",
-                      aspectRatio: "1",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center"
-                    }, children: [
-                      product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-                        "img",
-                        {
-                          src: product.imageUrl,
-                          alt: product.title,
-                          style: {
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            display: "block"
-                          }
-                        }
-                      ) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
-                        width: "100%",
-                        height: "100%",
-                        backgroundColor: "#f3f4f6",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "24px",
-                        color: "#9ca3af"
-                      }, children: "\u{1F4E6}" }),
-                      showDiscountBadge && discount > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
-                        position: "absolute",
-                        top: "3px",
-                        right: "3px",
-                        background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                        color: "white",
-                        padding: "1px 5px",
-                        borderRadius: "8px",
-                        fontSize: "8px",
-                        fontWeight: "700",
-                        zIndex: 1,
-                        boxShadow: "0 2px 4px rgba(16, 185, 129, 0.3)",
-                        letterSpacing: "0.3px"
-                      }, children: [
-                        "-",
-                        discount,
-                        "%"
-                      ] })
-                    ] }),
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
-                      fontSize: "10px",
-                      fontWeight: "500",
-                      marginBottom: "2px",
-                      lineHeight: "1.2",
-                      color: "#111827",
-                      minHeight: "24px",
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      letterSpacing: "-0.01em"
-                    }, children: product.title }),
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
-                      marginBottom: "4px",
-                      display: "flex",
-                      alignItems: "baseline",
-                      gap: "4px",
-                      flexWrap: "wrap"
-                    }, children: showDiscount && product.compareAtPrice && product.compareAtPrice > product.price ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: {
-                        textDecoration: "line-through",
-                        color: "#9ca3af",
-                        fontSize: "9px",
-                        fontWeight: "400"
-                      }, children: [
-                        "\u20B9",
-                        Math.round(product.compareAtPrice)
-                      ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: {
-                        fontWeight: "700",
-                        fontSize: "11px",
-                        color: "#111827",
-                        letterSpacing: "-0.01em"
-                      }, children: [
-                        "\u20B9",
-                        Math.round(product.price)
-                      ] })
-                    ] }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: {
-                      fontWeight: "700",
-                      fontSize: "11px",
-                      color: "#111827",
-                      letterSpacing: "-0.01em"
-                    }, children: [
-                      "\u20B9",
-                      Math.round(product.price)
-                    ] }) }),
-                    showAddButton && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-                      "button",
+                  children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("polyline", { points: "15 18 9 12 15 6" }) })
+                }
+              ),
+              !isGrid && canScrollRight && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                "button",
+                {
+                  onClick: () => handleScroll("right"),
+                  style: {
+                    position: "absolute",
+                    right: "0",
+                    top: "50%",
+                    transform: `translateY(-50%) ${containerHovered ? "scale(1)" : "scale(0.8)"}`,
+                    background: "rgba(255,255,255,0.95)",
+                    border: "1.5px solid #e5e7eb",
+                    borderRadius: "50%",
+                    width: "34px",
+                    height: "34px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    zIndex: 10,
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+                    transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
+                    opacity: containerHovered ? 1 : 0
+                  },
+                  onMouseEnter: (e) => {
+                    e.currentTarget.style.background = "#7c3aed";
+                    e.currentTarget.style.borderColor = "#7c3aed";
+                    e.currentTarget.style.color = "white";
+                  },
+                  onMouseLeave: (e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.95)";
+                    e.currentTarget.style.borderColor = "#e5e7eb";
+                    e.currentTarget.style.color = "inherit";
+                  },
+                  children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("polyline", { points: "9 18 15 12 9 6" }) })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                "div",
+                {
+                  ref: scrollContainerRef,
+                  style: isGrid ? {
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+                    gap: "10px"
+                  } : {
+                    display: "flex",
+                    gap: "10px",
+                    overflowX: "auto",
+                    scrollSnapType: "x mandatory",
+                    WebkitOverflowScrolling: "touch",
+                    paddingBottom: "6px",
+                    paddingTop: "2px",
+                    scrollbarWidth: "none",
+                    msOverflowStyle: "none",
+                    paddingLeft: canScrollLeft ? "40px" : "2px",
+                    paddingRight: canScrollRight ? "40px" : "2px"
+                  },
+                  children: displayProducts.map((product, idx) => {
+                    const discount = product.compareAtPrice && product.compareAtPrice > product.price ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
+                    const isAdding = addingIds.has(product.id);
+                    const isAdded = addedIds.has(product.id);
+                    const isCardHovered = hoveredId === product.id;
+                    const badgeLabel = discount >= 20 ? "Best Seller" : discount > 0 ? `\u2212${discount}%` : null;
+                    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+                      "div",
                       {
-                        onClick: () => handleAddClick(product),
-                        style: {
-                          width: "100%",
-                          padding: "4px 8px",
-                          background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-                          color: "white",
-                          border: "none",
-                          borderRadius: "4px",
-                          fontSize: "9px",
-                          fontWeight: "600",
+                        onClick: () => handleCardClick(product),
+                        onMouseEnter: () => setHoveredId(product.id),
+                        onMouseLeave: () => setHoveredId(null),
+                        style: __spreadProps(__spreadValues({}, isGrid ? {} : {
+                          minWidth: "140px",
+                          maxWidth: "140px",
+                          flexShrink: 0,
+                          scrollSnapAlign: "start"
+                        }), {
+                          borderRadius: "14px",
+                          border: `1.5px solid ${isCardHovered ? "#c4b5fd" : "#e5e7eb"}`,
+                          overflow: "hidden",
+                          background: "#ffffff",
+                          boxShadow: isCardHovered ? "0 12px 32px rgba(124,58,237,0.12)" : "0 2px 8px rgba(0,0,0,0.06)",
+                          transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)",
                           cursor: "pointer",
-                          transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                          boxShadow: "0 1px 3px rgba(249, 115, 22, 0.3)",
-                          letterSpacing: "0.2px",
-                          marginTop: "auto"
-                        },
-                        onMouseEnter: (e) => {
-                          e.currentTarget.style.background = "linear-gradient(135deg, #ea580c 0%, #dc2626 100%)";
-                          e.currentTarget.style.boxShadow = "0 2px 6px rgba(249, 115, 22, 0.4)";
-                          e.currentTarget.style.transform = "translateY(-1px)";
-                        },
-                        onMouseLeave: (e) => {
-                          e.currentTarget.style.background = "linear-gradient(135deg, #f97316 0%, #ea580c 100%)";
-                          e.currentTarget.style.boxShadow = "0 1px 3px rgba(249, 115, 22, 0.3)";
-                          e.currentTarget.style.transform = "translateY(0)";
-                        },
-                        onMouseDown: (e) => {
-                          e.currentTarget.style.transform = "translateY(0)";
-                        },
-                        onMouseUp: (e) => {
-                          e.currentTarget.style.transform = "translateY(-1px)";
-                        },
-                        children: "+ Add to Cart"
-                      }
-                    )
-                  ]
-                },
-                product.id
-              );
-            })
+                          display: "flex",
+                          flexDirection: "column",
+                          transform: isCardHovered ? "translateY(-3px)" : "translateY(0)",
+                          animation: `sd-reco-slide-in 0.35s ease ${idx * 0.05}s both`,
+                          position: "relative"
+                        }),
+                        children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
+                            position: "relative",
+                            aspectRatio: "1",
+                            overflow: "hidden",
+                            background: "#f4f4f8",
+                            borderRadius: "12px 12px 0 0"
+                          }, children: [
+                            product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                              "img",
+                              {
+                                src: product.imageUrl,
+                                alt: product.title,
+                                style: {
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  display: "block",
+                                  transform: isCardHovered ? "scale(1.08)" : "scale(1)",
+                                  transition: "transform 0.4s cubic-bezier(0.4,0,0.2,1)"
+                                }
+                              }
+                            ) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
+                              width: "100%",
+                              height: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "32px"
+                            }, children: "\u{1F4E6}" }),
+                            showDiscountBadge && badgeLabel && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
+                              position: "absolute",
+                              top: "7px",
+                              left: "7px",
+                              background: discount >= 20 ? "linear-gradient(135deg, #f59e0b, #d97706)" : "linear-gradient(135deg, #10b981, #059669)",
+                              color: "white",
+                              fontSize: "8px",
+                              fontWeight: "700",
+                              padding: "3px 7px",
+                              borderRadius: "7px",
+                              letterSpacing: "0.04em",
+                              boxShadow: discount >= 20 ? "0 2px 8px rgba(245,158,11,0.4)" : "0 2px 8px rgba(16,185,129,0.4)"
+                            }, children: [
+                              discount >= 20 ? "\u2B50 " : "",
+                              badgeLabel
+                            ] }),
+                            showAddButton && isCardHovered && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                              "div",
+                              {
+                                style: {
+                                  position: "absolute",
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)",
+                                  padding: "20px 8px 8px",
+                                  animation: "sd-reco-quick-add-up 0.2s ease"
+                                },
+                                onClick: (e) => handleAddClick(product, e),
+                                children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                                  "button",
+                                  {
+                                    style: {
+                                      width: "100%",
+                                      padding: "7px 0",
+                                      background: isAdded ? "linear-gradient(135deg, #10b981, #059669)" : "rgba(255,255,255,0.92)",
+                                      backdropFilter: "blur(4px)",
+                                      color: isAdded ? "white" : "#111827",
+                                      border: "none",
+                                      borderRadius: "8px",
+                                      fontSize: "11px",
+                                      fontWeight: "700",
+                                      cursor: "pointer",
+                                      letterSpacing: "0.02em",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      gap: "5px",
+                                      transition: "all 0.25s ease",
+                                      animation: isAdded ? "sd-reco-add-success 0.35s ease" : void 0
+                                    },
+                                    children: isAdding ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.5", style: { animation: "sd-spin 0.7s linear infinite" }, children: [
+                                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("circle", { cx: "12", cy: "12", r: "10", strokeOpacity: "0.3" }),
+                                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M12 2a10 10 0 0 1 10 10" })
+                                    ] }) : isAdded ? "\u2713 Added!" : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+                                      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { width: "10", height: "10", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "3", strokeLinecap: "round", children: [
+                                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "12", y1: "5", x2: "12", y2: "19" }),
+                                        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "5", y1: "12", x2: "19", y2: "12" })
+                                      ] }),
+                                      "Quick Add"
+                                    ] })
+                                  }
+                                )
+                              }
+                            )
+                          ] }),
+                          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { padding: "8px 10px 10px", flex: 1, display: "flex", flexDirection: "column", gap: "5px" }, children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
+                              fontSize: "11px",
+                              fontWeight: "600",
+                              color: "#111827",
+                              lineHeight: "1.3",
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden",
+                              letterSpacing: "-0.01em",
+                              minHeight: "28px"
+                            }, children: product.title }),
+                            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { display: "flex", alignItems: "center", gap: "5px", flexWrap: "wrap" }, children: showDiscount && product.compareAtPrice && product.compareAtPrice > product.price ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+                              /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { textDecoration: "line-through", color: "#d1d5db", fontSize: "10px" }, children: [
+                                "\u20B9",
+                                Math.round(product.compareAtPrice)
+                              ] }),
+                              /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { fontWeight: "800", fontSize: "13px", color: "#d97706", letterSpacing: "-0.02em" }, children: [
+                                "\u20B9",
+                                Math.round(product.price)
+                              ] })
+                            ] }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { fontWeight: "800", fontSize: "13px", color: "#111827", letterSpacing: "-0.02em" }, children: [
+                              "\u20B9",
+                              Math.round(product.price)
+                            ] }) }),
+                            showAddButton && (isGrid || !isCardHovered) && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                              "button",
+                              {
+                                onClick: (e) => handleAddClick(product, e),
+                                style: {
+                                  width: "100%",
+                                  padding: "6px 0",
+                                  marginTop: "2px",
+                                  background: isAdded ? "linear-gradient(135deg, #10b981, #059669)" : "linear-gradient(135deg, #7c3aed, #6d28d9)",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: "8px",
+                                  fontSize: "10px",
+                                  fontWeight: "700",
+                                  cursor: "pointer",
+                                  letterSpacing: "0.02em",
+                                  boxShadow: isAdded ? "0 2px 8px rgba(16,185,129,0.3)" : "0 2px 8px rgba(124,58,237,0.3)",
+                                  transition: "all 0.25s ease",
+                                  animation: isAdded ? "sd-reco-add-success 0.35s ease" : void 0,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: "4px"
+                                },
+                                onMouseEnter: (e) => {
+                                  if (!isAdded) {
+                                    e.currentTarget.style.transform = "translateY(-1px)";
+                                    e.currentTarget.style.boxShadow = "0 4px 14px rgba(124,58,237,0.4)";
+                                  }
+                                },
+                                onMouseLeave: (e) => {
+                                  e.currentTarget.style.transform = "translateY(0)";
+                                  e.currentTarget.style.boxShadow = isAdded ? "0 2px 8px rgba(16,185,129,0.3)" : "0 2px 8px rgba(124,58,237,0.3)";
+                                },
+                                children: isAdding ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { width: "10", height: "10", viewBox: "0 0 24 24", fill: "none", stroke: "white", strokeWidth: "2.5", style: { animation: "sd-spin 0.7s linear infinite" }, children: [
+                                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("circle", { cx: "12", cy: "12", r: "10", strokeOpacity: "0.3" }),
+                                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M12 2a10 10 0 0 1 10 10" })
+                                ] }) : isAdded ? "\u2713 Added!" : "+ Add"
+                              }
+                            )
+                          ] })
+                        ]
+                      },
+                      product.id
+                    );
+                  })
+                }
+              )
+            ]
           }
         )
       ] })
@@ -10293,17 +10270,113 @@
       return `\u20B9${rupees}`;
     };
     const formattedMessage = message.replace("{amount}", formatMoney(amount));
-    return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: {
-      backgroundColor,
-      color: textColor,
-      padding: "12px 16px",
-      borderRadius: "10px",
-      fontSize: "14px",
-      fontWeight: "600",
-      textAlign: "center",
-      border: `2px solid ${borderColor}`,
-      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)"
-    }, children: formattedMessage });
+    const keyframes = `
+    @keyframes sd-savings-badge-in {
+      0% { opacity: 0; transform: translateY(8px) scale(0.95); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes sd-savings-shimmer {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+    @keyframes sd-coin-spin {
+      0% { transform: rotateY(0deg); }
+      100% { transform: rotateY(360deg); }
+    }
+  `;
+    return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(import_jsx_runtime5.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("style", { children: keyframes }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+        "div",
+        {
+          style: {
+            position: "relative",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+            border: "1.5px solid #86efac",
+            borderRadius: "12px",
+            padding: "10px 14px",
+            boxShadow: "0 4px 16px rgba(16,185,129,0.1), inset 0 1px 0 rgba(255,255,255,0.8)",
+            animation: "sd-savings-badge-in 0.4s cubic-bezier(0.4,0,0.2,1)",
+            overflow: "hidden"
+          },
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+              "div",
+              {
+                style: {
+                  position: "absolute",
+                  inset: 0,
+                  background: "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.5) 50%, transparent 60%)",
+                  backgroundSize: "200% 100%",
+                  animation: "sd-savings-shimmer 3s linear infinite",
+                  borderRadius: "12px",
+                  pointerEvents: "none"
+                }
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+              "div",
+              {
+                style: {
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #34d399, #10b981)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "16px",
+                  flexShrink: 0,
+                  boxShadow: "0 4px 12px rgba(16,185,129,0.3)",
+                  position: "relative",
+                  zIndex: 1
+                },
+                "aria-hidden": "true",
+                children: "\u{1F4B0}"
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { style: { flex: 1, minWidth: 0, position: "relative", zIndex: 1 }, children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+              "div",
+              {
+                style: {
+                  fontSize: "13px",
+                  fontWeight: "700",
+                  color: "#166534",
+                  lineHeight: "1.3",
+                  letterSpacing: "-0.01em"
+                },
+                children: formattedMessage
+              }
+            ) }),
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+              "div",
+              {
+                style: {
+                  flexShrink: 0,
+                  background: "linear-gradient(135deg, #22c55e, #16a34a)",
+                  color: "white",
+                  fontSize: "12px",
+                  fontWeight: "800",
+                  padding: "4px 10px",
+                  borderRadius: "100px",
+                  letterSpacing: "-0.01em",
+                  boxShadow: "0 2px 8px rgba(22,163,74,0.3)",
+                  position: "relative",
+                  zIndex: 1
+                },
+                children: [
+                  formatMoney(amount),
+                  " saved"
+                ]
+              }
+            )
+          ]
+        }
+      )
+    ] });
   };
 
   // app/components/shared/FreeShippingMessage.tsx
@@ -10322,49 +10395,132 @@
   }) => {
     const cartTotalInCurrency = cartTotal / 100;
     const remaining = Math.max(thresholdAmount - cartTotalInCurrency, 0);
+    const isAchieved = remaining <= 0;
     const currencySymbol = currency === "INR" ? "\u20B9" : "$";
-    const message = remaining > 0 ? beforeThresholdMessage.replace("{threshold}", `${currencySymbol}${Math.round(thresholdAmount)}`).replace("{remaining}", `${currencySymbol}${Math.round(remaining)}`) : achievedMessage;
-    return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { style: {
-      backgroundColor,
-      color: textColor,
-      border: `2px solid ${borderColor}`,
-      padding: "14px 18px",
-      borderRadius: "12px",
-      display: "flex",
-      alignItems: "center",
-      gap: "12px",
-      fontSize: "14px",
-      fontWeight: "700",
-      boxShadow: "0 3px 6px rgba(0, 0, 0, 0.1)",
-      position: "relative",
-      overflow: "hidden"
-    }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: "linear-gradient(45deg, rgba(255,255,255,0.2) 0%, transparent 50%)",
-        pointerEvents: "none"
-      } }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: __spreadValues({
-        fontSize: "20px",
-        flexShrink: 0,
-        position: "relative",
-        zIndex: 1
-      }, isPreview ? {} : { height: "20px", top: "-8px" }), children: icon }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { style: {
-        position: "relative",
-        zIndex: 1,
-        textShadow: "0 1px 2px rgba(0,0,0,0.1)",
-        flex: 1
-      }, children: message })
+    const message = isAchieved ? achievedMessage : beforeThresholdMessage.replace("{threshold}", `${currencySymbol}${Math.round(thresholdAmount)}`).replace("{remaining}", `${currencySymbol}${Math.round(remaining)}`);
+    const keyframes = `
+    @keyframes sd-msg-slide-in {
+      0% { opacity: 0; transform: translateX(-12px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes sd-pill-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+    }
+    @keyframes sd-icon-bob {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+  `;
+    return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("style", { children: keyframes }),
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+        "div",
+        {
+          style: {
+            position: "relative",
+            borderRadius: "12px",
+            overflow: "hidden",
+            background: isAchieved ? "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)" : "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
+            border: `1.5px solid ${isAchieved ? "#6ee7b7" : "#fcd34d"}`,
+            boxShadow: isAchieved ? "0 4px 16px rgba(16,185,129,0.12)" : "0 4px 16px rgba(245,158,11,0.1)",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            padding: "12px 14px",
+            animation: "sd-msg-slide-in 0.35s cubic-bezier(0.4,0,0.2,1)"
+          },
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              "div",
+              {
+                style: {
+                  position: "absolute",
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: "4px",
+                  background: isAchieved ? "linear-gradient(180deg, #34d399, #10b981)" : "linear-gradient(180deg, #fbbf24, #f59e0b)",
+                  borderRadius: "12px 0 0 12px"
+                }
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              "div",
+              {
+                style: {
+                  fontSize: "22px",
+                  lineHeight: 1,
+                  flexShrink: 0,
+                  paddingLeft: "4px",
+                  animation: "sd-icon-bob 2s ease-in-out infinite"
+                },
+                "aria-hidden": "true",
+                children: isAchieved ? "\u{1F389}" : icon
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { style: { flex: 1, minWidth: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              "div",
+              {
+                style: {
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  color: isAchieved ? "#065f46" : "#78350f",
+                  lineHeight: "1.4",
+                  letterSpacing: "-0.01em"
+                },
+                children: message
+              }
+            ) }),
+            isAchieved && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              "div",
+              {
+                style: {
+                  flexShrink: 0,
+                  fontSize: "10px",
+                  fontWeight: "700",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  color: "#065f46",
+                  background: "#d1fae5",
+                  border: "1px solid #6ee7b7",
+                  padding: "3px 10px",
+                  borderRadius: "100px",
+                  animation: "sd-pill-pulse 1.5s ease-in-out infinite",
+                  whiteSpace: "nowrap"
+                },
+                children: "\u2713 Unlocked"
+              }
+            ),
+            !isAchieved && remaining > 0 && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+              "div",
+              {
+                style: {
+                  flexShrink: 0,
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  color: "#92400e",
+                  background: "rgba(245,158,11,0.15)",
+                  border: "1px solid rgba(245,158,11,0.3)",
+                  padding: "3px 10px",
+                  borderRadius: "100px",
+                  whiteSpace: "nowrap"
+                },
+                children: [
+                  currencySymbol,
+                  Math.round(remaining),
+                  " left"
+                ]
+              }
+            )
+          ]
+        }
+      )
     ] });
   };
 
   // app/components/shared/CouponCodeField.tsx
-  var import_react4 = __toESM(require_react(), 1);
+  var import_react5 = __toESM(require_react(), 1);
   var import_jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
   var CheckIcon = ({ size = 16, color = "currentColor" }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "3", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("polyline", { points: "20 6 9 17 4 12" }) });
   var ChevronDownIcon = ({ size = 16, color = "currentColor" }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("polyline", { points: "6 9 12 15 18 9" }) });
@@ -10394,8 +10550,8 @@
     appliedDiscountText,
     isPreview = false
   }) => {
-    const [couponCode, setCouponCode] = (0, import_react4.useState)("");
-    const [showingAllOffers, setShowingAllOffers] = (0, import_react4.useState)(false);
+    const [couponCode, setCouponCode] = (0, import_react5.useState)("");
+    const [showingAllOffers, setShowingAllOffers] = (0, import_react5.useState)(false);
     const handleApply = () => {
       if (couponCode.trim()) {
         onApplyCoupon(couponCode.trim());
@@ -10808,8 +10964,288 @@
     ] });
   };
 
-  // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
+  // app/components/shared/MilestonesWidget.tsx
+  var import_react6 = __toESM(require_react(), 1);
   var import_jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
+  var getDefaultIcon = (rewardType) => {
+    switch (rewardType) {
+      case "free_shipping":
+        return "\u{1F69A}";
+      case "discount_percentage":
+        return "\u{1F3F7}\uFE0F";
+      case "discount_fixed":
+        return "\u{1F4B0}";
+      case "gift_wrapping":
+        return "\u{1F381}";
+      default:
+        return "\u{1F381}";
+    }
+  };
+  var fmt = (amount, currency = "\u20B9") => `${currency}${amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+  var calcProgress = (total, sorted) => {
+    if (!sorted.length)
+      return 0;
+    const max = sorted[sorted.length - 1].targetAmount;
+    if (max <= 0)
+      return 0;
+    return Math.min(total / max * 100, 100);
+  };
+  function MilestonesWidget({
+    milestones,
+    cartTotal,
+    progressBarColor = "#1c1c3b",
+    allUnlockedMessage = "\u{1F389} Congratulations! All rewards unlocked!",
+    currency = "\u20B9",
+    onAddToCart
+  }) {
+    var _a2, _b, _c;
+    if (!milestones || milestones.length === 0)
+      return null;
+    const sorted = [...milestones].sort((a, b) => a.targetAmount - b.targetAmount);
+    const allUnlocked = sorted.every((m) => m.status === "unlocked");
+    const fillPct = calcProgress(cartTotal, sorted);
+    const nextMilestone = sorted.find((m) => m.status !== "unlocked");
+    const statusMsg = allUnlocked ? allUnlockedMessage : (_a2 = nextMilestone == null ? void 0 : nextMilestone.message) != null ? _a2 : null;
+    return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { width: "100%", boxSizing: "border-box", fontFamily: "inherit" }, children: [
+      statusMsg && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("p", { style: {
+        textAlign: "center",
+        fontSize: "13px",
+        fontWeight: 600,
+        color: "#1e1b4b",
+        margin: "0 0 10px",
+        lineHeight: 1.5,
+        padding: "0 4px"
+      }, children: statusMsg }),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { position: "relative", width: "100%", boxSizing: "border-box" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: {
+          position: "absolute",
+          top: "38px",
+          left: "0",
+          right: "0",
+          height: "5px",
+          backgroundColor: "#e2e8f0",
+          borderRadius: "3px",
+          zIndex: 0
+        } }),
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: {
+          position: "absolute",
+          top: "38px",
+          left: "0",
+          width: `${fillPct}%`,
+          height: "5px",
+          background: `linear-gradient(90deg, ${progressBarColor}, ${progressBarColor}cc)`,
+          borderRadius: "3px",
+          zIndex: 1,
+          transition: "width 0.6s ease",
+          display: "block"
+        } }),
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { display: "flex", position: "relative", zIndex: 2 }, children: sorted.map((m) => {
+          const isUnlocked = m.status === "unlocked";
+          return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+            "div",
+            {
+              style: {
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "4px",
+                minWidth: 0
+              },
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { style: {
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: "#6b7280",
+                  lineHeight: "16px",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: "100%",
+                  textAlign: "center"
+                }, children: fmt(m.targetAmount, currency) }),
+                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: {
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "50%",
+                  backgroundColor: isUnlocked ? progressBarColor : "#fff",
+                  border: `2px solid ${isUnlocked ? progressBarColor : "#cbd5e1"}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "17px",
+                  flexShrink: 0,
+                  boxShadow: isUnlocked ? `0 0 0 3px ${progressBarColor}25, 0 3px 8px rgba(0,0,0,0.15)` : "0 2px 6px rgba(0,0,0,0.07)",
+                  transition: "all 0.3s ease",
+                  position: "relative",
+                  zIndex: 2
+                }, children: m.icon || getDefaultIcon(m.rewardType) }),
+                /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { style: {
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  color: isUnlocked ? progressBarColor : "#6b7280",
+                  textAlign: "center",
+                  lineHeight: "14px",
+                  maxWidth: "100%",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  padding: "0 2px"
+                }, children: m.title })
+              ]
+            },
+            m.id
+          );
+        }) })
+      ] }),
+      ((_c = (_b = nextMilestone == null ? void 0 : nextMilestone.upsellProducts) == null ? void 0 : _b.length) != null ? _c : 0) > 0 && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginTop: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+        MilestoneUpsellProducts,
+        {
+          products: nextMilestone.upsellProducts,
+          currency,
+          onAddToCart
+        }
+      ) })
+    ] });
+  }
+  function MilestoneUpsellProducts({
+    milestones,
+    cartTotal = 0,
+    products: directProducts,
+    currency = "\u20B9",
+    onAddToCart
+  }) {
+    var _a2;
+    const [idx, setIdx] = (0, import_react6.useState)(0);
+    let products = directProducts != null ? directProducts : [];
+    if (!directProducts && milestones) {
+      const sorted = [...milestones].sort((a, b) => a.targetAmount - b.targetAmount);
+      const next = sorted.find((m) => cartTotal < m.targetAmount);
+      products = (_a2 = next == null ? void 0 : next.upsellProducts) != null ? _a2 : [];
+    }
+    if (products.length === 0)
+      return null;
+    const visible = 2;
+    const maxIdx = Math.max(0, products.length - visible);
+    const ArrowBtn = ({
+      dir,
+      disabled,
+      onClick
+    }) => /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+      "button",
+      {
+        onClick,
+        disabled,
+        "aria-label": dir === "left" ? "Previous" : "Next",
+        style: {
+          flexShrink: 0,
+          width: "26px",
+          height: "26px",
+          borderRadius: "50%",
+          border: "1px solid #e5e7eb",
+          background: "#fff",
+          cursor: disabled ? "not-allowed" : "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: disabled ? 0.35 : 1,
+          transition: "all 0.2s",
+          padding: 0,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
+        },
+        children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+          "svg",
+          {
+            width: "11",
+            height: "11",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "#374151",
+            strokeWidth: "2.5",
+            strokeLinecap: "round",
+            strokeLinejoin: "round",
+            children: dir === "left" ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("polyline", { points: "15 18 9 12 15 6" }) : /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("polyline", { points: "9 18 15 12 9 6" })
+          }
+        )
+      }
+    );
+    return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "6px", width: "100%", boxSizing: "border-box" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(ArrowBtn, { dir: "left", disabled: idx === 0, onClick: () => setIdx((i) => Math.max(0, i - 1)) }),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { flex: 1, overflow: "hidden", minWidth: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: {
+        display: "flex",
+        gap: "8px",
+        transform: `translateX(calc(-${idx * (100 / visible)}% - ${idx * 4}px))`,
+        transition: "transform 0.35s cubic-bezier(0.4,0,0.2,1)"
+      }, children: products.map((p) => /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+        "div",
+        {
+          style: {
+            minWidth: `calc(${100 / visible}% - 4px)`,
+            flexShrink: 0,
+            border: "1px solid #e5e7eb",
+            borderRadius: "10px",
+            padding: "8px",
+            backgroundColor: "#fff",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+            boxSizing: "border-box"
+          },
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: {
+              width: "50px",
+              height: "50px",
+              borderRadius: "7px",
+              overflow: "hidden",
+              flexShrink: 0,
+              backgroundColor: "#f3f4f6"
+            }, children: p.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("img", { src: p.imageUrl, alt: p.title, style: { width: "100%", height: "100%", objectFit: "cover" } }) : /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }, children: "\u{1F6CD}\uFE0F" }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("p", { style: {
+                margin: 0,
+                fontSize: "11px",
+                fontWeight: 600,
+                color: "#111827",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
+              }, children: p.title }),
+              /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("p", { style: { margin: "2px 0 5px", fontSize: "11px", color: "#374151", fontWeight: 500 }, children: [
+                currency,
+                " ",
+                (p.price / 100).toFixed(2)
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+                "button",
+                {
+                  onClick: () => onAddToCart == null ? void 0 : onAddToCart(p),
+                  style: {
+                    width: "100%",
+                    padding: "4px 0",
+                    backgroundColor: "#1c1c3b",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "6px",
+                    fontSize: "10px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    letterSpacing: "0.3px"
+                  },
+                  children: "Add to cart"
+                }
+              )
+            ] })
+          ]
+        },
+        p.id
+      )) }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(ArrowBtn, { dir: "right", disabled: idx >= maxIdx, onClick: () => setIdx((i) => Math.min(maxIdx, i + 1)) })
+    ] });
+  }
+
+  // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
+  var import_jsx_runtime10 = __toESM(require_jsx_runtime(), 1);
   var UnifiedCartDrawer = ({
     config,
     cart,
@@ -10834,7 +11270,7 @@
     onFeatureClick
   }) => {
     var _a2, _b, _c, _d, _e;
-    import_react5.default.useEffect(() => {
+    import_react7.default.useEffect(() => {
       if (onImpression) {
         onImpression();
       }
@@ -10868,13 +11304,13 @@
       return Math.max(itemLevelSavings, discountSavings);
     };
     const renderFeature = (featureId) => {
-      var _a3, _b2, _c2, _d2, _e2, _f, _g, _h, _i, _j;
+      var _a3, _b2, _c2, _d2, _e2, _f, _g, _h, _i, _j, _k, _l, _m;
       switch (featureId) {
         case "free-shipping-bar": {
           const bar = (_a3 = config == null ? void 0 : config.features) == null ? void 0 : _a3.freeShippingProgressBar;
           if (!bar)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             FreeShippingBar,
             {
               thresholdMode: bar.thresholdMode || "amount",
@@ -10899,7 +11335,7 @@
           const slides = banner.images || [];
           if (slides.length === 0)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             PromotionalBannerCard,
             {
               slides,
@@ -10927,7 +11363,7 @@
           const products = recommendations.products || [];
           if (products.length === 0)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             ProductRecommendations,
             {
               title: recommendations.title || "You may also like",
@@ -10951,7 +11387,7 @@
           const totalSavings = calculateSavings();
           if (totalSavings <= 0)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             SavingsDisplay,
             {
               message: savingsCfg.message || "You saved {amount}!",
@@ -10967,7 +11403,7 @@
           const msg = (_i = config == null ? void 0 : config.features) == null ? void 0 : _i.freeShippingMessage;
           if (!msg)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             FreeShippingMessage,
             {
               thresholdAmount: parseFloat(msg.thresholdAmount) || 0,
@@ -10987,7 +11423,7 @@
           const couponField = (_j = config == null ? void 0 : config.features) == null ? void 0 : _j.couponCodeField;
           if (!couponField)
             return null;
-          return /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             CouponCodeField,
             {
               id: "selldrawer-coupon-field",
@@ -11010,13 +11446,34 @@
             }
           ) }, featureId);
         }
+        case "milestones": {
+          const milestones = (_k = config == null ? void 0 : config.features) == null ? void 0 : _k.milestones;
+          if (!milestones || milestones.length === 0)
+            return null;
+          const cartTotalForWidget = (cart.total_price || 0) / 100;
+          return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px", padding: "12px", background: "#f9fafb", borderRadius: "10px", border: "1px solid #e5e7eb" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+            MilestonesWidget,
+            {
+              milestones,
+              cartTotal: cartTotalForWidget,
+              progressBarColor: ((_l = config == null ? void 0 : config.features) == null ? void 0 : _l.milestonesProgressBarColor) || "#1c1c3b",
+              allUnlockedMessage: ((_m = config == null ? void 0 : config.features) == null ? void 0 : _m.milestonesAllUnlockedMessage) || "\u{1F389} Congratulations! All rewards unlocked!",
+              currency: "\u20B9",
+              onAddToCart: (product) => {
+                if (onAddProductToCart && product.id) {
+                  onAddProductToCart(product.id);
+                }
+              }
+            }
+          ) }, featureId);
+        }
         default:
           return null;
       }
     };
     const { beforeItems, afterItems } = getFeatureOrder();
-    return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(import_jsx_runtime10.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
         "button",
         {
           className: "selldrawer-close-btn",
@@ -11025,7 +11482,7 @@
           children: "\xD7"
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
         "h2",
         {
           id: "selldrawer-cart-header",
@@ -11038,7 +11495,7 @@
         }
       ),
       beforeItems.map(renderFeature),
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
         CartItems,
         {
           items: cart.items,
@@ -11050,7 +11507,7 @@
         }
       ) }),
       afterItems.map(renderFeature),
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
         CartTotals,
         {
           items: cart.items,
@@ -11077,7 +11534,7 @@
           isPreview: false
         }
       ) }),
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
         "button",
         {
           className: "selldrawer-checkout-btn",
@@ -11085,7 +11542,7 @@
           children: "Checkout"
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { style: {
         textAlign: "center",
         fontSize: "12px",
         color: "#6b7280",
@@ -11095,15 +11552,15 @@
         justifyContent: "center",
         gap: "12px"
       }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "4px" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("rect", { x: "3", y: "11", width: "18", height: "11", rx: "2", ry: "2" }),
-            /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("path", { d: "M7 11V7a5 5 0 0 1 10 0v4" })
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("span", { style: { display: "flex", alignItems: "center", gap: "4px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("rect", { x: "3", y: "11", width: "18", height: "11", rx: "2", ry: "2" }),
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("path", { d: "M7 11V7a5 5 0 0 1 10 0v4" })
           ] }),
           "Secure Checkout"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: "\u2022" }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: "Free Returns" })
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { children: "\u2022" }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { children: "Free Returns" })
       ] })
     ] });
   };
@@ -11307,9 +11764,8 @@
       }
     }
     async loadMilestones() {
-      var _a2;
       try {
-        const appUrl = (_a2 = document.querySelector("[data-selldrawer-app-url]")) == null ? void 0 : _a2.dataset.selldrawerAppUrl;
+        const appUrl = this.appUrl;
         if (!appUrl)
           return;
         const cartTotalInCents = MilestoneRewardManager.calculateCartTotalExcludingGifts(this.cart);
@@ -11626,7 +12082,7 @@
       });
       const appliedDiscount = this.getDiscountFromCart();
       this.reactRoot.render(
-        import_react6.default.createElement(UnifiedCartDrawer, {
+        import_react8.default.createElement(UnifiedCartDrawer, {
           config: this.config,
           cart: this.cart,
           appliedDiscount,
@@ -12056,7 +12512,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://compete-platform-lets-newspapers.trycloudflare.com" : "https://app.selldrawer.com";
+  var APP_URL = true ? "https://low-tunnel-tribute-that.trycloudflare.com" : "https://app.selldrawer.com";
   var CART_DRAWER_VERSION = true ? "1.0.11" : "dev";
   function initializeCartDrawer() {
     if (typeof window !== "undefined") {

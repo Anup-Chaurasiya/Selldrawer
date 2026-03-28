@@ -1,3 +1,7 @@
+api_version = "2026-01"
+
+[[extensions]]
 name = "cart-upsell"
+handle = "cart-upsell"
 type = "theme"
 uid = "27de7a0f-16d2-26c3-ac46-904a094e21ffb93d65db"

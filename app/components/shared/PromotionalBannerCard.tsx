@@ -1,6 +1,7 @@
 /**
  * Shared Promotional Banner Component
- * Used in both production cart drawer and Remix preview
+ * Premium redesign — works in any Shopify theme (light)
+ * Cinematic full-bleed media with overlay text, frosted-glass CTA
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -38,8 +39,8 @@ interface PromotionalBannerCardProps {
   onCtaClick?: (url: string) => void;
   onImpression?: () => void;
   isPreview?: boolean;
-  context?: 'cart-drawer' | 'block'; // 'cart-drawer' for cart drawer, 'block' for standalone promotional banner
-  maxHeight?: string; // Custom max height for block context (e.g., '180px', '200px', 'auto')
+  context?: 'cart-drawer' | 'block';
+  maxHeight?: string;
   titleColor?: string;
   descriptionColor?: string;
   ctaTextColor?: string;
@@ -47,20 +48,38 @@ interface PromotionalBannerCardProps {
   borderColor?: string;
 }
 
-// Helper function to get YouTube embed URL
+const PROMO_KEYFRAMES = `
+  @keyframes sd-promo-fade-in {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes sd-promo-slide-up {
+    0% { opacity: 0; transform: translateY(16px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes sd-promo-dot-expand {
+    0% { width: 6px; }
+    100% { width: 20px; }
+  }
+  @keyframes sd-promo-shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+  @keyframes sd-promo-cta-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.2); }
+    50% { box-shadow: 0 0 0 6px rgba(255,255,255,0); }
+  }
+`;
+
 const getYouTubeEmbedUrl = (url: string): string | null => {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
   const videoId = (match && match[2].length === 11) ? match[2] : null;
   if (!videoId) return null;
-
-  // Get origin for iframe API
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-
   return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&enablejsapi=1&origin=${encodeURIComponent(origin)}&playsinline=1&widget_referrer=${encodeURIComponent(origin)}`;
 };
 
-// Helper function to get Vimeo embed URL
 const getVimeoEmbedUrl = (url: string): string | null => {
   const regExp = /(?:vimeo)\.com.*(?:videos|video|channels|)\/([\d]+)/i;
   const match = url.match(regExp);
@@ -85,20 +104,17 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [containerHovered, setContainerHovered] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isScrolling = useRef(false);
   const currentIndexRef = useRef(0);
   const impressionTracked = useRef(false);
 
-  // Mute state: track mute status for each slide (all muted by default)
   const [isMuted, setIsMuted] = useState<Record<number, boolean>>(() =>
     slides.reduce<Record<number, boolean>>((acc, _, idx) => ({ ...acc, [idx]: true }), {})
   );
-
-  // Refs to store video/iframe elements for mute control
   const videoRefs = useRef<Record<number, HTMLVideoElement | HTMLIFrameElement | null>>({});
 
-  // Determine if we're in block context (standalone promotional banner)
   const isBlockContext = context === 'block';
 
   useEffect(() => {
@@ -108,18 +124,13 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
     }
   }, [onImpression, isPreview, slides.length]);
 
-  // Check scroll state
   const updateScrollState = () => {
     const container = scrollContainerRef.current;
     if (!container || slides.length <= 1) return;
-
     const scrollLeft = container.scrollLeft;
     const maxScrollLeft = container.scrollWidth - container.clientWidth;
-
     setCanScrollLeft(scrollLeft > 10);
     setCanScrollRight(scrollLeft < maxScrollLeft - 10);
-
-    // Update current index based on scroll position
     const gap = isBlockContext ? 16 : 8;
     const slideWidth = container.clientWidth + gap;
     const index = Math.round(scrollLeft / slideWidth);
@@ -128,10 +139,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
     currentIndexRef.current = newIndex;
   };
 
-  // Initialize ref with current index
-  useEffect(() => {
-    currentIndexRef.current = currentIndex;
-  }, [currentIndex]);
+  useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
 
   useEffect(() => {
     updateScrollState();
@@ -146,422 +154,116 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
     }
   }, [slides]);
 
-  // Auto-rotate carousel
   useEffect(() => {
-    if (!slides || slides.length <= 1 || !carouselSettings || carouselSettings.autoRotate === false) {
-      return;
-    }
-
+    if (!slides || slides.length <= 1 || !carouselSettings || carouselSettings.autoRotate === false) return;
     const interval = setInterval(() => {
-      // Skip if currently scrolling
-      if (isScrolling.current) {
-        return;
-      }
-
+      if (isScrolling.current) return;
       const container = scrollContainerRef.current;
       if (!container) return;
-
       isScrolling.current = true;
       const gap = isBlockContext ? 16 : 8;
       const slideWidth = container.clientWidth + gap;
-
-      // Use ref to get the latest index without causing effect re-run
       const currentIdx = currentIndexRef.current;
       const nextIndex = currentIdx < slides.length - 1 ? currentIdx + 1 : 0;
       const targetScroll = nextIndex * slideWidth;
-
-      // Update index immediately for smooth indicator transition
       setCurrentIndex(nextIndex);
       currentIndexRef.current = nextIndex;
-
-      container.scrollTo({
-        left: targetScroll,
-        behavior: 'smooth'
-      });
-
-      // Reset scrolling flag after animation
-      setTimeout(() => {
-        isScrolling.current = false;
-      }, 500);
+      container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+      setTimeout(() => { isScrolling.current = false; }, 500);
     }, carouselSettings?.rotationSpeed || 5000);
-
     return () => clearInterval(interval);
   }, [slides.length, carouselSettings?.autoRotate, carouselSettings?.rotationSpeed, isBlockContext]);
 
-  // Pause and mute all non-visible videos when carousel changes
   useEffect(() => {
     if (!slides || slides.length <= 1) return;
-
     slides.forEach((slide, index) => {
       const videoElement = videoRefs.current[index];
       if (!videoElement || !slide.videoUrl) return;
-
       if (index === currentIndex) {
-        // Current slide: Resume playback with user's saved mute preference
         if (slide.videoType === 'mp4' && videoElement instanceof HTMLVideoElement) {
-          // MP4: resume playback and apply saved mute state
           videoElement.muted = isMuted[index];
-          videoElement.play().catch(err => {
-            console.error('[PromotionalBanner] MP4 play error:', err);
-          });
+          videoElement.play().catch(err => { console.error('[PromotionalBanner] MP4 play error:', err); });
         } else if (slide.videoType === 'youtube' && videoElement instanceof HTMLIFrameElement) {
-          // YouTube: play and apply saved mute state
           try {
-            videoElement.contentWindow?.postMessage(
-              JSON.stringify({ event: 'command', func: 'playVideo', args: [] }),
-              '*'
-            );
+            videoElement.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
             const muteCommand = isMuted[index] ? 'mute' : 'unMute';
-            videoElement.contentWindow?.postMessage(
-              JSON.stringify({ event: 'command', func: muteCommand, args: [] }),
-              '*'
-            );
-          } catch (error) {
-            console.error('[PromotionalBanner] YouTube play/mute error:', error);
-          }
+            videoElement.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: muteCommand, args: [] }), '*');
+          } catch (error) { console.error('[PromotionalBanner] YouTube play/mute error:', error); }
         } else if (slide.videoType === 'vimeo' && videoElement instanceof HTMLIFrameElement) {
-          // Vimeo: play and apply saved mute state
           try {
-            videoElement.contentWindow?.postMessage(
-              JSON.stringify({ method: 'play' }),
-              '*'
-            );
+            videoElement.contentWindow?.postMessage(JSON.stringify({ method: 'play' }), '*');
             const volume = isMuted[index] ? 0 : 1;
-            videoElement.contentWindow?.postMessage(
-              JSON.stringify({ method: 'setVolume', value: volume }),
-              '*'
-            );
-          } catch (error) {
-            console.error('[PromotionalBanner] Vimeo play/mute error:', error);
-          }
+            videoElement.contentWindow?.postMessage(JSON.stringify({ method: 'setVolume', value: volume }), '*');
+          } catch (error) { console.error('[PromotionalBanner] Vimeo play/mute error:', error); }
         }
       } else {
-        // Non-visible slides: Pause and mute (but preserve user's mute preference in state)
         if (slide.videoType === 'mp4' && videoElement instanceof HTMLVideoElement) {
-          // MP4: pause and mute
           videoElement.pause();
           videoElement.muted = true;
         } else if (slide.videoType === 'youtube' && videoElement instanceof HTMLIFrameElement) {
-          // YouTube: pause and mute
           try {
-            videoElement.contentWindow?.postMessage(
-              JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }),
-              '*'
-            );
-            videoElement.contentWindow?.postMessage(
-              JSON.stringify({ event: 'command', func: 'mute', args: [] }),
-              '*'
-            );
-          } catch (error) {
-            console.error('[PromotionalBanner] YouTube pause/mute error:', error);
-          }
+            videoElement.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+            videoElement.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'mute', args: [] }), '*');
+          } catch (error) { console.error('[PromotionalBanner] YouTube pause/mute error:', error); }
         } else if (slide.videoType === 'vimeo' && videoElement instanceof HTMLIFrameElement) {
-          // Vimeo: pause and mute
           try {
-            videoElement.contentWindow?.postMessage(
-              JSON.stringify({ method: 'pause' }),
-              '*'
-            );
-            videoElement.contentWindow?.postMessage(
-              JSON.stringify({ method: 'setVolume', value: 0 }),
-              '*'
-            );
-          } catch (error) {
-            console.error('[PromotionalBanner] Vimeo pause/mute error:', error);
-          }
+            videoElement.contentWindow?.postMessage(JSON.stringify({ method: 'pause' }), '*');
+            videoElement.contentWindow?.postMessage(JSON.stringify({ method: 'setVolume', value: 0 }), '*');
+          } catch (error) { console.error('[PromotionalBanner] Vimeo pause/mute error:', error); }
         }
-        // DON'T reset the mute state - preserve user's preference
       }
     });
   }, [currentIndex, slides, isMuted]);
 
-  if (!slides || slides.length === 0) {
-    return (
-      <div style={{
-        borderRadius: '12px',
-        overflow: 'hidden',
-        backgroundColor: '#fff',
-        border: `1px solid ${borderColor}`,
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-      }}>
-        {/* Media Section */}
-        <div style={{
-          position: 'relative',
-          overflow: 'hidden',
-          height: '200px',
-          backgroundColor: '#f9fafb'
-        }}>
-          <img
-            src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=200&fit=crop&crop=center"
-            alt="Sample promotional banner"
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover'
-            }}
-          />
-
-          {/* Dot Indicators */}
-          <div style={{
-            position: 'absolute',
-            bottom: '6px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            gap: '4px',
-            zIndex: 10
-          }}>
-            <div style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              backgroundColor: '#007bff',
-              border: '1px solid rgba(255,255,255,0.9)',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
-            }} />
-            <div style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              backgroundColor: 'rgba(255,255,255,0.6)',
-              border: '1px solid rgba(255,255,255,0.9)',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
-            }} />
-          </div>
-
-          {/* Navigation Arrows */}
-          <button
-            style={{
-              position: 'absolute',
-              left: '4px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              backgroundColor: 'rgba(255,255,255,0.9)',
-              borderRadius: '50%',
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              border: 'none',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              color: '#333',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            ‹
-          </button>
-          <button
-            style={{
-              position: 'absolute',
-              right: '4px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              backgroundColor: 'rgba(255,255,255,0.9)',
-              borderRadius: '50%',
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              border: 'none',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              color: '#333',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            ›
-          </button>
-        </div>
-
-        {/* Text Content Section */}
-        <div style={{
-          backgroundColor: '#fff',
-          padding: '10px 14px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '6px'
-        }}>
-          {/* Title - Full Width Row */}
-          <div style={{
-            fontWeight: '700',
-            fontSize: '15px',
-            color: '#111827',
-            lineHeight: '1.2',
-            textAlign: 'left',
-            wordBreak: 'break-word'
-          }}>
-            Summer Sale
-          </div>
-
-          {/* Description and CTA Button Row */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '10px'
-          }}>
-            {/* Description */}
-            <div style={{
-              fontSize: '12px',
-              color: '#6b7280',
-              lineHeight: '1.3',
-              textAlign: 'left',
-              flex: 1,
-              minWidth: 0,
-              wordBreak: 'break-word'
-            }}>
-              Get 20% Off on Summer Items
-            </div>
-
-            {/* CTA Button */}
-            <div style={{ flexShrink: 0 }}>
-              <button style={{
-                backgroundColor: '#f3f4f6',
-                color: '#374151',
-                border: '1px solid #e5e7eb',
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                fontSize: '13px',
-                transition: 'all 0.2s ease',
-                whiteSpace: 'nowrap'
-              }}>
-                shop
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Helper function to validate and normalize image URLs
   const normalizeImageUrl = (url: string | undefined | null): string | null => {
-    if (!url || typeof url !== 'string' || url.trim() === '') {
-      return null;
-    }
-
+    if (!url || typeof url !== 'string' || url.trim() === '') return null;
     const trimmedUrl = url.trim();
-
-    // If it's already an absolute URL (http/https), return as is
-    if (/^https?:\/\//i.test(trimmedUrl)) {
-      return trimmedUrl;
-    }
-
-    // If it starts with //, it's a protocol-relative URL, make it https
-    if (trimmedUrl.startsWith('//')) {
-      return `https:${trimmedUrl}`;
-    }
-
-    // If it's a relative path starting with /, it's likely invalid for cross-origin use
-    // Log a warning and return null to show placeholder instead
-    if (trimmedUrl.startsWith('/')) {
-      console.warn('[PromotionalBanner] Invalid relative image URL detected:', trimmedUrl);
-      return null;
-    }
-
-    // If it doesn't start with / or http, it might be a malformed URL
-    // Return null to show placeholder
+    if (/^https?:\/\//i.test(trimmedUrl)) return trimmedUrl;
+    if (trimmedUrl.startsWith('//')) return `https:${trimmedUrl}`;
+    if (trimmedUrl.startsWith('/')) { console.warn('[PromotionalBanner] Invalid relative image URL:', trimmedUrl); return null; }
     console.warn('[PromotionalBanner] Potentially invalid image URL:', trimmedUrl);
     return null;
   };
 
-  // Mute toggle handler
   const handleMuteToggle = useCallback((slideIndex: number, e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-
+    if (e) { e.stopPropagation(); e.preventDefault(); }
     setIsMuted(prev => {
       const newMuted = !prev[slideIndex];
       const videoElement = videoRefs.current[slideIndex];
-
       if (!videoElement) return prev;
-
-      // Handle different video types
       const slide = slides[slideIndex];
-
       if (slide?.videoType === 'mp4' && videoElement instanceof HTMLVideoElement) {
-        // MP4: directly control muted property
         videoElement.muted = newMuted;
       } else if (slide?.videoType === 'youtube' && videoElement instanceof HTMLIFrameElement) {
-        // YouTube: use postMessage API
         try {
           const command = newMuted ? 'mute' : 'unMute';
-          videoElement.contentWindow?.postMessage(
-            JSON.stringify({ event: 'command', func: command, args: [] }),
-            '*'
-          );
-        } catch (error) {
-          console.error('[PromotionalBanner] YouTube mute control error:', error);
-        }
+          videoElement.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: command, args: [] }), '*');
+        } catch (error) { console.error('[PromotionalBanner] YouTube mute control error:', error); }
       } else if (slide?.videoType === 'vimeo' && videoElement instanceof HTMLIFrameElement) {
-        // Vimeo: use postMessage API
         try {
-          const method = newMuted ? 'setVolume' : 'setVolume';
           const value = newMuted ? 0 : 1;
-          videoElement.contentWindow?.postMessage(
-            JSON.stringify({ method, value }),
-            '*'
-          );
-        } catch (error) {
-          console.error('[PromotionalBanner] Vimeo mute control error:', error);
-        }
+          videoElement.contentWindow?.postMessage(JSON.stringify({ method: 'setVolume', value }), '*');
+        } catch (error) { console.error('[PromotionalBanner] Vimeo mute control error:', error); }
       }
-
       return { ...prev, [slideIndex]: newMuted };
     });
   }, [slides]);
 
-  // Render media based on type
   const renderMedia = (slide: Slide, slideIndex: number) => {
     if (slide.videoUrl && slide.videoType) {
       if (slide.videoType === 'youtube') {
         const embedUrl = getYouTubeEmbedUrl(slide.videoUrl);
         if (embedUrl) {
           return (
-            <div style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              borderRadius: '12px',
-              position: 'relative'
-            }}>
+            <div style={{ width: '100%', height: '100%', position: 'relative' }}>
               <iframe
                 ref={(el) => { videoRefs.current[slideIndex] = el; }}
                 src={embedUrl}
-                style={{
-                  position: 'absolute',
-                  top: '-60px',
-                  left: '0',
-                  width: '100%',
-                  height: 'calc(100% + 120px)',
-                  border: 'none',
-                  pointerEvents: 'none'
-                }}
+                style={{ position: 'absolute', top: '-60px', left: '0', width: '100%', height: 'calc(100% + 120px)', border: 'none', pointerEvents: 'none' }}
                 allow="autoplay; encrypted-media"
                 allowFullScreen
               />
-              {/* Overlay to block YouTube's "More videos" suggestions */}
-              <div style={{
-                position: 'absolute',
-                bottom: '0',
-                left: '0',
-                width: '100%',
-                height: '80px',
-                background: 'transparent',
-                pointerEvents: 'auto',
-                zIndex: 10
-              }} />
+              <div style={{ position: 'absolute', bottom: '0', left: '0', width: '100%', height: '80px', background: 'transparent', pointerEvents: 'auto', zIndex: 10 }} />
             </div>
           );
         }
@@ -572,13 +274,7 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
             <iframe
               ref={(el) => { videoRefs.current[slideIndex] = el; }}
               src={embedUrl}
-              style={{
-                width: '100%',
-                height: '100%',
-                border: 'none',
-                objectFit: 'cover',
-                pointerEvents: 'none'
-              }}
+              style={{ width: '100%', height: '100%', border: 'none', objectFit: 'cover', pointerEvents: 'none' }}
               allow="autoplay; encrypted-media"
               allowFullScreen
             />
@@ -591,520 +287,370 @@ export const PromotionalBannerCard: React.FC<PromotionalBannerCardProps> = ({
             <video
               ref={(el) => { videoRefs.current[slideIndex] = el; }}
               src={normalizedVideoUrl}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                pointerEvents: 'none'
-              }}
-              autoPlay
-              loop
-              muted
-              playsInline
-              onError={(e) => {
-                console.error('[PromotionalBanner] Video failed to load:', normalizedVideoUrl);
-                // Hide video element on error
-                e.currentTarget.style.display = 'none';
-              }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
+              autoPlay loop muted playsInline
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
           );
         }
       }
     }
-    // Fallback to image or placeholder
     const normalizedImageUrl = normalizeImageUrl(slide.imageUrl);
     if (normalizedImageUrl) {
       return (
         <img
           src={normalizedImageUrl}
           alt={slide.title || "Promotional banner"}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover'
-          }}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           onError={(e) => {
-            console.error('[PromotionalBanner] Image failed to load:', normalizedImageUrl);
-            // Hide broken image and show placeholder instead
             e.currentTarget.style.display = 'none';
             const parent = e.currentTarget.parentElement;
             if (parent) {
-              parent.innerHTML = '<div style="width: 100%; height: 100%; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 48px;">🖼️</div>';
+              parent.innerHTML = '<div style="width:100%;height:100%;background:linear-gradient(135deg,#f5f3ff,#ede9fe);display:flex;align-items:center;justify-content:center;font-size:48px">🖼️</div>';
             }
           }}
         />
       );
     }
-
-    // No image available
     return (
       <div style={{
-        width: '100%',
-        height: '100%',
-        backgroundColor: '#f3f4f6',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '48px'
-      }}>
-        🖼️
-      </div>
+        width: '100%', height: '100%',
+        background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px',
+      }}>🖼️</div>
     );
   };
 
   const scrollToIndex = (index: number) => {
     const container = scrollContainerRef.current;
     if (!container) return;
-
     isScrolling.current = true;
-    // Update index immediately for smooth indicator transition
     setCurrentIndex(index);
     currentIndexRef.current = index;
-
     const gap = isBlockContext ? 16 : 8;
     const slideWidth = container.clientWidth + gap;
-    const targetScroll = index * slideWidth;
-
-    container.scrollTo({
-      left: targetScroll,
-      behavior: 'smooth'
-    });
-
-    // Reset scrolling flag after animation
-    setTimeout(() => {
-      isScrolling.current = false;
-    }, 500);
+    container.scrollTo({ left: index * slideWidth, behavior: 'smooth' });
+    setTimeout(() => { isScrolling.current = false; }, 500);
   };
 
   const handlePrevious = (e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
-    const newIndex = currentIndex > 0 ? currentIndex - 1 : slides.length - 1;
-    scrollToIndex(newIndex);
+    if (e) e.stopPropagation();
+    scrollToIndex(currentIndex > 0 ? currentIndex - 1 : slides.length - 1);
   };
-
   const handleNext = (e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
-    const newIndex = currentIndex < slides.length - 1 ? currentIndex + 1 : 0;
-    scrollToIndex(newIndex);
+    if (e) e.stopPropagation();
+    scrollToIndex(currentIndex < slides.length - 1 ? currentIndex + 1 : 0);
   };
-
   const handleDotClick = (index: number, e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
+    if (e) e.stopPropagation();
     scrollToIndex(index);
   };
-
   const handleCtaClick = (slide: Slide, e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
-    if (slide.ctaUrl && onCtaClick) {
-      onCtaClick(slide.ctaUrl);
-    }
+    if (e) e.stopPropagation();
+    if (slide.ctaUrl && onCtaClick) onCtaClick(slide.ctaUrl);
+  };
+  const handleBannerClick = (slide: Slide) => {
+    if (slide.ctaUrl && onCtaClick) onCtaClick(slide.ctaUrl);
   };
 
-  const handleBannerClick = (slide: Slide) => {
-    if (slide.ctaUrl && onCtaClick) {
-      onCtaClick(slide.ctaUrl);
-    }
-  };
+  // Empty state
+  if (!slides || slides.length === 0) {
+    return (
+      <div style={{
+        borderRadius: '16px', overflow: 'hidden', position: 'relative',
+        border: `1.5px solid ${borderColor}`,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+      }}>
+        <div style={{ position: 'relative', aspectRatio: '16/9', overflow: 'hidden', background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)' }}>
+          <img
+            src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=200&fit=crop&crop=center"
+            alt="Sample promotional banner"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+          {/* Dark scrim */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.15) 50%, transparent 100%)' }} />
+          {/* Overlay content */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '14px 16px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '12px' }}>
+            <div>
+              <div style={{ fontSize: '16px', fontWeight: '700', color: 'white', marginBottom: '3px', textShadow: '0 1px 4px rgba(0,0,0,0.3)' }}>Summer Sale</div>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)' }}>Get 20% Off on Summer Items</div>
+            </div>
+            <button style={{
+              background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)',
+              color: 'white', border: '1px solid rgba(255,255,255,0.3)',
+              padding: '8px 16px', borderRadius: '10px', fontWeight: '600', fontSize: '13px',
+              cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
+            }}>Shop Now</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ marginBottom: isBlockContext ? '0' : '16px' }}>
+    <>
       <style>{`
-        .selldrawer-promo-scroll::-webkit-scrollbar {
-          display: none;
-        }
-        .selldrawer-promo-scroll {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        
-        /* Ensure indicators are always visible */
-        .selldrawer-promo-indicators {
-          display: flex !important;
-          visibility: visible !important;
-          opacity: 1 !important;
-        }
-        
-        .selldrawer-promo-indicator {
-          display: block !important;
-          visibility: visible !important;
-          opacity: 1 !important;
-        }
-        
-        /* Block context responsive styles */
+        ${PROMO_KEYFRAMES}
+        .sd-promo-scroll::-webkit-scrollbar { display: none; }
+        .sd-promo-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         ${isBlockContext ? `
-          .selldrawer-promo-block-media {
-            height: ${maxHeight === 'auto' ? 'auto' : maxHeight};
-            ${maxHeight === 'auto' ? 'aspect-ratio: 16 / 9;' : ''}
-          }
-          
-          @media (max-width: 768px) {
-            .selldrawer-promo-block-media {
-              height: ${maxHeight === 'auto' ? 'auto' : `calc(${maxHeight} * 0.78)`};
-              ${maxHeight === 'auto' ? 'aspect-ratio: 16 / 9;' : ''}
-            }
-          }
-          
-          @media (max-width: 480px) {
-            .selldrawer-promo-block-media {
-              height: ${maxHeight === 'auto' ? 'auto' : `calc(${maxHeight} * 0.67)`};
-              ${maxHeight === 'auto' ? 'aspect-ratio: 16 / 9;' : ''}
-            }
-          }
+          .sd-promo-block-media { height: ${maxHeight === 'auto' ? 'auto' : maxHeight}; ${maxHeight === 'auto' ? 'aspect-ratio: 16/9;' : ''} }
+          @media (max-width: 768px) { .sd-promo-block-media { height: ${maxHeight === 'auto' ? 'auto' : `calc(${maxHeight} * 0.78)`}; ${maxHeight === 'auto' ? 'aspect-ratio: 16/9;' : ''} } }
+          @media (max-width: 480px) { .sd-promo-block-media { height: ${maxHeight === 'auto' ? 'auto' : `calc(${maxHeight} * 0.67)`}; ${maxHeight === 'auto' ? 'aspect-ratio: 16/9;' : ''} } }
         ` : ''}
       `}</style>
 
-      <div style={{ position: 'relative', overflow: 'visible' }}>
-        {/* Left Arrow */}
-        {slides.length > 1 && canScrollLeft && (carouselSettings?.showArrows !== false) && (
-          <button
-            onClick={(e) => handlePrevious(e)}
-            style={{
-              position: 'absolute',
-              left: '8px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              background: '#ffffff',
-              border: '1px solid #e5e7eb',
-              borderRadius: '50%',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              zIndex: 20,
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#f9fafb';
-              e.currentTarget.style.borderColor = '#d1d5db';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#ffffff';
-              e.currentTarget.style.borderColor = '#e5e7eb';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.12)';
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-            }}
-          >
-            <span style={{ fontSize: '18px', color: '#374151', fontWeight: '300' }}>‹</span>
-          </button>
-        )}
-
-        {/* Right Arrow */}
-        {slides.length > 1 && canScrollRight && (carouselSettings?.showArrows !== false) && (
-          <button
-            onClick={(e) => handleNext(e)}
-            style={{
-              position: 'absolute',
-              right: '8px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              background: '#ffffff',
-              border: '1px solid #e5e7eb',
-              borderRadius: '50%',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              zIndex: 20,
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#f9fafb';
-              e.currentTarget.style.borderColor = '#d1d5db';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#ffffff';
-              e.currentTarget.style.borderColor = '#e5e7eb';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.12)';
-              e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-            }}
-          >
-            <span style={{ fontSize: '18px', color: '#374151', fontWeight: '300' }}>›</span>
-          </button>
-        )}
-
-        {/* Scrollable Container */}
+      <div style={{ marginBottom: isBlockContext ? '0' : '4px' }}>
         <div
-          ref={scrollContainerRef}
-          className="selldrawer-promo-scroll"
-          style={{
-            display: 'flex',
-            gap: isBlockContext ? '16px' : '8px',
-            overflowX: 'auto',
-            scrollBehavior: 'smooth',
-            scrollSnapType: 'x mandatory',
-            WebkitOverflowScrolling: 'touch'
-          }}
+          style={{ position: 'relative', overflow: 'visible' }}
+          onMouseEnter={() => setContainerHovered(true)}
+          onMouseLeave={() => setContainerHovered(false)}
         >
-          {slides.map((slide, index) => (
-            <div
-              key={index}
-              onClick={() => handleBannerClick(slide)}
+          {/* Left Arrow */}
+          {slides.length > 1 && canScrollLeft && carouselSettings?.showArrows !== false && (
+            <button
+              onClick={(e) => handlePrevious(e)}
               style={{
-                minWidth: slides.length > 1 ? (isBlockContext ? '100%' : '80%') : '100%',
-                maxWidth: slides.length > 1 ? (isBlockContext ? '100%' : '80%') : '100%',
-                flexShrink: 0,
-                scrollSnapAlign: 'start',
-                borderRadius: isBlockContext ? '' : '12px',
-                overflow: 'hidden',
-                backgroundColor: '#fff',
-                border: isBlockContext ? 'none' : `1px solid ${borderColor}`,
-                boxShadow: isBlockContext ? 'none' : '0 1px 3px rgba(0, 0, 0, 0.1)',
-                cursor: slide.ctaUrl ? 'pointer' : 'default',
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                position: 'absolute', left: '10px', top: '50%',
+                transform: `translateY(-50%) scale(${containerHovered ? 1 : 0.85})`,
+                background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '50%', width: '34px', height: '34px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', zIndex: 20,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+                transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
+                opacity: containerHovered ? 1 : 0,
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.65)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.45)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
             >
-              {/* Media Section */}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+          )}
+
+          {/* Right Arrow */}
+          {slides.length > 1 && canScrollRight && carouselSettings?.showArrows !== false && (
+            <button
+              onClick={(e) => handleNext(e)}
+              style={{
+                position: 'absolute', right: '10px', top: '50%',
+                transform: `translateY(-50%) scale(${containerHovered ? 1 : 0.85})`,
+                background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '50%', width: '34px', height: '34px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', zIndex: 20,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+                transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
+                opacity: containerHovered ? 1 : 0,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.65)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.45)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          )}
+
+          {/* Scrollable container */}
+          <div
+            ref={scrollContainerRef}
+            className="sd-promo-scroll"
+            style={{
+              display: 'flex',
+              gap: isBlockContext ? '16px' : '8px',
+              overflowX: 'auto',
+              scrollBehavior: 'smooth',
+              scrollSnapType: 'x mandatory',
+              WebkitOverflowScrolling: 'touch',
+              borderRadius: '16px',
+            }}
+          >
+            {slides.map((slide, index) => (
               <div
-                className={isBlockContext ? 'selldrawer-promo-block-media' : ''}
+                key={index}
+                onClick={() => handleBannerClick(slide)}
                 style={{
-                  position: 'relative',
+                  minWidth: slides.length > 1 ? (isBlockContext ? '100%' : '92%') : '100%',
+                  maxWidth: slides.length > 1 ? (isBlockContext ? '100%' : '92%') : '100%',
+                  flexShrink: 0,
+                  scrollSnapAlign: 'start',
+                  borderRadius: '16px',
                   overflow: 'hidden',
-                  // Flipkart-style compact height for block context, normal aspect ratio for cart drawer
-                  ...(isBlockContext
-                    ? {
-                      width: '100%',
-                    }
-                    : {
-                      aspectRatio: '16 / 9',
-                      width: '100%',
-                      height: 'auto',
-                    }
-                  ),
-                  backgroundColor: '#f9fafb',
-                  borderRadius: isBlockContext ? '' : '12px',
+                  border: `1.5px solid ${borderColor}`,
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                  cursor: slide.ctaUrl ? 'pointer' : 'default',
+                  position: 'relative',
+                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                  background: '#f4f4f8',
                 }}
               >
-                {renderMedia(slide, index)}
+                {/* Media */}
+                <div
+                  className={isBlockContext ? 'sd-promo-block-media' : ''}
+                  style={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    ...(isBlockContext ? { width: '100%' } : { aspectRatio: '16/9', width: '100%', height: 'auto' }),
+                    backgroundColor: '#f4f4f8',
+                  }}
+                >
+                  {renderMedia(slide, index)}
 
-                {/* Mute/Unmute Button - Only show for videos */}
-                {slide.videoUrl && slide.videoType && (
-                  <button
-                    onClick={(e) => handleMuteToggle(index, e)}
-                    style={{
-                      position: 'absolute',
-                      bottom: '12px',
-                      right: '12px',
-                      background: 'rgba(0, 0, 0, 0.6)',
-                      border: 'none',
-                      borderRadius: '4px',
-                      width: '32px',
-                      height: '32px',
-                      cursor: 'pointer',
-                      zIndex: 15,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'all 0.2s ease',
-                      pointerEvents: 'auto',
-                      padding: '6px'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)';
-                      e.currentTarget.style.transform = 'scale(1.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(0, 0, 0, 0.6)';
-                      e.currentTarget.style.transform = 'scale(1)';
-                    }}
-                    aria-label={isMuted[index] ? 'Unmute video' : 'Mute video'}
-                  >
-                    {isMuted[index] ? (
-                      // Muted icon (speaker with X)
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="white"
-                        style={{ display: 'block' }}
-                      >
-                        <path d="M3.63 3.63a.996.996 0 000 1.41L7.29 8.7 7 9H4c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h3l3.29 3.29c.63.63 1.71.18 1.71-.71v-4.17l4.18 4.18c-.49.37-1.02.68-1.6.91-.36.15-.58.53-.58.92 0 .72.73 1.18 1.39.91.8-.33 1.55-.77 2.22-1.31l1.34 1.34a.996.996 0 101.41-1.41L5.05 3.63c-.39-.39-1.02-.39-1.42 0zM19 12c0 .82-.15 1.61-.41 2.34l1.53 1.53c.56-1.17.88-2.48.88-3.87 0-3.83-2.4-7.11-5.78-8.4-.59-.23-1.22.23-1.22.86v.19c0 .38.25.71.61.85C17.18 6.54 19 9.06 19 12zm-8.71-6.29l-.17.17L12 7.76V6.41c0-.89-1.08-1.33-1.71-.7zM16.5 12A4.5 4.5 0 0014 7.97v1.79l2.48 2.48c.01-.08.02-.16.02-.24z" />
-                      </svg>
-                    ) : (
-                      // Unmuted icon (speaker with sound waves)
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="white"
-                        style={{ display: 'block' }}
-                      >
-                        <path d="M3 10v4c0 .55.45 1 1 1h3l3.29 3.29c.63.63 1.71.18 1.71-.71V6.41c0-.89-1.08-1.34-1.71-.71L7 9H4c-.55 0-1 .45-1 1zm13.5 2A4.5 4.5 0 0014 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 4.45v.2c0 .38.25.71.6.85C17.18 6.53 19 9.06 19 12s-1.82 5.47-4.4 6.5c-.36.14-.6.47-.6.85v.2c0 .63.63 1.07 1.21.85C18.6 19.11 21 15.84 21 12s-2.4-7.11-5.79-8.4c-.58-.23-1.21.22-1.21.85z" />
-                      </svg>
-                    )}
-                  </button>
-                )}
-              </div>
-              {/* Text Content Section - Only render if there's title, description, or CTA */}
-              {(slide.title || slide.description || slide.ctaText) && (
-                <div style={{
-                  backgroundColor: '#fff',
-                  padding: isBlockContext ? '12px 16px' : '10px 14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: isBlockContext ? '16px' : '10px'
-                }}>
-                  {/* Title and Description Container */}
-                  {(slide.title || slide.description) && (
+                  {/* Dark gradient scrim for text overlay */}
+                  {(slide.title || slide.description || slide.ctaText) && (
                     <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px',
-                      flex: 1,
-                      minWidth: 0
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.3) 45%, transparent 100%)',
+                      pointerEvents: 'none', zIndex: 2,
+                    }} />
+                  )}
+
+                  {/* Overlaid text content */}
+                  {(slide.title || slide.description || slide.ctaText) && (
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      padding: isBlockContext ? '16px 18px 14px' : '12px 14px 12px',
+                      display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
+                      gap: '12px', zIndex: 3,
+                      animation: 'sd-promo-slide-up 0.4s ease',
                     }}>
-                      {/* Title */}
-                      {slide.title && (
-                        <div style={{
-                          fontWeight: isBlockContext ? '600' : '700',
-                          fontSize: isBlockContext ? '16px' : '15px',
-                          color: titleColor,
-                          lineHeight: '1.3',
-                          textAlign: 'left',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {slide.title}
+                      {/* Text block */}
+                      {(slide.title || slide.description) && (
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {slide.title && (
+                            <div style={{
+                              fontSize: isBlockContext ? '18px' : '15px',
+                              fontWeight: '700',
+                              color: 'white',
+                              lineHeight: '1.25',
+                              marginBottom: slide.description ? '4px' : '0',
+                              textShadow: '0 1px 6px rgba(0,0,0,0.4)',
+                              letterSpacing: '-0.02em',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {slide.title}
+                            </div>
+                          )}
+                          {slide.description && (
+                            <div style={{
+                              fontSize: isBlockContext ? '13px' : '12px',
+                              color: 'rgba(255,255,255,0.85)',
+                              lineHeight: '1.35',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {slide.description}
+                            </div>
+                          )}
                         </div>
                       )}
 
-                      {/* Description */}
-                      {slide.description && (
-                        <div style={{
-                          fontSize: isBlockContext ? '13px' : '12px',
-                          color: descriptionColor,
-                          lineHeight: '1.4',
-                          textAlign: 'left',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {slide.description}
-                        </div>
+                      {/* CTA Button — frosted glass */}
+                      {slide.ctaText && (
+                        <button
+                          onClick={(e) => handleCtaClick(slide, e)}
+                          style={{
+                            flexShrink: 0,
+                            background: 'rgba(255,255,255,0.15)',
+                            backdropFilter: 'blur(8px)',
+                            color: 'white',
+                            border: '1px solid rgba(255,255,255,0.3)',
+                            padding: isBlockContext ? '9px 18px' : '7px 14px',
+                            borderRadius: '10px',
+                            fontWeight: '700',
+                            fontSize: isBlockContext ? '13px' : '12px',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            letterSpacing: '0.01em',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(255,255,255,0.28)';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.2)';
+                          }}
+                        >
+                          {slide.ctaText}
+                        </button>
                       )}
                     </div>
                   )}
 
-                  {/* CTA Button - Spans full height */}
-                  {slide.ctaText && (
-                    <div style={{ flexShrink: 0, alignSelf: 'stretch', display: 'flex', alignItems: 'center' }}>
-                      <button
-                        onClick={(e) => handleCtaClick(slide, e)}
-                        style={{
-                          backgroundColor: isBlockContext ? ctaBackgroundColor : ctaBackgroundColor,
-                          color: isBlockContext ? ctaTextColor : ctaTextColor,
-                          border: isBlockContext ? 'none' : `1px solid ${ctaBackgroundColor}`,
-                          padding: isBlockContext ? '8px 20px' : '6px 14px',
-                          borderRadius: isBlockContext ? '6px' : '8px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          fontSize: isBlockContext ? '14px' : '13px',
-                          transition: 'all 0.2s ease',
-                          whiteSpace: 'nowrap'
-                        }}
-                        onMouseEnter={(e) => {
-                          // Darken background on hover
-                          const rgb = hexToRgb(ctaBackgroundColor);
-                          if (rgb) {
-                            const darkened = `rgb(${Math.max(0, rgb.r - 20)}, ${Math.max(0, rgb.g - 20)}, ${Math.max(0, rgb.b - 20)})`;
-                            e.currentTarget.style.backgroundColor = darkened;
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = ctaBackgroundColor;
-                        }}
-                      >
-                        {slide.ctaText}
-                      </button>
+                  {/* Mute/Unmute Button */}
+                  {slide.videoUrl && slide.videoType && (
+                    <button
+                      onClick={(e) => handleMuteToggle(index, e)}
+                      style={{
+                        position: 'absolute', top: '10px', right: '10px',
+                        background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: '8px', width: '32px', height: '32px',
+                        cursor: 'pointer', zIndex: 15,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.7)'; e.currentTarget.style.transform = 'scale(1.08)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.5)'; e.currentTarget.style.transform = 'scale(1)'; }}
+                      aria-label={isMuted[index] ? 'Unmute video' : 'Mute video'}
+                    >
+                      {isMuted[index] ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white" style={{ display: 'block' }}>
+                          <path d="M3.63 3.63a.996.996 0 000 1.41L7.29 8.7 7 9H4c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h3l3.29 3.29c.63.63 1.71.18 1.71-.71v-4.17l4.18 4.18c-.49.37-1.02.68-1.6.91-.36.15-.58.53-.58.92 0 .72.73 1.18 1.39.91.8-.33 1.55-.77 2.22-1.31l1.34 1.34a.996.996 0 101.41-1.41L5.05 3.63c-.39-.39-1.02-.39-1.42 0zM19 12c0 .82-.15 1.61-.41 2.34l1.53 1.53c.56-1.17.88-2.48.88-3.87 0-3.83-2.4-7.11-5.78-8.4-.59-.23-1.22.23-1.22.86v.19c0 .38.25.71.61.85C17.18 6.54 19 9.06 19 12zm-8.71-6.29l-.17.17L12 7.76V6.41c0-.89-1.08-1.33-1.71-.7zM16.5 12A4.5 4.5 0 0014 7.97v1.79l2.48 2.48c.01-.08.02-.16.02-.24z" />
+                        </svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white" style={{ display: 'block' }}>
+                          <path d="M3 10v4c0 .55.45 1 1 1h3l3.29 3.29c.63.63 1.71.18 1.71-.71V6.41c0-.89-1.08-1.34-1.71-.71L7 9H4c-.55 0-1 .45-1 1zm13.5 2A4.5 4.5 0 0014 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 4.45v.2c0 .38.25.71.6.85C17.18 6.53 19 9.06 19 12s-1.82 5.47-4.4 6.5c-.36.14-.6.47-.6.85v.2c0 .63.63 1.07 1.21.85C18.6 19.11 21 15.84 21 12s-2.4-7.11-5.79-8.4c-.58-.23-1.21.22-1.21.85z" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+
+                  {/* Story-style dot indicators INSIDE the media */}
+                  {slides.length > 1 && carouselSettings?.showDots !== false && (
+                    <div style={{
+                      position: 'absolute', bottom: (slide.title || slide.description || slide.ctaText) ? '72px' : '10px',
+                      left: '50%', transform: 'translateX(-50%)',
+                      display: 'flex', gap: '4px', zIndex: 10,
+                    }}>
+                      {slides.map((_, dotIdx) => (
+                        <div
+                          key={`dot-${dotIdx}`}
+                          onClick={(e) => handleDotClick(dotIdx, e)}
+                          style={{
+                            height: '3px',
+                            width: dotIdx === currentIndex ? '20px' : '6px',
+                            borderRadius: '3px',
+                            background: dotIdx === currentIndex
+                              ? 'white'
+                              : 'rgba(255,255,255,0.45)',
+                            cursor: 'pointer',
+                            transition: 'all 0.35s cubic-bezier(0.4,0,0.2,1)',
+                            boxShadow: dotIdx === currentIndex ? '0 1px 4px rgba(0,0,0,0.3)' : 'none',
+                          }}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>
-              )}
-
-            </div>
-          ))}
-        </div>
-
-        {/* Dot Indicators - Rounded rectangles like Flipkart style */}
-        {slides.length > 1 && carouselSettings?.showDots !== false && (
-          <div
-            className="selldrawer-promo-indicators"
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: isBlockContext ? '6px' : '5px',
-              marginTop: isBlockContext ? '' : '8px',
-              padding: isBlockContext ? '8px 0' : '4px 0',
-              minHeight: isBlockContext ? '8px' : '6px',
-              width: '100%',
-              position: 'relative',
-              zIndex: 10,
-              visibility: 'visible',
-              opacity: 1,
-              boxSizing: 'border-box'
-            }}
-          >
-            {slides.map((_, index) => (
-              <div
-                key={`indicator-${index}`}
-                className={`selldrawer-promo-indicator ${index === currentIndex ? 'active' : ''}`}
-                onClick={(e) => handleDotClick(index, e)}
-                style={{
-                  width: isBlockContext ? '24px' : '20px',
-                  height: isBlockContext ? '4px' : '3px',
-                  borderRadius: '2px',
-                  backgroundColor: index === currentIndex
-                    ? '#000000'
-                    : '#d1d5db',
-                  transition: 'all 0.3s ease',
-                  cursor: 'pointer',
-                  opacity: index === currentIndex ? 1 : 0.6,
-                  transform: index === currentIndex ? 'scaleY(1.2)' : 'scaleY(1)',
-                  flexShrink: 0,
-                  visibility: 'visible',
-                  display: 'block',
-                  boxSizing: 'border-box',
-                  minWidth: isBlockContext ? '24px' : '20px',
-                  minHeight: isBlockContext ? '4px' : '3px'
-                }}
-                onMouseEnter={(e) => {
-                  if (index !== currentIndex) {
-                    e.currentTarget.style.opacity = '0.8';
-                    e.currentTarget.style.transform = 'scaleY(1.1)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (index !== currentIndex) {
-                    e.currentTarget.style.opacity = '0.6';
-                    e.currentTarget.style.transform = 'scaleY(1)';
-                  }
-                }}
-              />
+              </div>
             ))}
           </div>
-        )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
-

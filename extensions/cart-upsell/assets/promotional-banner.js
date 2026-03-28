@@ -1,6 +1,6 @@
 /**
  * Selldrawer Promotional Banner Block v1.0.11
- * Built: 2026-03-26T20:02:35.174Z
+ * Built: 2026-03-28T18:14:21.063Z
  */
 "use strict";
 (() => {
@@ -7888,14 +7888,28 @@
   // app/components/shared/PromotionalBannerCard.tsx
   var import_react = __toESM(require_react(), 1);
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
-  var hexToRgb = (hex) => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : null;
-  };
+  var PROMO_KEYFRAMES = `
+  @keyframes sd-promo-fade-in {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes sd-promo-slide-up {
+    0% { opacity: 0; transform: translateY(16px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes sd-promo-dot-expand {
+    0% { width: 6px; }
+    100% { width: 20px; }
+  }
+  @keyframes sd-promo-shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+  @keyframes sd-promo-cta-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.2); }
+    50% { box-shadow: 0 0 0 6px rgba(255,255,255,0); }
+  }
+`;
   var getYouTubeEmbedUrl = (url) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
@@ -7928,6 +7942,7 @@
     const [currentIndex, setCurrentIndex] = (0, import_react.useState)(0);
     const [canScrollLeft, setCanScrollLeft] = (0, import_react.useState)(false);
     const [canScrollRight, setCanScrollRight] = (0, import_react.useState)(false);
+    const [containerHovered, setContainerHovered] = (0, import_react.useState)(false);
     const scrollContainerRef = (0, import_react.useRef)(null);
     const isScrolling = (0, import_react.useRef)(false);
     const currentIndexRef = (0, import_react.useRef)(0);
@@ -7974,13 +7989,11 @@
       }
     }, [slides]);
     (0, import_react.useEffect)(() => {
-      if (!slides || slides.length <= 1 || !carouselSettings || carouselSettings.autoRotate === false) {
+      if (!slides || slides.length <= 1 || !carouselSettings || carouselSettings.autoRotate === false)
         return;
-      }
       const interval = setInterval(() => {
-        if (isScrolling.current) {
+        if (isScrolling.current)
           return;
-        }
         const container = scrollContainerRef.current;
         if (!container)
           return;
@@ -7992,10 +8005,7 @@
         const targetScroll = nextIndex * slideWidth;
         setCurrentIndex(nextIndex);
         currentIndexRef.current = nextIndex;
-        container.scrollTo({
-          left: targetScroll,
-          behavior: "smooth"
-        });
+        container.scrollTo({ left: targetScroll, behavior: "smooth" });
         setTimeout(() => {
           isScrolling.current = false;
         }, 500);
@@ -8018,29 +8028,17 @@
             });
           } else if (slide.videoType === "youtube" && videoElement instanceof HTMLIFrameElement) {
             try {
-              (_a2 = videoElement.contentWindow) == null ? void 0 : _a2.postMessage(
-                JSON.stringify({ event: "command", func: "playVideo", args: [] }),
-                "*"
-              );
+              (_a2 = videoElement.contentWindow) == null ? void 0 : _a2.postMessage(JSON.stringify({ event: "command", func: "playVideo", args: [] }), "*");
               const muteCommand = isMuted[index] ? "mute" : "unMute";
-              (_b = videoElement.contentWindow) == null ? void 0 : _b.postMessage(
-                JSON.stringify({ event: "command", func: muteCommand, args: [] }),
-                "*"
-              );
+              (_b = videoElement.contentWindow) == null ? void 0 : _b.postMessage(JSON.stringify({ event: "command", func: muteCommand, args: [] }), "*");
             } catch (error) {
               console.error("[PromotionalBanner] YouTube play/mute error:", error);
             }
           } else if (slide.videoType === "vimeo" && videoElement instanceof HTMLIFrameElement) {
             try {
-              (_c = videoElement.contentWindow) == null ? void 0 : _c.postMessage(
-                JSON.stringify({ method: "play" }),
-                "*"
-              );
+              (_c = videoElement.contentWindow) == null ? void 0 : _c.postMessage(JSON.stringify({ method: "play" }), "*");
               const volume = isMuted[index] ? 0 : 1;
-              (_d = videoElement.contentWindow) == null ? void 0 : _d.postMessage(
-                JSON.stringify({ method: "setVolume", value: volume }),
-                "*"
-              );
+              (_d = videoElement.contentWindow) == null ? void 0 : _d.postMessage(JSON.stringify({ method: "setVolume", value: volume }), "*");
             } catch (error) {
               console.error("[PromotionalBanner] Vimeo play/mute error:", error);
             }
@@ -8051,27 +8049,15 @@
             videoElement.muted = true;
           } else if (slide.videoType === "youtube" && videoElement instanceof HTMLIFrameElement) {
             try {
-              (_e = videoElement.contentWindow) == null ? void 0 : _e.postMessage(
-                JSON.stringify({ event: "command", func: "pauseVideo", args: [] }),
-                "*"
-              );
-              (_f = videoElement.contentWindow) == null ? void 0 : _f.postMessage(
-                JSON.stringify({ event: "command", func: "mute", args: [] }),
-                "*"
-              );
+              (_e = videoElement.contentWindow) == null ? void 0 : _e.postMessage(JSON.stringify({ event: "command", func: "pauseVideo", args: [] }), "*");
+              (_f = videoElement.contentWindow) == null ? void 0 : _f.postMessage(JSON.stringify({ event: "command", func: "mute", args: [] }), "*");
             } catch (error) {
               console.error("[PromotionalBanner] YouTube pause/mute error:", error);
             }
           } else if (slide.videoType === "vimeo" && videoElement instanceof HTMLIFrameElement) {
             try {
-              (_g = videoElement.contentWindow) == null ? void 0 : _g.postMessage(
-                JSON.stringify({ method: "pause" }),
-                "*"
-              );
-              (_h = videoElement.contentWindow) == null ? void 0 : _h.postMessage(
-                JSON.stringify({ method: "setVolume", value: 0 }),
-                "*"
-              );
+              (_g = videoElement.contentWindow) == null ? void 0 : _g.postMessage(JSON.stringify({ method: "pause" }), "*");
+              (_h = videoElement.contentWindow) == null ? void 0 : _h.postMessage(JSON.stringify({ method: "setVolume", value: 0 }), "*");
             } catch (error) {
               console.error("[PromotionalBanner] Vimeo pause/mute error:", error);
             }
@@ -8079,170 +8065,16 @@
         }
       });
     }, [currentIndex, slides, isMuted]);
-    if (!slides || slides.length === 0) {
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-        borderRadius: "12px",
-        overflow: "hidden",
-        backgroundColor: "#fff",
-        border: `1px solid ${borderColor}`,
-        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
-      }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-          position: "relative",
-          overflow: "hidden",
-          height: "200px",
-          backgroundColor: "#f9fafb"
-        }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "img",
-            {
-              src: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=200&fit=crop&crop=center",
-              alt: "Sample promotional banner",
-              style: {
-                width: "100%",
-                height: "100%",
-                objectFit: "cover"
-              }
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-            position: "absolute",
-            bottom: "6px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            gap: "4px",
-            zIndex: 10
-          }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-              width: "6px",
-              height: "6px",
-              borderRadius: "50%",
-              backgroundColor: "#007bff",
-              border: "1px solid rgba(255,255,255,0.9)",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.2)"
-            } }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-              width: "6px",
-              height: "6px",
-              borderRadius: "50%",
-              backgroundColor: "rgba(255,255,255,0.6)",
-              border: "1px solid rgba(255,255,255,0.9)",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.2)"
-            } })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "button",
-            {
-              style: {
-                position: "absolute",
-                left: "4px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                backgroundColor: "rgba(255,255,255,0.9)",
-                borderRadius: "50%",
-                width: "24px",
-                height: "24px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                border: "none",
-                fontSize: "14px",
-                fontWeight: "bold",
-                color: "#333",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                transition: "all 0.2s ease"
-              },
-              children: "\u2039"
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "button",
-            {
-              style: {
-                position: "absolute",
-                right: "4px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                backgroundColor: "rgba(255,255,255,0.9)",
-                borderRadius: "50%",
-                width: "24px",
-                height: "24px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                border: "none",
-                fontSize: "14px",
-                fontWeight: "bold",
-                color: "#333",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                transition: "all 0.2s ease"
-              },
-              children: "\u203A"
-            }
-          )
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-          backgroundColor: "#fff",
-          padding: "10px 14px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "6px"
-        }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-            fontWeight: "700",
-            fontSize: "15px",
-            color: "#111827",
-            lineHeight: "1.2",
-            textAlign: "left",
-            wordBreak: "break-word"
-          }, children: "Summer Sale" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "10px"
-          }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-              fontSize: "12px",
-              color: "#6b7280",
-              lineHeight: "1.3",
-              textAlign: "left",
-              flex: 1,
-              minWidth: 0,
-              wordBreak: "break-word"
-            }, children: "Get 20% Off on Summer Items" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { flexShrink: 0 }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { style: {
-              backgroundColor: "#f3f4f6",
-              color: "#374151",
-              border: "1px solid #e5e7eb",
-              padding: "6px 14px",
-              borderRadius: "8px",
-              fontWeight: "500",
-              cursor: "pointer",
-              fontSize: "13px",
-              transition: "all 0.2s ease",
-              whiteSpace: "nowrap"
-            }, children: "shop" }) })
-          ] })
-        ] })
-      ] });
-    }
     const normalizeImageUrl = (url) => {
-      if (!url || typeof url !== "string" || url.trim() === "") {
+      if (!url || typeof url !== "string" || url.trim() === "")
         return null;
-      }
       const trimmedUrl = url.trim();
-      if (/^https?:\/\//i.test(trimmedUrl)) {
+      if (/^https?:\/\//i.test(trimmedUrl))
         return trimmedUrl;
-      }
-      if (trimmedUrl.startsWith("//")) {
+      if (trimmedUrl.startsWith("//"))
         return `https:${trimmedUrl}`;
-      }
       if (trimmedUrl.startsWith("/")) {
-        console.warn("[PromotionalBanner] Invalid relative image URL detected:", trimmedUrl);
+        console.warn("[PromotionalBanner] Invalid relative image URL:", trimmedUrl);
         return null;
       }
       console.warn("[PromotionalBanner] Potentially invalid image URL:", trimmedUrl);
@@ -8265,21 +8097,14 @@
         } else if ((slide == null ? void 0 : slide.videoType) === "youtube" && videoElement instanceof HTMLIFrameElement) {
           try {
             const command = newMuted ? "mute" : "unMute";
-            (_a2 = videoElement.contentWindow) == null ? void 0 : _a2.postMessage(
-              JSON.stringify({ event: "command", func: command, args: [] }),
-              "*"
-            );
+            (_a2 = videoElement.contentWindow) == null ? void 0 : _a2.postMessage(JSON.stringify({ event: "command", func: command, args: [] }), "*");
           } catch (error) {
             console.error("[PromotionalBanner] YouTube mute control error:", error);
           }
         } else if ((slide == null ? void 0 : slide.videoType) === "vimeo" && videoElement instanceof HTMLIFrameElement) {
           try {
-            const method = newMuted ? "setVolume" : "setVolume";
             const value = newMuted ? 0 : 1;
-            (_b = videoElement.contentWindow) == null ? void 0 : _b.postMessage(
-              JSON.stringify({ method, value }),
-              "*"
-            );
+            (_b = videoElement.contentWindow) == null ? void 0 : _b.postMessage(JSON.stringify({ method: "setVolume", value }), "*");
           } catch (error) {
             console.error("[PromotionalBanner] Vimeo mute control error:", error);
           }
@@ -8292,13 +8117,7 @@
         if (slide.videoType === "youtube") {
           const embedUrl = getYouTubeEmbedUrl(slide.videoUrl);
           if (embedUrl) {
-            return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              borderRadius: "12px",
-              position: "relative"
-            }, children: [
+            return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { width: "100%", height: "100%", position: "relative" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                 "iframe",
                 {
@@ -8306,29 +8125,12 @@
                     videoRefs.current[slideIndex] = el;
                   },
                   src: embedUrl,
-                  style: {
-                    position: "absolute",
-                    top: "-60px",
-                    left: "0",
-                    width: "100%",
-                    height: "calc(100% + 120px)",
-                    border: "none",
-                    pointerEvents: "none"
-                  },
+                  style: { position: "absolute", top: "-60px", left: "0", width: "100%", height: "calc(100% + 120px)", border: "none", pointerEvents: "none" },
                   allow: "autoplay; encrypted-media",
                   allowFullScreen: true
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-                position: "absolute",
-                bottom: "0",
-                left: "0",
-                width: "100%",
-                height: "80px",
-                background: "transparent",
-                pointerEvents: "auto",
-                zIndex: 10
-              } })
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { position: "absolute", bottom: "0", left: "0", width: "100%", height: "80px", background: "transparent", pointerEvents: "auto", zIndex: 10 } })
             ] });
           }
         } else if (slide.videoType === "vimeo") {
@@ -8341,13 +8143,7 @@
                   videoRefs.current[slideIndex] = el;
                 },
                 src: embedUrl,
-                style: {
-                  width: "100%",
-                  height: "100%",
-                  border: "none",
-                  objectFit: "cover",
-                  pointerEvents: "none"
-                },
+                style: { width: "100%", height: "100%", border: "none", objectFit: "cover", pointerEvents: "none" },
                 allow: "autoplay; encrypted-media",
                 allowFullScreen: true
               }
@@ -8363,18 +8159,12 @@
                   videoRefs.current[slideIndex] = el;
                 },
                 src: normalizedVideoUrl,
-                style: {
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  pointerEvents: "none"
-                },
+                style: { width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" },
                 autoPlay: true,
                 loop: true,
                 muted: true,
                 playsInline: true,
                 onError: (e) => {
-                  console.error("[PromotionalBanner] Video failed to load:", normalizedVideoUrl);
                   e.currentTarget.style.display = "none";
                 }
               }
@@ -8389,17 +8179,12 @@
           {
             src: normalizedImageUrl,
             alt: slide.title || "Promotional banner",
-            style: {
-              width: "100%",
-              height: "100%",
-              objectFit: "cover"
-            },
+            style: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
             onError: (e) => {
-              console.error("[PromotionalBanner] Image failed to load:", normalizedImageUrl);
               e.currentTarget.style.display = "none";
               const parent = e.currentTarget.parentElement;
               if (parent) {
-                parent.innerHTML = '<div style="width: 100%; height: 100%; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 48px;">\u{1F5BC}\uFE0F</div>';
+                parent.innerHTML = '<div style="width:100%;height:100%;background:linear-gradient(135deg,#f5f3ff,#ede9fe);display:flex;align-items:center;justify-content:center;font-size:48px">\u{1F5BC}\uFE0F</div>';
               }
             }
           }
@@ -8408,7 +8193,7 @@
       return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
         width: "100%",
         height: "100%",
-        backgroundColor: "#f3f4f6",
+        background: "linear-gradient(135deg, #f5f3ff, #ede9fe)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -8424,410 +8209,350 @@
       currentIndexRef.current = index;
       const gap = isBlockContext ? 16 : 8;
       const slideWidth = container.clientWidth + gap;
-      const targetScroll = index * slideWidth;
-      container.scrollTo({
-        left: targetScroll,
-        behavior: "smooth"
-      });
+      container.scrollTo({ left: index * slideWidth, behavior: "smooth" });
       setTimeout(() => {
         isScrolling.current = false;
       }, 500);
     };
     const handlePrevious = (e) => {
-      if (e) {
+      if (e)
         e.stopPropagation();
-      }
-      const newIndex = currentIndex > 0 ? currentIndex - 1 : slides.length - 1;
-      scrollToIndex(newIndex);
+      scrollToIndex(currentIndex > 0 ? currentIndex - 1 : slides.length - 1);
     };
     const handleNext = (e) => {
-      if (e) {
+      if (e)
         e.stopPropagation();
-      }
-      const newIndex = currentIndex < slides.length - 1 ? currentIndex + 1 : 0;
-      scrollToIndex(newIndex);
+      scrollToIndex(currentIndex < slides.length - 1 ? currentIndex + 1 : 0);
     };
     const handleDotClick = (index, e) => {
-      if (e) {
+      if (e)
         e.stopPropagation();
-      }
       scrollToIndex(index);
     };
     const handleCtaClick = (slide, e) => {
-      if (e) {
+      if (e)
         e.stopPropagation();
-      }
-      if (slide.ctaUrl && onCtaClick) {
+      if (slide.ctaUrl && onCtaClick)
         onCtaClick(slide.ctaUrl);
-      }
     };
     const handleBannerClick = (slide) => {
-      if (slide.ctaUrl && onCtaClick) {
+      if (slide.ctaUrl && onCtaClick)
         onCtaClick(slide.ctaUrl);
-      }
     };
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { marginBottom: isBlockContext ? "0" : "16px" }, children: [
+    if (!slides || slides.length === 0) {
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+        borderRadius: "16px",
+        overflow: "hidden",
+        position: "relative",
+        border: `1.5px solid ${borderColor}`,
+        boxShadow: "0 4px 20px rgba(0,0,0,0.08)"
+      }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { position: "relative", aspectRatio: "16/9", overflow: "hidden", background: "linear-gradient(135deg, #f5f3ff, #ede9fe)" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          "img",
+          {
+            src: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=200&fit=crop&crop=center",
+            alt: "Sample promotional banner",
+            style: { width: "100%", height: "100%", objectFit: "cover" }
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.15) 50%, transparent 100%)" } }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { position: "absolute", bottom: 0, left: 0, right: 0, padding: "14px 16px", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "12px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: "16px", fontWeight: "700", color: "white", marginBottom: "3px", textShadow: "0 1px 4px rgba(0,0,0,0.3)" }, children: "Summer Sale" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { fontSize: "12px", color: "rgba(255,255,255,0.8)" }, children: "Get 20% Off on Summer Items" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { style: {
+            background: "rgba(255,255,255,0.15)",
+            backdropFilter: "blur(8px)",
+            color: "white",
+            border: "1px solid rgba(255,255,255,0.3)",
+            padding: "8px 16px",
+            borderRadius: "10px",
+            fontWeight: "600",
+            fontSize: "13px",
+            cursor: "pointer",
+            flexShrink: 0,
+            whiteSpace: "nowrap"
+          }, children: "Shop Now" })
+        ] })
+      ] }) });
+    }
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("style", { children: `
-        .selldrawer-promo-scroll::-webkit-scrollbar {
-          display: none;
-        }
-        .selldrawer-promo-scroll {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        
-        /* Ensure indicators are always visible */
-        .selldrawer-promo-indicators {
-          display: flex !important;
-          visibility: visible !important;
-          opacity: 1 !important;
-        }
-        
-        .selldrawer-promo-indicator {
-          display: block !important;
-          visibility: visible !important;
-          opacity: 1 !important;
-        }
-        
-        /* Block context responsive styles */
+        ${PROMO_KEYFRAMES}
+        .sd-promo-scroll::-webkit-scrollbar { display: none; }
+        .sd-promo-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         ${isBlockContext ? `
-          .selldrawer-promo-block-media {
-            height: ${maxHeight === "auto" ? "auto" : maxHeight};
-            ${maxHeight === "auto" ? "aspect-ratio: 16 / 9;" : ""}
-          }
-          
-          @media (max-width: 768px) {
-            .selldrawer-promo-block-media {
-              height: ${maxHeight === "auto" ? "auto" : `calc(${maxHeight} * 0.78)`};
-              ${maxHeight === "auto" ? "aspect-ratio: 16 / 9;" : ""}
-            }
-          }
-          
-          @media (max-width: 480px) {
-            .selldrawer-promo-block-media {
-              height: ${maxHeight === "auto" ? "auto" : `calc(${maxHeight} * 0.67)`};
-              ${maxHeight === "auto" ? "aspect-ratio: 16 / 9;" : ""}
-            }
-          }
+          .sd-promo-block-media { height: ${maxHeight === "auto" ? "auto" : maxHeight}; ${maxHeight === "auto" ? "aspect-ratio: 16/9;" : ""} }
+          @media (max-width: 768px) { .sd-promo-block-media { height: ${maxHeight === "auto" ? "auto" : `calc(${maxHeight} * 0.78)`}; ${maxHeight === "auto" ? "aspect-ratio: 16/9;" : ""} } }
+          @media (max-width: 480px) { .sd-promo-block-media { height: ${maxHeight === "auto" ? "auto" : `calc(${maxHeight} * 0.67)`}; ${maxHeight === "auto" ? "aspect-ratio: 16/9;" : ""} } }
         ` : ""}
       ` }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { position: "relative", overflow: "visible" }, children: [
-        slides.length > 1 && canScrollLeft && (carouselSettings == null ? void 0 : carouselSettings.showArrows) !== false && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          "button",
-          {
-            onClick: (e) => handlePrevious(e),
-            style: {
-              position: "absolute",
-              left: "8px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
-              borderRadius: "50%",
-              width: "32px",
-              height: "32px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              zIndex: 20,
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
-              transition: "all 0.2s ease"
-            },
-            onMouseEnter: (e) => {
-              e.currentTarget.style.background = "#f9fafb";
-              e.currentTarget.style.borderColor = "#d1d5db";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
-              e.currentTarget.style.transform = "translateY(-50%) scale(1.05)";
-            },
-            onMouseLeave: (e) => {
-              e.currentTarget.style.background = "#ffffff";
-              e.currentTarget.style.borderColor = "#e5e7eb";
-              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.12)";
-              e.currentTarget.style.transform = "translateY(-50%) scale(1)";
-            },
-            children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: "18px", color: "#374151", fontWeight: "300" }, children: "\u2039" })
-          }
-        ),
-        slides.length > 1 && canScrollRight && (carouselSettings == null ? void 0 : carouselSettings.showArrows) !== false && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          "button",
-          {
-            onClick: (e) => handleNext(e),
-            style: {
-              position: "absolute",
-              right: "8px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
-              borderRadius: "50%",
-              width: "32px",
-              height: "32px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              zIndex: 20,
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
-              transition: "all 0.2s ease"
-            },
-            onMouseEnter: (e) => {
-              e.currentTarget.style.background = "#f9fafb";
-              e.currentTarget.style.borderColor = "#d1d5db";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
-              e.currentTarget.style.transform = "translateY(-50%) scale(1.05)";
-            },
-            onMouseLeave: (e) => {
-              e.currentTarget.style.background = "#ffffff";
-              e.currentTarget.style.borderColor = "#e5e7eb";
-              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.12)";
-              e.currentTarget.style.transform = "translateY(-50%) scale(1)";
-            },
-            children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: "18px", color: "#374151", fontWeight: "300" }, children: "\u203A" })
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          "div",
-          {
-            ref: scrollContainerRef,
-            className: "selldrawer-promo-scroll",
-            style: {
-              display: "flex",
-              gap: isBlockContext ? "16px" : "8px",
-              overflowX: "auto",
-              scrollBehavior: "smooth",
-              scrollSnapType: "x mandatory",
-              WebkitOverflowScrolling: "touch"
-            },
-            children: slides.map((slide, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-              "div",
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { marginBottom: isBlockContext ? "0" : "4px" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+        "div",
+        {
+          style: { position: "relative", overflow: "visible" },
+          onMouseEnter: () => setContainerHovered(true),
+          onMouseLeave: () => setContainerHovered(false),
+          children: [
+            slides.length > 1 && canScrollLeft && (carouselSettings == null ? void 0 : carouselSettings.showArrows) !== false && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "button",
               {
-                onClick: () => handleBannerClick(slide),
+                onClick: (e) => handlePrevious(e),
                 style: {
-                  minWidth: slides.length > 1 ? isBlockContext ? "100%" : "80%" : "100%",
-                  maxWidth: slides.length > 1 ? isBlockContext ? "100%" : "80%" : "100%",
-                  flexShrink: 0,
-                  scrollSnapAlign: "start",
-                  borderRadius: isBlockContext ? "" : "12px",
-                  overflow: "hidden",
-                  backgroundColor: "#fff",
-                  border: isBlockContext ? "none" : `1px solid ${borderColor}`,
-                  boxShadow: isBlockContext ? "none" : "0 1px 3px rgba(0, 0, 0, 0.1)",
-                  cursor: slide.ctaUrl ? "pointer" : "default",
-                  transition: "transform 0.2s ease, box-shadow 0.2s ease"
-                },
-                children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                    "div",
-                    {
-                      className: isBlockContext ? "selldrawer-promo-block-media" : "",
-                      style: __spreadProps(__spreadValues({
-                        position: "relative",
-                        overflow: "hidden"
-                      }, isBlockContext ? {
-                        width: "100%"
-                      } : {
-                        aspectRatio: "16 / 9",
-                        width: "100%",
-                        height: "auto"
-                      }), {
-                        backgroundColor: "#f9fafb",
-                        borderRadius: isBlockContext ? "" : "12px"
-                      }),
-                      children: [
-                        renderMedia(slide, index),
-                        slide.videoUrl && slide.videoType && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                          "button",
-                          {
-                            onClick: (e) => handleMuteToggle(index, e),
-                            style: {
-                              position: "absolute",
-                              bottom: "12px",
-                              right: "12px",
-                              background: "rgba(0, 0, 0, 0.6)",
-                              border: "none",
-                              borderRadius: "4px",
-                              width: "32px",
-                              height: "32px",
-                              cursor: "pointer",
-                              zIndex: 15,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              transition: "all 0.2s ease",
-                              pointerEvents: "auto",
-                              padding: "6px"
-                            },
-                            onMouseEnter: (e) => {
-                              e.currentTarget.style.background = "rgba(0, 0, 0, 0.8)";
-                              e.currentTarget.style.transform = "scale(1.1)";
-                            },
-                            onMouseLeave: (e) => {
-                              e.currentTarget.style.background = "rgba(0, 0, 0, 0.6)";
-                              e.currentTarget.style.transform = "scale(1)";
-                            },
-                            "aria-label": isMuted[index] ? "Unmute video" : "Mute video",
-                            children: isMuted[index] ? (
-                              // Muted icon (speaker with X)
-                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                                "svg",
-                                {
-                                  width: "20",
-                                  height: "20",
-                                  viewBox: "0 0 24 24",
-                                  fill: "white",
-                                  style: { display: "block" },
-                                  children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M3.63 3.63a.996.996 0 000 1.41L7.29 8.7 7 9H4c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h3l3.29 3.29c.63.63 1.71.18 1.71-.71v-4.17l4.18 4.18c-.49.37-1.02.68-1.6.91-.36.15-.58.53-.58.92 0 .72.73 1.18 1.39.91.8-.33 1.55-.77 2.22-1.31l1.34 1.34a.996.996 0 101.41-1.41L5.05 3.63c-.39-.39-1.02-.39-1.42 0zM19 12c0 .82-.15 1.61-.41 2.34l1.53 1.53c.56-1.17.88-2.48.88-3.87 0-3.83-2.4-7.11-5.78-8.4-.59-.23-1.22.23-1.22.86v.19c0 .38.25.71.61.85C17.18 6.54 19 9.06 19 12zm-8.71-6.29l-.17.17L12 7.76V6.41c0-.89-1.08-1.33-1.71-.7zM16.5 12A4.5 4.5 0 0014 7.97v1.79l2.48 2.48c.01-.08.02-.16.02-.24z" })
-                                }
-                              )
-                            ) : (
-                              // Unmuted icon (speaker with sound waves)
-                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                                "svg",
-                                {
-                                  width: "20",
-                                  height: "20",
-                                  viewBox: "0 0 24 24",
-                                  fill: "white",
-                                  style: { display: "block" },
-                                  children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M3 10v4c0 .55.45 1 1 1h3l3.29 3.29c.63.63 1.71.18 1.71-.71V6.41c0-.89-1.08-1.34-1.71-.71L7 9H4c-.55 0-1 .45-1 1zm13.5 2A4.5 4.5 0 0014 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 4.45v.2c0 .38.25.71.6.85C17.18 6.53 19 9.06 19 12s-1.82 5.47-4.4 6.5c-.36.14-.6.47-.6.85v.2c0 .63.63 1.07 1.21.85C18.6 19.11 21 15.84 21 12s-2.4-7.11-5.79-8.4c-.58-.23-1.21.22-1.21.85z" })
-                                }
-                              )
-                            )
-                          }
-                        )
-                      ]
-                    }
-                  ),
-                  (slide.title || slide.description || slide.ctaText) && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-                    backgroundColor: "#fff",
-                    padding: isBlockContext ? "12px 16px" : "10px 14px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: isBlockContext ? "16px" : "10px"
-                  }, children: [
-                    (slide.title || slide.description) && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "4px",
-                      flex: 1,
-                      minWidth: 0
-                    }, children: [
-                      slide.title && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-                        fontWeight: isBlockContext ? "600" : "700",
-                        fontSize: isBlockContext ? "16px" : "15px",
-                        color: titleColor,
-                        lineHeight: "1.3",
-                        textAlign: "left",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap"
-                      }, children: slide.title }),
-                      slide.description && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-                        fontSize: isBlockContext ? "13px" : "12px",
-                        color: descriptionColor,
-                        lineHeight: "1.4",
-                        textAlign: "left",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap"
-                      }, children: slide.description })
-                    ] }),
-                    slide.ctaText && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { flexShrink: 0, alignSelf: "stretch", display: "flex", alignItems: "center" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                      "button",
-                      {
-                        onClick: (e) => handleCtaClick(slide, e),
-                        style: {
-                          backgroundColor: isBlockContext ? ctaBackgroundColor : ctaBackgroundColor,
-                          color: isBlockContext ? ctaTextColor : ctaTextColor,
-                          border: isBlockContext ? "none" : `1px solid ${ctaBackgroundColor}`,
-                          padding: isBlockContext ? "8px 20px" : "6px 14px",
-                          borderRadius: isBlockContext ? "6px" : "8px",
-                          fontWeight: "600",
-                          cursor: "pointer",
-                          fontSize: isBlockContext ? "14px" : "13px",
-                          transition: "all 0.2s ease",
-                          whiteSpace: "nowrap"
-                        },
-                        onMouseEnter: (e) => {
-                          const rgb = hexToRgb(ctaBackgroundColor);
-                          if (rgb) {
-                            const darkened = `rgb(${Math.max(0, rgb.r - 20)}, ${Math.max(0, rgb.g - 20)}, ${Math.max(0, rgb.b - 20)})`;
-                            e.currentTarget.style.backgroundColor = darkened;
-                          }
-                        },
-                        onMouseLeave: (e) => {
-                          e.currentTarget.style.backgroundColor = ctaBackgroundColor;
-                        },
-                        children: slide.ctaText
-                      }
-                    ) })
-                  ] })
-                ]
-              },
-              index
-            ))
-          }
-        ),
-        slides.length > 1 && (carouselSettings == null ? void 0 : carouselSettings.showDots) !== false && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          "div",
-          {
-            className: "selldrawer-promo-indicators",
-            style: {
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: isBlockContext ? "6px" : "5px",
-              marginTop: isBlockContext ? "" : "8px",
-              padding: isBlockContext ? "8px 0" : "4px 0",
-              minHeight: isBlockContext ? "8px" : "6px",
-              width: "100%",
-              position: "relative",
-              zIndex: 10,
-              visibility: "visible",
-              opacity: 1,
-              boxSizing: "border-box"
-            },
-            children: slides.map((_, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              "div",
-              {
-                className: `selldrawer-promo-indicator ${index === currentIndex ? "active" : ""}`,
-                onClick: (e) => handleDotClick(index, e),
-                style: {
-                  width: isBlockContext ? "24px" : "20px",
-                  height: isBlockContext ? "4px" : "3px",
-                  borderRadius: "2px",
-                  backgroundColor: index === currentIndex ? "#000000" : "#d1d5db",
-                  transition: "all 0.3s ease",
+                  position: "absolute",
+                  left: "10px",
+                  top: "50%",
+                  transform: `translateY(-50%) scale(${containerHovered ? 1 : 0.85})`,
+                  background: "rgba(0,0,0,0.45)",
+                  backdropFilter: "blur(6px)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  borderRadius: "50%",
+                  width: "34px",
+                  height: "34px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   cursor: "pointer",
-                  opacity: index === currentIndex ? 1 : 0.6,
-                  transform: index === currentIndex ? "scaleY(1.2)" : "scaleY(1)",
-                  flexShrink: 0,
-                  visibility: "visible",
-                  display: "block",
-                  boxSizing: "border-box",
-                  minWidth: isBlockContext ? "24px" : "20px",
-                  minHeight: isBlockContext ? "4px" : "3px"
+                  zIndex: 20,
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+                  transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
+                  opacity: containerHovered ? 1 : 0
                 },
                 onMouseEnter: (e) => {
-                  if (index !== currentIndex) {
-                    e.currentTarget.style.opacity = "0.8";
-                    e.currentTarget.style.transform = "scaleY(1.1)";
-                  }
+                  e.currentTarget.style.background = "rgba(0,0,0,0.65)";
+                  e.currentTarget.style.transform = "translateY(-50%) scale(1.08)";
                 },
                 onMouseLeave: (e) => {
-                  if (index !== currentIndex) {
-                    e.currentTarget.style.opacity = "0.6";
-                    e.currentTarget.style.transform = "scaleY(1)";
-                  }
-                }
-              },
-              `indicator-${index}`
-            ))
-          }
-        )
-      ] })
+                  e.currentTarget.style.background = "rgba(0,0,0,0.45)";
+                  e.currentTarget.style.transform = "translateY(-50%) scale(1)";
+                },
+                children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "white", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("polyline", { points: "15 18 9 12 15 6" }) })
+              }
+            ),
+            slides.length > 1 && canScrollRight && (carouselSettings == null ? void 0 : carouselSettings.showArrows) !== false && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "button",
+              {
+                onClick: (e) => handleNext(e),
+                style: {
+                  position: "absolute",
+                  right: "10px",
+                  top: "50%",
+                  transform: `translateY(-50%) scale(${containerHovered ? 1 : 0.85})`,
+                  background: "rgba(0,0,0,0.45)",
+                  backdropFilter: "blur(6px)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  borderRadius: "50%",
+                  width: "34px",
+                  height: "34px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  zIndex: 20,
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+                  transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
+                  opacity: containerHovered ? 1 : 0
+                },
+                onMouseEnter: (e) => {
+                  e.currentTarget.style.background = "rgba(0,0,0,0.65)";
+                  e.currentTarget.style.transform = "translateY(-50%) scale(1.08)";
+                },
+                onMouseLeave: (e) => {
+                  e.currentTarget.style.background = "rgba(0,0,0,0.45)";
+                  e.currentTarget.style.transform = "translateY(-50%) scale(1)";
+                },
+                children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "white", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("polyline", { points: "9 18 15 12 9 6" }) })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "div",
+              {
+                ref: scrollContainerRef,
+                className: "sd-promo-scroll",
+                style: {
+                  display: "flex",
+                  gap: isBlockContext ? "16px" : "8px",
+                  overflowX: "auto",
+                  scrollBehavior: "smooth",
+                  scrollSnapType: "x mandatory",
+                  WebkitOverflowScrolling: "touch",
+                  borderRadius: "16px"
+                },
+                children: slides.map((slide, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "div",
+                  {
+                    onClick: () => handleBannerClick(slide),
+                    style: {
+                      minWidth: slides.length > 1 ? isBlockContext ? "100%" : "92%" : "100%",
+                      maxWidth: slides.length > 1 ? isBlockContext ? "100%" : "92%" : "100%",
+                      flexShrink: 0,
+                      scrollSnapAlign: "start",
+                      borderRadius: "16px",
+                      overflow: "hidden",
+                      border: `1.5px solid ${borderColor}`,
+                      boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                      cursor: slide.ctaUrl ? "pointer" : "default",
+                      position: "relative",
+                      transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                      background: "#f4f4f8"
+                    },
+                    children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                      "div",
+                      {
+                        className: isBlockContext ? "sd-promo-block-media" : "",
+                        style: __spreadProps(__spreadValues({
+                          position: "relative",
+                          overflow: "hidden"
+                        }, isBlockContext ? { width: "100%" } : { aspectRatio: "16/9", width: "100%", height: "auto" }), {
+                          backgroundColor: "#f4f4f8"
+                        }),
+                        children: [
+                          renderMedia(slide, index),
+                          (slide.title || slide.description || slide.ctaText) && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                            position: "absolute",
+                            inset: 0,
+                            background: "linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.3) 45%, transparent 100%)",
+                            pointerEvents: "none",
+                            zIndex: 2
+                          } }),
+                          (slide.title || slide.description || slide.ctaText) && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
+                            position: "absolute",
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            padding: isBlockContext ? "16px 18px 14px" : "12px 14px 12px",
+                            display: "flex",
+                            alignItems: "flex-end",
+                            justifyContent: "space-between",
+                            gap: "12px",
+                            zIndex: 3,
+                            animation: "sd-promo-slide-up 0.4s ease"
+                          }, children: [
+                            (slide.title || slide.description) && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
+                              slide.title && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                                fontSize: isBlockContext ? "18px" : "15px",
+                                fontWeight: "700",
+                                color: "white",
+                                lineHeight: "1.25",
+                                marginBottom: slide.description ? "4px" : "0",
+                                textShadow: "0 1px 6px rgba(0,0,0,0.4)",
+                                letterSpacing: "-0.02em",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap"
+                              }, children: slide.title }),
+                              slide.description && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                                fontSize: isBlockContext ? "13px" : "12px",
+                                color: "rgba(255,255,255,0.85)",
+                                lineHeight: "1.35",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap"
+                              }, children: slide.description })
+                            ] }),
+                            slide.ctaText && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                              "button",
+                              {
+                                onClick: (e) => handleCtaClick(slide, e),
+                                style: {
+                                  flexShrink: 0,
+                                  background: "rgba(255,255,255,0.15)",
+                                  backdropFilter: "blur(8px)",
+                                  color: "white",
+                                  border: "1px solid rgba(255,255,255,0.3)",
+                                  padding: isBlockContext ? "9px 18px" : "7px 14px",
+                                  borderRadius: "10px",
+                                  fontWeight: "700",
+                                  fontSize: isBlockContext ? "13px" : "12px",
+                                  cursor: "pointer",
+                                  whiteSpace: "nowrap",
+                                  letterSpacing: "0.01em",
+                                  transition: "all 0.2s ease",
+                                  boxShadow: "0 2px 12px rgba(0,0,0,0.2)"
+                                },
+                                onMouseEnter: (e) => {
+                                  e.currentTarget.style.background = "rgba(255,255,255,0.28)";
+                                  e.currentTarget.style.transform = "translateY(-1px)";
+                                  e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.3)";
+                                },
+                                onMouseLeave: (e) => {
+                                  e.currentTarget.style.background = "rgba(255,255,255,0.15)";
+                                  e.currentTarget.style.transform = "translateY(0)";
+                                  e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.2)";
+                                },
+                                children: slide.ctaText
+                              }
+                            )
+                          ] }),
+                          slide.videoUrl && slide.videoType && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                            "button",
+                            {
+                              onClick: (e) => handleMuteToggle(index, e),
+                              style: {
+                                position: "absolute",
+                                top: "10px",
+                                right: "10px",
+                                background: "rgba(0,0,0,0.5)",
+                                backdropFilter: "blur(4px)",
+                                border: "1px solid rgba(255,255,255,0.15)",
+                                borderRadius: "8px",
+                                width: "32px",
+                                height: "32px",
+                                cursor: "pointer",
+                                zIndex: 15,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                transition: "all 0.2s ease"
+                              },
+                              onMouseEnter: (e) => {
+                                e.currentTarget.style.background = "rgba(0,0,0,0.7)";
+                                e.currentTarget.style.transform = "scale(1.08)";
+                              },
+                              onMouseLeave: (e) => {
+                                e.currentTarget.style.background = "rgba(0,0,0,0.5)";
+                                e.currentTarget.style.transform = "scale(1)";
+                              },
+                              "aria-label": isMuted[index] ? "Unmute video" : "Mute video",
+                              children: isMuted[index] ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "white", style: { display: "block" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M3.63 3.63a.996.996 0 000 1.41L7.29 8.7 7 9H4c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h3l3.29 3.29c.63.63 1.71.18 1.71-.71v-4.17l4.18 4.18c-.49.37-1.02.68-1.6.91-.36.15-.58.53-.58.92 0 .72.73 1.18 1.39.91.8-.33 1.55-.77 2.22-1.31l1.34 1.34a.996.996 0 101.41-1.41L5.05 3.63c-.39-.39-1.02-.39-1.42 0zM19 12c0 .82-.15 1.61-.41 2.34l1.53 1.53c.56-1.17.88-2.48.88-3.87 0-3.83-2.4-7.11-5.78-8.4-.59-.23-1.22.23-1.22.86v.19c0 .38.25.71.61.85C17.18 6.54 19 9.06 19 12zm-8.71-6.29l-.17.17L12 7.76V6.41c0-.89-1.08-1.33-1.71-.7zM16.5 12A4.5 4.5 0 0014 7.97v1.79l2.48 2.48c.01-.08.02-.16.02-.24z" }) }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "white", style: { display: "block" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M3 10v4c0 .55.45 1 1 1h3l3.29 3.29c.63.63 1.71.18 1.71-.71V6.41c0-.89-1.08-1.34-1.71-.71L7 9H4c-.55 0-1 .45-1 1zm13.5 2A4.5 4.5 0 0014 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 4.45v.2c0 .38.25.71.6.85C17.18 6.53 19 9.06 19 12s-1.82 5.47-4.4 6.5c-.36.14-.6.47-.6.85v.2c0 .63.63 1.07 1.21.85C18.6 19.11 21 15.84 21 12s-2.4-7.11-5.79-8.4c-.58-.23-1.21.22-1.21.85z" }) })
+                            }
+                          ),
+                          slides.length > 1 && (carouselSettings == null ? void 0 : carouselSettings.showDots) !== false && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
+                            position: "absolute",
+                            bottom: slide.title || slide.description || slide.ctaText ? "72px" : "10px",
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            display: "flex",
+                            gap: "4px",
+                            zIndex: 10
+                          }, children: slides.map((_, dotIdx) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                            "div",
+                            {
+                              onClick: (e) => handleDotClick(dotIdx, e),
+                              style: {
+                                height: "3px",
+                                width: dotIdx === currentIndex ? "20px" : "6px",
+                                borderRadius: "3px",
+                                background: dotIdx === currentIndex ? "white" : "rgba(255,255,255,0.45)",
+                                cursor: "pointer",
+                                transition: "all 0.35s cubic-bezier(0.4,0,0.2,1)",
+                                boxShadow: dotIdx === currentIndex ? "0 1px 4px rgba(0,0,0,0.3)" : "none"
+                              }
+                            },
+                            `dot-${dotIdx}`
+                          )) })
+                        ]
+                      }
+                    )
+                  },
+                  index
+                ))
+              }
+            )
+          ]
+        }
+      ) })
     ] });
   };
 
@@ -8933,7 +8658,7 @@
 
   // extensions/cart-upsell/assets/modules/promotional-banner-entry.js
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://compete-platform-lets-newspapers.trycloudflare.com" : "https://app.selldrawer.com";
+  var APP_URL = true ? "https://low-tunnel-tribute-that.trycloudflare.com" : "https://app.selldrawer.com";
   function initPromotionalBannerBlocks() {
     const containers = document.querySelectorAll(".selldrawer-promotional-banner-container");
     if (containers.length === 0) {

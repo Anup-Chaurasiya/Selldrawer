@@ -12,6 +12,7 @@ import { SavingsDisplay } from '../../../../../app/components/shared/SavingsDisp
 import { FreeShippingMessage } from '../../../../../app/components/shared/FreeShippingMessage.tsx';
 import { CouponCodeField } from '../../../../../app/components/shared/CouponCodeField.tsx';
 import { CartTotals } from '../../../../../app/components/shared/CartTotals.tsx';
+import { MilestonesWidget } from '../../../../../app/components/shared/MilestonesWidget.tsx';
 
 
 export const UnifiedCartDrawer = ({
@@ -243,6 +244,30 @@ export const UnifiedCartDrawer = ({
       }
 
 
+      case 'milestones': {
+        const milestones = config?.features?.milestones;
+        if (!milestones || milestones.length === 0) return null;
+
+        // cart.total_price is in smallest unit (paise/cents); convert to rupees for the widget
+        const cartTotalForWidget = (cart.total_price || 0) / 100;
+
+        return (
+          <div key={featureId} style={{ marginBottom: '12px', padding: '12px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+            <MilestonesWidget
+              milestones={milestones}
+              cartTotal={cartTotalForWidget}
+              progressBarColor={config?.features?.milestonesProgressBarColor || '#1c1c3b'}
+              allUnlockedMessage={config?.features?.milestonesAllUnlockedMessage || '🎉 Congratulations! All rewards unlocked!'}
+              currency={'₹'}
+              onAddToCart={(product) => {
+                if (onAddProductToCart && product.id) {
+                  onAddProductToCart(product.id);
+                }
+              }}
+            />
+          </div>
+        );
+      }
 
       default:
         return null;
