@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { json, redirect } from "@remix-run/node";
-import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
+import { json } from "@remix-run/node";
+import { useLoaderData, useSubmit, useNavigation, useActionData } from "@remix-run/react";
 import {
   Page,
   FormLayout,
@@ -16,11 +16,19 @@ import prisma from "../db.server";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FreeShippingBar as FreeShippingBarComponent } from "../components/shared/FreeShippingBar";
 
+function stripShopifyGid(
+  gid: string | null | undefined,
+  resource: "Product" | "ProductVariant",
+): string | null {
+  if (!gid) return null;
+  const prefix = `gid://shopify/${resource}/`;
+  return gid.startsWith(prefix) ? gid.slice(prefix.length) : gid;
+}
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const cartDrawer = await prisma.cartDrawer.findUnique({
     where: { shop },
@@ -31,14 +39,54 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const freeShippingBar = cartDrawer?.freeShippingBars[0] || null;
 
-  return json({ cartDrawer, freeShippingBar, shop, editingVersion });
+  // Fetch collections for the dropdown
+  const collectionsResponse = await admin.graphql(
+    `#graphql
+    query getCollections($first: Int!) {
+      collections(first: $first) {
+        edges {
+          node {
+            id
+            title
+            handle
+          }
+        }
+      }
+    }
+  `,
+    {
+      variables: {
+        first: 250,
+      },
+    }
+  );
+
+  const collectionsData = (await collectionsResponse.json()) as {
+    data?: {
+      collections: {
+        edges: {
+          node: {
+            id: string;
+            title: string;
+            handle: string;
+          };
+        }[];
+      };
+    };
+  };
+
+  const collections = collectionsData.data?.collections.edges.map(edge => ({
+    label: edge.node.title,
+    value: edge.node.handle,
+  })) || [];
+
+  return json({ cartDrawer, freeShippingBar, shop, collections });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -74,7 +122,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "save") {
     const cartDrawer = await prisma.cartDrawer.findUnique({
       where: { shop },
-      include: { freeShippingBars: { where: { isActive: true } } },
+      include: {
+        freeShippingBars: {
+          where: { isActive: true },
+          include: {
+            upsellProducts: true,
+          },
+        }
+      },
     });
 
     if (!cartDrawer) {
@@ -92,17 +147,41 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       backgroundColor: formData.get("backgroundColor") as string,
       borderColor: formData.get("borderColor") as string,
       showPercentage: formData.get("showPercentage") === "true",
+      showProductUpsell: formData.get("showProductUpsell") === "true",
+      upsellHeaderText: formData.get("upsellHeaderText") as string,
+      eligibilitySource: formData.get("eligibilitySource") as string,
+      eligibleCollectionHandle: (formData.get("eligibleCollectionHandle") as string)?.trim() || "",
     };
 
+    if (data.showProductUpsell) {
+      if (data.eligibilitySource === "none" || !data.eligibilitySource) {
+        return json(
+          {
+            error:
+              "Product upsell is on: choose Collection or All products as the eligibility source (not None).",
+          },
+          { status: 400 },
+        );
+      }
+      if (data.eligibilitySource === "collection" && !data.eligibleCollectionHandle) {
+        return json(
+          { error: "Enter a collection handle when using Collection as the eligibility source." },
+          { status: 400 },
+        );
+      }
+    }
+
     const existingBar = cartDrawer.freeShippingBars[0];
+    let barId: string;
 
     if (existingBar) {
       await prisma.freeShippingProgressBar.update({
         where: { id: existingBar.id },
         data,
       });
+      barId = existingBar.id;
     } else {
-      await prisma.freeShippingProgressBar.create({
+      const newBar = await prisma.freeShippingProgressBar.create({
         data: {
           id: crypto.randomUUID(),
           ...data,
@@ -112,6 +191,214 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           updatedAt: new Date(),
         },
       });
+      barId = newBar.id;
+    }
+
+    // Sync or clear upsell products (never delete until replacement list is built successfully)
+    if (!data.showProductUpsell || data.eligibilitySource === "none") {
+      await prisma.freeShippingUpsellProduct.deleteMany({ where: { barId } });
+    } else if (data.eligibilitySource === "collection" || data.eligibilitySource === "all_products") {
+      try {
+        let products: {
+          shopifyProductId: string;
+          shopifyVariantId: string | null;
+          title: string;
+          handle: string;
+          price: number;
+          compareAtPrice: number | null;
+          imageUrl: string | null;
+          position: number;
+        }[] = [];
+
+        if (data.eligibilitySource === "collection" && data.eligibleCollectionHandle) {
+          const collectionResponse = await admin.graphql(
+            `
+            query getCollectionProducts($handle: String!, $first: Int!) {
+              collectionByHandle(handle: $handle) {
+                id
+                title
+                products(first: $first) {
+                  edges {
+                    node {
+                      id
+                      title
+                      handle
+                      status
+                      images(first: 1) {
+                        edges {
+                          node {
+                            url
+                            altText
+                          }
+                        }
+                      }
+                      variants(first: 1) {
+                        edges {
+                          node {
+                            id
+                            price
+                            compareAtPrice
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          `,
+            {
+              variables: {
+                handle: data.eligibleCollectionHandle,
+                first: 50,
+              },
+            },
+          );
+
+          const collectionData = (await collectionResponse.json()) as {
+            errors?: { message: string }[];
+            data?: { collectionByHandle: { products: { edges: any[] } } | null };
+          };
+
+          if (collectionData.errors?.length) {
+            console.error("Free shipping upsell GraphQL errors:", collectionData.errors);
+            return json(
+              {
+                error: `Could not load collection: ${collectionData.errors.map((e) => e.message).join("; ")}`,
+              },
+              { status: 400 },
+            );
+          }
+
+          if (!collectionData.data?.collectionByHandle) {
+            return json(
+              { error: `No collection found for handle "${data.eligibleCollectionHandle}".` },
+              { status: 400 },
+            );
+          }
+
+          const collectionProducts =
+            collectionData.data.collectionByHandle.products?.edges || [];
+
+          products = collectionProducts
+            .filter((edge: any) => edge.node.status === "ACTIVE")
+            .map((edge: any, index: number) => {
+              const node = edge.node;
+              const variant = node.variants.edges[0]?.node;
+              const image = node.images.edges[0]?.node;
+              const gidProduct = node.id as string;
+              const gidVariant = variant?.id as string | undefined;
+
+              return {
+                shopifyProductId: stripShopifyGid(gidProduct, "Product") || gidProduct,
+                shopifyVariantId: stripShopifyGid(gidVariant, "ProductVariant"),
+                title: node.title,
+                handle: node.handle,
+                price: parseFloat(variant?.price || "0"),
+                compareAtPrice: variant?.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
+                imageUrl: image?.url || null,
+                position: index,
+              };
+            });
+        } else if (data.eligibilitySource === "all_products") {
+          const productsResponse = await admin.graphql(
+            `
+            query getAllProducts($first: Int!) {
+              products(first: $first) {
+                edges {
+                  node {
+                    id
+                    title
+                    handle
+                    status
+                    images(first: 1) {
+                      edges {
+                        node {
+                          url
+                          altText
+                        }
+                      }
+                    }
+                    variants(first: 1) {
+                      edges {
+                        node {
+                          id
+                          price
+                          compareAtPrice
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          `,
+            {
+              variables: {
+                first: 50,
+              },
+            },
+          );
+
+          const productsData = (await productsResponse.json()) as {
+            errors?: { message: string }[];
+            data?: { products: { edges: any[] } };
+          };
+
+          if (productsData.errors?.length) {
+            console.error("Free shipping upsell GraphQL errors:", productsData.errors);
+            return json(
+              {
+                error: `Could not load products: ${productsData.errors.map((e) => e.message).join("; ")}`,
+              },
+              { status: 400 },
+            );
+          }
+
+          const allProducts = productsData.data?.products?.edges || [];
+
+          products = allProducts
+            .filter((edge: any) => edge.node.status === "ACTIVE")
+            .map((edge: any, index: number) => {
+              const node = edge.node;
+              const variant = node.variants.edges[0]?.node;
+              const image = node.images.edges[0]?.node;
+              const gidProduct = node.id as string;
+              const gidVariant = variant?.id as string | undefined;
+
+              return {
+                shopifyProductId: stripShopifyGid(gidProduct, "Product") || gidProduct,
+                shopifyVariantId: stripShopifyGid(gidVariant, "ProductVariant"),
+                title: node.title,
+                handle: node.handle,
+                price: parseFloat(variant?.price || "0"),
+                compareAtPrice: variant?.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
+                imageUrl: image?.url || null,
+                position: index,
+              };
+            });
+        }
+
+        await prisma.freeShippingUpsellProduct.deleteMany({ where: { barId } });
+
+        if (products.length > 0) {
+          await prisma.freeShippingUpsellProduct.createMany({
+            data: products.map((p) => ({
+              id: crypto.randomUUID(),
+              barId,
+              ...p,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            })),
+          });
+        }
+      } catch (error) {
+        console.error("Error syncing products:", error);
+        return json(
+          { error: "Failed to sync products from Shopify. Try again or check your Shopify Admin API access." },
+          { status: 400 },
+        );
+      }
     }
 
     // Auto-enable the feature after saving configuration
@@ -120,14 +407,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       data: { freeShippingProgressBarEnabled: true },
     });
 
-    return redirect(`/app/cart-drawer?version=${editingVersion}`);
+    // JSON response (not Remix redirect): avoids broken App Bridge navigation. Remix revalidates loaders
+    // automatically after useSubmit — do not call revalidator.revalidate() on the client or duplicate
+    // _data fetches abort each other and show as "(canceled)" in DevTools.
+    return json({ savedSettings: true as const });
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
 export default function FreeShippingBar() {
-  const { cartDrawer, freeShippingBar, editingVersion } = useLoaderData<typeof loader>();
+  const { cartDrawer, freeShippingBar, collections } = useLoaderData<typeof loader>();
+  const actionData = useActionData<{ error?: string; savedSettings?: boolean }>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const isLoading = navigation.state === "submitting";
@@ -149,19 +440,19 @@ export default function FreeShippingBar() {
       prevSubmittingIntent.current === "save" &&
       !isLoading;
 
-    if (justFinishedSave) {
+    if (justFinishedSave && !actionData?.error && actionData?.savedSettings) {
       setShowToast(true);
-      // Auto-hide after 2 seconds (shorter since redirect will happen)
+      // Auto-hide after 3 seconds (no redirect — merchant stays on this page)
       const timer = setTimeout(() => {
         setShowToast(false);
-      }, 2000);
+      }, 3000);
       return () => clearTimeout(timer);
     }
 
     // Update refs for next render
     prevIsSubmitting.current = isLoading;
     prevSubmittingIntent.current = submittingIntent;
-  }, [submittingIntent, isLoading]);
+  }, [submittingIntent, isLoading, actionData?.error, actionData?.savedSettings]);
 
   const [formState, setFormState] = useState({
     thresholdMode: freeShippingBar?.thresholdMode || "amount",
@@ -174,6 +465,10 @@ export default function FreeShippingBar() {
     backgroundColor: freeShippingBar?.backgroundColor || "#f1f5f9",
     borderColor: freeShippingBar?.borderColor || "#e2e8f0",
     showPercentage: freeShippingBar?.showPercentage ?? true,
+    showProductUpsell: (freeShippingBar as any)?.showProductUpsell ?? true,
+    upsellHeaderText: (freeShippingBar as any)?.upsellHeaderText || "Almost there! Add this to unlock free shipping:",
+    eligibilitySource: (freeShippingBar as any)?.eligibilitySource || "all_products",
+    eligibleCollectionHandle: (freeShippingBar as any)?.eligibleCollectionHandle || "",
   });
 
 
@@ -184,12 +479,12 @@ export default function FreeShippingBar() {
     Object.entries(formState).forEach(([key, value]) => {
       formData.append(key, value.toString());
     });
-    submit(formData, { method: "post", action: `/app/cart-drawer/free-shipping-bar?version=${editingVersion}` });
-  }, [formState, editingVersion, submit]);
+    submit(formData, { method: "post", action: `/app/cart-drawer/free-shipping-bar` });
+  }, [formState, submit]);
 
   return (
     <Page
-      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
+      backAction={{ url: `/app/cart-drawer` }}
       title="Free Shipping Booster"
       primaryAction={{
         content: "Save Changes",
@@ -197,6 +492,13 @@ export default function FreeShippingBar() {
         loading: isLoading,
       }}
     >
+      {actionData?.error ? (
+        <div style={{ marginBottom: "16px" }}>
+          <Banner tone="critical" title="Could not save">
+            <p>{actionData.error}</p>
+          </Banner>
+        </div>
+      ) : null}
       {/* Custom Toast Notification - Appears at Top */}
       {showToast && (
         <div style={{
@@ -235,7 +537,7 @@ export default function FreeShippingBar() {
             </div>
             <div style={{ flex: 1 }}>
               <Text as="p" variant="bodyMd" fontWeight="medium">
-                Settings saved successfully
+                Settings saved. Changes apply to your storefront cart drawer.
               </Text>
             </div>
           </div>
@@ -407,7 +709,7 @@ export default function FreeShippingBar() {
         
         .preview-pane {
           background: #ffffff;
-          padding: 24px;
+          padding: 10px;
           border-radius: 12px;
           border: 1px solid #e2e8f0;
           box-shadow: 0 4px 6px rgba(0,0,0,0.02);
@@ -427,7 +729,7 @@ export default function FreeShippingBar() {
 
       <div className="premium-layout">
         <div className="main-column">
-          
+
 
 
           {/* Goal & Requirements Card */}
@@ -533,6 +835,80 @@ export default function FreeShippingBar() {
             </div>
           </div>
 
+          {/* Product Upsell Card */}
+          <div className="premium-card">
+            <div className="card-header">
+              <div className="icon-box">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                </svg>
+              </div>
+              <div className="header-text">
+                <h3 className="header-title">Product Upsell</h3>
+                <p className="header-desc">Show product recommendations to help customers reach free shipping</p>
+              </div>
+            </div>
+            <div className="card-body">
+              <FormLayout>
+                <div className="color-group" style={{ cursor: 'pointer' }} onClick={() => setFormState({ ...formState, showProductUpsell: !formState.showProductUpsell })}>
+                  <div className="color-info">
+                    <span className="color-label">Enable Product Recommendations</span>
+                    <span className="color-desc">Show products when close to threshold</span>
+                  </div>
+                  <div style={{ pointerEvents: 'none' }}>
+                    <Checkbox
+                      label=""
+                      checked={formState.showProductUpsell}
+                      onChange={(value) => setFormState({ ...formState, showProductUpsell: value })}
+                    />
+                  </div>
+                </div>
+
+                {formState.showProductUpsell && (
+                  <>
+                    <TextField
+                      label="Upsell Header Text"
+                      value={formState.upsellHeaderText}
+                      onChange={(value) => setFormState({ ...formState, upsellHeaderText: value })}
+                      helpText="Heading shown above product recommendations"
+                      autoComplete="off"
+                    />
+
+                    <Banner tone="info">
+                      Configure which products customers can view to help them reach free shipping. Products that meet or exceed the remaining amount are prioritized to help customers reach the goal with one addition.
+                    </Banner>
+
+                    <Select
+                      label="Eligibility Source"
+                      options={[
+                        { label: "None (No product recommendations)", value: "none" },
+                        { label: "Collection", value: "collection" },
+                        { label: "All Products", value: "all_products" },
+                      ]}
+                      value={formState.eligibilitySource}
+                      onChange={(value) => setFormState({ ...formState, eligibilitySource: value })}
+                      helpText="Choose where to source products from"
+                    />
+
+                    {formState.eligibilitySource === "collection" && (
+                      <Select
+                        label="Select Collection"
+                        options={[
+                          { label: "Choose a collection...", value: "" },
+                          ...collections,
+                        ]}
+                        value={formState.eligibleCollectionHandle}
+                        onChange={(value) => setFormState({ ...formState, eligibleCollectionHandle: value })}
+                        helpText="Select the collection to source upsell products from"
+                      />
+                    )}
+                  </>
+                )}
+              </FormLayout>
+            </div>
+          </div>
+
           {/* Appearance Card */}
           <div className="premium-card">
             <div className="card-header">
@@ -554,22 +930,22 @@ export default function FreeShippingBar() {
                     <span className="color-desc">The active color as it fills</span>
                   </div>
                   <div className="color-preview">
-                    <input 
-                      type="color" 
+                    <input
+                      type="color"
                       value={formState.progressBarColor}
                       onChange={(e) => setFormState({ ...formState, progressBarColor: e.target.value })}
                     />
                   </div>
                 </div>
-                
+
                 <div className="color-group">
                   <div className="color-info">
                     <span className="color-label">Track Background</span>
                     <span className="color-desc">The empty part of the bar</span>
                   </div>
                   <div className="color-preview">
-                    <input 
-                      type="color" 
+                    <input
+                      type="color"
                       value={formState.backgroundColor}
                       onChange={(e) => setFormState({ ...formState, backgroundColor: e.target.value })}
                     />
@@ -582,8 +958,8 @@ export default function FreeShippingBar() {
                     <span className="color-desc">Outline around the bar</span>
                   </div>
                   <div className="color-preview">
-                    <input 
-                      type="color" 
+                    <input
+                      type="color"
                       value={formState.borderColor}
                       onChange={(e) => setFormState({ ...formState, borderColor: e.target.value })}
                     />
@@ -606,7 +982,7 @@ export default function FreeShippingBar() {
               </div>
             </div>
           </div>
-          
+
         </div>
 
         {/* Preview Sidebar */}
@@ -625,7 +1001,7 @@ export default function FreeShippingBar() {
               </div>
             </div>
             <div className="card-body" style={{ backgroundColor: '#f8fafc' }}>
-              
+
               <div className="preview-pane">
                 {(() => {
                   const threshold = formState.thresholdMode === "amount"
@@ -638,7 +1014,7 @@ export default function FreeShippingBar() {
                       : 3,
                     total_price: formState.thresholdMode === "amount"
                       ? Math.round(threshold * 0.6 * 100)
-                      : 300000 
+                      : 300000
                   };
 
                   return (
@@ -655,11 +1031,13 @@ export default function FreeShippingBar() {
                       currency={formState.currency}
                       cart={sampleCart}
                       isPreview={true}
+                      showProductUpsell={formState.showProductUpsell}
+                      upsellHeaderText={formState.upsellHeaderText}
                     />
                   );
                 })()}
               </div>
-              
+
               <Text as="p" variant="bodySm" tone="subdued" alignment="center">
                 Preview shows progress at 60% with sample cart data.
               </Text>

@@ -5,7 +5,6 @@
 
 import React from 'react';
 import { FreeShippingBar } from '../../../../../app/components/shared/FreeShippingBar.tsx';
-import { PromotionalBannerCard } from '../../../../../app/components/shared/PromotionalBannerCard.tsx';
 import { CartItems } from '../../../../../app/components/shared/CartItems.tsx';
 import { ProductRecommendations } from '../../../../../app/components/shared/ProductRecommendations.tsx';
 import { SavingsDisplay } from '../../../../../app/components/shared/SavingsDisplay.tsx';
@@ -32,7 +31,6 @@ export const UnifiedCartDrawer = ({
   onApplyCoupon,
   onRemoveDiscount,
   onSwitchDiscount,
-  onSlideCtaClick,
   onSelectGift,
   onImpression,
   onFeatureImpression,
@@ -111,34 +109,11 @@ export const UnifiedCartDrawer = ({
               currency={bar.currency || 'INR'}
               cart={cart}
               isPreview={false}
-            />
-          </div>
-        );
-      }
-
-      case 'promotional-banner': {
-        const banner = config?.features?.promotionalBanner;
-        if (!banner) return null;
-
-        const slides = banner.images || [];
-        if (slides.length === 0) return null;
-
-        return (
-          <div key={featureId} style={{ marginBottom: '12px' }}>
-            <PromotionalBannerCard
-              slides={slides}
-              carouselSettings={banner.carouselSettings || {}}
-              titleColor={banner.titleColor || '#111827'}
-              descriptionColor={banner.descriptionColor || '#6b7280'}
-              ctaTextColor={banner.ctaTextColor || '#374151'}
-              ctaBackgroundColor={banner.ctaBackgroundColor || '#f3f4f6'}
-              borderColor={banner.borderColor || '#e5e7eb'}
-              onCtaClick={(url) => {
-                if (onFeatureClick) onFeatureClick('promotional_banner', { url });
-                if (onSlideCtaClick) onSlideCtaClick(url);
-              }}
-              onImpression={() => onFeatureImpression && onFeatureImpression('promotional_banner')}
-              isPreview={false}
+              showProductUpsell={bar.showProductUpsell ?? true}
+              upsellHeaderText={bar.upsellHeaderText || "Almost there! Add this to unlock free shipping:"}
+              appUrl={config?.appUrl || window.selldrawer_config?.appUrl}
+              shop={config?.shop || window.selldrawer_config?.shop || window.Shopify?.shop}
+              onAddProduct={onAddProductToCart}
             />
           </div>
         );

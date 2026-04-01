@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 // ─────────────────────────────────────────────
 // Types
@@ -53,9 +53,28 @@ const fmt = (amount: number, currency = '₹') =>
  */
 const calcProgress = (total: number, sorted: Milestone[]): number => {
   if (!sorted.length) return 0;
-  const max = sorted[sorted.length - 1].targetAmount;
-  if (max <= 0) return 0;
-  return Math.min((total / max) * 100, 100);
+  const n = sorted.length;
+  // We divide the bar into (n + 1) segments. 
+  // Milestone 1 will be at 1/(n+1), Milestone 2 at 2/(n+1), etc.
+  const segmentWidth = 100 / (n + 1);
+
+  let prevAmount = 0;
+  for (let i = 0; i < n; i++) {
+    const milestone = sorted[i];
+    if (total <= milestone.targetAmount) {
+      const rangeProgress = (total - prevAmount) / (milestone.targetAmount - prevAmount);
+      // Progress within this segment: ends at (i + 1) * segmentWidth
+      // Segment starts at i * segmentWidth
+      return (i * segmentWidth) + (rangeProgress * segmentWidth);
+    }
+    prevAmount = milestone.targetAmount;
+  }
+
+  // Final segment: beyond the last milestone to 100%
+  // We'll reach 100% when total is 10% more than the last milestone (or a fixed buffer)
+  const lastTarget = sorted[n - 1].targetAmount;
+  const ratio = Math.min(1, (total - lastTarget) / (lastTarget * 0.1 || 1000));
+  return (n * segmentWidth) + (ratio * segmentWidth);
 };
 
 // ─────────────────────────────────────────────
@@ -86,8 +105,23 @@ export function MilestonesWidget({
   const allUnlocked = sorted.every(m => m.status === 'unlocked');
   const fillPct = calcProgress(cartTotal, sorted);
 
+  useEffect(() => {
+    console.log("fillPct", fillPct);
+  }, [fillPct])
+
+  // Debug logging
+  console.log('MilestonesWidget Debug:', {
+    cartTotal,
+    milestones: sorted.map(m => ({ target: m.targetAmount, status: m.status })),
+    maxMilestone: sorted[sorted.length - 1]?.targetAmount,
+    fillPct
+  });
+
   const nextMilestone = sorted.find(m => m.status !== 'unlocked');
   const statusMsg = allUnlocked ? allUnlockedMessage : nextMilestone?.message ?? null;
+
+  const n = sorted.length;
+  const segmentWidth = 100 / (n + 1);
 
   return (
     <div style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }}>
@@ -102,13 +136,14 @@ export function MilestonesWidget({
           margin: '0 0 10px',
           lineHeight: 1.5,
           padding: '0 4px',
+          display: 'block'
         }}>
           {statusMsg}
         </p>
       )}
 
       {/* Track + Nodes wrapper */}
-      <div style={{ position: 'relative', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ position: 'relative', width: '100%', height: '85px', boxSizing: 'border-box' }}>
 
         {/* Background track — full width from left to right edge */}
         <div style={{
@@ -120,94 +155,97 @@ export function MilestonesWidget({
           backgroundColor: '#e2e8f0',
           borderRadius: '3px',
           zIndex: 0,
-        }} />
-
-        {/* Fill track — full width animated */}
-        <div style={{
-          position: 'absolute',
-          top: '38px',
-          left: '0',
-          width: `${fillPct}%`,
-          height: '5px',
-          background: `linear-gradient(90deg, ${progressBarColor}, ${progressBarColor}cc)`,
-          borderRadius: '3px',
-          zIndex: 1,
-          transition: 'width 0.6s ease',
           display: 'block'
         }} />
 
-        {/* Nodes row — flex keeps everything inside bounds */}
-        <div style={{ display: 'flex', position: 'relative', zIndex: 2 }}>
-          {sorted.map((m) => {
-            const isUnlocked = m.status === 'unlocked';
-            return (
-              <div
-                key={m.id}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px',
-                  minWidth: 0,
-                }}
-              >
-                {/* Amount label */}
-                <span style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: '#6b7280',
-                  lineHeight: '16px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  maxWidth: '100%',
-                  textAlign: 'center',
-                }}>
-                  {fmt(m.targetAmount, currency)}
-                </span>
+        {/* Fill track — full width animated */}
+        <div
+          data-fill-pct={fillPct.toFixed(2)}
+          style={{
+            position: 'absolute',
+            top: '38px',
+            left: '0',
+            width: `${fillPct}%`,
+            height: '5px',
+            background: `linear-gradient(90deg, ${progressBarColor}, ${progressBarColor}cc)`,
+            borderRadius: '3px',
+            zIndex: 1,
+            transition: 'width 0.6s ease',
+            display: 'block'
+          }}
+        />
 
-                {/* Circle */}
-                <div style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  backgroundColor: isUnlocked ? progressBarColor : '#fff',
-                  border: `2px solid ${isUnlocked ? progressBarColor : '#cbd5e1'}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '17px',
-                  flexShrink: 0,
-                  boxShadow: isUnlocked
-                    ? `0 0 0 3px ${progressBarColor}25, 0 3px 8px rgba(0,0,0,0.15)`
-                    : '0 2px 6px rgba(0,0,0,0.07)',
-                  transition: 'all 0.3s ease',
-                  position: 'relative',
-                  zIndex: 2,
-                }}>
-                  {m.icon || getDefaultIcon(m.rewardType)}
-                </div>
+        {/* Nodes layer — absolutely positioned based on segments */}
+        {sorted.map((m, i) => {
+          const isUnlocked = m.status === 'unlocked';
+          const pos = (i + 1) * segmentWidth;
+          return (
+            <div
+              key={m.id}
+              style={{
+                position: 'absolute',
+                left: `${pos}%`,
+                top: 0,
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '4px',
+                width: '80px', // fixed width for labeling
+                zIndex: 2,
+              }}
+            >
+              {/* Amount label */}
+              <span style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#6b7280',
+                lineHeight: '16px',
+                whiteSpace: 'nowrap',
+                textAlign: 'center',
+              }}>
+                {fmt(m.targetAmount, currency)}
+              </span>
 
-                {/* Title */}
-                <span style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: isUnlocked ? progressBarColor : '#6b7280',
-                  textAlign: 'center',
-                  lineHeight: '14px',
-                  maxWidth: '100%',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  padding: '0 2px',
-                }}>
-                  {m.title}
-                </span>
+              {/* Circle */}
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                backgroundColor: isUnlocked ? progressBarColor : '#fff',
+                border: `2px solid ${isUnlocked ? progressBarColor : '#cbd5e1'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '17px',
+                flexShrink: 0,
+                boxShadow: isUnlocked
+                  ? `0 0 0 3px ${progressBarColor}25, 0 3px 8px rgba(0,0,0,0.15)`
+                  : '0 2px 6px rgba(0,0,0,0.07)',
+                transition: 'all 0.3s ease',
+                position: 'relative',
+              }}>
+                {m.icon || getDefaultIcon(m.rewardType)}
               </div>
-            );
-          })}
-        </div>
+
+              {/* Title */}
+              <span style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                color: isUnlocked ? progressBarColor : '#6b7280',
+                textAlign: 'center',
+                lineHeight: '14px',
+                maxWidth: '100%',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                padding: '0 2px',
+              }}>
+                {m.title}
+              </span>
+            </div>
+          );
+        })}
       </div>
 
       {/* Upsell carousel (when products attached to next milestone) */}

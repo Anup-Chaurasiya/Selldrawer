@@ -1,7 +1,3 @@
-/**
- * Selldrawer FBT Widget v1.0.11
- * Built: 2026-03-28T18:14:21.032Z
- */
 "use strict";
 (() => {
   var __create = Object.create;
@@ -9391,13 +9387,8 @@
   var Analytics = {
     shop: ((_a = window.Shopify) == null ? void 0 : _a.shop) || window.location.hostname,
     appUrl: null,
-    version: "default",
-    // Track cart drawer version
     init(appUrl) {
       this.appUrl = appUrl;
-    },
-    setVersion(version) {
-      this.version = version || "default";
     },
     getSessionId() {
       try {
@@ -9421,8 +9412,6 @@
       const payload = {
         shop: this.shop,
         events: [__spreadProps(__spreadValues({}, event), {
-          version: this.version,
-          // Include cart drawer version
           sessionId: this.getSessionId(),
           url: window.location.href
         })]
@@ -9455,7 +9444,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://low-tunnel-tribute-that.trycloudflare.com" : "https://app.selldrawer.com";
+  var APP_URL = true ? "https://pdas-cotton-dark-enemies.trycloudflare.com" : "https://app.selldrawer.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;

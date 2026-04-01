@@ -27,7 +27,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const cartDrawer = await prisma.cartDrawer.findUnique({
     where: { shop },
@@ -44,14 +43,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const promotionalBanner = cartDrawer?.promotionalBanners[0] || null;
 
-  return json({ cartDrawer, promotionalBanner, editingVersion });
+  return json({ cartDrawer, promotionalBanner });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -468,7 +466,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
 
-    return redirect(`/app/cart-drawer?version=${editingVersion}`);
+    return redirect(`/app/cart-drawer`);
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
@@ -664,7 +662,7 @@ function CarouselPreview({
 }
 
 export default function PromotionalBanner() {
-  const { cartDrawer, promotionalBanner, editingVersion } = useLoaderData<typeof loader>();
+  const { cartDrawer, promotionalBanner } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const actionData = useActionData<typeof action>();
@@ -742,8 +740,8 @@ export default function PromotionalBanner() {
     const formData = new FormData();
     formData.append("intent", "toggle");
     formData.append("enabled", (!cartDrawer?.promotionalBannerEnabled).toString());
-    submit(formData, { method: "post", action: `/app/cart-drawer/promotional-banner?version=${editingVersion}` });
-  }, [cartDrawer?.promotionalBannerEnabled, editingVersion, submit]);
+    submit(formData, { method: "post", action: `/app/cart-drawer/promotional-banner` });
+  }, [cartDrawer?.promotionalBannerEnabled, submit]);
 
   const handleAddSlide = useCallback((data: SlideFormData) => {
     if (!promotionalBanner?.id) {
@@ -808,12 +806,12 @@ export default function PromotionalBanner() {
     formData.append("ctaTextColor", colorSettings.ctaTextColor);
     formData.append("ctaBackgroundColor", colorSettings.ctaBackgroundColor);
     formData.append("borderColor", colorSettings.borderColor);
-    submit(formData, { method: "post", action: `/app/cart-drawer/promotional-banner?version=${editingVersion}` });
-  }, [promotionalBanner?.id, carouselSettings, colorSettings, editingVersion, submit]);
+    submit(formData, { method: "post", action: `/app/cart-drawer/promotional-banner` });
+  }, [promotionalBanner?.id, carouselSettings, colorSettings, submit]);
 
   return (
     <Page
-      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
+      backAction={{ url: `/app/cart-drawer` }}
       title="Promotional Banner Configuration"
       primaryAction={{
         content: "Save changes",

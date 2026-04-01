@@ -1,7 +1,7 @@
 import * as esbuild from 'esbuild';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -10,47 +10,21 @@ const __dirname = dirname(__filename);
 function getConfig() {
   try {
     const configContent = readFileSync(join(__dirname, 'config.js'), 'utf-8');
-    const versionMatch = configContent.match(/export const VERSION = ['"](.+)['"]/);
     const appUrlMatch = configContent.match(/export const APP_URL = ['"](.+)['"]/);
     
     return {
-      version: versionMatch ? versionMatch[1] : '1.0.0',
       appUrl: appUrlMatch ? appUrlMatch[1] : 'https://app.selldrawer.com'
     };
   } catch (error) {
     return {
-      version: '1.0.0',
       appUrl: 'https://app.selldrawer.com'
     };
   }
 }
 
-// Create version banner plugin for a specific file
-function createVersionBannerPlugin(outfile, moduleName) {
-  return {
-    name: 'version-banner',
-    setup(build) {
-      build.onEnd((result) => {
-        if (result.errors.length === 0) {
-          const config = getConfig();
-          try {
-            const content = readFileSync(outfile, 'utf-8');
-            // Only add banner if it's not already there
-            if (!content.startsWith(`/**\n * Selldrawer ${moduleName}`)) {
-              const banner = `/**\n * Selldrawer ${moduleName} v${config.version}\n * Built: ${new Date().toISOString()}\n */\n`;
-              writeFileSync(outfile, banner + content);
-            }
-          } catch (error) {
-          }
-        }
-      });
-    },
-  };
-}
-
 async function watch() {
   const config = getConfig();
-  const { version, appUrl } = config;
+  const { appUrl } = config;
   
   // Watch Cart Drawer
   const cartDrawerContext = await esbuild.context({
@@ -73,11 +47,9 @@ async function watch() {
     },
     define: {
       'process.env.NODE_ENV': '"production"',
-      '__CART_DRAWER_VERSION__': `"${version}"`,
       '__APP_URL__': `"${appUrl}"`
     },
     external: [],
-    plugins: [createVersionBannerPlugin(join(__dirname, 'assets/cart-drawer.js'), 'Cart Drawer')],
   });
 
   // Watch FBT Widget
@@ -101,11 +73,9 @@ async function watch() {
     },
     define: {
       'process.env.NODE_ENV': '"production"',
-      '__FBT_VERSION__': `"${version}"`,
       '__APP_URL__': `"${appUrl}"`
     },
     external: [],
-    plugins: [createVersionBannerPlugin(join(__dirname, 'assets/fbt-widget.js'), 'FBT Widget')],
   });
 
 
@@ -131,11 +101,9 @@ async function watch() {
     },
     define: {
       'process.env.NODE_ENV': '"production"',
-      '__PROMOTIONAL_BANNER_VERSION__': `"${version}"`,
       '__APP_URL__': `"${appUrl}"`
     },
     external: [],
-    plugins: [createVersionBannerPlugin(join(__dirname, 'assets/promotional-banner.js'), 'Promotional Banner Block')],
   });
 
 

@@ -11,11 +11,6 @@ import { Analytics } from './analytics.js';
 // App URL is injected at build time from config.js
 const APP_URL = typeof __APP_URL__ !== 'undefined' ? __APP_URL__ : 'https://app.selldrawer.com';
 
-// Version info
-const VERSION = typeof __PROMOTIONAL_BANNER_VERSION__ !== 'undefined'
-  ? __PROMOTIONAL_BANNER_VERSION__
-  : '1.0.0';
-
 // Initialize promotional banner blocks
 function initPromotionalBannerBlocks() {
   // Find all promotional banner containers

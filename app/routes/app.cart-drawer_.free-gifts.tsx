@@ -32,7 +32,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   // Get cart drawer configuration
   let cartDrawer = await prisma.cartDrawer.findUnique({
@@ -174,14 +173,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.error('Error fetching collections:', error);
   }
 
-  return json({ cartDrawer, shopProducts, shopCollections, editingVersion });
+  return json({ cartDrawer, shopProducts, shopCollections });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -471,14 +469,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       where: { id: cartDrawer.id },
       data: { freeGiftsEnabled: true }
     });
-    return redirect(`/app/cart-drawer?version=${editingVersion}`);
+    return redirect(`/app/cart-drawer`);
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
 export default function FreeGifts() {
-  const { cartDrawer, shopProducts, shopCollections, editingVersion } = useLoaderData<typeof loader>();
+  const { cartDrawer, shopProducts, shopCollections } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
 
@@ -545,16 +543,16 @@ export default function FreeGifts() {
     formData.append("giftProducts", JSON.stringify(selectedGiftProducts));
     formData.append("targets", JSON.stringify(selectedTargets));
 
-    submit(formData, { method: "post", action: `/app/cart-drawer/free-gifts?version=${editingVersion}` });
+    submit(formData, { method: "post", action: `/app/cart-drawer/free-gifts` });
     setShowModal(false);
-  }, [formState, selectedGiftProducts, selectedTargets, editingFreeGift, editingVersion, submit]);
+  }, [formState, selectedGiftProducts, selectedTargets, editingFreeGift, submit]);
 
   const handleDelete = useCallback((freeGiftId: string) => {
     if (confirm("Are you sure you want to delete this free gift?")) {
       const formData = new FormData();
       formData.append("intent", "delete-free-gift");
       formData.append("freeGiftId", freeGiftId);
-      submit(formData, { method: "post", action: `/app/cart-drawer/free-gifts?version=${editingVersion}` });
+      submit(formData, { method: "post", action: `/app/cart-drawer/free-gifts` });
     }
   }, [submit]);
 
@@ -563,7 +561,7 @@ export default function FreeGifts() {
     formData.append("intent", "toggle-free-gift");
     formData.append("freeGiftId", freeGiftId);
     formData.append("isActive", (!isActive).toString());
-    submit(formData, { method: "post", action: `/app/cart-drawer/free-gifts?version=${editingVersion}` });
+    submit(formData, { method: "post", action: `/app/cart-drawer/free-gifts` });
   }, [submit]);
 
   const getFilteredProducts = () => {
@@ -646,12 +644,12 @@ export default function FreeGifts() {
   const handleEnableFreeGifts = () => {
     const formData = new FormData();
     formData.append("intent", "enable-free-gifts");
-    submit(formData, { method: "post", action: `/app/cart-drawer/free-gifts?version=${editingVersion}` });
+    submit(formData, { method: "post", action: `/app/cart-drawer/free-gifts` });
   };
 
   return (
     <Page
-      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
+      backAction={{ url: `/app/cart-drawer` }}
       title="Free Gifts Configuration"
       primaryAction={{
         content: "Save changes",

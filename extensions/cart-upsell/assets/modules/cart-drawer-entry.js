@@ -9,16 +9,12 @@ import './fbt-cart-monitor.js'; // Import FBT cart monitor (initializes automati
 // App URL is injected at build time from config.js
 const APP_URL = typeof __APP_URL__ !== 'undefined' ? __APP_URL__ : 'https://app.selldrawer.com';
 
-// Version is injected at build time
-const CART_DRAWER_VERSION = typeof __CART_DRAWER_VERSION__ !== 'undefined' ? __CART_DRAWER_VERSION__ : 'dev';
-
 // Initialize on page load
 function initializeCartDrawer() {
   if (typeof window !== 'undefined') {
     // Make APP_URL available globally for React components
     window.UPSELLITY_APP_URL = APP_URL;
     window.selldrawerDrawer = new SelldrawerCartDrawer(APP_URL);
-    window.selldrawerDrawer.version = CART_DRAWER_VERSION;
   }
 }
 

@@ -10,20 +10,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const cartDrawer = await prisma.cartDrawer.findUnique({
     where: { shop },
     include: {
       freeShippingBars: { where: { isActive: true }, orderBy: { priority: 'desc' } },
-      promotionalBanners: { 
-        where: { isActive: true }, 
-        orderBy: { priority: 'desc' },
-        include: {
-          images: { orderBy: { order: 'asc' } },
-          carouselSettings: true,
-        },
-      },
       productRecommendations: { 
         where: { isActive: true }, 
         orderBy: { priority: 'desc' },
@@ -101,7 +92,6 @@ export default function CartDrawerPreview() {
   const sampleCart = getSampleCart();
 
   const freeShippingBar = cartDrawer?.freeShippingBars[0];
-  const promotionalBanner = cartDrawer?.promotionalBanners[0];
   const productRecommendation = cartDrawer?.productRecommendations[0];
   const savingsDisplay = cartDrawer?.savingsDisplays[0];
   const freeShippingMessage = cartDrawer?.freeShippingMessages[0];
@@ -273,201 +263,6 @@ export default function CartDrawerPreview() {
                         }} 
                       />
                     </div>
-                  </div>
-                )}
-
-                {/* Promotional Banner Carousel */}
-                {cartDrawer?.promotionalBannerEnabled && promotionalBanner?.images && promotionalBanner.images.length > 0 && (
-                  <div style={{
-                    position: 'relative',
-                    borderRadius: '10px',
-                    overflow: 'hidden',
-                    height: '140px',
-                    marginBottom: '8px',
-                    backgroundColor: '#000'
-                  }}>
-                    {(() => {
-                      const currentSlide = promotionalBanner.images[0] as any;
-                      return (
-                        <>
-                          {/* Background Image or Video */}
-                          {currentSlide.videoUrl && currentSlide.videoType === 'mp4' ? (
-                            <video 
-                              src={currentSlide.videoUrl}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              muted
-                              loop
-                              autoPlay
-                              playsInline
-                            />
-                          ) : (
-                            <img 
-                              src={currentSlide.imageUrl}
-                              alt="Promotional banner"
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                          )}
-
-                          {/* Title & Description - Bottom LEFT */}
-                          {(currentSlide.title || currentSlide.description) && (
-                            <div style={{
-                              position: 'absolute',
-                              bottom: '8px',
-                              left: '8px',
-                              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                              padding: '8px 10px',
-                              borderRadius: '6px',
-                              maxWidth: '45%',
-                              backdropFilter: 'blur(10px)',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                            }}>
-                              {currentSlide.title && (
-                                <div style={{ 
-                                  fontWeight: '700', 
-                                  fontSize: '11px', 
-                                  color: '#1a1a1a',
-                                  marginBottom: currentSlide.description ? '2px' : '0',
-                                  lineHeight: '1.2'
-                                }}>
-                                  {currentSlide.title}
-                                </div>
-                              )}
-                              {currentSlide.description && (
-                                <div style={{ 
-                                  fontSize: '9px', 
-                                  color: '#4a4a4a',
-                                  lineHeight: '1.3'
-                                }}>
-                                  {currentSlide.description}
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* CTA Button - Bottom RIGHT */}
-                          {currentSlide.ctaText && (
-                            <div style={{
-                              position: 'absolute',
-                              bottom: '8px',
-                              right: '8px',
-                            }}>
-                              <button style={{
-                                backgroundColor: '#007bff',
-                                color: 'white',
-                                border: 'none',
-                                padding: '6px 12px',
-                                borderRadius: '5px',
-                                fontWeight: '600',
-                                cursor: 'pointer',
-                                fontSize: '10px',
-                                boxShadow: '0 2px 8px rgba(0, 123, 255, 0.4)',
-                                transition: 'all 0.2s ease'
-                              }}>
-                                {currentSlide.ctaText}
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Dot Indicators */}
-                          {promotionalBanner.images.length > 1 && (promotionalBanner.carouselSettings?.showDots !== false) && (
-                            <div style={{
-                              position: 'absolute',
-                              bottom: '6px',
-                              left: '50%',
-                              transform: 'translateX(-50%)',
-                              display: 'flex',
-                              gap: '4px',
-                              zIndex: 10
-                            }}>
-                              {promotionalBanner.images.map((_: any, index: number) => (
-                                <div 
-                                  key={index} 
-                                  style={{
-                                    width: '6px',
-                                    height: '6px',
-                                    borderRadius: '50%',
-                                    backgroundColor: index === 0 ? '#007bff' : 'rgba(255,255,255,0.6)',
-                                    border: '1px solid rgba(255,255,255,0.9)',
-                                    transition: 'all 0.2s ease',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
-                                  }} 
-                                />
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Navigation Arrows */}
-                          {promotionalBanner.images.length > 1 && (promotionalBanner.carouselSettings?.showArrows !== false) && (
-                            <>
-                              <button style={{
-                                position: 'absolute',
-                                left: '4px',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                backgroundColor: 'rgba(255,255,255,0.9)',
-                                borderRadius: '50%',
-                                width: '24px',
-                                height: '24px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                border: 'none',
-                                fontSize: '14px',
-                                fontWeight: 'bold',
-                                color: '#333',
-                                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                                transition: 'all 0.2s ease'
-                              }}>
-                                ‹
-                              </button>
-                              <button style={{
-                                position: 'absolute',
-                                right: '4px',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                backgroundColor: 'rgba(255,255,255,0.9)',
-                                borderRadius: '50%',
-                                width: '24px',
-                                height: '24px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                border: 'none',
-                                fontSize: '14px',
-                                fontWeight: 'bold',
-                                color: '#333',
-                                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                                transition: 'all 0.2s ease'
-                              }}>
-                                ›
-                              </button>
-                            </>
-                          )}
-
-                          {/* 5% Preview Edges */}
-                          {promotionalBanner.images.length > 1 && (
-                            <div style={{
-                              position: 'absolute',
-                              right: 0,
-                              top: 0,
-                              height: '100%',
-                              width: '5%',
-                              overflow: 'hidden',
-                              opacity: 0.4,
-                              pointerEvents: 'none'
-                            }}>
-                              <img 
-                                src={promotionalBanner.images[1].imageUrl}
-                                alt="Next"
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              />
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
                   </div>
                 )}
 

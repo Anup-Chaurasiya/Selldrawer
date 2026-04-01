@@ -15,25 +15,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shop = url.searchParams.get("shop");
   const host = url.searchParams.get("host");
   
-  try {
-    const auth = await authenticate.admin(request);
-    return { 
-      apiKey: process.env.SHOPIFY_API_KEY || "",
-      shop: auth.session.shop,
-      host: host || "",
-    };
-  } catch (error) {
-    // Only redirect if we're on the root app route and have shop/host params
-    // This prevents redirect loops when navigating between app pages
-    const url = new URL(request.url);
-    const isRootAppRoute = url.pathname === '/app' || url.pathname === '/app/';
-    
-    if (isRootAppRoute && shop && host) {
-      throw redirect(`/app?shop=${shop}&host=${host}`);
-    }
-    
-    throw error;
-  }
+  const auth = await authenticate.admin(request);
+  return { 
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+    shop: auth.session.shop,
+    host: host || "",
+  };
 };
 
 export default function App() {

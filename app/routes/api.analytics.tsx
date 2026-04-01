@@ -63,6 +63,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Validate and prepare events
     const validEvents = events.map((event: any) => ({
+      id: `${shop}_${Date.now()}_${Math.random().toString(36).substring(7)}`,
       shop,
       eventType: event.eventType,
       component: event.component,
@@ -89,6 +90,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
   } catch (error) {
+    console.error("Analytics API Error:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: {

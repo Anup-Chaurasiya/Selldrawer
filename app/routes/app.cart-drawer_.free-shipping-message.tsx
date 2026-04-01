@@ -24,7 +24,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const cartDrawer = await prisma.cartDrawer.findUnique({
     where: { shop },
@@ -35,14 +34,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const freeShippingMessage = cartDrawer?.freeShippingMessages[0] || null;
 
-  return json({ cartDrawer, freeShippingMessage, editingVersion });
+  return json({ cartDrawer, freeShippingMessage });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -123,14 +121,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       data: { freeShippingMessageEnabled: true },
     });
 
-    return redirect(`/app/cart-drawer?version=${editingVersion}`);
+    return redirect(`/app/cart-drawer`);
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
 export default function FreeShippingMessage() {
-  const { cartDrawer, freeShippingMessage, editingVersion } = useLoaderData<typeof loader>();
+  const { cartDrawer, freeShippingMessage } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const actionData = useActionData<typeof action>();
@@ -183,7 +181,7 @@ export default function FreeShippingMessage() {
     const formData = new FormData();
     formData.append("intent", "toggle");
     formData.append("enabled", (!cartDrawer?.freeShippingMessageEnabled).toString());
-    submit(formData, { method: "post", action: `/app/cart-drawer/free-shipping-message?version=${editingVersion}` });
+    submit(formData, { method: "post", action: `/app/cart-drawer/free-shipping-message` });
   }, [cartDrawer?.freeShippingMessageEnabled, submit]);
 
   const handleSubmit = useCallback(() => {
@@ -192,12 +190,12 @@ export default function FreeShippingMessage() {
     Object.entries(formState).forEach(([key, value]) => {
       formData.append(key, value.toString());
     });
-    submit(formData, { method: "post", action: `/app/cart-drawer/free-shipping-message?version=${editingVersion}` });
+    submit(formData, { method: "post", action: `/app/cart-drawer/free-shipping-message` });
   }, [formState, submit]);
 
   return (
     <Page
-      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
+      backAction={{ url: `/app/cart-drawer` }}
       title="Free Shipping Configuration"
       primaryAction={{
         content: "Save changes",

@@ -1,14 +1,9 @@
 export const Analytics = {
   shop: window.Shopify?.shop || window.location.hostname,
   appUrl: null,
-  version: 'default',  // Track cart drawer version
 
   init(appUrl) {
     this.appUrl = appUrl;
-  },
-
-  setVersion(version) {
-    this.version = version || 'default';
   },
 
   getSessionId() {
@@ -38,7 +33,6 @@ export const Analytics = {
       shop: this.shop,
       events: [{
         ...event,
-        version: this.version,  // Include cart drawer version
         sessionId: this.getSessionId(),
         url: window.location.href
       }]

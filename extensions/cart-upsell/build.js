@@ -1,7 +1,7 @@
 import * as esbuild from 'esbuild';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -10,16 +10,13 @@ const __dirname = dirname(__filename);
 function getConfig() {
   try {
     const configContent = readFileSync(join(__dirname, 'config.js'), 'utf-8');
-    const versionMatch = configContent.match(/export const VERSION = ['"](.+)['"]/);
     const appUrlMatch = configContent.match(/export const APP_URL = ['"](.+)['"]/);
 
     return {
-      version: versionMatch ? versionMatch[1] : '1.0.0',
       appUrl: appUrlMatch ? appUrlMatch[1] : 'https://app.selldrawer.com'
     };
   } catch (error) {
     return {
-      version: '1.0.0',
       appUrl: 'https://app.selldrawer.com'
     };
   }
@@ -28,7 +25,7 @@ function getConfig() {
 async function build() {
   try {
     const config = getConfig();
-    const { version, appUrl } = config;
+    const { appUrl } = config;
 
     // Build Cart Drawer
     await esbuild.build({
@@ -51,18 +48,10 @@ async function build() {
       },
       define: {
         'process.env.NODE_ENV': '"production"',
-        '__CART_DRAWER_VERSION__': `"${version}"`,
         '__APP_URL__': `"${appUrl}"`
       },
       external: [],
     });
-
-    // Add version banner to cart-drawer
-    const cartDrawerFile = join(__dirname, 'assets/cart-drawer.js');
-    const cartDrawerContent = readFileSync(cartDrawerFile, 'utf-8');
-    const cartDrawerBanner = `/**\n * Selldrawer Cart Drawer v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
-    writeFileSync(cartDrawerFile, cartDrawerBanner + cartDrawerContent);
-
 
     // Build FBT Widget
     await esbuild.build({
@@ -85,21 +74,10 @@ async function build() {
       },
       define: {
         'process.env.NODE_ENV': '"production"',
-        '__FBT_VERSION__': `"${version}"`,
         '__APP_URL__': `"${appUrl}"`
       },
       external: [],
     });
-
-    // Add version banner to fbt-widget
-    const fbtWidgetFile = join(__dirname, 'assets/fbt-widget.js');
-    const fbtWidgetContent = readFileSync(fbtWidgetFile, 'utf-8');
-    const fbtWidgetBanner = `/**\n * Selldrawer FBT Widget v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
-    writeFileSync(fbtWidgetFile, fbtWidgetBanner + fbtWidgetContent);
-
-
-
-
 
     // Build Promotional Banner Block
     await esbuild.build({
@@ -122,20 +100,10 @@ async function build() {
       },
       define: {
         'process.env.NODE_ENV': '"production"',
-        '__PROMOTIONAL_BANNER_VERSION__': `"${version}"`,
         '__APP_URL__': `"${appUrl}"`
       },
       external: [],
     });
-
-    // Add version banner to promotional-banner
-    const promotionalBannerFile = join(__dirname, 'assets/promotional-banner.js');
-    const promotionalBannerContent = readFileSync(promotionalBannerFile, 'utf-8');
-    const promotionalBannerBanner = `/**\n * Selldrawer Promotional Banner Block v${version}\n * Built: ${new Date().toISOString()}\n */\n`;
-    writeFileSync(promotionalBannerFile, promotionalBannerBanner + promotionalBannerContent);
-
-
-
 
   } catch (error) {
     process.exit(1);

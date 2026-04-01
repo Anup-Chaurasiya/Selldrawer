@@ -25,7 +25,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const cartDrawer = await prisma.cartDrawer.findUnique({
     where: { shop },
@@ -36,14 +35,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const savingsDisplay = cartDrawer?.savingsDisplays[0] || null;
 
-  return json({ cartDrawer, savingsDisplay, editingVersion });
+  return json({ cartDrawer, savingsDisplay });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -121,14 +119,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       data: { savingsDisplayEnabled: true },
     });
 
-    return redirect(`/app/cart-drawer?version=${editingVersion}`);
+    return redirect(`/app/cart-drawer`);
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
 export default function SavingsDisplay() {
-  const { cartDrawer, savingsDisplay, editingVersion } = useLoaderData<typeof loader>();
+  const { cartDrawer, savingsDisplay } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const actionData = useActionData<typeof action>();
@@ -178,7 +176,7 @@ export default function SavingsDisplay() {
     const formData = new FormData();
     formData.append("intent", "toggle");
     formData.append("enabled", (!cartDrawer?.savingsDisplayEnabled).toString());
-    submit(formData, { method: "post", action: `/app/cart-drawer/savings-display?version=${editingVersion}` });
+    submit(formData, { method: "post", action: `/app/cart-drawer/savings-display` });
   }, [cartDrawer?.savingsDisplayEnabled, submit]);
 
   const handleSubmit = useCallback(() => {
@@ -187,12 +185,12 @@ export default function SavingsDisplay() {
     Object.entries(formState).forEach(([key, value]) => {
       formData.append(key, value.toString());
     });
-    submit(formData, { method: "post", action: `/app/cart-drawer/savings-display?version=${editingVersion}` });
+    submit(formData, { method: "post", action: `/app/cart-drawer/savings-display` });
   }, [formState, submit]);
 
   return (
     <Page
-      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
+      backAction={{ url: `/app/cart-drawer` }}
       title="Savings Display"
       primaryAction={{
         content: "Save",

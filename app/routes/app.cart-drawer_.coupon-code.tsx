@@ -26,7 +26,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   // Ensure CartDrawer exists
   let cartDrawer = await prisma.cartDrawer.findUnique({
@@ -59,14 +58,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
   }
 
-  return json({ cartDrawer, couponCodeField, editingVersion });
+  return json({ cartDrawer, couponCodeField });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -121,14 +119,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       create: { id: crypto.randomUUID(), ...data, shop, updatedAt: new Date() },
     });
 
-    return redirect(`/app/cart-drawer?version=${editingVersion}`);
+    return redirect(`/app/cart-drawer`);
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
 export default function CouponCode() {
-  const { cartDrawer, couponCodeField, editingVersion } = useLoaderData<typeof loader>();
+  const { cartDrawer, couponCodeField } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const actionData = useActionData<typeof action>();
@@ -185,7 +183,7 @@ export default function CouponCode() {
     const formData = new FormData();
     formData.append("intent", "toggle");
     formData.append("enabled", (!cartDrawer?.couponCodeFieldEnabled).toString());
-    submit(formData, { method: "post", action: `/app/cart-drawer/coupon-code?version=${editingVersion}` });
+    submit(formData, { method: "post", action: `/app/cart-drawer/coupon-code` });
   }, [cartDrawer?.couponCodeFieldEnabled, submit]);
 
   const handleSubmit = useCallback(() => {
@@ -194,12 +192,12 @@ export default function CouponCode() {
     Object.entries(formState).forEach(([key, value]) => {
       formData.append(key, value.toString());
     });
-    submit(formData, { method: "post", action: `/app/cart-drawer/coupon-code?version=${editingVersion}` });
+    submit(formData, { method: "post", action: `/app/cart-drawer/coupon-code` });
   }, [formState, submit]);
 
   return (
     <Page
-      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
+      backAction={{ url: `/app/cart-drawer` }}
       title="Coupon Code Configuration"
       primaryAction={{
         content: "Save changes",

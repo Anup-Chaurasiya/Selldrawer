@@ -380,27 +380,52 @@ model FreeShippingMessage {
 }
 
 model FreeShippingProgressBar {
-  id                     String     @id
+  id                     String                           @id
   cartDrawerId           String
   shop                   String
-  isActive               Boolean    @default(true)
-  priority               Int        @default(0)
+  isActive               Boolean                          @default(true)
+  priority               Int                              @default(0)
   thresholdAmount        Decimal?
-  currency               String     @default("INR")
-  beforeThresholdMessage String     @default("Add {remaining} for FREE shipping")
-  afterThresholdMessage  String     @default("You've unlocked FREE shipping!")
-  progressBarColor       String     @default("#FF6B35")
-  backgroundColor        String     @default("#F3F4F6")
-  borderColor            String     @default("#e2e8f0")
-  showPercentage         Boolean    @default(true)
-  createdAt              DateTime   @default(now())
+  currency               String                           @default("INR")
+  beforeThresholdMessage String                           @default("Add {remaining} for FREE shipping")
+  afterThresholdMessage  String                           @default("You've unlocked FREE shipping!")
+  progressBarColor       String                           @default("#FF6B35")
+  backgroundColor        String                           @default("#F3F4F6")
+  borderColor            String                           @default("#e2e8f0")
+  showPercentage         Boolean                          @default(true)
+  createdAt              DateTime                         @default(now())
   updatedAt              DateTime
-  thresholdMode          String     @default("amount")
+  thresholdMode          String                           @default("amount")
   thresholdCount         Int?
-  cartDrawer             CartDrawer @relation("freeShippingBars", fields: [cartDrawerId], references: [id], onDelete: Cascade)
+  showProductUpsell      Boolean                          @default(true)
+  upsellHeaderText       String?                          @default("Almost there! Add this to unlock free shipping:")
+  eligibilitySource      String?                          @default("none")
+  eligibleCollectionHandle String?
+  eligibleProductIds     String[]                         @default([])
+  cartDrawer             CartDrawer                       @relation("freeShippingBars", fields: [cartDrawerId], references: [id], onDelete: Cascade)
+  upsellProducts         FreeShippingUpsellProduct[]      @relation("upsellProducts")
 
   @@index([cartDrawerId])
   @@index([shop, isActive])
+}
+
+model FreeShippingUpsellProduct {
+  id               String                  @id
+  barId            String
+  shopifyProductId String
+  shopifyVariantId String?
+  title            String
+  price            Decimal
+  compareAtPrice   Decimal?
+  imageUrl         String?
+  handle           String
+  position         Int                     @default(0)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime
+  freeShippingBar  FreeShippingProgressBar @relation("upsellProducts", fields: [barId], references: [id], onDelete: Cascade)
+
+  @@index([barId])
+  @@index([position])
 }
 
 model FrequentlyBoughtTogether {

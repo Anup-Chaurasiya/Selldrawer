@@ -51,15 +51,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           where: { isActive: true },
           orderBy: { priority: 'desc' },
           take: 1,
-        },
-        promotionalBanners: {
-          where: { isActive: true },
-          orderBy: { priority: 'desc' },
           include: {
-            images: {
-              orderBy: { order: 'asc' },
+            upsellProducts: {
+              orderBy: { position: 'asc' },
             },
-            carouselSettings: true,
           },
         },
         productRecommendations: {
@@ -106,13 +101,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         },
         include: {
           freeShippingBars: { where: { isActive: true } },
-          promotionalBanners: {
-            where: { isActive: true },
-            include: {
-              images: { orderBy: { order: 'asc' } },
-              carouselSettings: true,
-            },
-          },
           productRecommendations: {
             where: { isActive: true },
             include: {
@@ -154,14 +142,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       return cors(request, response);
     }
 
-    // Filter promotional banners by date
-    const now = new Date();
-    const activePromotionalBanners = cartDrawer.promotionalBanners.filter(banner => {
-      if (banner.startDate && new Date(banner.startDate) > now) return false;
-      if (banner.endDate && new Date(banner.endDate) < now) return false;
-      return true;
-    });
-
     if (cartDrawer) {
       cartDrawer.featureOrder = featureOrder ?? cartDrawer.featureOrder;
     }
@@ -188,9 +168,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       freeShippingProgressBar: cartDrawer.freeShippingProgressBarEnabled && cartDrawer.freeShippingBars[0]
         ? cartDrawer.freeShippingBars[0]
         : null,
-      promotionalBanner: cartDrawer.promotionalBannerEnabled
-        ? activePromotionalBanners[0]
-        : null,
       productRecommendations,
       couponCodeField: cartDrawer.couponCodeFieldEnabled && couponCodeField?.isActive
         ? couponCodeField
@@ -216,6 +193,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       primaryColor: cartDrawer.primaryColor,
       featureOrder: featureOrder ?? [],
       shop, // Add shop domain for milestone upsell API calls
+      appUrl: process.env.APP_URL || `https://${request.headers.get('host')}`,
       features,
     }, {
       headers: {

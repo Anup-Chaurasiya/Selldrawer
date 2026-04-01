@@ -46,7 +46,6 @@ import {
 import { checkAppEmbedEnabled } from "../utils/appEmbed.server";
 import { checkPlanAccess } from "../utils/planAccess.server";
 import { requireBilling } from "../utils/billing.server";
-import { PromotionalBannerCard } from "../components/shared/PromotionalBannerCard";
 import { ProductRecommendations } from "../components/shared/ProductRecommendations";
 import { FreeShippingBar } from "../components/shared/FreeShippingBar";
 import { SavingsDisplay } from "../components/shared/SavingsDisplay";
@@ -56,31 +55,6 @@ import { CartTotals } from "../components/shared/CartTotals";
 import { CartItems } from "../components/shared/CartItems";
 import { MilestonesWidget } from "../components/shared/MilestonesWidget";
 import { FreeGiftSelector } from "../components/shared/FreeGiftSelector";
-
-// Wrapper component for the preview with state management
-function PromotionalBannerPreview({
-  slides,
-  carouselSettings,
-  promotionalBanner
-}: {
-  slides: any[];
-  carouselSettings?: any;
-  promotionalBanner?: any;
-}) {
-  return (
-    <PromotionalBannerCard
-      slides={slides}
-      carouselSettings={carouselSettings}
-      titleColor={promotionalBanner?.titleColor || '#111827'}
-      descriptionColor={promotionalBanner?.descriptionColor || '#6b7280'}
-      ctaTextColor={promotionalBanner?.ctaTextColor || '#374151'}
-      ctaBackgroundColor={promotionalBanner?.ctaBackgroundColor || '#f3f4f6'}
-      borderColor={promotionalBanner?.borderColor || '#e5e7eb'}
-      onCtaClick={() => { }}
-      isPreview={true}
-    />
-  );
-}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing, session, admin } = await authenticate.admin(request);
@@ -105,13 +79,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     where: { shop },
     include: {
       freeShippingBars: { where: { isActive: true } },
-      promotionalBanners: {
-        where: { isActive: true },
-        include: {
-          images: { orderBy: { order: 'asc' } },
-          carouselSettings: true,
-        }
-      },
       productRecommendations: {
         where: { isActive: true },
         include: {
@@ -153,12 +120,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       },
       include: {
         freeShippingBars: true,
-        promotionalBanners: {
-          include: {
-            images: { orderBy: { order: 'asc' } },
-            carouselSettings: true,
-          }
-        },
         productRecommendations: {
           include: {
             products: { orderBy: { position: 'asc' } },
@@ -189,15 +150,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (cartDrawer.freeShippingProgressBarEnabled && cartDrawer.freeShippingBars.length === 0) {
     updateData.freeShippingProgressBarEnabled = false;
-  }
-
-  // Check promotional banner: needs to have either images or at least a banner record
-  const hasPromotionalBannerData = cartDrawer.promotionalBanners.length > 0 &&
-    cartDrawer.promotionalBanners.some(banner =>
-      (banner.images && banner.images.length > 0) || (banner.imageUrls && banner.imageUrls.length > 0) || banner.title
-    );
-  if (cartDrawer.promotionalBannerEnabled && !hasPromotionalBannerData) {
-    updateData.promotionalBannerEnabled = false;
   }
 
   // Check product recommendations: needs to have products
@@ -233,13 +185,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       data: updateData,
       include: {
         freeShippingBars: { where: { isActive: true } },
-        promotionalBanners: {
-          where: { isActive: true },
-          include: {
-            images: { orderBy: { order: 'asc' } },
-            carouselSettings: true,
-          }
-        },
         productRecommendations: {
           where: { isActive: true },
           include: {
@@ -349,17 +294,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return redirect(`/app/cart-drawer?error=free-shipping-bar-not-configured`);
       }
 
-      // Check promotional banner: needs to have images or banner data
-      if (featureId === 'promotional-banner') {
-        const hasBannerData = cartDrawer.promotionalBanners.length > 0 &&
-          cartDrawer.promotionalBanners.some(banner =>
-            (banner.images && banner.images.length > 0) || (banner.imageUrls && banner.imageUrls.length > 0) || banner.title
-          );
-        if (!hasBannerData) {
-          return redirect(`/app/cart-drawer?error=promotional-banner-not-configured`);
-        }
-      }
-
       // Check product recommendations: needs to have products
       if (featureId === 'product-recommendations') {
         const hasProducts = cartDrawer.productRecommendations.length > 0 &&
@@ -402,7 +336,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Map feature IDs to their corresponding database fields
     const featureFieldMap: { [key: string]: any } = {
       'free-shipping-bar': { freeShippingProgressBarEnabled: enabled },
-      'promotional-banner': { promotionalBannerEnabled: enabled },
       'product-recommendations': { productRecommendationsEnabled: enabled },
       'coupon-code': { couponCodeFieldEnabled: enabled },
       'savings-display': { savingsDisplayEnabled: enabled },
@@ -462,7 +395,6 @@ function MiniCartDrawerPreview({
   featureOrder: string[];
 }) {
   const freeShippingBar = cartDrawer?.freeShippingBars?.[0];
-  const promotionalBanner = cartDrawer?.promotionalBanners?.[0];
   const productRecommendation = cartDrawer?.productRecommendations?.[0];
   const savingsDisplay = cartDrawer?.savingsDisplays?.[0];
   const freeShippingMessage = cartDrawer?.freeShippingMessages?.[0];
@@ -551,17 +483,6 @@ function MiniCartDrawerPreview({
               currency="INR"
               cart={sampleCart}
               isPreview={true}
-            />
-          )
-        );
-
-      case 'promotional-banner':
-        return (
-          cartDrawer?.promotionalBannerEnabled && (
-            <PromotionalBannerPreview
-              slides={promotionalBanner?.images || []}
-              carouselSettings={promotionalBanner?.carouselSettings}
-              promotionalBanner={promotionalBanner}
             />
           )
         );
@@ -884,9 +805,6 @@ export default function CartDrawerIndex() {
   const navigate = useNavigate();
   const navigation = useNavigation();
 
-  // Check if we're loading a different version
-  const isLoadingVersion = navigation.state === 'loading' && navigation.location?.search.includes('version=');
-
   // Check if we need to redirect for billing
   if ('billingRedirectUrl' in loaderData) {
     if (typeof window !== 'undefined') {
@@ -1003,21 +921,6 @@ export default function CartDrawerIndex() {
       count: cartDrawer.freeGifts.length,
       path: '/app/cart-drawer/free-gifts',
       isConfigured: cartDrawer.freeGifts.length > 0,
-    },
-    {
-      id: 'promotional-banner',
-      title: 'In-Cart Offers & Deals',
-      description: 'Display promotional offers and sales in the cart',
-      icon: MegaphoneIcon,
-      enabled: cartDrawer.promotionalBannerEnabled,
-      count: cartDrawer.promotionalBanners.length,
-      path: '/app/cart-drawer/promotional-banner',
-      isConfigured: cartDrawer.promotionalBanners.length > 0 &&
-        cartDrawer.promotionalBanners.some(banner =>
-          (banner.images && banner.images.length > 0) ||
-          (banner.imageUrls && banner.imageUrls.length > 0) ||
-          banner.title
-        ),
     },
     {
       id: 'product-recommendations',
@@ -1161,24 +1064,11 @@ export default function CartDrawerIndex() {
         }
       `}</style>
 
-      {/* Loading Overlay */}
-      {isLoadingVersion && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(2px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
-        }}>
-          <Spinner size="small" />
-        </div>
-      )}
-
       <div style={{
         display: 'flex',
         gap: '24px',
         minHeight: 'calc(100vh - 200px)',
         padding: '0',
-        opacity: isLoadingVersion ? 0.5 : 1,
-        pointerEvents: isLoadingVersion ? 'none' : 'auto',
         transition: 'opacity 0.2s',
         paddingTop: '16px'
       }}>

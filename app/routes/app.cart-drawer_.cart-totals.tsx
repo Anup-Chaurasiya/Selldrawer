@@ -24,7 +24,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const cartDrawer = await prisma.cartDrawer.findUnique({
     where: { shop },
@@ -35,14 +34,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const cartTotals = cartDrawer?.cartTotals[0] || null;
 
-  return json({ cartDrawer, cartTotals, editingVersion });
+  return json({ cartDrawer, cartTotals });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -129,14 +127,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       data: { cartTotalsEnabled: true },
     });
 
-    return redirect(`/app/cart-drawer?version=${editingVersion}`);
+    return redirect(`/app/cart-drawer`);
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
 export default function CartTotals() {
-  const { cartDrawer, cartTotals, editingVersion } = useLoaderData<typeof loader>();
+  const { cartDrawer, cartTotals } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const actionData = useActionData<typeof action>();
@@ -195,7 +193,7 @@ export default function CartTotals() {
     const formData = new FormData();
     formData.append("intent", "toggle");
     formData.append("enabled", (!cartDrawer?.cartTotalsEnabled).toString());
-    submit(formData, { method: "post", action: `/app/cart-drawer/cart-totals?version=${editingVersion}` });
+    submit(formData, { method: "post", action: `/app/cart-drawer/cart-totals` });
   }, [cartDrawer?.cartTotalsEnabled, submit]);
 
   const handleSubmit = useCallback(() => {
@@ -204,7 +202,7 @@ export default function CartTotals() {
     Object.entries(formState).forEach(([key, value]) => {
       formData.append(key, value.toString());
     });
-    submit(formData, { method: "post", action: `/app/cart-drawer/cart-totals?version=${editingVersion}` });
+    submit(formData, { method: "post", action: `/app/cart-drawer/cart-totals` });
   }, [formState, submit]);
 
   // Sample cart data for preview
@@ -233,7 +231,7 @@ export default function CartTotals() {
 
   return (
     <Page
-      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
+      backAction={{ url: `/app/cart-drawer` }}
       title="Cart Totals Configuration"
       primaryAction={{
         content: "Save changes",

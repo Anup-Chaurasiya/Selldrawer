@@ -35,7 +35,10 @@ import { Analytics } from './analytics.js';
 export class SelldrawerCartDrawer {
   constructor(appUrl) {
     this.appUrl = appUrl;
-    this.shop = window.Shopify?.shop || null;
+    this.shop =
+      (typeof window !== 'undefined' && window.selldrawer_config?.shop) ||
+      window.Shopify?.shop ||
+      null;
     this.config = null;
     this.isOpen = false;
     this.cart = null;
@@ -98,11 +101,6 @@ export class SelldrawerCartDrawer {
       });
       this.config = await response.json();
 
-      // Set analytics version from config response
-      if (this.config._version) {
-        Analytics.setVersion(this.config._version);
-      }
-
       // Load milestones if enabled
       if (this.config?.features?.milestonesEnabled) {
         await this.loadMilestones();
@@ -120,6 +118,18 @@ export class SelldrawerCartDrawer {
 
   async loadFreeGifts() {
     try {
+      // Guard: Ensure config exists before proceeding
+      if (!this.config) {
+        console.warn('Selldrawer: Config not loaded, skipping free gifts');
+        return;
+      }
+
+      // Guard: Ensure cart exists before proceeding
+      if (!this.cart) {
+        console.warn('Selldrawer: Cart not loaded, skipping free gifts');
+        return;
+      }
+
       // Prevent concurrent gift syncing to avoid infinite loops
       if (this.isSyncingGifts) {
         console.log('Selldrawer Free Gifts: Already syncing, skipping');
@@ -174,6 +184,18 @@ export class SelldrawerCartDrawer {
       const appUrl = this.appUrl;
       if (!appUrl) return;
 
+      // Guard: Ensure config exists before proceeding
+      if (!this.config) {
+        console.warn('Selldrawer: Config not loaded, skipping milestones');
+        return;
+      }
+
+      // Guard: Ensure cart exists before proceeding
+      if (!this.cart) {
+        console.warn('Selldrawer: Cart not loaded, skipping milestones');
+        return;
+      }
+
       // CRITICAL FIX: Use original cart total (before discounts) for milestone calculation
       // This ensures milestones are calculated from the original cart value, not the discounted subtotal
       const cartTotalInCents = MilestoneRewardManager.calculateCartTotalExcludingGifts(this.cart);
@@ -214,12 +236,12 @@ export class SelldrawerCartDrawer {
       }
 
       // Store progress bar color if provided (always update, even if milestones is empty)
-      if (data.progressBarColor) {
+      if (data.progressBarColor && this.config.features) {
         this.config.features.milestonesProgressBarColor = data.progressBarColor;
       }
 
       // Store all unlocked message if provided (always update, even if milestones is empty)
-      if (data.allUnlockedMessage) {
+      if (data.allUnlockedMessage && this.config.features) {
         this.config.features.milestonesAllUnlockedMessage = data.allUnlockedMessage;
       }
     } catch (error) {
@@ -230,6 +252,12 @@ export class SelldrawerCartDrawer {
   async handleMilestoneRewards() {
     if (this.isSyncingGifts) {
       console.log('Selldrawer Milestones: Already syncing, skipping');
+      return;
+    }
+
+    // Guard: Ensure cart exists before proceeding
+    if (!this.cart) {
+      console.warn('Selldrawer: Cart not loaded, skipping milestone rewards');
       return;
     }
 
@@ -336,6 +364,12 @@ export class SelldrawerCartDrawer {
         await this.loadMilestones();
       } else {
         // If milestones are disabled, remove any milestone gifts from cart
+        // Guard: Ensure cart exists before proceeding
+        if (!this.cart) {
+          console.warn('Selldrawer: Cart not loaded, skipping milestone cleanup');
+          return;
+        }
+
         const allGifts = MilestoneRewardManager.getAllGiftsInCart(this.cart);
         if (allGifts.length > 0) {
           let cartModified = false;
@@ -588,6 +622,12 @@ export class SelldrawerCartDrawer {
 
   render() {
     if (!this.cart) return;
+    
+    // Guard: Ensure config exists before rendering
+    if (!this.config) {
+      console.warn('Selldrawer: Config not loaded, skipping render');
+      return;
+    }
 
     const drawer = document.getElementById('selldrawer-cart-drawer');
     if (!drawer) {
@@ -637,7 +677,6 @@ export class SelldrawerCartDrawer {
         onApplyCoupon: (code) => this.applyCouponWithCode(code),
         onRemoveDiscount: () => this.removeDiscount(),
         onSwitchDiscount: (code) => this.switchDiscount(code),
-        onSlideCtaClick: (url) => this.handleSlideCtaClick(url),
         onSelectGift: (giftId, variantId) => this.handleSelectGift(giftId, variantId),
         onImpression: () => {
           Analytics.track({
@@ -699,6 +738,12 @@ export class SelldrawerCartDrawer {
 
   async loadSecondaryData() {
     try {
+      // Guard: Ensure cart exists before proceeding
+      if (!this.cart) {
+        console.warn('Selldrawer: Cart not loaded, skipping secondary data');
+        return;
+      }
+
       // Load all product-related secondary data in parallel
       const promises = [
         ProductLoader.loadProductCompareAtPrices(this.cart),
@@ -743,13 +788,6 @@ export class SelldrawerCartDrawer {
         // Ignore errors during unmount
       }
       this.reactRoot = null;
-    }
-  }
-
-  // Handle promotional banner CTA clicks
-  handleSlideCtaClick(url) {
-    if (url) {
-      window.location.href = url;
     }
   }
 

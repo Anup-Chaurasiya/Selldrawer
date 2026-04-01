@@ -9,7 +9,7 @@ import { FreeShippingBar } from '../../../../../app/components/shared/FreeShippi
 
 const CONTAINER_ID = 'selldrawer-free-shipping-bar-root';
 
-export function renderFreeShippingBar(config, cart, reactRoots = {}) {
+export function renderFreeShippingBar(config, cart, reactRoots = {}, onAddProduct = null) {
   const bar = config?.features?.freeShippingProgressBar;
   
   if (!bar) {
@@ -34,7 +34,12 @@ export function renderFreeShippingBar(config, cart, reactRoots = {}) {
       showPercentage: bar.showPercentage ?? true,
       currency: bar.currency || 'INR',
       cart: cart,
-      isPreview: false
+      isPreview: false,
+      showProductUpsell: bar.showProductUpsell ?? true,
+      upsellHeaderText: bar.upsellHeaderText || "Almost there! Add this to unlock free shipping:",
+      appUrl: config?.appUrl || window.selldrawer_config?.appUrl,
+      shop: config?.shop || window.selldrawer_config?.shop || window.Shopify?.shop,
+      onAddProduct: onAddProduct,
     };
 
     // Reuse existing root or create new one

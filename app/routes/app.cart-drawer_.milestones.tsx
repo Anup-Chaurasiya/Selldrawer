@@ -35,7 +35,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   // Get cart drawer configuration
   let cartDrawer = await prisma.cartDrawer.findUnique({
@@ -58,7 +57,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       data: { 
         id: crypto.randomUUID(),
         shop, 
-        version: editingVersion,
         updatedAt: new Date(),
       },
       include: {
@@ -178,14 +176,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.error('Error fetching collections:', error);
   }
 
-  return json({ cartDrawer, shopProducts, shopCollections, editingVersion });
+  return json({ cartDrawer, shopProducts, shopCollections });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -200,7 +197,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       data: { 
         id: crypto.randomUUID(),
         shop, 
-        version: editingVersion 
+        
       }
     });
   }
@@ -603,14 +600,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       } as any
     });
 
-    return redirect(`/app/cart-drawer?version=${editingVersion}`);
+    return redirect(`/app/cart-drawer`);
   }
 
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
 export default function CartMilestones() {
-  const { cartDrawer, shopProducts, shopCollections, editingVersion } = useLoaderData<typeof loader>();
+  const { cartDrawer, shopProducts, shopCollections } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
 
@@ -787,16 +784,16 @@ export default function CartMilestones() {
     }
     // For 'all_products' and 'none', no specific eligibility data needed
 
-    submit(formData, { method: "post", action: `/app/cart-drawer/milestones?version=${editingVersion}` });
+    submit(formData, { method: "post", action: `/app/cart-drawer/milestones` });
     setShowMilestoneModal(false);
-  }, [formState, selectedTargets, selectedGiftProducts, editingMilestone, eligibilitySource, eligibleCollectionHandle, eligibleProductIds, eligibleTag, editingVersion, submit]);
+  }, [formState, selectedTargets, selectedGiftProducts, editingMilestone, eligibilitySource, eligibleCollectionHandle, eligibleProductIds, eligibleTag, submit]);
 
   const handleDeleteMilestone = useCallback((milestoneId: string) => {
     if (confirm("Are you sure you want to delete this milestone?")) {
       const formData = new FormData();
       formData.append("intent", "delete-milestone");
       formData.append("milestoneId", milestoneId);
-      submit(formData, { method: "post", action: `/app/cart-drawer/milestones?version=${editingVersion}` });
+      submit(formData, { method: "post", action: `/app/cart-drawer/milestones` });
     }
   }, [submit]);
 
@@ -805,7 +802,7 @@ export default function CartMilestones() {
     formData.append("intent", "toggle-milestone");
     formData.append("milestoneId", milestoneId);
     formData.append("isActive", (!isActive).toString());
-    submit(formData, { method: "post", action: `/app/cart-drawer/milestones?version=${editingVersion}` });
+    submit(formData, { method: "post", action: `/app/cart-drawer/milestones` });
   }, [submit]);
 
   const getRewardTypeLabel = (type: string) => {
@@ -971,12 +968,12 @@ export default function CartMilestones() {
     formData.append("intent", "save-global-settings");
     formData.append("progressBarColor", globalSettings.progressBarColor);
     formData.append("allUnlockedMessage", globalSettings.allUnlockedMessage);
-    submit(formData, { method: "post", action: `/app/cart-drawer/milestones?version=${editingVersion}` });
+    submit(formData, { method: "post", action: `/app/cart-drawer/milestones` });
   }, [globalSettings, submit]);
 
   return (
     <Page
-      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
+      backAction={{ url: `/app/cart-drawer` }}
       title="Cart Milestones"
       primaryAction={{
         content: "Save",

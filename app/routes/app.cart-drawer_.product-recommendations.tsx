@@ -30,7 +30,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const cartDrawer = await prisma.cartDrawer.findUnique({
     where: { shop },
@@ -135,14 +134,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
 
-  return json({ cartDrawer, productRecommendation, shopProducts, editingVersion });
+  return json({ cartDrawer, productRecommendation, shopProducts });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
-  const editingVersion = url.searchParams.get("version") || "default";
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -345,7 +343,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
     }
 
-    return redirect(`/app/cart-drawer?version=${editingVersion}`, {
+    return redirect(`/app/cart-drawer`, {
       headers: {
         "Cache-Control": "no-cache, no-store, must-revalidate",
       }
@@ -356,7 +354,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function ProductRecommendations() {
-  const { cartDrawer, productRecommendation, shopProducts, editingVersion } = useLoaderData<typeof loader>();
+  const { cartDrawer, productRecommendation, shopProducts } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const revalidator = useRevalidator();
@@ -447,14 +445,14 @@ export default function ProductRecommendations() {
     formData.append("enabled", (!cartDrawer?.productRecommendationsEnabled).toString());
     submit(formData, {
       method: "post",
-      action: `/app/cart-drawer/product-recommendations?version=${editingVersion}`
+      action: `/app/cart-drawer/product-recommendations`
       // Revalidate after submission to update UI instantly
     });
     // Revalidate immediately after toggle to ensure UI updates
     setTimeout(() => {
       revalidator.revalidate();
     }, 100);
-  }, [cartDrawer?.productRecommendationsEnabled, submit, revalidator, editingVersion]);
+  }, [cartDrawer?.productRecommendationsEnabled, submit, revalidator]);
 
   const handleProductToggle = useCallback((productId: string) => {
     setSelectedProducts(prev => {
@@ -474,8 +472,8 @@ export default function ProductRecommendations() {
       formData.append(key, value.toString());
     });
     formData.append("selectedProducts", JSON.stringify(selectedProducts));
-    submit(formData, { method: "post", action: `/app/cart-drawer/product-recommendations?version=${editingVersion}` });
-  }, [formState, selectedProducts, submit, editingVersion]);
+    submit(formData, { method: "post", action: `/app/cart-drawer/product-recommendations` });
+  }, [formState, selectedProducts, submit]);
 
   // Filter products based on search query
   const filteredProducts = shopProducts.filter((product: any) =>
@@ -485,7 +483,7 @@ export default function ProductRecommendations() {
 
   return (
     <Page
-      backAction={{ url: `/app/cart-drawer?version=${editingVersion}` }}
+      backAction={{ url: `/app/cart-drawer` }}
       title="Product Recommendations Configuration"
       primaryAction={{
         content: "Save changes",
