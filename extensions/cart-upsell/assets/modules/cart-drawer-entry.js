@@ -1,28 +1,36 @@
 /**
  * Selldrawer Cart Drawer - Entry Point for Build
- * This file serves as the entry point for bundling all modules
  */
 
 import { SelldrawerCartDrawer } from './cart-drawer-class.js';
-import './fbt-cart-monitor.js'; // Import FBT cart monitor (initializes automatically)
+import './fbt-cart-monitor.js';
 
-// App URL is injected at build time from config.js
+// APP_URL is injected at build time from config.js
 const APP_URL = typeof __APP_URL__ !== 'undefined' ? __APP_URL__ : 'https://app.selldrawer.com';
 
-// Initialize on page load
-function initializeCartDrawer() {
-  if (typeof window !== 'undefined') {
-    // Make APP_URL available globally for React components
-    window.UPSELLITY_APP_URL = APP_URL;
-    window.selldrawerDrawer = new SelldrawerCartDrawer(APP_URL);
+async function initializeCartDrawer() {
+  if (typeof window === 'undefined') return;
+
+  console.log('[Selldrawer] Entry point executing. APP_URL:', APP_URL);
+  window.UPSELLITY_APP_URL = APP_URL;
+
+  // Create the drawer instance (init() is called in constructor, non-blocking)
+  window.selldrawerDrawer = new SelldrawerCartDrawer(APP_URL);
+
+  // If the user clicked the cart BEFORE this script loaded, open now
+  if (window.selldrawerPendingOpen) {
+    console.log('[Selldrawer] Opening drawer for queued click.');
+    window.selldrawerPendingOpen = false;
+    // Small delay to let init() attach triggers and create the DOM
+    setTimeout(() => {
+      if (window.selldrawerDrawer && typeof window.selldrawerDrawer.open === 'function') {
+        window.selldrawerDrawer.open();
+      }
+    }, 100);
   }
 }
 
-if (typeof document !== 'undefined') {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeCartDrawer);
-  } else {
-    initializeCartDrawer();
-  }
-}
-
+// Run immediately — the inline liquid script handles DOMContentLoaded timing
+initializeCartDrawer().catch(e => {
+  console.error('[Selldrawer] Entry point failed:', e);
+});

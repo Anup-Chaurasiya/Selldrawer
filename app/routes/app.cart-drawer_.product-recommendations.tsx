@@ -23,6 +23,7 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { syncCartDrawerConfigToMetafields } from "../utils/sync-config.server";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { ProductRecommendations as ProductRecommendationsComponent } from "../components/shared/ProductRecommendations";
 
@@ -187,6 +188,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       data: { productRecommendationsEnabled: enabled },
     });
 
+    // Sync to metafields after DB update
+    await syncCartDrawerConfigToMetafields(admin, shop);
+
     // Return with revalidation headers to ensure instant update
     return json({ success: true }, {
       headers: {
@@ -342,6 +346,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         data: { productRecommendationsEnabled: true },
       });
     }
+
+    // Sync to metafields after save
+    await syncCartDrawerConfigToMetafields(admin, shop);
 
     return redirect(`/app/cart-drawer`, {
       headers: {

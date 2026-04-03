@@ -24,6 +24,7 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { DeleteIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
+import { syncCartDrawerConfigToMetafields } from "../utils/sync-config.server";
 import prisma from "../db.server";
 import { FreeGiftSelector } from "../components/shared/FreeGiftSelector";
 import { createMilestoneDiscount, updateMilestoneDiscount, deleteShopifyDiscount } from "../utils/shopify-discount.server";
@@ -308,6 +309,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
       }
 
+
+      // Sync to metafields
+      await syncCartDrawerConfigToMetafields(admin, shop);
+
       return json({ success: true });
     } catch (error) {
       console.error("Error in add-free-gift:", error);
@@ -426,9 +431,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             updatedAt: new Date(),
           }
         });
+
       }
     }
 
+    await syncCartDrawerConfigToMetafields(admin, shop);
     return json({ success: true });
   }
 
@@ -446,12 +453,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       await deleteShopifyDiscount(admin, freeGift.shopifyDiscountId);
     }
 
+
     // Delete from database
     await prisma.freeGift.delete({
       where: { id: freeGiftId }
     });
 
+    await syncCartDrawerConfigToMetafields(admin, shop);
     return json({ success: true });
+
   }
 
   if (intent === "toggle-free-gift") {
@@ -461,6 +471,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       where: { id: freeGiftId },
       data: { isActive }
     });
+    await syncCartDrawerConfigToMetafields(admin, shop);
     return json({ success: true });
   }
 
@@ -469,6 +480,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       where: { id: cartDrawer.id },
       data: { freeGiftsEnabled: true }
     });
+
+    // Sync to metafields
+    await syncCartDrawerConfigToMetafields(admin, shop);
+
     return redirect(`/app/cart-drawer`);
   }
 

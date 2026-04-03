@@ -98,7 +98,8 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
       container.addEventListener('scroll', updateScrollState);
       return () => container.removeEventListener('scroll', updateScrollState);
     }
-  }, [products, isGrid]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products.length, isGrid]);
 
   const handleScroll = (direction: 'left' | 'right') => {
     const container = scrollContainerRef.current;

@@ -18,6 +18,7 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { syncCartDrawerConfigToMetafields } from "../utils/sync-config.server";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { SavingsDisplay as SavingsDisplayComponent } from "../components/shared/SavingsDisplay";
 
@@ -39,7 +40,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
 
@@ -70,6 +71,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       where: { shop },
       data: { savingsDisplayEnabled: enabled },
     });
+
+    // Sync to metafields
+    await syncCartDrawerConfigToMetafields(admin, shop);
 
     return json({ success: true });
   }
@@ -118,6 +122,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       where: { shop },
       data: { savingsDisplayEnabled: true },
     });
+
+    // Sync to metafields
+    await syncCartDrawerConfigToMetafields(admin, shop);
 
     return redirect(`/app/cart-drawer`);
   }

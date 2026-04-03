@@ -7,6 +7,7 @@ import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
 import { authenticate } from "../shopify.server";
+import { ensureStorefrontAccessToken } from "../utils/storefrontToken.server";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
@@ -16,6 +17,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const host = url.searchParams.get("host");
   
   const auth = await authenticate.admin(request);
+  
+  // Ensure we have a Storefront API token for this shop
+  try {
+    await ensureStorefrontAccessToken(request);
+  } catch (error) {
+    console.error("Failed to ensure Storefront API token:", error);
+  }
+
   return { 
     apiKey: process.env.SHOPIFY_API_KEY || "",
     shop: auth.session.shop,

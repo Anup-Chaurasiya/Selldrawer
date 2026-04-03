@@ -13,6 +13,7 @@ import {
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { syncCartDrawerConfigToMetafields } from "../utils/sync-config.server";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { FreeShippingBar as FreeShippingBarComponent } from "../components/shared/FreeShippingBar";
 
@@ -116,6 +117,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       data: { freeShippingProgressBarEnabled: enabled },
     });
 
+    // Sync to metafields
+    await syncCartDrawerConfigToMetafields(admin, shop);
+
     return json({ success: true });
   }
 
@@ -172,16 +176,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     const existingBar = cartDrawer.freeShippingBars[0];
-    let barId: string;
-
+    let updatedBar;
     if (existingBar) {
-      await prisma.freeShippingProgressBar.update({
+      updatedBar = await prisma.freeShippingProgressBar.update({
         where: { id: existingBar.id },
         data,
       });
-      barId = existingBar.id;
     } else {
-      const newBar = await prisma.freeShippingProgressBar.create({
+      updatedBar = await prisma.freeShippingProgressBar.create({
         data: {
           id: crypto.randomUUID(),
           ...data,
@@ -191,225 +193,25 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           updatedAt: new Date(),
         },
       });
-      barId = newBar.id;
-    }
-
-    // Sync or clear upsell products (never delete until replacement list is built successfully)
-    if (!data.showProductUpsell || data.eligibilitySource === "none") {
-      await prisma.freeShippingUpsellProduct.deleteMany({ where: { barId } });
-    } else if (data.eligibilitySource === "collection" || data.eligibilitySource === "all_products") {
-      try {
-        let products: {
-          shopifyProductId: string;
-          shopifyVariantId: string | null;
-          title: string;
-          handle: string;
-          price: number;
-          compareAtPrice: number | null;
-          imageUrl: string | null;
-          position: number;
-        }[] = [];
-
-        if (data.eligibilitySource === "collection" && data.eligibleCollectionHandle) {
-          const collectionResponse = await admin.graphql(
-            `
-            query getCollectionProducts($handle: String!, $first: Int!) {
-              collectionByHandle(handle: $handle) {
-                id
-                title
-                products(first: $first) {
-                  edges {
-                    node {
-                      id
-                      title
-                      handle
-                      status
-                      images(first: 1) {
-                        edges {
-                          node {
-                            url
-                            altText
-                          }
-                        }
-                      }
-                      variants(first: 1) {
-                        edges {
-                          node {
-                            id
-                            price
-                            compareAtPrice
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          `,
-            {
-              variables: {
-                handle: data.eligibleCollectionHandle,
-                first: 50,
-              },
-            },
-          );
-
-          const collectionData = (await collectionResponse.json()) as {
-            errors?: { message: string }[];
-            data?: { collectionByHandle: { products: { edges: any[] } } | null };
-          };
-
-          if (collectionData.errors?.length) {
-            console.error("Free shipping upsell GraphQL errors:", collectionData.errors);
-            return json(
-              {
-                error: `Could not load collection: ${collectionData.errors.map((e) => e.message).join("; ")}`,
-              },
-              { status: 400 },
-            );
-          }
-
-          if (!collectionData.data?.collectionByHandle) {
-            return json(
-              { error: `No collection found for handle "${data.eligibleCollectionHandle}".` },
-              { status: 400 },
-            );
-          }
-
-          const collectionProducts =
-            collectionData.data.collectionByHandle.products?.edges || [];
-
-          products = collectionProducts
-            .filter((edge: any) => edge.node.status === "ACTIVE")
-            .map((edge: any, index: number) => {
-              const node = edge.node;
-              const variant = node.variants.edges[0]?.node;
-              const image = node.images.edges[0]?.node;
-              const gidProduct = node.id as string;
-              const gidVariant = variant?.id as string | undefined;
-
-              return {
-                shopifyProductId: stripShopifyGid(gidProduct, "Product") || gidProduct,
-                shopifyVariantId: stripShopifyGid(gidVariant, "ProductVariant"),
-                title: node.title,
-                handle: node.handle,
-                price: parseFloat(variant?.price || "0"),
-                compareAtPrice: variant?.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
-                imageUrl: image?.url || null,
-                position: index,
-              };
-            });
-        } else if (data.eligibilitySource === "all_products") {
-          const productsResponse = await admin.graphql(
-            `
-            query getAllProducts($first: Int!) {
-              products(first: $first) {
-                edges {
-                  node {
-                    id
-                    title
-                    handle
-                    status
-                    images(first: 1) {
-                      edges {
-                        node {
-                          url
-                          altText
-                        }
-                      }
-                    }
-                    variants(first: 1) {
-                      edges {
-                        node {
-                          id
-                          price
-                          compareAtPrice
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          `,
-            {
-              variables: {
-                first: 50,
-              },
-            },
-          );
-
-          const productsData = (await productsResponse.json()) as {
-            errors?: { message: string }[];
-            data?: { products: { edges: any[] } };
-          };
-
-          if (productsData.errors?.length) {
-            console.error("Free shipping upsell GraphQL errors:", productsData.errors);
-            return json(
-              {
-                error: `Could not load products: ${productsData.errors.map((e) => e.message).join("; ")}`,
-              },
-              { status: 400 },
-            );
-          }
-
-          const allProducts = productsData.data?.products?.edges || [];
-
-          products = allProducts
-            .filter((edge: any) => edge.node.status === "ACTIVE")
-            .map((edge: any, index: number) => {
-              const node = edge.node;
-              const variant = node.variants.edges[0]?.node;
-              const image = node.images.edges[0]?.node;
-              const gidProduct = node.id as string;
-              const gidVariant = variant?.id as string | undefined;
-
-              return {
-                shopifyProductId: stripShopifyGid(gidProduct, "Product") || gidProduct,
-                shopifyVariantId: stripShopifyGid(gidVariant, "ProductVariant"),
-                title: node.title,
-                handle: node.handle,
-                price: parseFloat(variant?.price || "0"),
-                compareAtPrice: variant?.compareAtPrice ? parseFloat(variant.compareAtPrice) : null,
-                imageUrl: image?.url || null,
-                position: index,
-              };
-            });
-        }
-
-        await prisma.freeShippingUpsellProduct.deleteMany({ where: { barId } });
-
-        if (products.length > 0) {
-          await prisma.freeShippingUpsellProduct.createMany({
-            data: products.map((p) => ({
-              id: crypto.randomUUID(),
-              barId,
-              ...p,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            })),
-          });
-        }
-      } catch (error) {
-        console.error("Error syncing products:", error);
-        return json(
-          { error: "Failed to sync products from Shopify. Try again or check your Shopify Admin API access." },
-          { status: 400 },
-        );
-      }
     }
 
     // Auto-enable the feature after saving configuration
-    await prisma.cartDrawer.update({
+    const updatedCartDrawer = await prisma.cartDrawer.update({
       where: { shop },
       data: { freeShippingProgressBarEnabled: true },
+      include: {
+        freeShippingBars: { where: { isActive: true } },
+        productRecommendations: { where: { isActive: true } },
+        savingsDisplays: { where: { isActive: true } },
+        freeShippingMessages: { where: { isActive: true } },
+        cartTotals: { where: { isActive: true } },
+        milestones: { where: { isActive: true }, include: { targets: true } },
+      },
     });
 
-    // JSON response (not Remix redirect): avoids broken App Bridge navigation. Remix revalidates loaders
-    // automatically after useSubmit — do not call revalidator.revalidate() on the client or duplicate
-    // _data fetches abort each other and show as "(canceled)" in DevTools.
+    // Standardized Sync to Shopify Metafields for zero-latency load
+    await syncCartDrawerConfigToMetafields(admin, shop);
+
     return json({ savedSettings: true as const });
   }
 

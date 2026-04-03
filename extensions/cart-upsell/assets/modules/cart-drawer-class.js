@@ -13,17 +13,17 @@ import * as AutoApplyStorage from './auto-apply-storage.js';
 const MilestoneRewardManager = {
   calculateCartTotalExcludingGifts: (cart) => cart.total_price,
   handleMilestoneRewards: async () => null,
-  showMilestoneUnlockedNotification: () => {},
+  showMilestoneUnlockedNotification: () => { },
   getAllGiftsInCart: () => [],
   normalizeProperties: () => ({}),
-  removeGiftFromCart: async () => {},
-  validateMilestoneForCheckout: async () => ({valid: true, message: ''}),
+  removeGiftFromCart: async () => { },
+  validateMilestoneForCheckout: async () => ({ valid: true, message: '' }),
   getCheckoutUrlWithDiscount: () => '/checkout'
 };
 
 const FreeGiftManager = {
   loadFreeGifts: async () => [],
-  syncFreeGiftWithCart: async () => {},
+  syncFreeGiftWithCart: async () => { },
   getSelectedGiftFromCart: () => null,
   selectGift: async () => false,
   getCheckoutUrlWithDiscount: () => '/checkout',
@@ -35,86 +35,122 @@ import { Analytics } from './analytics.js';
 export class SelldrawerCartDrawer {
   constructor(appUrl) {
     this.appUrl = appUrl;
-    this.shop =
-      (typeof window !== 'undefined' && window.selldrawer_config?.shop) ||
-      window.Shopify?.shop ||
-      null;
+    // Try every possible source for the shop domain
+    this.shop = this._detectShop();
     this.config = null;
     this.isOpen = false;
     this.cart = null;
     this.availableDiscounts = [];
     this.showingAllOffers = false;
     this.productCompareAtPrices = {};
-    this.reactRoot = null; // Single React root for the entire drawer
-    this.cartJustUpdated = false; // Track if cart was just updated via add to cart
-    this.unlockedMilestone = null; // Currently unlocked milestone
-    this.milestones = []; // All milestones from API
-    this.isSyncingGifts = false; // Prevent concurrent gift syncing
-    this.freeGifts = []; // Free gift offers
-    this.selectedGiftId = null; // Currently selected gift
-    this.pendingOperations = new Set(); // Track pending cart operations by item key
+    this.reactRoot = null;
+    this.cartJustUpdated = false;
+    this.unlockedMilestone = null;
+    this.milestones = [];
+    this.isSyncingGifts = false;
+    this.freeGifts = [];
+    this.selectedGiftId = null;
+    this.pendingOperations = new Set();
 
     this.init();
   }
 
-  async init() {
-    if (!this.shop) {
-      console.error('Selldrawer: Shop not detected');
-      return;
-    }
+  _detectShop() {
+    // Try every known way Shopify exposes the shop domain
+    return (
+      window.selldrawer_config?.shop ||
+      window.Shopify?.shop ||
+      window.meta?.page?.pageType && window.Shopify?.shop ||
+      document.querySelector('[data-shop-domain]')?.dataset?.shopDomain ||
+      // Parse from canonical URL as last resort
+      (document.querySelector('link[rel="canonical"]')?.href
+        ? new URL(document.querySelector('link[rel="canonical"]').href).hostname
+        : null) ||
+      window.location.hostname
+    );
+  }
 
+  async init() {
     if (!this.appUrl) {
       console.error('Selldrawer: App URL not configured');
       return;
     }
 
-    this.createDrawer();
-    await this.loadConfig();
-    this.interceptAddToCart();
-    this.attachCartTriggers();
-    await this.loadCart();
+    // Log detected shop for debugging
+    console.log('[Selldrawer] Initializing. Shop:', this.shop, '| AppURL:', this.appUrl);
+
+    // STEP 1: Create DOM elements & attach triggers synchronously (instant)
+    try {
+      this.createDrawer();
+      this.interceptAddToCart();
+      this.attachCartTriggers();
+      console.log('[Selldrawer] Drawer created and triggers attached.');
+    } catch (e) {
+      console.error('Selldrawer: Failed to initialize UI components', e);
+    }
+
+    // STEP 2: Load config and cart data in background (non-blocking)
+    this.loadConfig()
+      .then(() => this.loadCart())
+      .catch(e => console.error('Selldrawer: Background data load failed', e));
   }
 
   async loadConfig() {
     try {
-      // Initialize Analytics with the app URL
+      // Initialize Analytics
       Analytics.init(this.appUrl);
 
-      const timestamp = new Date().getTime();
-
-      // Build URL with customer ID if available from liquid template
-      let apiUrl = `${this.appUrl}/api/cart-drawer?shop=${this.shop}&_t=${timestamp}`;
-
-      if (window.selldrawer_config?.customerId) {
-        apiUrl += `&customerId=gid://shopify/Customer/${window.selldrawer_config.customerId}`;
-        console.log('[Cart Drawer] Using customer ID from config:', window.selldrawer_config.customerId);
+      // ZERO-LATENCY: Use injected Metafield settings if available
+      if (window.selldrawer_config?.settings && Object.keys(window.selldrawer_config.settings).length > 0) {
+        console.log('[Selldrawer] Using zero-latency config from Metafields');
+        this.config = window.selldrawer_config.settings;
       } else {
-        console.log('[Cart Drawer] No customer ID available, using session-based A/B testing');
+        // Fetch config from API
+        const timestamp = new Date().getTime();
+        let apiUrl = `${this.appUrl}/api/cart-drawer?shop=${encodeURIComponent(this.shop)}&_t=${timestamp}`;
+
+        if (window.selldrawer_config?.customerId) {
+          apiUrl += `&customerId=gid://shopify/Customer/${window.selldrawer_config.customerId}`;
+        }
+
+        console.log('[Selldrawer] Fetching config from:', apiUrl);
+
+        const response = await fetch(apiUrl, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Config API returned ${response.status}`);
+        }
+
+        this.config = await response.json();
+        console.log('[Selldrawer] Config loaded:', this.config);
       }
 
-      const response = await fetch(apiUrl, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-      this.config = await response.json();
-
-      // Load milestones if enabled
       if (this.config?.features?.milestonesEnabled) {
         await this.loadMilestones();
       }
-
-      // Load free gifts if enabled
       if (this.config?.features?.freeGiftsEnabled) {
         await this.loadFreeGifts();
       }
     } catch (error) {
-      console.error('Selldrawer: Failed to load config', error);
-      this.config = { enabled: false, features: {} };
+      console.error('Selldrawer: Failed to load config, using fallback:', error);
+      // IMPORTANT: Use an ENABLED fallback so the cart can still display items.
+      // Never use { enabled: false } — that hides the drawer permanently.
+      this.config = {
+        enabled: true,
+        features: {
+          freeShippingBar: null,
+          productRecommendations: null,
+          couponCodeField: null,
+          milestonesEnabled: false,
+          freeGiftsEnabled: false
+        }
+      };
     }
   }
+
 
   async loadFreeGifts() {
     try {
@@ -323,8 +359,10 @@ export class SelldrawerCartDrawer {
       const promises = [
         ProductLoader.loadProductCompareAtPrices(this.cart),
         DiscountManager.loadAvailableDiscounts(this.appUrl, this.shop, this.config),
-        ProductLoader.loadShopifyRecommendations(this.cart, this.config)
+        ProductLoader.loadShopifyRecommendations(this.cart, this.config),
+        ProductLoader.loadDynamicFreeShippingUpsells(this.cart, this.config)
       ];
+
 
       const [productCompareAtPrices, availableDiscounts] = await Promise.all(promises);
 
@@ -510,22 +548,119 @@ export class SelldrawerCartDrawer {
   }
 
   attachCartTriggers() {
-    // Intercept cart links with capture phase to prevent navigation early
-    document.addEventListener('click', (e) => {
-      const cartTrigger = e.target.closest('a[href="/cart"], a[href*="/cart"]');
-      if (cartTrigger && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-        const href = cartTrigger.getAttribute('href');
-        // Only intercept if it's actually a cart link (not checkout or other pages)
-        if (href && (href === '/cart' || href.endsWith('/cart') || href.includes('/cart?'))) {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          this.open();
-        }
-      }
-    }, true); // Use capture phase
+    // ─────────────────────────────────────────────────────────────────────────
+    // STEP 1: Suppress the theme's native cart drawer custom element.
+    // Shopify themes (Dawn, Refresh, etc.) use <cart-drawer> or <cart-notification>
+    // web components. We hide them so only our drawer shows.
+    // ─────────────────────────────────────────────────────────────────────────
+    const suppressThemeCartDrawer = () => {
+      // Hide native <cart-drawer> elements
+      document.querySelectorAll('cart-drawer').forEach(el => {
+        el.style.display = 'none';
+        el.style.visibility = 'hidden';
+        // Disable the element's show/open methods
+        if (el.show) el.show = () => { };
+        if (el.open) el.open = () => { };
+      });
+      // Hide native <cart-notification> elements
+      document.querySelectorAll('cart-notification').forEach(el => {
+        el.style.display = 'none';
+        if (el.renderContents) el.renderContents = () => { };
+      });
+    };
 
-    // Keyboard shortcut to open cart
+    // Suppress immediately and also watch for DOM changes (theme may create them late)
+    suppressThemeCartDrawer();
+    const mutationObserver = new MutationObserver(() => suppressThemeCartDrawer());
+    mutationObserver.observe(document.body, { childList: true, subtree: false });
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // STEP 2: Intercept ALL click patterns used by Shopify themes in capture phase.
+    // This covers: Dawn, Debut, Refresh, Brooklyn, Impulse, and most custom themes.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Comprehensive CSS selector matching every Shopify theme cart button pattern
+    const CART_TRIGGER_SELECTOR = [
+      // Anchor tag cart links
+      'a[href="/cart"]',
+      'a[href*="/cart"]',
+      // Button/element patterns used by theme
+      '[data-cart-toggle]',
+      '[data-cart-open]',
+      '[data-open-cart]',
+      '[aria-controls="cart-drawer"]',
+      '[aria-controls="CartDrawer"]',
+      '[aria-controls="cart-notification-product"]',
+      '[aria-label*="cart" i]',
+      '[aria-label*="Cart" i]',
+      // Common class patterns
+      '.cart-icon-bubble',
+      '.cart__icon',
+      '.header__icon--cart',
+      '.site-header__cart',
+      '.cart-link',
+      '.js-cart-link',
+      '.js-cart',
+      '.cart-trigger',
+      '.cart-toggle',
+      '.mini-cart-icon',
+      '.nav-cart-icon',
+      '[class*="cart-icon"]',
+      '[class*="CartIcon"]',
+      // Icon-type selectors
+      'a.icon-cart',
+      '.icon-cart',
+      // Shopify native custom elements as triggers
+      'cart-icon-bubble',
+    ].join(', ');
+
+    const isCartTrigger = (target) => {
+      if (!target) return false;
+      // Walk up to 5 ancestor levels looking for a cart trigger element
+      let el = target;
+      for (let i = 0; i < 5; i++) {
+        if (!el || el === document.body) break;
+        if (el.matches && el.matches(CART_TRIGGER_SELECTOR)) {
+          // Make sure it's not a checkout/login link
+          const href = el.getAttribute('href') || '';
+          if (href.includes('/checkout') || href.includes('/account') || href.includes('/collections')) {
+            // not a cart trigger
+          } else {
+            return true;
+          }
+        }
+        el = el.parentElement;
+      }
+      return false;
+    };
+
+    document.addEventListener('click', (e) => {
+      if (!e.ctrlKey && !e.metaKey && !e.shiftKey && isCartTrigger(e.target)) {
+        console.log('[Selldrawer] Cart trigger intercepted', e.target);
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        this.open();
+      }
+    }, true); // Capture phase — runs before theme handlers
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // STEP 3: Intercept theme-dispatched custom events that open the cart.
+    // Some themes dispatch events instead of reacting to clicks.
+    // ─────────────────────────────────────────────────────────────────────────
+    const cartOpenEvents = ['cart:open', 'open-cart', 'CartDrawer:open', 'cart-drawer:open', 'theme:cart:open'];
+    cartOpenEvents.forEach(eventName => {
+      document.addEventListener(eventName, (e) => {
+        console.log(`[Selldrawer] Intercepted theme event: ${eventName}`);
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        this.open();
+      }, true);
+    });
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // STEP 4: Keyboard shortcut
+    // ─────────────────────────────────────────────────────────────────────────
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'C') {
         e.preventDefault();
@@ -533,26 +668,21 @@ export class SelldrawerCartDrawer {
       }
     });
 
-    // CRITICAL: Listen for cart updates from other modules (like gift-block-entry.js)
-    // This ensures UI stays in sync when gifts are added/removed externally
+    // ─────────────────────────────────────────────────────────────────────────
+    // STEP 5: Listen for cart:updated from other modules (gifts, FBT, etc.)
+    // ─────────────────────────────────────────────────────────────────────────
     document.addEventListener('cart:updated', async (e) => {
-
-
       let cartData = e.detail;
 
-      // Defensive check: Ensure data looks like a cart (has items array)
-      // /cart/add.js returns the ITEM, not the CART, which causes crashes if passed directly
+      // Defensive check: /cart/add.js returns the ITEM, not the CART
       if (!cartData || !cartData.items || !Array.isArray(cartData.items)) {
         console.log('Selldrawer Cart Drawer: Event data is not a full cart, fetching fresh data');
-        cartData = null; // trigger fetch in loadCart
+        cartData = null;
       }
 
-      // Reload cart UI but SKIP gift sync to avoid potential infinite loops
-      // (The external update presumably just finished handling gifts)
       if (this.isOpen) {
         await this.loadCart(cartData, false, true);
       } else {
-        // If closed, just update internal state (if valid)
         if (cartData) {
           this.cart = cartData;
         }
@@ -621,14 +751,6 @@ export class SelldrawerCartDrawer {
   }
 
   render() {
-    if (!this.cart) return;
-    
-    // Guard: Ensure config exists before rendering
-    if (!this.config) {
-      console.warn('Selldrawer: Config not loaded, skipping render');
-      return;
-    }
-
     const drawer = document.getElementById('selldrawer-cart-drawer');
     if (!drawer) {
       console.error('Selldrawer: Drawer element not found');
@@ -641,10 +763,22 @@ export class SelldrawerCartDrawer {
       return;
     }
 
-    // Create or reuse React root
+    // Create or reuse React root (never unmount between open/close)
     if (!this.reactRoot) {
       this.reactRoot = createRoot(inner);
     }
+
+    // If cart or config not yet loaded, show a loading skeleton
+    if (!this.cart || !this.config) {
+      this.reactRoot.render(
+        React.createElement('div', { style: { padding: '20px', textAlign: 'center', color: '#6b7280' } },
+          React.createElement('div', { style: { fontSize: '14px', marginTop: '40px' } }, 'Loading your cart...')
+        )
+      );
+      return;
+    }
+
+
 
     // Debug logging
     console.log('Selldrawer Cart Drawer Render:', {
@@ -704,36 +838,40 @@ export class SelldrawerCartDrawer {
     );
   }
 
-  async open() {
+  open() {
     const drawer = document.getElementById('selldrawer-cart-drawer');
-
-    // If cart was just updated (add to cart), render and open immediately
-    if (this.cartJustUpdated) {
-      this.cartJustUpdated = false;
-      this.render();
-
-      // Open drawer immediately (don't lock body scroll - allow page scrolling)
-      drawer.classList.add('open');
-      this.isOpen = true;
-    } else {
-      // Cart wasn't just updated, so reload to get fresh data
-      // Load config and cart in parallel
-      await Promise.all([
-        this.loadConfig(),
-        fetch('/cart.js').then(res => res.json()).then(cart => {
-          this.cart = cart;
-        })
-      ]);
-
-      // Render and open drawer immediately after config + cart are loaded
-      this.render();
-      // Don't lock body scroll - allow page scrolling
-      drawer.classList.add('open');
-      this.isOpen = true;
-
-      // Load secondary data in background (will re-render when done)
-      this.loadSecondaryData();
+    if (!drawer) {
+      console.error('Selldrawer: Drawer container not found');
+      return;
     }
+
+    // Open drawer immediately for instant feedback
+    drawer.classList.add('open');
+    this.isOpen = true;
+
+    // Reset this flag
+    this.cartJustUpdated = false;
+
+    // Render immediately — show loading skeleton if data not ready yet
+    this.render();
+
+    // Load fresh cart and config in the background (truly non-blocking)
+    Promise.all([
+      this.loadConfig(),
+      fetch('/cart.js').then(res => res.json()).then(cart => {
+        this.cart = cart;
+      })
+    ])
+      .then(() => {
+        // Re-render once data is ready
+        this.render();
+        // Load secondary data in background
+        this.loadSecondaryData();
+      })
+      .catch(error => {
+        console.error('Selldrawer: Failed to load data while opening', error);
+        this.render();
+      });
   }
 
   async loadSecondaryData() {
@@ -777,18 +915,13 @@ export class SelldrawerCartDrawer {
 
   close() {
     const drawer = document.getElementById('selldrawer-cart-drawer');
-    drawer.classList.remove('open');
-    this.isOpen = false;
-
-    // Clean up React root when closing
-    if (this.reactRoot) {
-      try {
-        this.reactRoot.unmount();
-      } catch (e) {
-        // Ignore errors during unmount
-      }
-      this.reactRoot = null;
+    if (drawer) {
+      drawer.classList.remove('open');
     }
+    this.isOpen = false;
+    // NOTE: Do NOT unmount the React root here.
+    // Unmounting + nulling reactRoot causes React 18 to error on createRoot
+    // when the drawer reopens on the same container. Keep the root alive.
   }
 
   // Handle gift selection
@@ -853,18 +986,6 @@ export class SelldrawerCartDrawer {
 
         if (!validation.valid) {
           console.log('Selldrawer: Milestone validation failed', validation.message);
-          // console.log('Selldrawer: Milestone validation failed', validation.message);
-
-          // If gifts are missing, try to sync them
-          if (this.unlockedMilestone.rewardType === 'gift_wrapping') {
-            await this.handleMilestoneRewards();
-
-            // Wait a bit and try again
-            setTimeout(() => {
-              this.handleCheckout();
-            }, 500);
-          }
-
           return;
         }
 

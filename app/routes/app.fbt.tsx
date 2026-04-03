@@ -26,6 +26,7 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { syncCartDrawerConfigToMetafields } from "../utils/sync-config.server";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { DeleteIcon, PlusIcon, EditIcon } from "@shopify/polaris-icons";
 import { FBTWidget } from "../components/shared/FBTWidget";
@@ -50,7 +51,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   let fbtConfig = await prisma.frequentlyBoughtTogether.findUnique({
     where: { shop },
     include: {
-      rules: {
+      FBTRule: {
         include: {
           products: {
             orderBy: { position: 'asc' }
@@ -69,7 +70,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         updatedAt: new Date(),
       },
       include: {
-        rules: {
+        FBTRule: {
           include: {
             products: {
               orderBy: { position: 'asc' }
@@ -217,10 +218,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "toggle") {
     const enabled = formData.get("enabled") === "true";
-    await prisma.frequentlyBoughtTogether.update({
-      where: { shop },
-      data: { isActive: enabled }
-    });
+    // Sync config to metafields
+    await syncCartDrawerConfigToMetafields(admin, shop);
+
     return json({ success: true });
   }
 
@@ -247,6 +247,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       where: { shop },
       data
     });
+
+    // Sync config to metafields
+    await syncCartDrawerConfigToMetafields(admin, shop);
 
     return json({ success: true });
   }
@@ -378,8 +381,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           discountValue
         }
       });
-      console.log('FBT discount configuration saved:', { discountType, discountValue });
     }
+
+    // Sync config to metafields
+    await syncCartDrawerConfigToMetafields(admin, shop);
 
     return json({ success: true });
   }
@@ -391,6 +396,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await prisma.fBTRule.delete({
       where: { id: ruleId }
     });
+
+    // Sync config to metafields
+    await syncCartDrawerConfigToMetafields(admin, shop);
+
     return json({ success: true });
   }
 
@@ -522,11 +531,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       await prisma.fBTRule.update({
         where: { id: ruleId },
         data: {
-          discountType: null,
           discountValue: null
         }
       });
     }
+    // Sync config to metafields
+    await syncCartDrawerConfigToMetafields(admin, shop);
 
     return json({ success: true });
   }
@@ -555,6 +565,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           error: "Failed to create automatic discount. Check server logs for details."
         });
       }
+
+      // Sync to metafields
+      await syncCartDrawerConfigToMetafields(admin, shop);
 
       return json({
         success: true,
@@ -912,8 +925,8 @@ export default function FrequentlyBoughtTogether() {
     }
 
     // Otherwise, try to get from the first configured rule
-    if (fbtConfig?.rules && fbtConfig.rules.length > 0) {
-      const firstRule = fbtConfig.rules[0];
+    if (fbtConfig?.FBTRule && fbtConfig.FBTRule.length > 0) {
+      const firstRule = fbtConfig.FBTRule[0];
       if (firstRule.triggerType === 'specific_product' && firstRule.triggerValue) {
         const triggerProduct = shopProducts.find((p: any) => p.handle === firstRule.triggerValue);
         if (triggerProduct) {
@@ -970,8 +983,8 @@ export default function FrequentlyBoughtTogether() {
       }
 
       // Otherwise, use products from the first configured rule
-      if (fbtConfig?.rules && fbtConfig.rules.length > 0) {
-        return fbtConfig.rules[0].products.slice(0, 3);
+      if (fbtConfig?.FBTRule && fbtConfig.FBTRule.length > 0) {
+        return fbtConfig.FBTRule[0].products.slice(0, 3);
       }
 
       // Fallback to sample products if no shop products
@@ -999,8 +1012,8 @@ export default function FrequentlyBoughtTogether() {
     }
 
     // Otherwise, use products from the first configured rule
-    if (fbtConfig?.rules && fbtConfig.rules.length > 0) {
-      return fbtConfig.rules[0].products.slice(0, 3);
+    if (fbtConfig?.FBTRule && fbtConfig.FBTRule.length > 0) {
+      return fbtConfig.FBTRule[0].products.slice(0, 3);
     }
 
     // Show sample products if nothing is configured
@@ -1437,10 +1450,10 @@ export default function FrequentlyBoughtTogether() {
 
 
                         {/* Display existing rules */}
-                        {fbtConfig?.rules && fbtConfig.rules.length > 0 ? (
+                        {fbtConfig?.FBTRule && fbtConfig.FBTRule.length > 0 ? (
                           <ResourceList
                             resourceName={{ singular: 'rule', plural: 'rules' }}
-                            items={fbtConfig.rules}
+                            items={fbtConfig.FBTRule}
                             renderItem={(rule) => {
                               const { id, triggerType, triggerTitle, triggerValue, products } = rule;
                               const triggerProduct = triggerType === 'specific_product' && triggerValue && triggerValue !== 'all'

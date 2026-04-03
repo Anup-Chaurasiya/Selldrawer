@@ -87,6 +87,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           orderBy: { priority: 'asc' },
           take: 3, // Maximum 3 milestones
         },
+        promotionalBanners: {
+          where: { isActive: true },
+          include: {
+            images: { orderBy: { order: 'asc' } },
+            carouselSettings: true,
+          }
+        },
+        freeGifts: {
+          where: { isActive: true },
+          include: {
+            giftProducts: { orderBy: { position: 'asc' } },
+            targets: true,
+          },
+          orderBy: { priority: 'asc' }
+        },
       },
     });
 
@@ -99,35 +114,49 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           isActive: true,
           updatedAt: new Date(),
         },
-        include: {
-          freeShippingBars: { where: { isActive: true } },
-          productRecommendations: {
-            where: { isActive: true },
-            include: {
-              products: { orderBy: { position: 'asc' } },
+      include: {
+        freeShippingBars: {
+          where: { isActive: true },
+          include: {
+            upsellProducts: {
+              orderBy: { position: 'asc' },
             },
-          },
-          savingsDisplays: { where: { isActive: true } },
-          freeShippingMessages: { where: { isActive: true } },
-          cartTotals: { where: { isActive: true } },
-          milestones: {
-            where: { isActive: true },
-            include: { targets: true },
-            orderBy: { priority: 'asc' },
-          },
-          freeGifts: {
-            where: { isActive: true },
-            include: {
-              giftProducts: { orderBy: { position: 'asc' } },
-              targets: true,
-            },
-            orderBy: { priority: 'asc' },
           },
         },
+        productRecommendations: {
+          where: { isActive: true },
+          include: {
+            products: { orderBy: { position: 'asc' } },
+          },
+        },
+        savingsDisplays: { where: { isActive: true } },
+        freeShippingMessages: { where: { isActive: true } },
+        cartTotals: { where: { isActive: true } },
+        milestones: {
+          where: { isActive: true },
+          include: { targets: true },
+          orderBy: { priority: 'asc' },
+        },
+        freeGifts: {
+          where: { isActive: true },
+          include: {
+            giftProducts: { orderBy: { position: 'asc' } },
+            targets: true,
+          },
+          orderBy: { priority: 'asc' },
+        },
+        promotionalBanners: {
+          where: { isActive: true },
+          include: {
+            images: { orderBy: { order: 'asc' } },
+            carouselSettings: true,
+          }
+        },
+      },
       });
     }
 
-    const featureOrder = cartDrawer ? normalizeFeatureOrder(cartDrawer.featureOrder) : undefined;
+    const featureOrder = cartDrawer ? normalizeFeatureOrder(cartDrawer.featureOrder) : [];
 
     const couponCodeField = await prisma.couponCodeField.findUnique({
       where: { shop },
@@ -142,9 +171,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       return cors(request, response);
     }
 
-    if (cartDrawer) {
-      cartDrawer.featureOrder = featureOrder ?? cartDrawer.featureOrder;
-    }
+    cartDrawer.featureOrder = featureOrder;
 
     // Transform product recommendations to ensure proper data structure
     let productRecommendations = null;
@@ -181,17 +208,31 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       cartTotals: (cartDrawer.cartTotalsEnabled !== false) && cartDrawer.cartTotals && cartDrawer.cartTotals[0]
         ? cartDrawer.cartTotals[0]
         : null,
+      milestones: cartDrawer.milestones || [],
       milestonesEnabled: cartDrawer.milestonesEnabled,
       milestonesProgressBarColor: (cartDrawer as any).milestonesProgressBarColor || "#3b82f6",
       milestonesAllUnlockedMessage: (cartDrawer as any).milestonesAllUnlockedMessage || "🎉 Congratulations! All rewards unlocked!",
       freeGiftsEnabled: cartDrawer.freeGiftsEnabled,
+      freeGifts: cartDrawer.freeGifts || [],
+      promotionalBanner: cartDrawer.promotionalBannerEnabled && cartDrawer.promotionalBanners[0]
+        ? {
+            ...cartDrawer.promotionalBanners[0],
+            slides: cartDrawer.promotionalBanners[0].images || [],
+            carouselSettings: cartDrawer.promotionalBanners[0].carouselSettings || {
+              autoRotate: true,
+              rotationSpeed: 5000,
+              showDots: true,
+              showArrows: true,
+            }
+          }
+        : null,
     };
 
     const response = json({
       enabled: cartDrawer.isActive,
       theme: cartDrawer.theme,
       primaryColor: cartDrawer.primaryColor,
-      featureOrder: featureOrder ?? [],
+      featureOrder: featureOrder,
       shop, // Add shop domain for milestone upsell API calls
       appUrl: process.env.APP_URL || `https://${request.headers.get('host')}`,
       features,
@@ -205,6 +246,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     return cors(request, response);
   } catch (error) {
+    console.error("Error in api/cart-drawer:", error);
     const response = json({ error: "Internal server error" }, { status: 500 });
     return cors(request, response);
   }

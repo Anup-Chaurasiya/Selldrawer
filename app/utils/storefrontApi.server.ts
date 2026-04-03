@@ -463,7 +463,7 @@ export async function fetchAllProducts(
     },
     body: JSON.stringify({
       query,
-      variables: { first: 250 }, // Fetch up to 250 products
+      variables: { first: limit }, // Use the limit parameter directly
     }),
   });
 

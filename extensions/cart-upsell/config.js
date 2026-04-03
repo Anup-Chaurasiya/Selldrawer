@@ -4,5 +4,4 @@
  */
 
 // App URL - Update this with your deployment URL
-export const APP_URL = 'https://pdas-cotton-dark-enemies.trycloudflare.com';
-
+export const APP_URL = 'https://consoles-emissions-notification-player.trycloudflare.com';

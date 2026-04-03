@@ -43,6 +43,7 @@ import {
   reorderFeatureOrder,
   splitFeatureOrder,
 } from "../utils/featureOrder";
+import { syncCartDrawerConfigToMetafields } from "../utils/sync-config.server";
 import { checkAppEmbedEnabled } from "../utils/appEmbed.server";
 import { checkPlanAccess } from "../utils/planAccess.server";
 import { requireBilling } from "../utils/billing.server";
@@ -107,6 +108,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         },
         orderBy: { priority: 'asc' }
       },
+      promotionalBanners: {
+        where: { isActive: true },
+        orderBy: { priority: 'asc' }
+      },
     },
   });
 
@@ -141,8 +146,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           },
           orderBy: { priority: 'asc' }
         },
+        promotionalBanners: true,
       },
     });
+  }
+
+  // Ensure cartDrawer is not null for TypeScript
+  if (!cartDrawer) {
+    throw new Error("Failed to load or create Cart Drawer configuration");
   }
 
   // Auto-disable features if no data exists
@@ -152,7 +163,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     updateData.freeShippingProgressBarEnabled = false;
   }
 
-  // Check product recommendations: needs to have products
   const hasProductRecommendationsData = cartDrawer.productRecommendations.length > 0 &&
     cartDrawer.productRecommendations.some(rec => rec.products && rec.products.length > 0);
   if (cartDrawer.productRecommendationsEnabled && !hasProductRecommendationsData) {
@@ -177,6 +187,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (cartDrawer.freeGiftsEnabled && cartDrawer.freeGifts.length === 0) {
     updateData.freeGiftsEnabled = false;
+  }
+
+  if (cartDrawer.promotionalBannerEnabled && cartDrawer.promotionalBanners.length === 0) {
+    updateData.promotionalBannerEnabled = false;
   }
 
   if (Object.keys(updateData).length > 0) {
@@ -213,6 +227,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           },
           orderBy: { priority: 'asc' }
         },
+        promotionalBanners: {
+          where: { isActive: true },
+          orderBy: { priority: 'asc' }
+        },
       },
     });
   }
@@ -236,7 +254,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
 
   const formData = await request.formData();
@@ -351,6 +369,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         where: { shop },
         data: updateData,
       });
+
+      // Sync to metafields
+      await syncCartDrawerConfigToMetafields(admin, shop);
+
       return redirect(`/app/cart-drawer`);
     }
   }
@@ -373,6 +395,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         where: { shop },
         data: { featureOrder: normalized },
       });
+
+      // Sync to metafields
+      await syncCartDrawerConfigToMetafields(admin, shop);
 
       return json({ success: true, featureOrder: normalized });
     } catch (error) {
@@ -408,6 +433,7 @@ function MiniCartDrawerPreview({
         items: [
           {
             id: 1,
+            variant_id: 1,
             title: "Premium Running Shoes",
             variant: "Size 8 / Navy Blue",
             price: 50.00,
@@ -444,6 +470,7 @@ function MiniCartDrawerPreview({
       items: [
         {
           id: 1,
+          variant_id: 1,
           title: "Premium Running Shoes",
           variant: "Size 8 / Navy Blue",
           price: sampleTotal / sampleItemCount,
@@ -891,7 +918,7 @@ export default function CartDrawerIndex() {
     submit(formData, { method: "post" });
   };
 
-  const features = [
+  const features = React.useMemo(() => [
     {
       id: 'free-shipping-bar',
       title: 'Free Shipping Booster',
@@ -975,7 +1002,18 @@ export default function CartDrawerIndex() {
       path: '/app/cart-drawer/cart-totals',
       isConfigured: cartDrawer.cartTotals.length > 0,
     },
-  ];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [
+    cartDrawer.freeShippingProgressBarEnabled, cartDrawer.freeShippingBars.length,
+    cartDrawer.milestonesEnabled, cartDrawer.milestones.length,
+    cartDrawer.freeGiftsEnabled, cartDrawer.freeGifts.length,
+    cartDrawer.productRecommendationsEnabled, cartDrawer.productRecommendations.length,
+    cartDrawer.couponCodeFieldEnabled, couponCodeField,
+    cartDrawer.savingsDisplayEnabled, cartDrawer.savingsDisplays.length,
+    cartDrawer.freeShippingMessageEnabled, cartDrawer.freeShippingMessages.length,
+    cartDrawer.promotionalBannerEnabled, cartDrawer.promotionalBanners.length,
+    cartDrawer.cartTotalsEnabled, cartDrawer.cartTotals.length,
+  ]);
 
   const featureLookup = React.useMemo(() => {
     const map = new Map<string, (typeof features)[number]>();

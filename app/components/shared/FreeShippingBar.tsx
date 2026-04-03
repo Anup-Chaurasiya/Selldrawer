@@ -40,6 +40,7 @@ interface FreeShippingBarProps {
   appUrl?: string;
   shop?: string;
   onAddProduct?: (variantId: string) => void;
+  upsellProducts?: any[];
 }
 
 export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
@@ -60,11 +61,11 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
   appUrl,
   shop,
   onAddProduct,
+  upsellProducts = [],
 }) => {
   const [animatedProgress, setAnimatedProgress] = useState(0);
   const [celebrated, setCelebrated] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
   const prevCompleteRef = useRef(false);
 
   const calculateProgress = () => {
@@ -89,7 +90,9 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
 
   const progress = calculateProgress();
   const remaining = calculateRemaining();
-  const isComplete = progress >= 100;
+  const isComplete = thresholdMode === 'amount' && thresholdAmount
+    ? Math.round(cart.total_price / 100) >= Math.round(thresholdAmount)
+    : progress >= 100;
 
   // Animate progress on mount and change
   useEffect(() => {
@@ -99,64 +102,35 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
     return () => clearTimeout(timer);
   }, [progress]);
 
-  // Celebration trigger
+  // Celebration trigger — use ref to detect transition from false→true only once
   useEffect(() => {
-    if (isComplete && !prevCompleteRef.current) {
+    const wasComplete = prevCompleteRef.current;
+    prevCompleteRef.current = isComplete;
+    if (isComplete && !wasComplete) {
       setCelebrated(true);
       const t = setTimeout(() => setCelebrated(false), 2000);
       return () => clearTimeout(t);
     }
-    prevCompleteRef.current = isComplete;
   }, [isComplete]);
 
-  // Fetch products when close to threshold
-  useEffect(() => {
-    const shouldShowUpsell =
-      !isPreview &&
-      showProductUpsell &&
-      !isComplete &&
-      thresholdMode === 'amount' &&
-      remaining > 0 &&
-      appUrl &&
-      shop;
+  // Stable string key derived from cart item variant IDs — avoids array-reference churn
+  const cartItemIdsKey = (cart.items || []).map((i) => String(i.variant_id)).join(',');
 
-    if (shouldShowUpsell) {
-      setLoadingProducts(true);
-      const url = `${appUrl}/api/free-shipping-products?shop=${encodeURIComponent(shop)}&remaining=${encodeURIComponent(String(remaining))}`;
-      fetch(url)
-        .then(async (res) => {
-          const ct = res.headers.get('content-type') || '';
-          if (res.status === 204 || !res.ok || !ct.includes('application/json')) {
-            if (!res.ok && res.status !== 204) {
-              console.warn('Free shipping products API:', res.status, res.statusText);
-            }
-            return { products: [] as Product[] };
-          }
-          try {
-            return await res.json() as { products?: Product[] };
-          } catch {
-            return { products: [] as Product[] };
-          }
-        })
-        .then((data) => {
-          const fetchedProducts = Array.isArray(data?.products) ? data.products : [];
-          // Filter out products already in the cart
-          const cartItemIds = (cart.items || []).map((item) => String(item.variant_id));
-          const filteredProducts = fetchedProducts.filter(
-            (p) => !cartItemIds.includes(String(p.variantId))
-          );
-          setProducts(filteredProducts);
-          setLoadingProducts(false);
-        })
-        .catch((err) => {
-          console.error('Failed to load free shipping products:', err);
-          setProducts([]);
-          setLoadingProducts(false);
-        });
+  // Sync prop products to internal state (filtering out items already in cart)
+  useEffect(() => {
+    if (showProductUpsell && !isComplete && Array.isArray(upsellProducts) && upsellProducts.length > 0) {
+      const cartItemIds = cartItemIdsKey ? cartItemIdsKey.split(',') : [];
+      const filtered = upsellProducts.filter(
+        (p) => !cartItemIds.includes(String(p.variantId || p.shopifyVariantId || p.id))
+      );
+      setProducts(filtered as Product[]);
     } else {
-      setProducts([]);
+      // Functional updater: only trigger re-render if array was non-empty
+      setProducts((prev) => (prev.length === 0 ? prev : []));
     }
-  }, [remaining, isComplete, showProductUpsell, thresholdMode, appUrl, shop, isPreview]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [upsellProducts, isComplete, showProductUpsell, cartItemIdsKey]);
+
 
   const currencySymbol = currency === 'INR' ? '₹' : '$';
 
@@ -354,79 +328,85 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
               msOverflowStyle: 'none',
               WebkitOverflowScrolling: 'touch',
             }}>
-              {products.map((p) => (
-                <div
-                  key={p.variantId}
-                  style={{
-                    minWidth: 'calc(100% - 40px)',
-                    maxWidth: '300px',
-                    padding: '6px',
-                    background: isDark(backgroundColor) ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.03)',
-                    borderRadius: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    flexShrink: 0,
-                  }}
-                >
-                  {/* Product Image */}
-                  {p.imageUrl && (
-                    <div style={{
-                      width: '36px',
-                      height: '36px',
-                      flexShrink: 0,
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      background: '#fff',
-                    }}>
-                      <img
-                        src={p.imageUrl}
-                        alt={p.title}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
-                    </div>
-                  )}
+              {products.map((p: any) => {
+                const variantId = String(p.variantId || p.shopifyVariantId || p.id);
+                const imageUrl = p.imageUrl || p.featured_image;
 
-                  {/* Product Info */}
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <div style={{
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      color: textColor,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}>
-                      {p.title}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: '800', color: isDark(backgroundColor) ? '#fbbf24' : '#ef4444' }}>
-                        {currencySymbol}{p.price.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Add to Cart Button */}
-                  <button
-                    onClick={() => onAddProduct && onAddProduct(p.variantId)}
+                return (
+                  <div
+                    key={variantId}
                     style={{
-                      padding: '5px 10px',
-                      background: isDark(backgroundColor) ? '#ffffff' : progressBarColor,
-                      color: isDark(backgroundColor) ? '#000000' : '#ffffff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '10px',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
+                      minWidth: 'calc(100% - 40px)',
+                      maxWidth: '300px',
+                      padding: '6px',
+                      background: isDark(backgroundColor) ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.03)',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
                       flexShrink: 0,
-                      transition: 'transform 0.2s active',
                     }}
                   >
-                    + Add
-                  </button>
-                </div>
-              ))}
+                    {/* Product Image */}
+                    {imageUrl && (
+                      <div style={{
+                        width: '36px',
+                        height: '36px',
+                        flexShrink: 0,
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        background: '#fff',
+                      }}>
+                        <img
+                          src={imageUrl}
+                          alt={p.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Product Info */}
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div style={{
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: textColor,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}>
+                        {p.title}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '800', color: isDark(backgroundColor) ? '#fbbf24' : '#ef4444' }}>
+                          {currencySymbol}{Number(p.price).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Add to Cart Button */}
+                    <button
+                      onClick={() => onAddProduct && onAddProduct(variantId)}
+                      style={{
+                        padding: '5px 10px',
+                        background: isDark(backgroundColor) ? '#ffffff' : progressBarColor,
+                        color: isDark(backgroundColor) ? '#000000' : '#ffffff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '10px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                        transition: 'transform 0.2s active',
+                      }}
+                    >
+                      Add
+                    </button>
+                  </div>
+                );
+              })}
+
             </div>
             {/* Horizontal Indicator (Peeking logic) */}
             {products.length > 1 && (

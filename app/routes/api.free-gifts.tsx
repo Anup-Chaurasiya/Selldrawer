@@ -99,7 +99,7 @@ async function getFreeGiftsResponse(request: Request, shop: string, cartTotal: n
       const unlockedMilestonesWithGift = cartDrawer.milestones
         .filter((milestone: any) => {
           const targetAmount = parseFloat(milestone.targetAmount.toString());
-          const isUnlocked = cartTotal >= targetAmount;
+          const isUnlocked = Math.round(cartTotal) >= Math.round(targetAmount);
           const hasGiftReward = milestone.rewardType === 'gift_wrapping';
           return isUnlocked && hasGiftReward;
         })

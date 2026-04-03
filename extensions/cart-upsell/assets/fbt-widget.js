@@ -9444,7 +9444,7 @@
   };
 
   // extensions/cart-upsell/assets/modules/fbt-widget-entry.js
-  var APP_URL = true ? "https://pdas-cotton-dark-enemies.trycloudflare.com" : "https://app.selldrawer.com";
+  var APP_URL = true ? "https://consoles-emissions-notification-player.trycloudflare.com" : "https://app.selldrawer.com";
   var FrequentlyBoughtTogether = class {
     constructor(container) {
       this.container = container;

@@ -191,3 +191,105 @@ export async function loadShopifyRecommendations(cart, config) {
     }
   }
 }
+
+/**
+ * Load dynamic Free Shipping Upsells using Shopify Recommendations API
+ */
+export async function loadDynamicFreeShippingUpsells(cart, config) {
+  const fsb = config?.features?.freeShippingProgressBar;
+  if (!fsb || !fsb.showProductUpsell) {
+    return;
+  }
+
+  if (!cart || !cart.items || cart.items.length === 0) {
+    return;
+  }
+
+  try {
+    const firstItem = cart.items[0];
+    const productId = firstItem.product_id;
+
+    if (!productId) {
+      return;
+    }
+
+    // Fetch related products (AI-driven)
+    const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=related&limit=10`;
+    console.log('[Cart Drawer] Fetching dynamic upsells from:', recommendationsUrl);
+
+    const response = await fetch(recommendationsUrl);
+
+    if (!response.ok) {
+      console.error('[Cart Drawer] Recommendations API failed:', response.status);
+      return;
+    }
+
+    const data = await response.json();
+    const rawProducts = data.products || [];
+    console.log(`[Cart Drawer] Shopify returned ${rawProducts.length} recommendations`);
+
+    // Calculate gap
+    const cartTotal = cart.total_price / 100;
+    const threshold = fsb.thresholdAmount;
+    const gap = threshold - cartTotal;
+    console.log(`[Cart Drawer] Cart total: ${cartTotal}, Threshold: ${threshold}, Gap: ${gap}`);
+
+    const dynamicUpsells = rawProducts
+      .map(product => {
+        const variant = product.variants?.[0];
+        const price = variant?.price ? parseFloat(variant.price) / 100 : 0;
+        
+        let variantId = null;
+        if (variant?.id) {
+          const idStr = variant.id.toString();
+          variantId = idStr.includes('gid://') ? idStr.replace('gid://shopify/ProductVariant/', '') : idStr;
+        }
+
+        const isAvailable = variant ? (
+          variant.available !== false &&
+          (variant.inventory_management === null ||
+            variant.inventory_quantity === null ||
+            variant.inventory_quantity === undefined ||
+            variant.inventory_quantity > 0)
+        ) : false;
+
+        return {
+          id: variantId, 
+          variantId: variantId, 
+          shopifyProductId: product.id?.toString() || product.handle,
+          shopifyVariantId: variantId,
+          title: product.title,
+          handle: product.handle,
+          price: price,
+          compareAtPrice: variant?.compare_at_price ? parseFloat(variant.compare_at_price) / 100 : null,
+          imageUrl: product.featured_image,
+          available: isAvailable
+        };
+      })
+      .filter(p => {
+        if (!p.available) return false;
+        
+        // Check if already in cart by variant_id or handle
+        const isInCart = cart.items.some(item => {
+          const itemVariantId = String(item.variant_id);
+          const pVariantId = String(p.variantId);
+          return itemVariantId === pVariantId || (item.handle && item.handle === p.handle);
+        });
+        
+        return !isInCart;
+      });
+
+    // Logic: if we have products, sort them to be helpful (lowest price first to bridge gap easily)
+    const sortedUpsells = dynamicUpsells.sort((a, b) => a.price - b.price);
+    const finalUpsells = sortedUpsells.slice(0, 4);
+    
+    // Update the config object - ensure we replace the array to trigger React updates
+    fsb.upsellProducts = [...finalUpsells];
+
+    console.log('[Cart Drawer] Dynamic Free Shipping Upsells Success:', fsb.upsellProducts.length);
+  } catch (error) {
+    console.error('Selldrawer: Error loading dynamic free shipping upsells:', error);
+  }
+}
+
+

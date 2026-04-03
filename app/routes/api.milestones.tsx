@@ -103,10 +103,17 @@ export async function action({ request }: ActionFunctionArgs) {
       });
     }
 
-    // 3. Compute per-milestone status, progress, messages
-    const milestones = dbMilestones.map((m) => {
+    // 3. Get the admin access token to fetch products via Admin REST API
+    const session = await prisma.session.findFirst({
+      where: { shop, isOnline: false },
+      select: { accessToken: true },
+    });
+    const adminToken = session?.accessToken ?? null;
+
+    // 4. Compute per-milestone status, progress, messages, and fetch products
+    const milestones = await Promise.all(dbMilestones.map(async (m) => {
       const target = parseFloat(m.targetAmount.toString());
-      const isUnlocked = cartTotal >= target;
+      const isUnlocked = Math.round(cartTotal) >= Math.round(target);
       const remaining = Math.max(0, target - cartTotal);
       const progress = target > 0 ? Math.min((cartTotal / target) * 100, 100) : 100;
 
@@ -135,15 +142,67 @@ export async function action({ request }: ActionFunctionArgs) {
           : `Add ${remainingFormatted} more to unlock ${rewardLabel}!`;
       }
 
-      // Upsell products from stored gift products
-      const upsellProducts = m.giftProducts.map((gp) => ({
-        id: gp.shopifyProductId,
-        title: gp.title,
-        // Widget expects price in smallest unit (paise/cents)
-        price: Math.round(parseFloat(gp.price.toString()) * 100),
-        imageUrl: gp.imageUrl ?? undefined,
-        handle: gp.handle,
-      }));
+      // Fetch upsell products using Admin REST API — no Storefront token needed
+      let upsellProducts: any[] = [];
+      const eligibilitySource = m.eligibilitySource;
+
+      // Only fetch products if milestone is NOT yet unlocked and we have admin token
+      if (adminToken && !isUnlocked && eligibilitySource && eligibilitySource !== 'none') {
+        try {
+          let apiUrl = `https://${shop}/admin/api/2024-10/products.json?limit=12&status=active`;
+
+          if (eligibilitySource === 'collection' && m.eligibleCollectionHandle) {
+            // First get collection ID from handle
+            const colResp = await fetch(
+              `https://${shop}/admin/api/2024-10/custom_collections.json?handle=${m.eligibleCollectionHandle}&fields=id`,
+              { headers: { 'X-Shopify-Access-Token': adminToken } }
+            );
+            const colData = await colResp.json() as any;
+            const collectionId = colData?.custom_collections?.[0]?.id;
+            if (collectionId) {
+              apiUrl = `https://${shop}/admin/api/2024-10/products.json?collection_id=${collectionId}&limit=12&status=active`;
+            }
+          } else if (eligibilitySource === 'products' && m.eligibleProductIds && m.eligibleProductIds.length > 0) {
+            // Fetch specific products by IDs (extract numeric part from GID if needed)
+            const ids = m.eligibleProductIds.map((id: string) =>
+              id.startsWith('gid://') ? id.split('/').pop() : id
+            ).join(',');
+            apiUrl = `https://${shop}/admin/api/2024-10/products.json?ids=${ids}&limit=12&status=active`;
+          }
+          // else: all_products → use default apiUrl (all active products, limit 12)
+
+          const productsResp = await fetch(apiUrl, {
+            headers: { 'X-Shopify-Access-Token': adminToken }
+          });
+          const productsData = await productsResp.json() as any;
+          const rawProducts = productsData?.products ?? [];
+
+          upsellProducts = rawProducts.map((p: any) => {
+            const variant = p.variants?.[0];
+            return {
+              id: `gid://shopify/Product/${p.id}`,
+              title: p.title,
+              price: variant ? Math.round(parseFloat(variant.price) * 100) : 0,
+              imageUrl: p.image?.src ?? p.images?.[0]?.src,
+              handle: p.handle,
+              variantId: variant?.id?.toString(),
+            };
+          }).filter((p: any) => p.price > 0);
+        } catch (err) {
+          console.error(`Milestones: Error fetching products for milestone ${m.id}:`, err);
+        }
+      }
+
+      // Fallback to legacy giftProducts if dynamic fetch yields no results
+      if (upsellProducts.length === 0 && m.giftProducts && m.giftProducts.length > 0) {
+        upsellProducts = m.giftProducts.map((gp) => ({
+          id: gp.shopifyProductId,
+          title: gp.title,
+          price: Math.round(parseFloat(gp.price.toString()) * 100),
+          imageUrl: gp.imageUrl ?? undefined,
+          handle: gp.handle,
+        }));
+      }
 
       return {
         id: m.id,
@@ -164,7 +223,7 @@ export async function action({ request }: ActionFunctionArgs) {
         unlockButtonColor: m.unlockButtonColor,
         upsellProducts,
       };
-    });
+    }));
 
     return jsonResponse({
       milestones,

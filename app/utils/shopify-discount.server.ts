@@ -572,12 +572,8 @@ export async function deleteShopifyDiscount(
 
 /**
  * Main factory: create an automatic discount based on milestone configuration
- * - rewardType: "free_shipping" | "discount_percentage" | "discount_fixed" | "gift_wrapping"
+ * - rewardType: "free_shipping" | "discount_percentage" | "discount_fixed"
  * - rewardValue: for discount types (percentage -> number 5 = 5%; fixed -> amount)
- * - giftProducts: array of { shopifyVariantId?: string | null }
- * - triggerType: "spend" | "quantity" | "products" | "collections" (for gift_wrapping)
- * - triggerValue: threshold value (for gift_wrapping)
- * - targetIds: array of product or collection IDs (for gift_wrapping with products/collections trigger)
  *
  * Returns { discountId, code } where code is empty string for automatic discounts.
  */
@@ -587,11 +583,7 @@ export async function createMilestoneDiscount(
     title: string;
     rewardType: string;
     rewardValue?: number | null;
-    giftProducts?: Array<{ shopifyVariantId?: string | null }>;
-    minimumSubtotal?: number; // threshold, if not provided default to 0 (deprecated, use triggerValue)
-    triggerType?: string; // "spend" | "quantity" | "products" | "collections"
-    triggerValue?: number; // threshold value
-    targetIds?: string[]; // product or collection IDs for products/collections trigger
+    minimumSubtotal?: number; // threshold, if not provided default to 0
   }
 ): Promise<{ discountId: string; code: string } | null> {
   try {
@@ -619,31 +611,6 @@ export async function createMilestoneDiscount(
         }
         return await createBasicAutomatic(admin, title, "fixed", milestone.rewardValue, minSubtotal);
 
-      case "gift_wrapping":
-        // convert giftProducts to variant ids
-        const variantIds = (milestone.giftProducts ?? [])
-          .map(p => p.shopifyVariantId)
-          .filter((v): v is string => !!v);
-
-        if (variantIds.length === 0) {
-          console.error("createMilestoneDiscount: gift_wrapping requires at least one variant id");
-          return null;
-        }
-
-        // Determine trigger type and value
-        const triggerType = milestone.triggerType ?? "spend";
-        const triggerValue = milestone.triggerValue ?? minSubtotal;
-        const targetIds = milestone.targetIds ?? [];
-
-        return await createBxgyAutomatic(
-          admin,
-          title,
-          variantIds,
-          triggerType,
-          triggerValue,
-          targetIds
-        );
-
       default:
         console.error("createMilestoneDiscount: unknown reward type:", milestone.rewardType);
         return null;
@@ -666,11 +633,7 @@ export async function updateMilestoneDiscount(
     title: string;
     rewardType: string;
     rewardValue?: number | null;
-    giftProducts?: Array<{ shopifyVariantId?: string | null }>;
     minimumSubtotal?: number;
-    triggerType?: string;
-    triggerValue?: number;
-    targetIds?: string[];
   }
 ): Promise<{ discountId: string; code: string } | null> {
   try {

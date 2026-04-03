@@ -12,6 +12,8 @@ import { FreeShippingMessage } from '../../../../../app/components/shared/FreeSh
 import { CouponCodeField } from '../../../../../app/components/shared/CouponCodeField.tsx';
 import { CartTotals } from '../../../../../app/components/shared/CartTotals.tsx';
 import { MilestonesWidget } from '../../../../../app/components/shared/MilestonesWidget.tsx';
+import { PromotionalBannerCard } from '../../../../../app/components/shared/PromotionalBannerCard.tsx';
+import { FreeGiftSelector } from '../../../../../app/components/shared/FreeGiftSelector.tsx';
 
 
 export const UnifiedCartDrawer = ({
@@ -111,10 +113,12 @@ export const UnifiedCartDrawer = ({
               isPreview={false}
               showProductUpsell={bar.showProductUpsell ?? true}
               upsellHeaderText={bar.upsellHeaderText || "Almost there! Add this to unlock free shipping:"}
+              upsellProducts={bar.upsellProducts || []}
               appUrl={config?.appUrl || window.selldrawer_config?.appUrl}
               shop={config?.shop || window.selldrawer_config?.shop || window.Shopify?.shop}
               onAddProduct={onAddProductToCart}
             />
+
           </div>
         );
       }
@@ -219,6 +223,21 @@ export const UnifiedCartDrawer = ({
       }
 
 
+      case 'promotional-banner': {
+        const banner = config?.features?.promotionalBanner;
+        if (!banner || !banner.slides || banner.slides.length === 0) return null;
+
+        return (
+          <div key={featureId} style={{ marginBottom: '16px' }}>
+            <PromotionalBannerCard
+              slides={banner.slides}
+              carouselSettings={banner.carouselSettings}
+              context="cart-drawer"
+            />
+          </div>
+        );
+      }
+
       case 'milestones': {
         const milestones = config?.features?.milestones;
         if (!milestones || milestones.length === 0) return null;
@@ -235,10 +254,33 @@ export const UnifiedCartDrawer = ({
               allUnlockedMessage={config?.features?.milestonesAllUnlockedMessage || '🎉 Congratulations! All rewards unlocked!'}
               currency={'₹'}
               onAddToCart={(product) => {
-                if (onAddProductToCart && product.id) {
-                  onAddProductToCart(product.id);
+                if (onAddProductToCart) {
+                  // Use variantId if available (from dynamic Storefront API fetch), 
+                  // otherwise extract numeric ID from GID, or fallback to product.id
+                  const id = product.variantId || product.id;
+                  // Extract numeric ID from GID format if needed
+                  const numericId = typeof id === 'string' && id.startsWith('gid://') 
+                    ? id.split('/').pop() 
+                    : id;
+                  onAddProductToCart(numericId);
                 }
               }}
+            />
+          </div>
+        );
+      }
+
+      case 'free-gifts': {
+        const gifts = config?.features?.freeGifts;
+        if (!config?.features?.freeGiftsEnabled || !gifts || gifts.length === 0) return null;
+
+        return (
+          <div key={featureId} style={{ marginBottom: '16px' }}>
+            <FreeGiftSelector
+              gifts={gifts}
+              selectedGiftId={selectedGiftId}
+              onSelectGift={onSelectGift}
+              pendingOperations={pendingOperations}
             />
           </div>
         );

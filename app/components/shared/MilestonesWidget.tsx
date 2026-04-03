@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 // ─────────────────────────────────────────────
 // Types
@@ -9,6 +9,7 @@ export interface UpsellProduct {
   price: number;       // in smallest currency unit (paise / cents)
   imageUrl?: string;
   handle?: string;
+  variantId?: string;  // Shopify variant GID for Add to Cart operations
 }
 
 export interface Milestone {
@@ -102,22 +103,10 @@ export function MilestonesWidget({
   if (!milestones || milestones.length === 0) return null;
 
   const sorted = [...milestones].sort((a, b) => a.targetAmount - b.targetAmount);
-  const allUnlocked = sorted.every(m => m.status === 'unlocked');
+  const allUnlocked = sorted.every(m => Math.round(cartTotal) >= Math.round(m.targetAmount));
   const fillPct = calcProgress(cartTotal, sorted);
 
-  useEffect(() => {
-    console.log("fillPct", fillPct);
-  }, [fillPct])
-
-  // Debug logging
-  console.log('MilestonesWidget Debug:', {
-    cartTotal,
-    milestones: sorted.map(m => ({ target: m.targetAmount, status: m.status })),
-    maxMilestone: sorted[sorted.length - 1]?.targetAmount,
-    fillPct
-  });
-
-  const nextMilestone = sorted.find(m => m.status !== 'unlocked');
+  const nextMilestone = sorted.find(m => Math.round(cartTotal) < Math.round(m.targetAmount));
   const statusMsg = allUnlocked ? allUnlockedMessage : nextMilestone?.message ?? null;
 
   const n = sorted.length;
@@ -177,7 +166,7 @@ export function MilestonesWidget({
 
         {/* Nodes layer — absolutely positioned based on segments */}
         {sorted.map((m, i) => {
-          const isUnlocked = m.status === 'unlocked';
+          const isUnlocked = Math.round(cartTotal) >= Math.round(m.targetAmount);
           const pos = (i + 1) * segmentWidth;
           return (
             <div
@@ -281,47 +270,69 @@ export function MilestoneUpsellProducts({
   currency = '₹',
   onAddToCart,
 }: MilestoneUpsellProductsProps) {
-  const [idx, setIdx] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
 
-  // Resolve product list: either passed directly, or derived from milestones
+  // Resolve product list
   let products: UpsellProduct[] = directProducts ?? [];
+  let buttonColor = '#1c1c3b';
+  let targetMilestone = null;
+
   if (!directProducts && milestones) {
     const sorted = [...milestones].sort((a, b) => a.targetAmount - b.targetAmount);
-    const next = sorted.find(m => cartTotal < m.targetAmount);
-    products = next?.upsellProducts ?? [];
+    targetMilestone = sorted.find(m => Math.round(cartTotal) < Math.round(m.targetAmount));
+    products = targetMilestone?.upsellProducts ?? [];
+    buttonColor = targetMilestone?.unlockButtonColor || buttonColor;
   }
+
+  // Update arrow visibility on scroll
+  const updateArrows = () => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setShowLeftArrow(scrollLeft > 10);
+      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  useEffect(() => {
+    updateArrows();
+  }, [products]);
 
   if (products.length === 0) return null;
 
-  const visible = 2;
-  const maxIdx = Math.max(0, products.length - visible);
+  const upsellHeader = (targetMilestone as any)?.upsellHeaderText || "Unlock Your Reward";
 
   const ArrowBtn = ({
-    dir, disabled, onClick,
-  }: { dir: 'left' | 'right'; disabled: boolean; onClick: () => void }) => (
+    dir, visible, onClick,
+  }: { dir: 'left' | 'right'; visible: boolean; onClick: () => void }) => (
     <button
       onClick={onClick}
-      disabled={disabled}
       aria-label={dir === 'left' ? 'Previous' : 'Next'}
       style={{
         flexShrink: 0,
-        width: '26px',
-        height: '26px',
+        width: '32px',
+        height: '32px',
         borderRadius: '50%',
-        border: '1px solid #e5e7eb',
+        border: '1px solid rgba(0,0,0,0.08)',
         background: '#fff',
-        cursor: disabled ? 'not-allowed' : 'pointer',
+        cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        opacity: disabled ? 0.35 : 1,
-        transition: 'all 0.2s',
+        opacity: visible ? 1 : 0,
+        pointerEvents: visible ? 'auto' : 'none',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         padding: 0,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+        position: 'relative',
+        zIndex: 10,
+        marginLeft: dir === 'left' ? '0' : '-16px',
+        marginRight: dir === 'right' ? '0' : '-16px',
       }}
     >
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-        stroke="#374151" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+        stroke="#1e293b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
         {dir === 'left'
           ? <polyline points="15 18 9 12 15 6" />
           : <polyline points="9 18 15 12 9 6" />}
@@ -330,89 +341,134 @@ export function MilestoneUpsellProducts({
   );
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
-      <ArrowBtn dir="left" disabled={idx === 0} onClick={() => setIdx(i => Math.max(0, i - 1))} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
+        <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#1e293b', letterSpacing: '-0.3px' }}>
+          {upsellHeader}
+        </p>
+      </div>
 
-      {/* Viewport */}
-      <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-          transform: `translateX(calc(-${idx * (100 / visible)}% - ${idx * 4}px))`,
-          transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
-        }}>
+      <div style={{ display: 'flex', alignItems: 'center', width: '100%', boxSizing: 'border-box', position: 'relative' }}>
+        <ArrowBtn dir="left" visible={showLeftArrow} onClick={() => scrollRef.current?.scrollBy({ left: -220, behavior: 'smooth' })} />
+
+        {/* Viewport */}
+        <div 
+          ref={scrollRef}
+          onScroll={updateArrows}
+          style={{ 
+            flex: 1, 
+            overflowX: 'auto', 
+            overflowY: 'hidden',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            minWidth: 0, 
+            padding: '4px 0',
+            cursor: 'default',
+            WebkitOverflowScrolling: 'touch',
+            display: 'flex',
+            gap: '10px'
+          }}
+        >
+          {/* Hidden scrollbar trick for Chrome/Safari/Edge */}
+          <style>{`
+            div::-webkit-scrollbar { display: none; }
+          `}</style>
+          
           {products.map(p => (
             <div
               key={p.id}
               style={{
-                minWidth: `calc(${100 / visible}% - 4px)`,
+                minWidth: '220px',
+                width: '220px',
                 flexShrink: 0,
-                border: '1px solid #e5e7eb',
-                borderRadius: '10px',
-                padding: '8px',
+                border: '1px solid rgba(0,0,0,0.05)',
+                borderRadius: '14px',
+                padding: '10px',
                 backgroundColor: '#fff',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                gap: '12px',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
                 boxSizing: 'border-box',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.06)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.04)';
               }}
             >
               {/* Image */}
               <div style={{
-                width: '50px',
-                height: '50px',
-                borderRadius: '7px',
+                width: '60px',
+                height: '60px',
+                borderRadius: '10px',
                 overflow: 'hidden',
                 flexShrink: 0,
-                backgroundColor: '#f3f4f6',
+                backgroundColor: '#f8fafc',
+                border: '1px solid rgba(0,0,0,0.04)',
               }}>
                 {p.imageUrl
-                  ? <img src={p.imageUrl} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>🛍️</div>
+                  ? <img src={p.imageUrl} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} />
+                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>🛍️</div>
                 }
               </div>
 
               {/* Info */}
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                 <p style={{
-                  margin: 0,
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: '#111827',
+                  margin: '0',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: '#0f172a',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  lineHeight: '1.3',
+                  letterSpacing: '-0.2px'
                 }}>
                   {p.title}
                 </p>
-                <p style={{ margin: '2px 0 5px', fontSize: '11px', color: '#374151', fontWeight: 500 }}>
-                  {currency} {(p.price / 100).toFixed(2)}
-                </p>
-                <button
-                  onClick={() => onAddToCart?.(p)}
-                  style={{
-                    width: '100%',
-                    padding: '4px 0',
-                    backgroundColor: '#1c1c3b',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    letterSpacing: '0.3px',
-                  }}
-                >
-                  Add to cart
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                  <p style={{ margin: '0', fontSize: '13px', color: '#1e293b', fontWeight: 800 }}>
+                    {currency}{(p.price / 100).toLocaleString()}
+                  </p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddToCart?.(p);
+                    }}
+                    style={{
+                      padding: '5px 12px',
+                      backgroundColor: buttonColor,
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '100px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      boxShadow: `0 3px 6px ${buttonColor}30`,
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    Add
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
-      </div>
 
-      <ArrowBtn dir="right" disabled={idx >= maxIdx} onClick={() => setIdx(i => Math.min(maxIdx, i + 1))} />
+        <ArrowBtn dir="right" visible={showRightArrow} onClick={() => scrollRef.current?.scrollBy({ left: 220, behavior: 'smooth' })} />
+      </div>
     </div>
   );
 }
+

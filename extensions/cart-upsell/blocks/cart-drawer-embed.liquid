@@ -1,49 +1,138 @@
 {% comment %}
-  Selldrawer Cart Drawer - App Embed
-  This app embed enables the cart drawer functionality
+  Selldrawer Cart Drawer – App Embed Block
+  Enable: Theme Customizer → App Embeds → Selldrawer Cart Drawer
 {% endcomment %}
 
-<div data-selldrawer-app-url="{{ block.settings.app_url }}"></div>
-
 <script>
-  (function() {
-    // Set config BEFORE loading the script so it's available immediately
-    window.selldrawer_config = {
-      customerId: "{{ customer.id | default: '' }}",
-      shop: "{{ shop.permanent_domain }}"
-    };
-    
-    // Add timestamp for cache busting during development
-    var timestamp = new Date().getTime();
-    var cacheParam = '?t=' + Math.floor(timestamp / 60000); // Update every minute
-    
-    // Load the cart drawer CSS
-    var link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.type = 'text/css';
-    link.href = '{{ 'cart-drawer.css' | asset_url }}' + cacheParam;
-    document.head.appendChild(link);
-    
-    // Load the cart drawer script
-    var script = document.createElement('script');
-    script.src = '{{ 'cart-drawer.js' | asset_url }}' + cacheParam;
-    script.async = true;
-    document.head.appendChild(script);
-  })();
+/* ── SELLDRAWER BOOT SCRIPT (pure ES5, zero external deps) ── */
+(function () {
+
+  /* 1 ─ Inject shop config */
+  var rawSettingsStr = {{ shop.metafields.selldrawer.config.value | json }};
+  var parsedSettings = {};
+  try {
+    if (rawSettingsStr) {
+      parsedSettings = typeof rawSettingsStr === 'string' ? JSON.parse(rawSettingsStr) : rawSettingsStr;
+    }
+  } catch (e) {
+    console.warn('[Selldrawer] Failed to parse injected Metafield config', e);
+  }
+
+  window.selldrawer_config = {
+    shop: "{{ shop.permanent_domain }}",
+    customerId: "{{ customer.id | default: '' }}",
+    settings: parsedSettings
+  };
+
+  console.log('[Selldrawer] Embed boot. Shop:', window.selldrawer_config.shop);
+
+  /* 2 ─ Suppress native Shopify cart drawer immediately */
+  function suppressNativeCart() {
+    var tags = ['cart-drawer', 'cart-notification'];
+    for (var t = 0; t < tags.length; t++) {
+      var els = document.querySelectorAll(tags[t]);
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        el.style.cssText = 'display:none!important;visibility:hidden!important;';
+        if (el.open)           { el.open           = function () {}; }
+        if (el.show)           { el.show           = function () {}; }
+        if (el.renderContents) { el.renderContents = function () {}; }
+      }
+    }
+  }
+  suppressNativeCart();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', suppressNativeCart);
+  }
+  if (typeof MutationObserver !== 'undefined') {
+    new MutationObserver(suppressNativeCart).observe(
+      document.documentElement, { childList: true, subtree: true }
+    );
+  }
+
+  /* 3 ─ Cart-click interception — runs NOW, before cart-drawer.js loads */
+  function isCartEl(el) {
+    if (!el || el === document.body) return false;
+    var href = el.getAttribute ? (el.getAttribute('href') || '') : '';
+    var ac   = el.getAttribute ? (el.getAttribute('aria-controls') || '') : '';
+    var cls  = el.className ? el.className.toString() : '';
+    var tag  = el.tagName ? el.tagName.toLowerCase() : '';
+    if (href === '/cart' || href.match(/\/cart(\?|$)/)) return true;
+    if (ac === 'cart-drawer' || ac === 'CartDrawer')    return true;
+    if (el.getAttribute && el.getAttribute('data-cart-toggle') !== null) return true;
+    if (el.getAttribute && el.getAttribute('data-cart-open')   !== null) return true;
+    if (cls.indexOf('header__icon--cart') !== -1) return true;
+    if (cls.indexOf('cart-icon')          !== -1) return true;
+    if (tag === 'cart-icon-bubble')               return true;
+    return false;
+  }
+
+  function handleCartClick(e) {
+    if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+    var target = e.target;
+    for (var depth = 0; depth < 8; depth++) {
+      if (!target || target === document.body) break;
+      if (isCartEl(target)) {
+        console.log('[Selldrawer] Cart click intercepted at depth', depth);
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();   /* MUST prevent theme handler */
+        if (window.selldrawerDrawer && typeof window.selldrawerDrawer.open === 'function') {
+          window.selldrawerDrawer.open();
+        } else {
+          window.selldrawerPendingOpen = true;
+        }
+        return;
+      }
+      target = target.parentElement;
+    }
+  }
+  document.addEventListener('click', handleCartClick, true);
+
+  /* Intercept theme custom events */
+  var cartEvents = ['cart:open', 'open-cart', 'CartDrawer:open', 'cart-drawer:open'];
+  for (var ce = 0; ce < cartEvents.length; ce++) {
+    (function (evtName) {
+      document.addEventListener(evtName, function (e) {
+        e.stopImmediatePropagation();
+        if (window.selldrawerDrawer && typeof window.selldrawerDrawer.open === 'function') {
+          window.selldrawerDrawer.open();
+        } else {
+          window.selldrawerPendingOpen = true;
+        }
+      }, true);
+    })(cartEvents[ce]);
+  }
+
+  /* 4 ─ Load cart-drawer.js bundle */
+  var ts = (new Date()).getTime();
+
+  var link  = document.createElement('link');
+  link.rel  = 'stylesheet';
+  link.href = '{{ "cart-drawer.css" | asset_url }}?t=' + ts;
+  document.head.appendChild(link);
+
+  var script     = document.createElement('script');
+  script.src     = '{{ "cart-drawer.js" | asset_url }}?t=' + ts;
+  script.onerror = function () {
+    console.error('[Selldrawer] FAILED to load cart-drawer.js from:', script.src);
+  };
+  script.onload  = function () {
+    console.log('[Selldrawer] cart-drawer.js loaded OK.');
+    if (window.selldrawerPendingOpen && window.selldrawerDrawer) {
+      window.selldrawerPendingOpen = false;
+      window.selldrawerDrawer.open();
+    }
+  };
+  document.head.appendChild(script);
+
+})();
 </script>
 
 {% schema %}
 {
   "name": "Selldrawer Cart Drawer",
   "target": "body",
-  "settings": [
-    {
-      "type": "text",
-      "id": "app_url",
-      "label": "App URL",
-      "info": "Enter your Selldrawer app URL (e.g., https://your-app.fly.dev)",
-      "default": "https://app.selldrawer.com"
-    }
-  ]
+  "settings": []
 }
 {% endschema %}

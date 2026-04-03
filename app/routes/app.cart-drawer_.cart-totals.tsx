@@ -17,6 +17,7 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { syncCartDrawerConfigToMetafields } from "../utils/sync-config.server";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { CartTotals as CartTotalsComponent } from "../components/shared/CartTotals";
 
@@ -38,7 +39,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
   const url = new URL(request.url);
 
@@ -69,6 +70,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       where: { shop },
       data: { cartTotalsEnabled: enabled },
     });
+
+    // Sync to metafields
+    await syncCartDrawerConfigToMetafields(admin, shop);
 
     return json({ success: true });
   }
@@ -126,6 +130,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       where: { shop },
       data: { cartTotalsEnabled: true },
     });
+
+    // Sync to metafields
+    await syncCartDrawerConfigToMetafields(admin, shop);
 
     return redirect(`/app/cart-drawer`);
   }
