@@ -516,7 +516,7 @@ export default function SavingsDisplay() {
             <div className="premium-card-body" style={{ background: '#f8fafc' }}>
               <SavingsDisplayComponent
                 message={formState.message}
-                amount={330000} // Sample amount in cents (₹3300)
+                amount={2500} // Sample amount in cents ($25.00)
                 backgroundColor={formState.backgroundColor}
                 textColor={formState.textColor}
                 borderColor={formState.borderColor}

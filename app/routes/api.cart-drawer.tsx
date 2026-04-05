@@ -102,6 +102,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           },
           orderBy: { priority: 'asc' }
         },
+        trustBadges: { where: { isActive: true }, take: 1 },
+        countdownTimers: { where: { isActive: true }, take: 1 },
+        acceleratedCheckouts: { where: { isActive: true }, take: 1 },
       },
     });
 
@@ -152,6 +155,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             carouselSettings: true,
           }
         },
+        trustBadges: { where: { isActive: true }, take: 1 },
+        countdownTimers: { where: { isActive: true }, take: 1 },
+        acceleratedCheckouts: { where: { isActive: true }, take: 1 },
       },
       });
     }
@@ -226,6 +232,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             }
           }
         : null,
+      trustBadgesEnabled: cartDrawer.trustBadgesEnabled,
+      trustBadges: cartDrawer.trustBadges || [],
+      countdownTimerEnabled: cartDrawer.countdownTimerEnabled,
+      countdownTimers: cartDrawer.countdownTimers || [],
+      acceleratedCheckoutEnabled: cartDrawer.acceleratedCheckoutEnabled,
+      acceleratedCheckouts: cartDrawer.acceleratedCheckouts || [],
     };
 
     const response = json({
@@ -235,6 +247,25 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       featureOrder: featureOrder,
       shop, // Add shop domain for milestone upsell API calls
       appUrl: process.env.APP_URL || `https://${request.headers.get('host')}`,
+      // Order Intelligence fields
+      orderNoteEnabled: cartDrawer.orderNoteEnabled,
+      orderNotePlaceholder: cartDrawer.orderNotePlaceholder,
+      termsConditionsEnabled: cartDrawer.termsConditionsEnabled,
+      termsConditionsText: cartDrawer.termsConditionsText,
+      deliveryEstimatesEnabled: cartDrawer.deliveryEstimatesEnabled,
+      deliveryEstimatesText: cartDrawer.deliveryEstimatesText,
+      processingDaysMin: cartDrawer.processingDaysMin,
+      processingDaysMax: cartDrawer.processingDaysMax,
+      transitDaysMin: cartDrawer.transitDaysMin,
+      transitDaysMax: cartDrawer.transitDaysMax,
+      shippingProtectionEnabled: cartDrawer.shippingProtectionEnabled,
+      shippingProtectionProductId: cartDrawer.shippingProtectionProductId,
+      shippingProtectionTitle: (cartDrawer as any).shippingProtectionTitle || "Shipping Protection",
+      shippingProtectionPrice: (cartDrawer as any).shippingProtectionPrice ? parseFloat((cartDrawer as any).shippingProtectionPrice.toString()) : 0,
+      // New feature flags at top level for consistent storefront access
+      trustBadgesEnabled: cartDrawer.trustBadgesEnabled,
+      countdownTimerEnabled: cartDrawer.countdownTimerEnabled,
+      acceleratedCheckoutEnabled: cartDrawer.acceleratedCheckoutEnabled,
       features,
     }, {
       headers: {

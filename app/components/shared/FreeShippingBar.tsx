@@ -4,11 +4,24 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
+import { VariantPickerSheet, VariantPickerProduct } from './VariantPickerSheet';
 
 interface Cart {
   item_count: number;
   total_price: number;
   items?: { variant_id: number | string;[key: string]: any }[];
+}
+
+interface ProductVariant {
+  id: string;
+  title: string;
+  available: boolean;
+  price: number;
+  compareAtPrice?: number | null;
+  option1?: string | null;
+  option2?: string | null;
+  option3?: string | null;
+  featured_image?: { url: string } | null;
 }
 
 interface Product {
@@ -20,6 +33,8 @@ interface Product {
   compareAtPrice: number | null;
   imageUrl: string | null;
   currency: string;
+  variants?: ProductVariant[];
+  options?: string[];
 }
 
 interface FreeShippingBarProps {
@@ -53,7 +68,7 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
   progressBarColor = '#7c3aed',
   borderColor = '#e8e0ff',
   showPercentage = true,
-  currency = 'INR',
+  currency = 'USD',
   cart,
   isPreview = false,
   showProductUpsell = true,
@@ -66,6 +81,7 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
   const [animatedProgress, setAnimatedProgress] = useState(0);
   const [celebrated, setCelebrated] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [pickerProduct, setPickerProduct] = useState<VariantPickerProduct | null>(null);
   const prevCompleteRef = useRef(false);
 
   const calculateProgress = () => {
@@ -131,14 +147,59 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [upsellProducts, isComplete, showProductUpsell, cartItemIdsKey]);
 
+  // ─── Variant picker handler ─────────────────────────────
+  const handleAddClick = (p: Product) => {
+    if (isPreview || !onAddProduct) return;
 
-  const currencySymbol = currency === 'INR' ? '₹' : '$';
+    const variantId = String(p.variantId || p.id);
+    const hasMultipleVariants = Array.isArray(p.variants) && p.variants.length > 1;
+
+    if (!hasMultipleVariants) {
+      // Single variant → add directly
+      onAddProduct(variantId);
+      return;
+    }
+
+    // Multiple variants → open picker sheet
+    setPickerProduct({
+      id: p.id,
+      title: p.title,
+      imageUrl: p.imageUrl,
+      price: Math.round(p.price * 100), // convert to cents for the picker
+      compareAtPrice: p.compareAtPrice ? Math.round(p.compareAtPrice * 100) : null,
+      variants: p.variants!,
+      options: p.options || [],
+    });
+  };
+  // ─────────────────────────────────────────────
+
+  const formatMoney = (cents: number) => {
+    if (typeof cents !== 'number') return '';
+    const amount = cents / 100;
+
+    // Get active currency from Shopify config
+    // @ts-ignore
+    const currencyConfig = typeof window !== 'undefined' ? window.selldrawer_config?.currency : null;
+    const isoCode = currencyConfig?.isoCode || currencyConfig?.code || 'USD';
+      
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: isoCode,
+        minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+        maximumFractionDigits: 2
+      }).format(amount);
+    } catch (e) {
+      const symbol = currencyConfig?.symbol || '$';
+      return `${symbol}${amount.toFixed(2)}`;
+    }
+  };
 
   const getMessage = () => {
     if (isComplete) return afterThresholdMessage;
     let message = beforeThresholdMessage;
     if (thresholdMode === 'amount') {
-      message = message.replace('{remaining}', `${currencySymbol}${Math.round(remaining)}`);
+      message = message.replace('{remaining}', formatMoney(remaining * 100));
     } else {
       message = message.replace('{remaining}', `${Math.round(remaining)} more items`);
     }
@@ -331,6 +392,7 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
               {products.map((p: any) => {
                 const variantId = String(p.variantId || p.shopifyVariantId || p.id);
                 const imageUrl = p.imageUrl || p.featured_image;
+                const hasMultipleVariants = Array.isArray(p.variants) && p.variants.length > 1;
 
                 return (
                   <div
@@ -379,14 +441,24 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ fontSize: '12px', fontWeight: '800', color: isDark(backgroundColor) ? '#fbbf24' : '#ef4444' }}>
-                          {currencySymbol}{Number(p.price).toFixed(2)}
+                          {formatMoney(Number(p.price) * 100)}
                         </span>
+                        {/* Variant indicator */}
+                        {hasMultipleVariants && (
+                          <span style={{
+                            fontSize: '9px', fontWeight: 600, color: subTextColor,
+                            background: isDark(backgroundColor) ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.07)',
+                            padding: '1px 5px', borderRadius: '4px',
+                          }}>
+                            {p.variants.length} options
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     {/* Add to Cart Button */}
                     <button
-                      onClick={() => onAddProduct && onAddProduct(variantId)}
+                      onClick={() => handleAddClick(p)}
                       style={{
                         padding: '5px 10px',
                         background: isDark(backgroundColor) ? '#ffffff' : progressBarColor,
@@ -398,10 +470,15 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
                         flexShrink: 0,
-                        transition: 'transform 0.2s active',
+                        transition: 'transform 0.15s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px',
                       }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
                     >
-                      Add
+                      {hasMultipleVariants ? 'Select' : 'Add'}
                     </button>
                   </div>
                 );
@@ -425,6 +502,20 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
           </div>
         )}
       </div>
+
+      {/* Variant Picker Sheet */}
+      {pickerProduct && (
+        <VariantPickerSheet
+          product={pickerProduct}
+          onClose={() => setPickerProduct(null)}
+          onAddToCart={(variantId) => {
+            if (onAddProduct) onAddProduct(variantId);
+            setPickerProduct(null);
+          }}
+          currency={currency}
+          accentColor={progressBarColor}
+        />
+      )}
     </>
   );
 };

@@ -21,6 +21,11 @@
   window.selldrawer_config = {
     shop: "{{ shop.permanent_domain }}",
     customerId: "{{ customer.id | default: '' }}",
+    currency: {
+      symbol: "{{ cart.currency.symbol | default: localization.country.currency.symbol | default: '₹' }}",
+      isoCode: "{{ cart.currency.iso_code | default: localization.country.currency.iso_code | default: 'INR' }}",
+      moneyFormat: {{ shop.money_format | json }}
+    },
     settings: parsedSettings
   };
 

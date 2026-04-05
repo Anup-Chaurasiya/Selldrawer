@@ -45,8 +45,26 @@ const getDefaultIcon = (rewardType: string): string => {
   }
 };
 
-const fmt = (amount: number, currency = '₹') =>
-  `${currency}${amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+const fmt = (cents: number, currencyCode = 'USD') => {
+  const amount = cents / 100;
+  // @ts-ignore
+  const isoCode = (typeof window !== 'undefined' && window.selldrawer_config?.currency?.isoCode) 
+    // @ts-ignore
+    ? window.selldrawer_config.currency.isoCode 
+    : currencyCode;
+    
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: isoCode,
+      minimumFractionDigits: amount % 1 === 0 ? 0 : 2
+    }).format(amount);
+  } catch (e) {
+    // Fallback if Intl.NumberFormat fails
+    const symbol = (typeof window !== 'undefined' && (window as any).selldrawer_config?.currency?.symbol) || '';
+    return `${symbol}${amount.toLocaleString()}`;
+  }
+};
 
 /**
  * Returns a 0-100 fill percent for the progress track.
@@ -97,7 +115,7 @@ export function MilestonesWidget({
   cartTotal,
   progressBarColor = '#1c1c3b',
   allUnlockedMessage = '🎉 Congratulations! All rewards unlocked!',
-  currency = '₹',
+  currency = 'USD',
   onAddToCart,
 }: MilestonesWidgetProps) {
   if (!milestones || milestones.length === 0) return null;
@@ -267,7 +285,7 @@ export function MilestoneUpsellProducts({
   milestones,
   cartTotal = 0,
   products: directProducts,
-  currency = '₹',
+  currency = 'USD',
   onAddToCart,
 }: MilestoneUpsellProductsProps) {
   const scrollRef = useRef<HTMLDivElement>(null);

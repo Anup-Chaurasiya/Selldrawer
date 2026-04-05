@@ -27,13 +27,18 @@ export const FreeShippingMessage: React.FC<FreeShippingMessageProps> = ({
   textColor = '#92400e',
   borderColor = '#92400e',
   icon = '🚚',
-  currency = 'INR',
+  currency = 'USD',
   isPreview = false
 }) => {
   const cartTotalInCurrency = cartTotal / 100;
   const remaining = Math.max(thresholdAmount - cartTotalInCurrency, 0);
   const isAchieved = remaining <= 0;
-  const currencySymbol = currency === 'INR' ? '₹' : '$';
+  const getCurrencySymbol = () => {
+    // @ts-ignore
+    return (typeof window !== 'undefined' && (window as any).selldrawer_config?.currency?.symbol) || '';
+  };
+
+  const currencySymbol = getCurrencySymbol();
 
   const message = isAchieved
     ? achievedMessage

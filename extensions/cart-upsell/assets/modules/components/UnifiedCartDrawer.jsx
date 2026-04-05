@@ -14,6 +14,13 @@ import { CartTotals } from '../../../../../app/components/shared/CartTotals.tsx'
 import { MilestonesWidget } from '../../../../../app/components/shared/MilestonesWidget.tsx';
 import { PromotionalBannerCard } from '../../../../../app/components/shared/PromotionalBannerCard.tsx';
 import { FreeGiftSelector } from '../../../../../app/components/shared/FreeGiftSelector.tsx';
+import { TrustBadges } from '../../../../../app/components/shared/TrustBadges.tsx';
+import { CountdownTimer } from '../../../../../app/components/shared/CountdownTimer.tsx';
+import { AcceleratedCheckout } from '../../../../../app/components/shared/AcceleratedCheckout.tsx';
+import { OrderNote } from '../../../../../app/components/shared/OrderNote.tsx';
+import { TermsConditions } from '../../../../../app/components/shared/TermsConditions.tsx';
+import { DeliveryEstimates } from '../../../../../app/components/shared/DeliveryEstimates.tsx';
+import { ShippingProtection } from '../../../../../app/components/shared/ShippingProtection.tsx';
 
 
 export const UnifiedCartDrawer = ({
@@ -34,10 +41,18 @@ export const UnifiedCartDrawer = ({
   onRemoveDiscount,
   onSwitchDiscount,
   onSelectGift,
+  onUpdateNote,
+  onToggleShippingProtection,
   onImpression,
   onFeatureImpression,
   onFeatureClick
 }) => {
+  const [isTermsAccepted, setIsTermsAccepted] = React.useState(!config?.termsConditionsEnabled);
+
+  // Update terms acceptance if config changes
+  React.useEffect(() => {
+    setIsTermsAccepted(!config?.termsConditionsEnabled);
+  }, [config?.termsConditionsEnabled]);
 
   React.useEffect(() => {
     if (onImpression) {
@@ -108,7 +123,7 @@ export const UnifiedCartDrawer = ({
               progressBarColor={bar.progressBarColor || '#3b82f6'}
               borderColor={bar.borderColor || '#e2e8f0'}
               showPercentage={bar.showPercentage ?? true}
-              currency={bar.currency || 'INR'}
+              currency={undefined}
               cart={cart}
               isPreview={false}
               showProductUpsell={bar.showProductUpsell ?? true}
@@ -186,7 +201,7 @@ export const UnifiedCartDrawer = ({
               textColor={msg.textColor || '#92400e'}
               borderColor={msg.borderColor || '#92400e'}
               icon={msg.icon || '🚚'}
-              currency={msg.currency || 'INR'}
+              currency={undefined}
               isPreview={false}
             />
           </div>
@@ -252,7 +267,7 @@ export const UnifiedCartDrawer = ({
               cartTotal={cartTotalForWidget}
               progressBarColor={config?.features?.milestonesProgressBarColor || '#1c1c3b'}
               allUnlockedMessage={config?.features?.milestonesAllUnlockedMessage || '🎉 Congratulations! All rewards unlocked!'}
-              currency={'₹'}
+              currency={undefined}
               onAddToCart={(product) => {
                 if (onAddProductToCart) {
                   // Use variantId if available (from dynamic Storefront API fetch), 
@@ -286,6 +301,96 @@ export const UnifiedCartDrawer = ({
         );
       }
 
+      case 'order-intelligence': {
+        const hasOrderNote = config?.orderNoteEnabled;
+        const hasTerms = config?.termsConditionsEnabled;
+        const hasDelivery = config?.deliveryEstimatesEnabled;
+        const hasProtection = config?.shippingProtectionEnabled;
+
+        if (!hasOrderNote && !hasTerms && !hasDelivery && !hasProtection) return null;
+
+        const isProtectionEnabled = hasProtection && cart.items.some(
+          item => item.variant_id.toString() === config?.shippingProtectionProductId?.toString()
+        );
+
+        return (
+          <div key={featureId} className="selldrawer-order-intelligence-container" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {hasDelivery && (
+              <DeliveryEstimates
+                message={config.deliveryEstimatesText}
+                processingDaysMin={config.processingDaysMin}
+                processingDaysMax={config.processingDaysMax}
+                transitDaysMin={config.transitDaysMin}
+                transitDaysMax={config.transitDaysMax}
+              />
+            )}
+            
+            {hasProtection && (
+              <ShippingProtection
+                isEnabled={isProtectionEnabled}
+                onToggle={(enabled) => onToggleShippingProtection(config.shippingProtectionProductId, enabled)}
+                title={config.shippingProtectionTitle || "Shipping Protection"}
+                price={config.shippingProtectionPrice || 0}
+                currency={config.currency?.isoCode}
+                isPending={pendingOperations?.has('shipping-protection')}
+              />
+            )}
+
+            {hasOrderNote && (
+              <OrderNote
+                placeholder={config.orderNotePlaceholder}
+                initialNote={cart.note || ''}
+                onSave={onUpdateNote}
+              />
+            )}
+
+            {hasTerms && (
+              <TermsConditions
+                isChecked={isTermsAccepted}
+                onToggle={setIsTermsAccepted}
+                text={config.termsConditionsText}
+              />
+            )}
+          </div>
+        );
+      }
+
+      case 'trust-badges': {
+        const trustBadges = config?.trustBadges || config?.features?.trustBadges;
+        const isEnabled = config?.trustBadgesEnabled || config?.features?.trustBadgesEnabled;
+        if (!isEnabled || !trustBadges || trustBadges.length === 0) return null;
+
+        return (
+          <div key={featureId} style={{ marginBottom: '12px' }}>
+            <TrustBadges config={trustBadges[0]} />
+          </div>
+        );
+      }
+
+      case 'countdown-timer': {
+        const timers = config?.countdownTimers || config?.features?.countdownTimers;
+        const isEnabled = config?.countdownTimerEnabled || config?.features?.countdownTimerEnabled;
+        if (!isEnabled || !timers || timers.length === 0) return null;
+
+        return (
+          <div key={featureId} style={{ marginBottom: '12px' }}>
+            <CountdownTimer config={timers[0]} />
+          </div>
+        );
+      }
+
+      case 'accelerated-checkout': {
+        const checkouts = config?.acceleratedCheckouts || config?.features?.acceleratedCheckouts;
+        const isEnabled = config?.acceleratedCheckoutEnabled || config?.features?.acceleratedCheckoutEnabled;
+        if (!isEnabled || !checkouts || checkouts.length === 0) return null;
+
+        return (
+          <div key={featureId} style={{ marginBottom: '12px' }}>
+            <AcceleratedCheckout config={checkouts[0]} />
+          </div>
+        );
+      }
+
       default:
         return null;
     }
@@ -302,6 +407,13 @@ export const UnifiedCartDrawer = ({
       >
         ×
       </button>
+
+      {/* Countdown Timer (Global/Top) if not in featureOrder */}
+      {((config?.countdownTimerEnabled || config?.features?.countdownTimerEnabled) && 
+        !beforeItems.includes('countdown-timer') && 
+        !afterItems.includes('countdown-timer')) && (
+        <CountdownTimer config={config.countdownTimers?.[0] || config.features?.countdownTimers?.[0] || { isActive: true }} />
+      )}
 
       <h2
         id="selldrawer-cart-header"
@@ -362,11 +474,24 @@ export const UnifiedCartDrawer = ({
 
       {/* Checkout button */}
       <button
-        className="selldrawer-checkout-btn"
+        className={`selldrawer-checkout-btn ${!isTermsAccepted ? 'disabled' : ''}`}
         onClick={onCheckout}
+        disabled={!isTermsAccepted}
+        style={{
+          opacity: isTermsAccepted ? 1 : 0.5,
+          cursor: isTermsAccepted ? 'pointer' : 'not-allowed'
+        }}
       >
         Checkout
       </button>
+
+      {(config?.acceleratedCheckoutEnabled || config?.features?.acceleratedCheckoutEnabled) && (
+        <AcceleratedCheckout config={config.acceleratedCheckouts?.[0] || config.features?.acceleratedCheckouts?.[0] || { isActive: true }} />
+      )}
+
+      {(config?.trustBadgesEnabled || config?.features?.trustBadgesEnabled) && (
+        <TrustBadges config={config.trustBadges?.[0] || config.features?.trustBadges?.[0] || { isActive: true }} />
+      )}
 
       {/* Footer */}
       <div style={{

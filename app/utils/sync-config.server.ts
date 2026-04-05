@@ -53,6 +53,9 @@ export async function syncCartDrawerConfigToMetafields(admin: any, shop: string)
           },
           orderBy: { priority: 'asc' },
         },
+        trustBadges: { where: { isActive: true } },
+        countdownTimers: { where: { isActive: true } },
+        acceleratedCheckouts: { where: { isActive: true } },
       },
     });
 
@@ -130,8 +133,31 @@ export async function syncCartDrawerConfigToMetafields(admin: any, shop: string)
         milestones: cartDrawer.milestonesEnabled ? cartDrawer.milestones : [],
         freeGiftsEnabled: cartDrawer.freeGiftsEnabled,
         freeGifts: cartDrawer.freeGiftsEnabled ? cartDrawer.freeGifts : [],
-        fbt: fbtConfig,
+        shippingProtectionTitle: (cartDrawer as any).shippingProtectionTitle || "Shipping Protection",
+        shippingProtectionPrice: cartDrawer.shippingProtectionPrice ? parseFloat(cartDrawer.shippingProtectionPrice.toString()) : 0,
+        // New Features
+        trustBadgesEnabled: cartDrawer.trustBadgesEnabled,
+        trustBadges: cartDrawer.trustBadges || [],
+        countdownTimerEnabled: cartDrawer.countdownTimerEnabled,
+        countdownTimers: cartDrawer.countdownTimers || [],
+        acceleratedCheckoutEnabled: cartDrawer.acceleratedCheckoutEnabled,
+        acceleratedCheckouts: cartDrawer.acceleratedCheckouts || [],
       },
+      // Order Intelligence (Top level for consistent frontend access)
+      orderNoteEnabled: cartDrawer.orderNoteEnabled,
+      orderNotePlaceholder: cartDrawer.orderNotePlaceholder,
+      termsConditionsEnabled: cartDrawer.termsConditionsEnabled,
+      termsConditionsText: cartDrawer.termsConditionsText,
+      deliveryEstimatesEnabled: cartDrawer.deliveryEstimatesEnabled,
+      deliveryEstimatesText: cartDrawer.deliveryEstimatesText,
+      processingDaysMin: cartDrawer.processingDaysMin,
+      processingDaysMax: cartDrawer.processingDaysMax,
+      transitDaysMin: cartDrawer.transitDaysMin,
+      transitDaysMax: cartDrawer.transitDaysMax,
+      shippingProtectionEnabled: cartDrawer.shippingProtectionEnabled,
+      shippingProtectionProductId: cartDrawer.shippingProtectionProductId,
+      shippingProtectionTitle: (cartDrawer as any).shippingProtectionTitle || "Shipping Protection",
+      shippingProtectionPrice: cartDrawer.shippingProtectionPrice ? parseFloat(cartDrawer.shippingProtectionPrice.toString()) : 0,
       updatedAt: new Date().toISOString(),
     };
 

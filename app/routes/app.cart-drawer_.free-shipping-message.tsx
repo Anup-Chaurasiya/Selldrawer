@@ -22,9 +22,18 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { FreeShippingMessage as FreeShippingMessageComponent } from "../components/shared/FreeShippingMessage";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const shop = session.shop;
-  const url = new URL(request.url);
+  
+  const shopDataResponse = await admin.graphql(`
+    query getShopCurrency {
+      shop {
+        currencyCode
+      }
+    }
+  `);
+  const shopDataJson = await shopDataResponse.json();
+  const currencyCode = shopDataJson.data?.shop?.currencyCode || 'USD';
 
   const cartDrawer = await prisma.cartDrawer.findUnique({
     where: { shop },
@@ -35,7 +44,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const freeShippingMessage = cartDrawer?.freeShippingMessages[0] || null;
 
-  return json({ cartDrawer, freeShippingMessage });
+  return json({ cartDrawer, freeShippingMessage, currencyCode });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -135,7 +144,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function FreeShippingMessage() {
-  const { cartDrawer, freeShippingMessage } = useLoaderData<typeof loader>();
+  const { cartDrawer, freeShippingMessage, currencyCode } = useLoaderData<typeof loader>();
+  
+  const currencySymbol = (currencyCode === 'USD') ? '$' : (currencyCode === 'EUR') ? '€' : (currencyCode === 'GBP') ? '£' : '';
   const submit = useSubmit();
   const navigation = useNavigation();
   const actionData = useActionData<typeof action>();
@@ -174,7 +185,7 @@ export default function FreeShippingMessage() {
 
   const [formState, setFormState] = useState({
     thresholdAmount: freeShippingMessage?.thresholdAmount?.toString() || "5000",
-    currency: freeShippingMessage?.currency || "INR",
+    currency: freeShippingMessage?.currency || currencyCode,
     beforeThresholdMessage: freeShippingMessage?.beforeThresholdMessage || "Free shipping on orders over {threshold}",
     afterThresholdMessage: freeShippingMessage?.afterThresholdMessage || "Add {remaining} more for FREE shipping",
     achievedMessage: freeShippingMessage?.achievedMessage || "Free shipping applied!",
@@ -487,7 +498,7 @@ export default function FreeShippingMessage() {
                       value={formState.thresholdAmount}
                       onChange={(value) => setFormState({ ...formState, thresholdAmount: value })}
                       helpText="Minimum cart value required for free shipping"
-                      prefix="₹"
+                      prefix={currencySymbol}
                       autoComplete="off"
                     />
                     <TextField
@@ -601,21 +612,21 @@ export default function FreeShippingMessage() {
               }}>
                 <FreeShippingMessageComponent
                   thresholdAmount={parseFloat(formState.thresholdAmount) || 5000}
-                  cartTotal={300000} // Sample cart total (₹3000 in cents)
+                  cartTotal={300000} // Sample cart total (3000 in currency units)
                   beforeThresholdMessage={formState.beforeThresholdMessage}
                   achievedMessage={formState.achievedMessage}
                   backgroundColor={formState.backgroundColor}
                   textColor={formState.textColor}
                   borderColor={formState.borderColor}
                   icon={formState.icon}
-                  currency={formState.currency}
+                  currency={currencyCode}
                   isPreview={true}
                 />
               </div>
 
               <div style={{ marginTop: '16px', textAlign: 'center' }}>
                 <Text as="p" variant="bodySm" tone="subdued">
-                  This preview simulates a cart with ₹3000 checkout value.
+                  This preview simulates a cart with {currencySymbol}3000 checkout value.
                 </Text>
               </div>
             </div>

@@ -136,6 +136,7 @@ export default function CouponCode() {
   const { cartDrawer, couponCodeField } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
+  const currencySymbol = (typeof window !== 'undefined' && (window as any).selldrawer_config?.currency?.symbol) || '';
   const actionData = useActionData<typeof action>();
   const isLoading = navigation.state === "submitting";
 
@@ -680,7 +681,7 @@ export default function CouponCode() {
                   availableDiscounts={formState.showAllOffers ? [
                     { code: 'SAVE10', title: 'Welcome Offer', description: '10% OFF', type: 'percentage', value: 10 },
                     { code: 'SUMMER20', title: 'Summer Sale', description: '20% OFF', type: 'percentage', value: 20 },
-                    { code: 'FLAT500', title: 'Flat Discount', description: '₹500 OFF', type: 'fixed', value: 500 }
+                    { code: 'FLAT5', title: 'Flat Discount', description: `${currencySymbol}5.00 OFF`, type: 'fixed', value: 5.00 }
                   ] : []}
                   backgroundColor={formState.backgroundColor}
                   textColor={formState.textColor}

@@ -9,9 +9,16 @@ export const DEFAULT_FEATURE_ORDER = [
   "savings-display",
   "free-shipping-message",
   "coupon-code",
+  "order-intelligence",
 ];
 
-const allowedFeatureIds = new Set(DEFAULT_FEATURE_ORDER);
+const allowedFeatureIds = new Set([
+  ...DEFAULT_FEATURE_ORDER,
+  "trust-badges",
+  "countdown-timer",
+  "accelerated-checkout"
+]);
+
 
 export function normalizeFeatureOrder(
   order: string[] | null | undefined,

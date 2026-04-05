@@ -26,8 +26,24 @@ export const SavingsDisplay: React.FC<SavingsDisplayProps> = ({
   }
 
   const formatMoney = (cents: number) => {
-    const rupees = Math.floor(cents / 100);
-    return `₹${rupees}`;
+    const amount = cents / 100;
+    // @ts-ignore
+    const isoCode = (typeof window !== 'undefined' && window.selldrawer_config?.currency?.isoCode) 
+      // @ts-ignore
+      ? window.selldrawer_config.currency.isoCode 
+      : (typeof window !== 'undefined' && (window as any).selldrawer_config?.currency?.code) || 'USD';
+      
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: isoCode,
+        minimumFractionDigits: amount % 1 === 0 ? 0 : 2
+      }).format(amount);
+    } catch (e) {
+      // Fallback if Intl.NumberFormat fails
+      const symbol = (typeof window !== 'undefined' && (window as any).selldrawer_config?.currency?.symbol) || '';
+      return `${symbol}${amount.toLocaleString()}`;
+    }
   };
 
   const formattedMessage = message.replace('{amount}', formatMoney(amount));

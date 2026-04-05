@@ -812,6 +812,8 @@ export class SelldrawerCartDrawer {
         onRemoveDiscount: () => this.removeDiscount(),
         onSwitchDiscount: (code) => this.switchDiscount(code),
         onSelectGift: (giftId, variantId) => this.handleSelectGift(giftId, variantId),
+        onUpdateNote: (note) => this.updateNote(note),
+        onToggleShippingProtection: (variantId, enabled) => this.toggleShippingProtection(variantId, enabled),
         onImpression: () => {
           Analytics.track({
             eventType: 'impression',
@@ -1171,5 +1173,34 @@ export class SelldrawerCartDrawer {
     }
   }
 
+  async updateNote(note) {
+    this.pendingOperations.add('note');
+    this.render();
+    try {
+      await CartOps.updateCartNote(note, async () => {
+        const response = await fetch('/cart.js');
+        const cart = await response.json();
+        this.cart = cart;
+      });
+    } finally {
+      this.pendingOperations.delete('note');
+      this.render();
+    }
+  }
+
+  async toggleShippingProtection(variantId, enabled) {
+    this.pendingOperations.add('shipping_protection');
+    this.render();
+    try {
+      await CartOps.toggleShippingProtection(variantId, enabled, async () => {
+        const response = await fetch('/cart.js');
+        const cart = await response.json();
+        this.cart = cart;
+      });
+    } finally {
+      this.pendingOperations.delete('shipping_protection');
+      this.render();
+    }
+  }
 }
 

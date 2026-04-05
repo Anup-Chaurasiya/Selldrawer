@@ -77,47 +77,28 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
   } = config;
   // Format money (cents to currency)
   const formatMoney = (cents: number) => {
-    const rupees = cents / 100;
-    return `₹${Math.round(rupees)}`;
-  };
-
-  // Helper to check if item is a gift
-  const isGiftItem = (item: CartItem) => {
-    // Check if item has variant_id that matches free gift variant IDs
-    const variantId = (item as any).variant_id?.toString();
-    if (variantId && freeGiftVariantIds.length > 0) {
-      return freeGiftVariantIds.some(giftId => giftId.toString() === variantId);
+    const amount = cents / 100;
+    // @ts-ignore
+    const isoCode = (typeof window !== 'undefined' && window.selldrawer_config?.currency?.isoCode) 
+      // @ts-ignore
+      ? window.selldrawer_config.currency.isoCode 
+      : (typeof window !== 'undefined' && (window as any).selldrawer_config?.currency?.code) || 'USD';
+      
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: isoCode,
+        minimumFractionDigits: amount % 1 === 0 ? 0 : 2
+      }).format(amount);
+    } catch (e) {
+      // Fallback if Intl.NumberFormat fails
+      const symbol = (typeof window !== 'undefined' && (window as any).selldrawer_config?.currency?.symbol) || '';
+      return `${symbol}${amount.toFixed(2)}`;
     }
-
-    // Fallback: check properties (for milestone gifts)
-    return item.properties && (
-      item.properties['_selldrawer_gift'] === 'true' ||
-      item.properties['_gift'] === 'true' ||
-      item.properties['_gift'] === true
-    );
   };
-
-  // Separate gift items from regular items
-  const giftItems = items.filter(isGiftItem);
-  const regularItems = items.filter(item => !isGiftItem(item));
-
-  // Calculate gift savings (the value of free gifts)
-  const giftSavings = giftItems.reduce((sum, item) => {
-    const itemPrice = item.price || item.final_price || item.original_price || 0;
-    return sum + (itemPrice * item.quantity);
-  }, 0);
-
-  // Calculate totals using Shopify data
-  // Sum of all regular items' line_price (Shopify already applies all discounts to line_price)
-  const sumOfRegularItems = regularItems.reduce((sum, item) => {
-    return sum + (item.line_price || (item.final_price || item.price || 0) * item.quantity);
-  }, 0);
-
-  // Subtotal: use cart.subtotal_price if available, otherwise sum of regular items
-  const subtotal = subtotalPrice || sumOfRegularItems;
 
   // Calculate original total (before any discounts)
-  const originalTotal = regularItems.reduce((sum, item) => {
+  const originalTotal = items.reduce((sum, item) => {
     // Use original_line_price if available, otherwise original_price
     if (item.original_line_price) {
       return sum + item.original_line_price;
@@ -125,24 +106,39 @@ export const CartTotals: React.FC<CartTotalsProps> = ({
     return sum + ((item.original_price || item.price || 0) * item.quantity);
   }, 0);
 
+  // Calculate totals using Shopify data
+  // Sum of all items' line_price (Shopify already applies all discounts to line_price)
+  const sumOfItems = items.reduce((sum, item) => {
+    return sum + (item.line_price || (item.final_price || item.price || 0) * item.quantity);
+  }, 0);
+
+  // Subtotal: use cart.subtotal_price if available, otherwise sum of items
+  const subtotal = subtotalPrice || sumOfItems;
+
   // Item-level savings (from original price to subtotal)
   const itemLevelSavings = originalTotal - subtotal;
 
-  // Total savings (item discounts + gift savings)
-  const totalSavings = itemLevelSavings + giftSavings;
+  // Total savings
+  const totalSavings = itemLevelSavings;
 
-  // Total: sum of regular items' line_price (Shopify handles all discounts, excludes gift items)
-  // This is the actual total the customer pays for regular items
-  const finalTotal = sumOfRegularItems;
+  // Total: sum of items' line_price
+  const finalTotal = sumOfItems;
 
-  return (
-    <div style={{
-      borderTop: `2px solid ${borderColor}`,
-      paddingTop: '16px',
-      backgroundColor: backgroundColor,
-    }}>
-      {/* Original Price (if there are savings) */}
-      {showOriginalPrice && totalSavings > 0 && (
+   return (
+     <div 
+       className="selldrawer-totals-container"
+       style={{
+         borderTop: `2px solid ${borderColor}`,
+         padding: '16px',
+         margin: '12px -20px 0 -20px', // Pull to edges of drawer
+         backgroundColor: backgroundColor,
+         boxShadow: '0 -4px 10px rgba(0,0,0,0.02)',
+         position: 'sticky',
+         bottom: 0,
+         zIndex: 10
+       }}>
+       {/* Original Price (if there are savings) */}
+       {showOriginalPrice && totalSavings > 0 && (
         <div style={{
           fontSize: '15px',
           marginBottom: '10px',

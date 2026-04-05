@@ -46,10 +46,25 @@ export const FBTProductCard: React.FC<FBTProductCardProps> = ({
     ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
     : 0;
 
-  // Format money like cart drawer (₹ symbol, proper decimal parsing)
+  // Format money like cart drawer
   const formatMoney = (price: number): string => {
-    // Shopify prices are already in currency units (not cents)
-    return `₹${Math.round(price)}`;
+    // @ts-ignore
+    const isoCode = (typeof window !== 'undefined' && window.selldrawer_config?.currency?.isoCode) 
+      // @ts-ignore
+      ? window.selldrawer_config.currency.isoCode 
+      : (typeof window !== 'undefined' && (window as any).selldrawer_config?.currency?.code) || 'USD';
+      
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: isoCode,
+        minimumFractionDigits: price % 1 === 0 ? 0 : 2
+      }).format(price);
+    } catch (e) {
+      // Fallback if Intl.NumberFormat fails
+      const symbol = (typeof window !== 'undefined' && (window as any).selldrawer_config?.currency?.symbol) || '';
+      return `${symbol}${price.toLocaleString()}`;
+    }
   };
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {

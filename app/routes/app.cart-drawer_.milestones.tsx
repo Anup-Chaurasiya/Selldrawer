@@ -53,7 +53,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     },
   });
 
-  if (!cartDrawer) {
     cartDrawer = await prisma.cartDrawer.create({
       data: { 
         id: crypto.randomUUID(),
@@ -72,15 +71,22 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         },
       },
     });
-  }
+
 
   // Fetch products from Shopify
   let shopProducts: any[] = [];
   let shopCollections: any[] = [];
+  let currencyCode = 'USD';
 
   try {
     const response = await admin.graphql(`
       query getProducts($first: Int!) {
+        shop {
+          currencyCode
+          currencyFormats {
+            moneyFormat
+          }
+        }
         products(first: $first) {
           edges {
             node {
@@ -112,10 +118,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       variables: { first: 100 }
     });
 
-    const responseJson = await response.json();
+    const responseData = await response.json();
+    const shopData = responseData.data?.shop;
+    currencyCode = shopData?.currencyCode || 'USD';
 
-    if (responseJson.data?.products?.edges) {
-      shopProducts = responseJson.data.products.edges.map((edge: any) => {
+    if (responseData.data?.products?.edges) {
+      shopProducts = responseData.data.products.edges.map((edge: any) => {
         const product = edge.node;
         const image = product.images.edges[0]?.node;
         const variant = product.variants.edges[0]?.node;
@@ -139,6 +147,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   // Fetch collections
+  const collectionsList: any[] = [];
   try {
     const collectionsResponse = await admin.graphql(`
       query getCollections($first: Int!) {
@@ -158,26 +167,26 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     `, {
       variables: { first: 100 }
     });
-
     const collectionsJson = await collectionsResponse.json();
-
     if (collectionsJson.data?.collections?.edges) {
-      shopCollections = collectionsJson.data.collections.edges.map((edge: any) => {
-        const collection = edge.node;
-        return {
-          id: collection.handle,
-          shopifyCollectionId: collection.id.replace('gid://shopify/Collection/', ''),
-          title: collection.title,
-          handle: collection.handle,
-          productsCount: collection.productsCount?.count || 0
-        };
-      });
+      collectionsList.push(...collectionsJson.data.collections.edges.map((e: any) => ({
+        id: e.node.handle,
+        shopifyCollectionId: e.node.id.replace('gid://shopify/Collection/', ''),
+        title: e.node.title,
+        handle: e.node.handle,
+        productsCount: e.node.productsCount?.count || 0
+      })));
     }
   } catch (error) {
     console.error('Error fetching collections:', error);
   }
 
-  return json({ cartDrawer, shopProducts, shopCollections });
+  return json({
+    cartDrawer,
+    shopProducts,
+    shopCollections: collectionsList,
+    currencyCode,
+  });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -471,11 +480,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           discountCode: discountResult.code,
         }
       });
+    } else {
       await prisma.cartMilestone.update({
         where: { id: milestoneId },
         data: { isActive: false }
       });
     }
+
 
     // Sync to metafields
     await syncCartDrawerConfigToMetafields(admin, shop);
@@ -549,10 +560,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   return json({ error: "Invalid intent" }, { status: 400 });
 };
 
-export default function CartMilestones() {
-  const { cartDrawer, shopProducts, shopCollections } = useLoaderData<typeof loader>();
+export default function MilestonesPage() {
+  const { cartDrawer, shopProducts, shopCollections, currencyCode } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
+  
+  const currencySymbol = (currencyCode === 'USD') ? '$' : (currencyCode === 'EUR') ? '€' : (currencyCode === 'GBP') ? '£' : '';
 
   const isSubmitting = navigation.state === "submitting";
 
@@ -778,7 +791,7 @@ export default function CartMilestones() {
         const status: 'unlocked' | 'in_progress' | 'locked' = sampleCartTotal >= targetAmount ? 'unlocked' : sampleCartTotal > 0 ? 'in_progress' : 'locked';
 
         const rewardText = livePreviewMilestone.title;
-        const remainingFormatted = `₹${remaining.toFixed(2)}`;
+        const remainingFormatted = `${currencySymbol}${remaining.toFixed(2)}`;
 
         const message =
           status === 'unlocked'
@@ -818,7 +831,7 @@ export default function CartMilestones() {
         const status: 'unlocked' | 'in_progress' | 'locked' = sampleCartTotal >= targetAmount ? 'unlocked' : sampleCartTotal > 0 ? 'in_progress' : 'locked';
 
         const rewardText = m.title;
-        const remainingFormatted = `₹${remaining.toFixed(2)}`;
+        const remainingFormatted = `${currencySymbol}${remaining.toFixed(2)}`;
 
         const message =
           status === 'unlocked'
@@ -874,7 +887,7 @@ export default function CartMilestones() {
         status: 'in_progress' as const,
         progress: 75,
         remaining: 2000,
-        message: 'Only ₹2,000.00 away from Extra 5% Discount!',
+        message: `Only ${currencySymbol}20.00 away from Extra 5% Discount!`,
         showProgressBar: true,
         iconColor: '#3b82f6',
         titleColor: '#1e40af',
@@ -890,7 +903,7 @@ export default function CartMilestones() {
         status: 'locked' as const,
         progress: 50,
         remaining: 6000,
-        message: 'Add ₹6,000.00 to unlock Premium Gift',
+        message: `Add ${currencySymbol}60.00 to unlock Premium Gift`,
         showProgressBar: true,
         iconColor: '#3b82f6',
         titleColor: '#1e40af',
@@ -1065,7 +1078,7 @@ export default function CartMilestones() {
                               </div>
                             </InlineStack>
                             <Text as="p" variant="bodySm" tone="subdued">
-                              Spend <strong style={{ color: '#111827' }}>₹{targetAmount.toString()}</strong> for {getRewardTypeLabel(rewardType)}
+                              Spend <strong style={{ color: '#111827' }}>{currencySymbol}{targetAmount.toString()}</strong> for {getRewardTypeLabel(rewardType)}
                               {rewardValue && ` (${rewardValue}${rewardType.includes('percentage') ? '%' : ''})`}
                             </Text>
                           </div>
@@ -1210,7 +1223,7 @@ export default function CartMilestones() {
                   💡
                 </div>
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Showing sample cart value (₹6,000) for demonstration purposes.
+                  Showing sample cart value ({currencySymbol}60) for demonstration purposes.
                 </Text>
               </div>
             </div>
@@ -1259,11 +1272,11 @@ export default function CartMilestones() {
               />
 
               <TextField
-                label="Target Amount (₹)"
+                label={`Target Amount (${currencySymbol})`}
                 type="number"
                 value={formState.targetAmount}
                 onChange={(value) => updateFormState({ targetAmount: value })}
-                placeholder="5000"
+                placeholder="50"
                 autoComplete="off"
                 helpText="Cart value required to unlock this milestone"
               />
@@ -1281,13 +1294,13 @@ export default function CartMilestones() {
 
               {(formState.rewardType === "discount_percentage" || formState.rewardType === "discount_fixed") && (
                 <TextField
-                  label={formState.rewardType === "discount_percentage" ? "Discount Percentage" : "Discount Amount (₹)"}
+                  label={formState.rewardType === "discount_percentage" ? "Discount Percentage" : `Discount Amount (${currencySymbol})`}
                   type="number"
                   value={formState.rewardValue}
                   onChange={(value) => updateFormState({ rewardValue: value })}
-                  placeholder={formState.rewardType === "discount_percentage" ? "5" : "500"}
+                  placeholder={formState.rewardType === "discount_percentage" ? "5" : "5"}
                   autoComplete="off"
-                  suffix={formState.rewardType === "discount_percentage" ? "%" : "₹"}
+                  suffix={formState.rewardType === "discount_percentage" ? "%" : currencySymbol}
                 />
               )}
 
@@ -1524,7 +1537,7 @@ export default function CartMilestones() {
                               {product.title}
                             </Text>
                             <Text as="p" variant="bodySm" tone="subdued">
-                              ₹{product.variants?.[0]?.price || '0'}
+                              {currencySymbol}{product.variants?.[0]?.price || '0'}
                             </Text>
                           </div>
                         </InlineStack>

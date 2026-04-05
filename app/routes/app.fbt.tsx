@@ -84,10 +84,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Fetch products from Shopify (only active products)
   let shopProducts: any[] = [];
   let shopCollections: any[] = [];
+  let currencyCode = 'USD';
 
   try {
     const response = await admin.graphql(`
       query getProducts($first: Int!, $query: String!) {
+        shop {
+          currencyCode
+        }
         products(first: $first, query: $query) {
           edges {
             node {
@@ -123,10 +127,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       }
     });
 
-    const responseJson = await response.json();
-
-    if (responseJson.data?.products?.edges) {
-      shopProducts = responseJson.data.products.edges
+    const responseJsonData = await response.json();
+    currencyCode = responseJsonData.data?.shop?.currencyCode || 'USD';
+    if (responseJsonData.data?.products?.edges) {
+      shopProducts = responseJsonData.data.products.edges
         .filter((edge: any) => edge.node.status === 'ACTIVE')
         .map((edge: any) => {
           const product = edge.node;
@@ -148,6 +152,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           };
         });
     }
+
+    return json({ 
+      fbtConfig, 
+      shopProducts, 
+      shopCollections, 
+      planAccess,
+      currencyCode: responseJsonData.data?.shop?.currencyCode || 'USD'
+    });
   } catch (error) {
     console.error('Error fetching products:', error);
   }
@@ -191,7 +203,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.error('Error fetching collections:', error);
   }
 
-  return json({ fbtConfig, shopProducts, shopCollections, planAccess });
+  return json({ 
+    fbtConfig, 
+    shopProducts, 
+    shopCollections, 
+    planAccess,
+    currencyCode
+  });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -601,7 +619,9 @@ export default function FrequentlyBoughtTogether() {
     return null;
   }
 
-  const { fbtConfig, shopProducts, shopCollections } = data as Exclude<typeof data, { billingRedirectUrl: string }>;
+  const { fbtConfig, shopProducts, shopCollections, currencyCode } = data as Exclude<typeof data, { billingRedirectUrl: string }>;
+
+  const currencySymbol = (currencyCode === 'USD') ? '$' : (currencyCode === 'EUR') ? '€' : (currencyCode === 'GBP') ? '£' : '';
 
   // Check which action is being submitted
   const formData = navigation.formData;
@@ -2107,7 +2127,7 @@ export default function FrequentlyBoughtTogether() {
                             onChange={(value) => updateUpsellRow(row.id, { discountType: value as "percentage" | "fixed" })}
                           />
                           <TextField
-                            label={row.discountType === 'percentage' ? 'Discount Percentage (%)' : 'Fixed Discount Amount (₹)'}
+                            label={row.discountType === "percentage" ? "Discount Percentage" : `Discount Amount (${currencySymbol})`}
                             type="number"
                             value={row.discountValue}
                             onChange={(value) => updateUpsellRow(row.id, { discountValue: value })}

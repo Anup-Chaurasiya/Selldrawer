@@ -365,6 +365,7 @@ export default function ProductRecommendations() {
   const submit = useSubmit();
   const navigation = useNavigation();
   const revalidator = useRevalidator();
+  const currencySymbol = (typeof window !== 'undefined' && (window as any).selldrawer_config?.currency?.symbol) || '';
   const actionData = useActionData<typeof action>();
   const isLoading = navigation.state === "submitting";
 
@@ -934,14 +935,14 @@ export default function ProductRecommendations() {
                                             fontSize: '12px',
                                             marginRight: '6px'
                                           }}>
-                                            ₹{Math.round(comparePrice)}
+                                            {currencySymbol}{Math.round(comparePrice)}
                                           </span>
                                           <span style={{
                                             fontWeight: '600',
                                             fontSize: '14px',
                                             color: '#111827'
                                           }}>
-                                            ₹{Math.round(price)}
+                                            {currencySymbol}{Math.round(price)}
                                           </span>
                                         </div>
                                       ) : (
@@ -950,7 +951,7 @@ export default function ProductRecommendations() {
                                           fontSize: '14px',
                                           color: '#111827'
                                         }}>
-                                          ₹{Math.round(price)}
+                                          {currencySymbol}{Math.round(price)}
                                         </span>
                                       )}
                                     </div>
@@ -1048,7 +1049,7 @@ export default function ProductRecommendations() {
                                     }}>
                                       {product.title}
                                     </h5>
-                                    <div style={{ fontSize: '12px', color: '#64748b' }}>₹{Math.round(price)}</div>
+                                    <div style={{ fontSize: '12px', color: '#64748b' }}>{currencySymbol}{Math.round(price)}</div>
                                   </div>
                                   <button
                                     onClick={() => handleProductToggle(productId)}

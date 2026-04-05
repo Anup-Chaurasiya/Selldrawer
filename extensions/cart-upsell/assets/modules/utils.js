@@ -50,11 +50,31 @@ export function splitFeatureOrder(order) {
 }
 
 /**
- * Format money in cents to currency string
+ * Format money in cents to currency string using Shopify's active currency
+ * Standardizes all price displays across the drawer
  */
 export function formatMoney(cents) {
+  if (typeof cents !== 'number') return '';
+  
   const amount = cents / 100;
-  return `₹${Math.round(amount)}`;
+  
+  // Get active currency from Shopify config; fallback to INR only as last resort
+  const currencyConfig = window.selldrawer_config?.currency;
+  const isoCode = currencyConfig?.isoCode || currencyConfig?.code || 'INR';
+  
+  try {
+    // We use a precision-aware format to match Shopify's typical price display
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: isoCode,
+      minimumFractionDigits: (amount % 1 === 0) ? 0 : 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  } catch (error) {
+    console.warn('[Selldrawer] formatMoney fallback:', error);
+    const symbol = currencyConfig?.symbol || '₹';
+    return `${symbol}${amount.toFixed(2)}`;
+  }
 }
 
 

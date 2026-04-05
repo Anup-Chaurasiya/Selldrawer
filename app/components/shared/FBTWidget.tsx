@@ -194,9 +194,17 @@ export const FBTWidget: React.FC<FBTWidgetProps> = ({
 
   // Format money - Shopify prices are already in dollars/rupees
   const formatMoney = (price: number): string => {
-    // Shopify GraphQL and Storefront API return prices in currency units (not cents)
-    // So we just format them directly
-    return `₹${Math.round(price)}`;
+    // @ts-ignore
+    const isoCode = (typeof window !== 'undefined' && window.selldrawer_config?.currency?.isoCode) 
+      // @ts-ignore
+      ? window.selldrawer_config.currency.isoCode 
+      : (typeof window !== 'undefined' && (window as any).selldrawer_config?.currency?.code) || 'USD';
+      
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: isoCode,
+      minimumFractionDigits: price % 1 === 0 ? 0 : 2
+    }).format(price);
   };
 
   const calculateTotal = () => {

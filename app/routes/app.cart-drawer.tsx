@@ -33,6 +33,7 @@ import {
   DeliveryIcon,
   CalculatorIcon,
   GiftCardIcon,
+  ListBulletedIcon,
 } from '@shopify/polaris-icons';
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -56,6 +57,13 @@ import { CartTotals } from "../components/shared/CartTotals";
 import { CartItems } from "../components/shared/CartItems";
 import { MilestonesWidget } from "../components/shared/MilestonesWidget";
 import { FreeGiftSelector } from "../components/shared/FreeGiftSelector";
+import { TrustBadges } from "../components/shared/TrustBadges";
+import { CountdownTimer } from "../components/shared/CountdownTimer";
+import { AcceleratedCheckout } from "../components/shared/AcceleratedCheckout";
+import { OrderNote } from "../components/shared/OrderNote";
+import { TermsConditions } from "../components/shared/TermsConditions";
+import { DeliveryEstimates } from "../components/shared/DeliveryEstimates";
+import { ShippingProtection } from "../components/shared/ShippingProtection";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing, session, admin } = await authenticate.admin(request);
@@ -110,8 +118,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       },
       promotionalBanners: {
         where: { isActive: true },
+        include: { images: { orderBy: { order: 'asc' } } },
         orderBy: { priority: 'asc' }
       },
+
+      trustBadges: { where: { isActive: true } },
+      countdownTimers: { where: { isActive: true } },
+      acceleratedCheckouts: { where: { isActive: true } },
     },
   });
 
@@ -139,14 +152,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           },
           orderBy: { priority: 'asc' }
         },
+        promotionalBanners: {
+          include: { images: { orderBy: { order: 'asc' } } }
+        },
         freeGifts: {
           include: {
             giftProducts: { orderBy: { position: 'asc' } },
-            targets: true,
-          },
-          orderBy: { priority: 'asc' }
+            targets: true
+          }
         },
-        promotionalBanners: true,
+        trustBadges: true,
+        countdownTimers: true,
+        acceleratedCheckouts: true,
       },
     });
   }
@@ -185,9 +202,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     updateData.milestonesEnabled = false;
   }
 
-  if (cartDrawer.freeGiftsEnabled && cartDrawer.freeGifts.length === 0) {
-    updateData.freeGiftsEnabled = false;
-  }
 
   if (cartDrawer.promotionalBannerEnabled && cartDrawer.promotionalBanners.length === 0) {
     updateData.promotionalBannerEnabled = false;
@@ -229,8 +243,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         },
         promotionalBanners: {
           where: { isActive: true },
+          include: { images: { orderBy: { order: 'asc' } } },
           orderBy: { priority: 'asc' }
         },
+        trustBadges: { where: { isActive: true } },
+        countdownTimers: { where: { isActive: true } },
+        acceleratedCheckouts: { where: { isActive: true } },
       },
     });
   }
@@ -293,13 +311,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
               targets: true,
             }
           },
-          freeGifts: {
-            where: { isActive: true },
-            include: {
-              giftProducts: true,
-              targets: true,
-            }
-          },
+          trustBadges: { where: { isActive: true } },
+          countdownTimers: { where: { isActive: true } },
+          acceleratedCheckouts: { where: { isActive: true } },
         },
       });
 
@@ -346,8 +360,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return redirect(`/app/cart-drawer?error=milestones-not-configured`);
       }
 
-      if (featureId === 'free-gifts' && cartDrawer.freeGifts.length === 0) {
-        return redirect(`/app/cart-drawer?error=free-gifts-not-configured`);
+      if (featureId === 'trust-badges' && cartDrawer.trustBadges.length === 0) {
+        return redirect(`/app/cart-drawer?error=trust-badges-not-configured`);
+      }
+
+      if (featureId === 'countdown-timer' && cartDrawer.countdownTimers.length === 0) {
+        return redirect(`/app/cart-drawer?error=countdown-timer-not-configured`);
       }
     }
 
@@ -360,7 +378,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       'free-shipping-message': { freeShippingMessageEnabled: enabled },
       'cart-totals': { cartTotalsEnabled: enabled },
       'milestones': { milestonesEnabled: enabled },
-      'free-gifts': { freeGiftsEnabled: enabled },
+      'trust-badges': { trustBadgesEnabled: enabled },
+      'countdown-timer': { countdownTimerEnabled: enabled },
+      'accelerated-checkout': { acceleratedCheckoutEnabled: enabled },
+      'order-intelligence': { 
+        orderNoteEnabled: enabled,
+        termsConditionsEnabled: enabled,
+        deliveryEstimatesEnabled: enabled,
+        shippingProtectionEnabled: enabled,
+      },
+
     };
 
     const updateData = featureFieldMap[featureId];
@@ -419,11 +446,15 @@ function MiniCartDrawerPreview({
   couponCodeField: any;
   featureOrder: string[];
 }) {
+  if (!cartDrawer) return null;
+
   const freeShippingBar = cartDrawer?.freeShippingBars?.[0];
   const productRecommendation = cartDrawer?.productRecommendations?.[0];
   const savingsDisplay = cartDrawer?.savingsDisplays?.[0];
   const freeShippingMessage = cartDrawer?.freeShippingMessages?.[0];
   const cartTotalsConfig = cartDrawer?.cartTotals?.[0];
+  const trustBadge = cartDrawer?.trustBadges?.[0];
+  const countdownTimer = cartDrawer?.countdownTimers?.[0];
 
 
   // Dynamic sample cart data based on configuration
@@ -458,12 +489,12 @@ function MiniCartDrawerPreview({
       const threshold = Number(freeShippingBar.thresholdAmount);
       // Show 60% progress for mini preview
       sampleTotal = threshold * 0.6;
-      sampleItemCount = Math.max(1, Math.floor(sampleTotal / 1500));
+      sampleItemCount = Math.max(1, Math.floor(sampleTotal / 25));
     } else {
       const threshold = Number(freeShippingBar.thresholdCount);
       // Show 60% progress for mini preview
       sampleItemCount = Math.max(1, Math.floor(threshold * 0.6));
-      sampleTotal = sampleItemCount * 1500;
+      sampleTotal = sampleItemCount * 25;
     }
 
     return {
@@ -507,7 +538,7 @@ function MiniCartDrawerPreview({
               progressBarColor={freeShippingBar.progressBarColor || '#3b82f6'}
               borderColor={freeShippingBar.borderColor || '#e2e8f0'}
               showPercentage={freeShippingBar.showPercentage ?? true}
-              currency="INR"
+              currency={(typeof window !== 'undefined' && (window as any).selldrawer_config?.currency?.code) || 'USD'}
               cart={sampleCart}
               isPreview={true}
             />
@@ -563,7 +594,7 @@ function MiniCartDrawerPreview({
               textColor={freeShippingMessage.textColor || '#92400e'}
               borderColor={freeShippingMessage.borderColor || '#92400e'}
               icon={freeShippingMessage.icon || '🚚'}
-              currency="INR"
+              currency={(typeof window !== 'undefined' && (window as any).selldrawer_config?.currency?.code) || 'USD'}
               isPreview={true}
             />
           ));
@@ -588,7 +619,7 @@ function MiniCartDrawerPreview({
             availableDiscounts={couponCodeField.showAllOffers ? [
               { code: 'SAVE10', title: 'Welcome Offer', description: '10% OFF', type: 'percentage', value: 10 },
               { code: 'SUMMER20', title: 'Summer Sale', description: '20% OFF', type: 'percentage', value: 20 },
-              { code: 'FLAT500', title: 'Flat Discount', description: '₹500 OFF', type: 'fixed', value: 500 }
+              { code: 'FLAT10', title: 'Flat Discount', description: 'Discount Applied', type: 'fixed', value: 10 }
             ] : []}
             backgroundColor={(couponCodeField as any)?.backgroundColor || '#d1fae5'}
             textColor={(couponCodeField as any)?.textColor || '#065f46'}
@@ -613,7 +644,7 @@ function MiniCartDrawerPreview({
                 const status = sampleCart.total >= targetAmount ? 'unlocked' : sampleCart.total > 0 ? 'in_progress' : 'locked';
 
                 const rewardText = m.title;
-                const remainingFormatted = `₹${remaining.toFixed(2)} `;
+                const remainingFormatted = `${remaining.toFixed(2)} `;
 
                 const message =
                   status === 'unlocked'
@@ -677,6 +708,70 @@ function MiniCartDrawerPreview({
             />
           )
         );
+      
+      case 'trust-badges':
+        return (
+          cartDrawer?.trustBadgesEnabled && (
+            <TrustBadges
+              config={trustBadge || { isActive: true, paymentIcons: ["visa", "master", "amex", "paypal"] }}
+            />
+          )
+        );
+
+      case 'countdown-timer':
+        return (
+          cartDrawer?.countdownTimerEnabled && (
+            <CountdownTimer
+              config={countdownTimer || { isActive: true, durationMinutes: 15, messageText: "Cart expires in {time}" }}
+            />
+          )
+        );
+
+      case 'accelerated-checkout':
+        return (
+          cartDrawer?.acceleratedCheckoutEnabled && (
+            <AcceleratedCheckout
+              config={{ isActive: true }}
+            />
+          )
+        );
+
+      case 'order-intelligence':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {cartDrawer?.deliveryEstimatesEnabled && (
+              <DeliveryEstimates
+                message={cartDrawer.deliveryEstimatesText}
+                processingDaysMin={cartDrawer.processingDaysMin}
+                processingDaysMax={cartDrawer.processingDaysMax}
+                transitDaysMin={cartDrawer.transitDaysMin}
+                transitDaysMax={cartDrawer.transitDaysMax}
+              />
+            )}
+            {cartDrawer?.shippingProtectionEnabled && (
+              <ShippingProtection
+                isEnabled={true}
+                onToggle={() => {}}
+                price={Number(cartDrawer.shippingProtectionPrice) || 9900}
+                title="Shipping Protection (Preview)"
+              />
+            )}
+            {cartDrawer?.orderNoteEnabled && (
+              <OrderNote
+                placeholder={cartDrawer.orderNotePlaceholder}
+                initialNote=""
+                onSave={() => {}}
+              />
+            )}
+            {cartDrawer?.termsConditionsEnabled && (
+              <TermsConditions
+                isChecked={false}
+                onToggle={() => {}}
+                text={cartDrawer.termsConditionsText}
+              />
+            )}
+          </div>
+        );
 
       default:
         return null;
@@ -736,6 +831,9 @@ function MiniCartDrawerPreview({
 
       <div style={{ padding: '16px 16px 16px 16px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {/* Urgency Timer Preview */}
+          {renderFeature('countdown-timer')}
+
           {beforeItems.map((featureId) => (
             <React.Fragment key={featureId}>{renderFeature(featureId)}</React.Fragment>
           ))}
@@ -819,6 +917,12 @@ function MiniCartDrawerPreview({
           }}>
             <span>Checkout</span>
           </button>
+
+          {/* Accelerated Checkout Preview */}
+          {renderFeature('accelerated-checkout')}
+
+          {/* Trust Badges Preview */}
+          {renderFeature('trust-badges')}
         </div>
       </div>
     </div>
@@ -843,7 +947,7 @@ export default function CartDrawerIndex() {
   const { cartDrawer, couponCodeField, appEmbedEnabled, shopDomain, error, planAccess } = loaderData as Exclude<typeof loaderData, { billingRedirectUrl: string }>;
 
   const [featureOrder, setFeatureOrder] = useState<string[]>(() =>
-    normalizeFeatureOrder(cartDrawer.featureOrder)
+    normalizeFeatureOrder(cartDrawer?.featureOrder || [])
   );
   const [draggedFeatureId, setDraggedFeatureId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -940,9 +1044,6 @@ export default function CartDrawerIndex() {
       isConfigured: cartDrawer.milestones.length > 0,
     },
     {
-      id: 'free-gifts',
-      title: 'Free Gift Offers',
-      description: 'Let customers choose free gifts on orders',
       icon: GiftCardIcon,
       enabled: cartDrawer.freeGiftsEnabled,
       count: cartDrawer.freeGifts.length,
@@ -994,31 +1095,57 @@ export default function CartDrawerIndex() {
     },
     {
       id: 'cart-totals',
-      title: 'Order Summary',
-      description: 'Customize cart totals display and styling',
+      title: 'Cart Totals & Summaries',
+      description: 'Itemized totals, taxes, and discounts.',
       icon: CalculatorIcon,
       enabled: cartDrawer.cartTotalsEnabled,
-      count: cartDrawer.cartTotals.length,
       path: '/app/cart-drawer/cart-totals',
       isConfigured: cartDrawer.cartTotals.length > 0,
     },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [
-    cartDrawer.freeShippingProgressBarEnabled, cartDrawer.freeShippingBars.length,
-    cartDrawer.milestonesEnabled, cartDrawer.milestones.length,
-    cartDrawer.freeGiftsEnabled, cartDrawer.freeGifts.length,
-    cartDrawer.productRecommendationsEnabled, cartDrawer.productRecommendations.length,
-    cartDrawer.couponCodeFieldEnabled, couponCodeField,
-    cartDrawer.savingsDisplayEnabled, cartDrawer.savingsDisplays.length,
-    cartDrawer.freeShippingMessageEnabled, cartDrawer.freeShippingMessages.length,
-    cartDrawer.promotionalBannerEnabled, cartDrawer.promotionalBanners.length,
-    cartDrawer.cartTotalsEnabled, cartDrawer.cartTotals.length,
-  ]);
+    {
+      id: 'trust-badges',
+      title: 'Trust Badges & Payments',
+      description: 'Display security icons and payment methods.',
+      icon: CashDollarIcon,
+      enabled: cartDrawer.trustBadgesEnabled,
+      path: '/app/cart-drawer/trust-badges',
+      isConfigured: cartDrawer.trustBadges.length > 0,
+    },
+    {
+      id: 'countdown-timer',
+      title: 'Urgency Countdown',
+      description: 'Reservation timer to boost FOMO.',
+      icon: MegaphoneIcon,
+      enabled: cartDrawer.countdownTimerEnabled,
+      path: '/app/cart-drawer/countdown-timer',
+      isConfigured: cartDrawer.countdownTimers.length > 0,
+    },
+    {
+      id: 'accelerated-checkout',
+      title: 'Express Checkout',
+      description: 'Apple Pay, Google Pay & Shop Pay.',
+      icon: DeliveryIcon,
+      enabled: cartDrawer.acceleratedCheckoutEnabled,
+      path: '/app/cart-drawer/accelerated-checkout',
+      isConfigured: true,
+    },
+    {
+      id: 'order-intelligence',
+      title: 'Order Intelligence',
+      description: 'Notes, T&C, delivery estimates, and more.',
+      icon: ListBulletedIcon,
+      enabled: !!(cartDrawer?.orderNoteEnabled || cartDrawer?.termsConditionsEnabled || cartDrawer?.deliveryEstimatesEnabled),
+      path: '/app/cart-drawer/order-intelligence',
+      isConfigured: true,
+    },
+  ], [cartDrawer, couponCodeField]);
 
   const featureLookup = React.useMemo(() => {
     const map = new Map<string, (typeof features)[number]>();
     features.forEach((feature) => {
-      map.set(feature.id, feature);
+      if (feature?.id) {
+        map.set(feature.id, feature);
+      }
     });
     return map;
   }, [features]);
@@ -1149,7 +1276,7 @@ export default function CartDrawerIndex() {
                 {orderedFeatureCards.map((item, index) => {
                   const isCartItems = 'isCartItems' in item && item.isCartItems;
                   const feature = isCartItems ? null : item as (typeof features)[number];
-                  const itemId = isCartItems ? FEATURE_ORDER_SENTINEL : feature!.id;
+                  const itemId = isCartItems ? FEATURE_ORDER_SENTINEL : (feature?.id || '');
 
                   const isDragged = draggedFeatureId === itemId;
                   const isDraggedOver = dragOverId === itemId;
@@ -1182,16 +1309,16 @@ export default function CartDrawerIndex() {
                             </svg>
                           </div>
 
-                          <div style={{ color: isCartItems ? 'var(--p-color-icon)' : (feature!.enabled ? 'var(--p-color-icon-magic)' : 'var(--p-color-icon-subdued)'), display: 'flex' }}>
-                            <Icon source={isCartItems ? ProductIcon : feature!.icon} tone="inherit" />
+                          <div style={{ color: isCartItems ? 'var(--p-color-icon)' : (feature?.enabled ? 'var(--p-color-icon-magic)' : 'var(--p-color-icon-subdued)'), display: 'flex' }}>
+                            <Icon source={isCartItems ? ProductIcon : (feature?.icon || ProductIcon)} tone="inherit" />
                           </div>
 
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <Text as="span" variant="bodyMd" fontWeight="semibold" tone={isCartItems ? 'base' : (feature!.enabled ? 'base' : 'subdued')}>
-                              {isCartItems ? 'Customer Cart Items' : feature!.title}
+                            <Text as="span" variant="bodyMd" fontWeight="semibold" tone={isCartItems ? 'base' : (feature?.enabled ? 'base' : 'subdued')}>
+                              {isCartItems ? 'Customer Cart Items' : (feature?.title || '')}
                             </Text>
                             <Text as="span" variant="bodySm" tone="subdued">
-                              {isCartItems ? 'Displays the items customers have added to their cart.' : feature!.description}
+                              {isCartItems ? 'Displays the items customers have added to their cart.' : (feature?.description || '')}
                             </Text>
                           </div>
                         </div>
@@ -1218,7 +1345,7 @@ export default function CartDrawerIndex() {
                                 <Button
                                   variant="plain"
                                   tone={feature!.enabled ? "critical" : "success"}
-                                  onClick={() => handleToggleFeature(feature!.id, feature!.enabled)}
+                                  onClick={() => handleToggleFeature(feature?.id || '', feature?.enabled || false)}
                                   disabled={!feature!.isConfigured && !feature!.enabled}
                                 >
                                   {feature!.enabled ? "Disable" : "Enable"}

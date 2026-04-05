@@ -8647,7 +8647,7 @@
 
   // extensions/cart-upsell/assets/modules/promotional-banner-entry.js
   var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
-  var APP_URL = true ? "https://consoles-emissions-notification-player.trycloudflare.com" : "https://app.selldrawer.com";
+  var APP_URL = true ? "https://jets-authority-begun-bible.trycloudflare.com" : "https://app.selldrawer.com";
   function initPromotionalBannerBlocks() {
     const containers = document.querySelectorAll(".selldrawer-promotional-banner-container");
     if (containers.length === 0) {

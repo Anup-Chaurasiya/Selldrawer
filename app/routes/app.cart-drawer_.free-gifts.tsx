@@ -496,6 +496,7 @@ export default function FreeGifts() {
   const navigation = useNavigation();
 
   const isSubmitting = navigation.state === "submitting";
+  const currencySymbol = (typeof window !== 'undefined' && (window as any).selldrawer_config?.currency?.symbol) || '';
 
   const [showModal, setShowModal] = useState(false);
   const [editingFreeGift, setEditingFreeGift] = useState<any>(null);
@@ -624,9 +625,9 @@ export default function FreeGifts() {
     // Default sample
     return [{
       id: 'sample-1',
-      name: 'Free Gift on ₹999+',
+      name: `Free Gift on ${(typeof window !== 'undefined' && (window as any).selldrawer_config?.currency?.symbol) || ''}25+`,
       triggerType: 'spend',
-      triggerValue: 999,
+      triggerValue: 25,
       customerLimit: 1,
       giftProducts: [
         {
@@ -854,14 +855,23 @@ export default function FreeGifts() {
                               </div>
                               <Text as="p" variant="bodySm" tone="subdued">
                                 <strong>Trigger:</strong> {getTriggerTypeLabel(triggerType)}
-                                {triggerType === "spend" && ` (₹${triggerValue.toString()})`}
+                                {triggerType === "spend" && ` (${currencySymbol}${triggerValue.toString()})`}
                                 {triggerType === "quantity" && ` (${triggerValue.toString()} items)`}
                                 {triggerType === "products" && ` (${triggerValue.toString()} qty from ${targets?.length || 0} products)`}
                                 {triggerType === "collections" && ` (${triggerValue.toString()} qty from ${targets?.length || 0} collections)`}
                               </Text>
-                              <Text as="p" variant="bodySm" tone="subdued" style={{ marginTop: '4px' }}>
-                                <strong>Contains:</strong> {giftProducts.length} product{giftProducts.length > 1 ? 's' : ''} • Choose {customerLimit}
-                              </Text>
+                              {!giftProducts?.length && (
+                                <div style={{ marginTop: '12px' }}>
+                                  <Text as="p" variant="bodySm" tone="subdued">
+                                    No products selected. Please add products to give as gifts.
+                                  </Text>
+                                </div>
+                              )}
+                               <div style={{ marginTop: '4px' }}>
+                                 <Text as="p" variant="bodySm" tone="subdued">
+                                   <strong>Contains:</strong> {giftProducts?.length || 0} product{giftProducts?.length !== 1 ? 's' : ''} • Choose {customerLimit || 1}
+                                 </Text>
+                               </div>
                             </div>
                           </div>
                           
@@ -968,7 +978,7 @@ export default function FreeGifts() {
                 label="Gift Offer Name"
                 value={formState.name}
                 onChange={(value) => setFormState({ ...formState, name: value })}
-                placeholder="e.g., Free Gift on ₹999+"
+                placeholder={`e.g., Free Gift on ${currencySymbol}25+`}
                 autoComplete="off"
                 helpText="Internal name for this free gift offer"
               />
@@ -987,7 +997,7 @@ export default function FreeGifts() {
 
               {(formState.triggerType === "spend" || formState.triggerType === "quantity") && (
                 <TextField
-                  label={formState.triggerType === "spend" ? "Minimum Amount (₹)" : "Minimum Quantity"}
+                  label={formState.triggerType === "spend" ? `Minimum Amount (${currencySymbol})` : "Minimum Quantity"}
                   type="number"
                   value={formState.triggerValue}
                   onChange={(value) => setFormState({ ...formState, triggerValue: value })}
@@ -1286,7 +1296,7 @@ export default function FreeGifts() {
                             {product.title}
                           </div>
                           <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                            ₹{product.variants?.[0]?.price || '0.00'}
+                            {currencySymbol}{product.variants?.[0]?.price || '0.00'}
                           </div>
                         </div>
                       </div>
@@ -1375,7 +1385,7 @@ export default function FreeGifts() {
                             {product.title}
                           </div>
                           <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                            ₹{product.variants?.[0]?.price || '0.00'}
+                            {currencySymbol}{product.variants?.[0]?.price || '0.00'}
                           </div>
                         </div>
                         {isSelected && (

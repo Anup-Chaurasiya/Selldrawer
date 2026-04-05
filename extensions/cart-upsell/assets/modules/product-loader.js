@@ -111,37 +111,57 @@ export async function loadShopifyRecommendations(cart, config) {
 
       const shopifyRecommendations = rawProducts
         .map(product => {
-          let variantId = null;
-          if (product.variants?.[0]?.id) {
-            const idStr = product.variants[0].id.toString();
-            if (idStr.includes('gid://')) {
-              variantId = idStr.replace('gid://shopify/ProductVariant/', '');
-            } else {
-              variantId = idStr;
-            }
-          }
+          const normalizeVariantId = (id) => {
+            if (!id) return null;
+            const idStr = id.toString();
+            return idStr.includes('gid://') ? idStr.replace('gid://shopify/ProductVariant/', '') : idStr;
+          };
 
-          const variant = product.variants?.[0];
-          const isAvailable = variant ? (
-            variant.available !== false &&
-            (variant.inventory_management === null ||
-              variant.inventory_quantity === null ||
-              variant.inventory_quantity === undefined ||
-              variant.inventory_quantity > 0)
+          const firstVariant = product.variants?.[0];
+          const firstVariantId = normalizeVariantId(firstVariant?.id);
+
+          const isAvailable = firstVariant ? (
+            firstVariant.available !== false &&
+            (firstVariant.inventory_management === null ||
+              firstVariant.inventory_quantity === null ||
+              firstVariant.inventory_quantity === undefined ||
+              firstVariant.inventory_quantity > 0)
           ) : false;
+
+          // Map all variants for the variant picker
+          const variants = (product.variants || []).map(v => ({
+            id: normalizeVariantId(v.id),
+            title: v.title || 'Default Title',
+            available: v.available !== false &&
+              (v.inventory_management === null ||
+               v.inventory_quantity === null ||
+               v.inventory_quantity === undefined ||
+               v.inventory_quantity > 0),
+            price: v.price ? Math.round(parseFloat(v.price)) : 0,
+            compareAtPrice: v.compare_at_price ? Math.round(parseFloat(v.compare_at_price)) : null,
+            option1: v.option1 || null,
+            option2: v.option2 || null,
+            option3: v.option3 || null,
+            featured_image: v.featured_image ? { url: v.featured_image.url || v.featured_image } : null,
+          }));
+
+          // Shopify product.options is array of option names e.g. ['Size', 'Color']
+          const options = (product.options || []).map(o => (typeof o === 'string' ? o : o.name)).filter(Boolean);
 
           return {
             shopifyProductId: product.handle,
-            shopifyVariantId: variantId,
+            shopifyVariantId: firstVariantId,
             title: product.title,
             handle: product.handle,
-            price: variant?.price ? parseFloat(variant.price) / 100 : 0,
-            compareAtPrice: variant?.compare_at_price
-              ? parseFloat(variant.compare_at_price) / 100
+            price: firstVariant?.price ? parseFloat(firstVariant.price) / 100 : 0,
+            compareAtPrice: firstVariant?.compare_at_price
+              ? parseFloat(firstVariant.compare_at_price) / 100
               : null,
             imageUrl: product.featured_image,
             position: 0,
-            available: isAvailable
+            available: isAvailable,
+            variants,
+            options,
           };
         })
         .filter(rec => rec.available);
@@ -236,34 +256,57 @@ export async function loadDynamicFreeShippingUpsells(cart, config) {
 
     const dynamicUpsells = rawProducts
       .map(product => {
-        const variant = product.variants?.[0];
-        const price = variant?.price ? parseFloat(variant.price) / 100 : 0;
-        
-        let variantId = null;
-        if (variant?.id) {
-          const idStr = variant.id.toString();
-          variantId = idStr.includes('gid://') ? idStr.replace('gid://shopify/ProductVariant/', '') : idStr;
-        }
+        const normalizeVariantId = (id) => {
+          if (!id) return null;
+          const idStr = id.toString();
+          return idStr.includes('gid://') ? idStr.replace('gid://shopify/ProductVariant/', '') : idStr;
+        };
 
-        const isAvailable = variant ? (
-          variant.available !== false &&
-          (variant.inventory_management === null ||
-            variant.inventory_quantity === null ||
-            variant.inventory_quantity === undefined ||
-            variant.inventory_quantity > 0)
+        const firstVariant = product.variants?.[0];
+        const variantId = normalizeVariantId(firstVariant?.id);
+        const price = firstVariant?.price ? parseFloat(firstVariant.price) / 100 : 0;
+
+        const isAvailable = firstVariant ? (
+          firstVariant.available !== false &&
+          (firstVariant.inventory_management === null ||
+            firstVariant.inventory_quantity === null ||
+            firstVariant.inventory_quantity === undefined ||
+            firstVariant.inventory_quantity > 0)
         ) : false;
 
+        // Map all variants for the variant picker
+        const variants = (product.variants || []).map(v => ({
+          id: normalizeVariantId(v.id),
+          title: v.title || 'Default Title',
+          available: v.available !== false &&
+            (v.inventory_management === null ||
+             v.inventory_quantity === null ||
+             v.inventory_quantity === undefined ||
+             v.inventory_quantity > 0),
+          price: v.price ? Math.round(parseFloat(v.price)) : 0,
+          compareAtPrice: v.compare_at_price ? Math.round(parseFloat(v.compare_at_price)) : null,
+          option1: v.option1 || null,
+          option2: v.option2 || null,
+          option3: v.option3 || null,
+          featured_image: v.featured_image ? { url: v.featured_image.url || v.featured_image } : null,
+        }));
+
+        // Shopify product.options is array of option names
+        const options = (product.options || []).map(o => (typeof o === 'string' ? o : o.name)).filter(Boolean);
+
         return {
-          id: variantId, 
-          variantId: variantId, 
+          id: variantId,
+          variantId: variantId,
           shopifyProductId: product.id?.toString() || product.handle,
           shopifyVariantId: variantId,
           title: product.title,
           handle: product.handle,
           price: price,
-          compareAtPrice: variant?.compare_at_price ? parseFloat(variant.compare_at_price) / 100 : null,
+          compareAtPrice: firstVariant?.compare_at_price ? parseFloat(firstVariant.compare_at_price) / 100 : null,
           imageUrl: product.featured_image,
-          available: isAvailable
+          available: isAvailable,
+          variants,
+          options,
         };
       })
       .filter(p => {

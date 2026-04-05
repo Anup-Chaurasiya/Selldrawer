@@ -1,5 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import prisma from "../db.server";
+import { formatMoney } from "../utils/money.server";
 
 /**
  * Public API endpoint for milestone data
@@ -103,14 +104,27 @@ export async function action({ request }: ActionFunctionArgs) {
       });
     }
 
-    // 3. Get the admin access token to fetch products via Admin REST API
     const session = await prisma.session.findFirst({
       where: { shop, isOnline: false },
       select: { accessToken: true },
     });
     const adminToken = session?.accessToken ?? null;
 
-    // 4. Compute per-milestone status, progress, messages, and fetch products
+    // 4. Fetch shop currency
+    let currencyCode = 'USD';
+    if (adminToken) {
+      try {
+        const shopResp = await fetch(`https://${shop}/admin/api/2024-10/shop.json`, {
+          headers: { 'X-Shopify-Access-Token': adminToken }
+        });
+        const shopData = await shopResp.json() as any;
+        currencyCode = shopData?.shop?.currency ?? 'USD';
+      } catch (err) {
+        console.error("Error fetching shop currency:", err);
+      }
+    }
+
+    // 5. Compute per-milestone status, progress, messages, and fetch products
     const milestones = await Promise.all(dbMilestones.map(async (m) => {
       const target = parseFloat(m.targetAmount.toString());
       const isUnlocked = Math.round(cartTotal) >= Math.round(target);
@@ -126,7 +140,7 @@ export async function action({ request }: ActionFunctionArgs) {
         status = "locked";
       }
 
-      const rewardLabel = getRewardLabel(m.rewardType, m.rewardValue);
+      const rewardLabel = getRewardLabel(m.rewardType, m.rewardValue, currencyCode);
 
       let message: string;
       if (isUnlocked) {
@@ -134,7 +148,7 @@ export async function action({ request }: ActionFunctionArgs) {
           ? m.unlockedMessage.replace("{reward}", rewardLabel)
           : `🎉 You've unlocked ${rewardLabel}!`;
       } else {
-        const remainingFormatted = formatAmount(remaining);
+        const remainingFormatted = formatAmount(remaining, currencyCode);
         message = m.inProgressMessage
           ? m.inProgressMessage
               .replace("{remaining}", remainingFormatted)
@@ -237,11 +251,11 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function formatAmount(amount: number): string {
-  return `₹${amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+function formatAmount(amount: number, currencyCode: string = 'USD'): string {
+  return formatMoney(Math.round(amount * 100), currencyCode);
 }
 
-function getRewardLabel(rewardType: string, rewardValue: any): string {
+function getRewardLabel(rewardType: string, rewardValue: any, currencyCode: string = 'USD'): string {
   const val = rewardValue ? parseFloat(rewardValue.toString()) : null;
   switch (rewardType) {
     case "free_shipping":
@@ -249,7 +263,7 @@ function getRewardLabel(rewardType: string, rewardValue: any): string {
     case "discount_percentage":
       return val ? `${val}% Off` : "a discount";
     case "discount_fixed":
-      return val ? `${formatAmount(val)} Off` : "a discount";
+      return val ? `${formatAmount(val, currencyCode)} Off` : "a discount";
     case "gift_wrapping":
       return "a free gift";
     default:

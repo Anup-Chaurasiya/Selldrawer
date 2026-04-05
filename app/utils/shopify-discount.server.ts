@@ -106,7 +106,7 @@ async function createFreeShippingAutomatic(
 /**
  * Create an automatic basic discount (percentage or fixed)
  * - type: "percentage" | "fixed"
- * - value: for percentage -> pass 5 for 5% ; for fixed -> pass 200 for ₹200
+ * - value: for percentage -> pass 5 for 5% ; for fixed -> pass 2 for $2.00
  * - minimumSubtotal: threshold amount
  *
  * Applies to all items in cart (global).
@@ -584,13 +584,17 @@ export async function createMilestoneDiscount(
     rewardType: string;
     rewardValue?: number | null;
     minimumSubtotal?: number; // threshold, if not provided default to 0
+    triggerValue?: number; // alias for minimumSubtotal
+    giftProducts?: any[];
+    triggerType?: string;
+    targetIds?: string[];
   }
 ): Promise<{ discountId: string; code: string } | null> {
   try {
     // Add timestamp to ensure unique title (avoid conflicts with existing discounts)
     const timestamp = Date.now();
     const title = `Milestone: ${milestone.title} (${timestamp})`;
-    const minSubtotal = milestone.minimumSubtotal ?? 0;
+    const minSubtotal = milestone.minimumSubtotal ?? milestone.triggerValue ?? 0;
 
     switch (milestone.rewardType) {
       case "free_shipping":
@@ -610,6 +614,21 @@ export async function createMilestoneDiscount(
           return null;
         }
         return await createBasicAutomatic(admin, title, "fixed", milestone.rewardValue, minSubtotal);
+
+      case "gift_wrapping":
+        if (!milestone.giftProducts || milestone.giftProducts.length === 0) {
+          console.error("createMilestoneDiscount: gift_wrapping requires giftProducts");
+          return null;
+        }
+        // Use createBxgyAutomatic for gift wrapping
+        return await createBxgyAutomatic(
+          admin,
+          title,
+          milestone.giftProducts.map((p: any) => p.shopifyVariantId || p.shopifyProductId),
+          milestone.triggerType || "spend",
+          milestone.minimumSubtotal || 0,
+          milestone.targetIds || []
+        );
 
       default:
         console.error("createMilestoneDiscount: unknown reward type:", milestone.rewardType);
@@ -634,6 +653,10 @@ export async function updateMilestoneDiscount(
     rewardType: string;
     rewardValue?: number | null;
     minimumSubtotal?: number;
+    triggerValue?: number;
+    giftProducts?: any[];
+    triggerType?: string;
+    targetIds?: string[];
   }
 ): Promise<{ discountId: string; code: string } | null> {
   try {

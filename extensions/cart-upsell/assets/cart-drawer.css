@@ -1107,3 +1107,118 @@
   from { transform: translateX(0); opacity: 1; }
   to { transform: translateX(100%); opacity: 0; }
 }
+
+/* --- Order Intelligence Premium Polish --- */
+
+.selldrawer-order-intelligence-container {
+  animation: selldrawer-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.selldrawer-order-note-wrapper,
+.selldrawer-terms-conditions-wrapper,
+.selldrawer-delivery-estimates-wrapper,
+.selldrawer-shipping-protection-wrapper {
+  background: white;
+  border: 1px solid #eef2f6;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.selldrawer-order-note-wrapper:hover,
+.selldrawer-shipping-protection-wrapper:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* Premium Checkbox */
+.selldrawer-terms-checkbox {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  margin-right: 10px;
+}
+
+.selldrawer-terms-checkbox:checked {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.selldrawer-terms-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Checkout Button Animation */
+.selldrawer-checkout-btn {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+
+.selldrawer-checkout-btn:not(.disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.selldrawer-checkout-btn:not(.disabled)::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transform: rotate(45deg);
+  animation: selldrawer-shine 3s infinite;
+}
+
+/* Base Animations */
+@keyframes selldrawer-shine {
+  0% { left: -150%; }
+  100% { left: 150%; }
+}
+
+@keyframes selldrawer-slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes selldrawer-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Glassmorphism for totals */
+.selldrawer-totals-container {
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+@keyframes selldrawer-pulse {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.selldrawer-pulse {
+  animation: selldrawer-pulse 2s infinite ease-in-out;
+}

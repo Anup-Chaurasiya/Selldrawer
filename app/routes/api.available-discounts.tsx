@@ -1,7 +1,8 @@
-import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { cors } from "remix-utils/cors";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import prisma from "../db.server";
+import { formatMoney } from "../utils/money.server";
 
 /**
  * Public API endpoint to fetch all available Shopify discount codes
@@ -223,8 +224,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             description = `${Math.round(discountValue)}% OFF`;
           } else if (value.amount) {
             discountType = "fixed";
-            discountValue = parseFloat(value.amount.amount);
-            description = `₹${Math.round(discountValue)} OFF`;
+            const amountVal = parseFloat(value.amount.amount);
+            const currencyCode = value.amount.currencyCode || 'USD';
+            discountValue = amountVal;
+            description = `${formatMoney(Math.round(amountVal * 100), currencyCode)} OFF`;
           }
         } else if (discount.__typename === "DiscountCodeFreeShipping") {
           discountType = "free_shipping";

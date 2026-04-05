@@ -128,12 +128,6 @@ const CartItemRow: React.FC<{
     const prices = calculateItemPrices(item, currentQuantity);
     const imageUrl = item.featured_image?.url || item.image || '';
 
-    const isGiftItem = item.properties && (
-      item.properties['_selldrawer_gift'] === 'true' ||
-      item.properties['_gift'] === 'true' ||
-      item.properties['_gift'] === true
-    );
-
     const isDisabled = isPreview; // Remove network locks
 
     return (
@@ -192,20 +186,8 @@ const CartItemRow: React.FC<{
             }}>📦</div>
           )}
 
-          {/* Gift badge */}
-          {isGiftItem && (
-            <div style={{
-              position: 'absolute', top: '5px', left: '5px',
-              background: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
-              color: 'white', fontSize: '8px', fontWeight: '700',
-              padding: '2px 6px', borderRadius: '6px',
-              letterSpacing: '0.04em', textTransform: 'uppercase',
-              boxShadow: '0 2px 6px rgba(124,58,237,0.3)',
-            }}>🎁 FREE</div>
-          )}
-
           {/* Discount badge */}
-          {!isGiftItem && prices.hasItemDiscount && (
+          {prices.hasItemDiscount && (
             <div style={{
               position: 'absolute', top: '5px', left: '5px',
               background: 'linear-gradient(135deg, #f59e0b, #d97706)',
@@ -217,7 +199,7 @@ const CartItemRow: React.FC<{
           )}
 
           {/* Remove button — hover reveal on image */}
-          {!isGiftItem && !isPreview && (
+          {!isPreview && (
             <button
               onClick={() => !isPending && onRemoveItem(item.key)}
               onMouseEnter={() => setRemoveHovered(true)}
@@ -279,110 +261,83 @@ const CartItemRow: React.FC<{
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             {/* Prices */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              {isGiftItem ? (
-                <>
-                  <span style={{ textDecoration: 'line-through', color: '#d1d5db', fontSize: '12px' }}>
-                    {formatMoney(prices.itemSubtotal)}
-                  </span>
-                  <span style={{ fontWeight: '800', fontSize: '14px', color: '#059669', letterSpacing: '-0.02em' }}>
-                    FREE
-                  </span>
-                </>
-              ) : (
-                <>
-                  {prices.hasItemDiscount && (
-                    <span style={{ textDecoration: 'line-through', color: '#d1d5db', fontSize: '12px' }}>
-                      {formatMoney(prices.originalLinePrice)}
-                    </span>
-                  )}
-                  <span style={{
-                    fontWeight: '800', fontSize: '15px',
-                    color: prices.hasItemDiscount ? '#d97706' : '#111827',
-                    letterSpacing: '-0.02em',
-                  }}>
-                    {formatMoney(prices.itemSubtotal)}
-                  </span>
-                </>
+              {prices.hasItemDiscount && (
+                <span style={{ textDecoration: 'line-through', color: '#d1d5db', fontSize: '12px' }}>
+                  {formatMoney(prices.originalLinePrice)}
+                </span>
               )}
+              <span style={{
+                fontWeight: '800', fontSize: '15px',
+                color: prices.hasItemDiscount ? '#d97706' : '#111827',
+                letterSpacing: '-0.02em',
+              }}>
+                {formatMoney(prices.itemSubtotal)}
+              </span>
             </div>
 
             {/* Quantity Controls */}
-            {isGiftItem ? (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '5px 10px', borderRadius: '8px',
-                background: '#f9fafb', border: '1px solid #e5e7eb',
-              }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>Qty: 1</span>
-              </div>
-            ) : (
-              <div style={{
-                display: 'flex', alignItems: 'center',
-                background: '#f9fafb',
-                border: '1.5px solid #e5e7eb',
-                borderRadius: '10px',
-                overflow: 'hidden',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-              }}>
-                <button
-                  onClick={() => handleQtyChange(currentQuantity - 1)}
-                  disabled={isDisabled || currentQuantity <= 1}
-                  style={{
-                    width: '30px', height: '30px', border: 'none',
-                    background: 'transparent',
-                    color: isDisabled || currentQuantity <= 1 ? '#d1d5db' : '#374151',
-                    cursor: isDisabled || currentQuantity <= 1 ? 'not-allowed' : 'pointer',
-                    fontSize: '17px', fontWeight: '400',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'background 0.15s ease, color 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => { if (!isDisabled && currentQuantity > 1) e.currentTarget.style.background = '#f0f0f5'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                >
-                  −
-                </button>
+            <div style={{
+              display: 'flex', alignItems: 'center',
+              background: '#f9fafb',
+              border: '1.5px solid #e5e7eb',
+              borderRadius: '10px',
+              overflow: 'hidden',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+            }}>
+              <button
+                onClick={() => handleQtyChange(currentQuantity - 1)}
+                disabled={isDisabled || currentQuantity <= 1}
+                style={{
+                  width: '30px', height: '30px', border: 'none',
+                  background: 'transparent',
+                  color: isDisabled || currentQuantity <= 1 ? '#d1d5db' : '#374151',
+                  cursor: isDisabled || currentQuantity <= 1 ? 'not-allowed' : 'pointer',
+                  fontSize: '17px', fontWeight: '400',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'background 0.15s ease, color 0.15s ease',
+                }}
+                onMouseEnter={(e) => { if (!isDisabled && currentQuantity > 1) e.currentTarget.style.background = '#f0f0f5'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                −
+              </button>
 
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={inputValue}
-                  onChange={handleInputChange}
-                  onBlur={handleBlur}
-                  onFocus={handleFocus}
-                  onKeyDown={handleKeyDown}
-                  disabled={isDisabled}
-                  style={{
-                    width: '30px', textAlign: 'center',
-                    fontSize: '13px', fontWeight: '700', color: '#111827',
-                    border: 'none', background: 'transparent',
-                    outline: 'none', cursor: isDisabled ? 'not-allowed' : 'text',
-                    animation: qtyBump ? 'sd-qty-bump 0.25s ease' : undefined,
-                  }}
-                />
+              <input
+                type="text"
+                inputMode="numeric"
+                value={inputValue}
+                onChange={handleInputChange}
+                onBlur={handleBlur}
+                onFocus={handleFocus}
+                onKeyDown={handleKeyDown}
+                disabled={isDisabled}
+                style={{
+                  width: '30px', textAlign: 'center',
+                  fontSize: '13px', fontWeight: '700', color: '#111827',
+                  border: 'none', background: 'transparent',
+                  outline: 'none', cursor: isDisabled ? 'not-allowed' : 'text',
+                  animation: qtyBump ? 'sd-qty-bump 0.25s ease' : undefined,
+                }}
+              />
 
-                <button
-                  onClick={() => handleQtyChange(currentQuantity + 1)}
-                  disabled={isDisabled}
-                  style={{
-                    width: '30px', height: '30px', border: 'none',
-                    background: 'transparent',
-                    color: isDisabled ? '#d1d5db' : '#374151',
-                    cursor: isDisabled ? 'not-allowed' : 'pointer',
-                    fontSize: '17px', fontWeight: '400',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'background 0.15s ease, color 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => { if (!isDisabled) e.currentTarget.style.background = '#f0f0f5'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                >
-                  +
-                </button>
-              </div>
-            )}
+              <button
+                onClick={() => handleQtyChange(currentQuantity + 1)}
+                disabled={isDisabled}
+                style={{
+                  width: '30px', height: '30px', border: 'none',
+                  background: 'transparent',
+                  color: isDisabled ? '#d1d5db' : '#374151',
+                  cursor: isDisabled ? 'not-allowed' : 'pointer',
+                  fontSize: '17px', fontWeight: '400',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'background 0.15s ease, color 0.15s ease',
+                }}
+                onMouseEnter={(e) => { if (!isDisabled) e.currentTarget.style.background = '#f0f0f5'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                +
+              </button>
+            </div>
           </div>
 
           {/* Error */}
@@ -411,8 +366,25 @@ export const CartItems: React.FC<CartItemsProps> = ({
   isPreview = false
 }) => {
   const formatMoney = (cents: number) => {
-    const rupees = cents / 100;
-    return `₹${Math.round(rupees)}`;
+    if (typeof cents !== 'number') return '';
+    const amount = cents / 100;
+
+    // Get active currency from Shopify config
+    // @ts-ignore
+    const currencyConfig = typeof window !== 'undefined' ? window.selldrawer_config?.currency : null;
+    const isoCode = currencyConfig?.isoCode || currencyConfig?.code || 'USD';
+      
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: isoCode,
+        minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+        maximumFractionDigits: 2
+      }).format(amount);
+    } catch (e) {
+      const symbol = currencyConfig?.symbol || '$';
+      return `${symbol}${amount.toFixed(2)}`;
+    }
   };
 
   const calculateItemPrices = (item: CartItem, currentQty: number = item.quantity) => {

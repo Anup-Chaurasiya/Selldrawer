@@ -110,6 +110,23 @@ model CartDrawer {
   milestonesProgressBarColor     String                    @default("#3b82f6")
   milestonesAllUnlockedMessage   String                    @default("🎉 Congratulations! All rewards unlocked!")
   freeGiftsEnabled               Boolean                   @default(false)
+  trustBadgesEnabled             Boolean                   @default(false)
+  countdownTimerEnabled          Boolean                   @default(false)
+  acceleratedCheckoutEnabled     Boolean                   @default(false)
+  orderNoteEnabled               Boolean                   @default(false)
+  orderNotePlaceholder           String                    @default("Add a note to your order...")
+  termsConditionsEnabled         Boolean                   @default(false)
+  termsConditionsText            String                    @default("I agree to the Terms & Conditions")
+  deliveryEstimatesEnabled       Boolean                   @default(false)
+  deliveryEstimatesText          String                    @default("Estimated delivery: {date}")
+  processingDaysMin              Int                       @default(1)
+  processingDaysMax              Int                       @default(2)
+  transitDaysMin                 Int                       @default(3)
+  transitDaysMax                 Int                       @default(5)
+  shippingProtectionEnabled      Boolean                   @default(false)
+  shippingProtectionProductId    String?
+  shippingProtectionTitle        String?
+  shippingProtectionPrice        Decimal?
   createdAt                      DateTime                  @default(now())
   updatedAt                      DateTime
   featureOrder                   String[]                  @default([])
@@ -122,6 +139,9 @@ model CartDrawer {
   productRecommendations         ProductRecommendation[]   @relation("productRecommendations")
   promotionalBanners             PromotionalBanner[]       @relation("promotionalBanners")
   savingsDisplays                SavingsDisplay[]          @relation("savingsDisplays")
+  trustBadges                    TrustBadge[]              @relation("trustBadges")
+  countdownTimers                CountdownTimer[]          @relation("countdownTimers")
+  acceleratedCheckouts           AcceleratedCheckout[]     @relation("acceleratedCheckouts")
 
   @@index([shop])
 }
@@ -674,4 +694,52 @@ model Session {
   locale                String?
   collaborator          Boolean?  @default(false)
   emailVerified         Boolean?  @default(false)
+}
+
+model TrustBadge {
+  id                 String     @id
+  cartDrawerId       String
+  shop               String
+  isActive           Boolean    @default(true)
+  title              String     @default("Secure Checkout")
+  alignment          String     @default("center")
+  imageUrls          String[]   @default([])
+  paymentIcons       String[]   @default(["visa", "master", "amex", "paypal"])
+  socialProofText    String?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime
+  cartDrawer         CartDrawer @relation("trustBadges", fields: [cartDrawerId], references: [id], onDelete: Cascade)
+
+  @@index([cartDrawerId])
+  @@index([shop, isActive])
+}
+
+model CountdownTimer {
+  id                 String     @id
+  cartDrawerId       String
+  shop               String
+  isActive           Boolean    @default(true)
+  durationMinutes    Int        @default(15)
+  messageText        String     @default("Your reserves expire in {time}")
+  backgroundColor    String     @default("#FEF2F2")
+  textColor          String     @default("#991B1B")
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime
+  cartDrawer         CartDrawer @relation("countdownTimers", fields: [cartDrawerId], references: [id], onDelete: Cascade)
+
+  @@index([cartDrawerId])
+  @@index([shop, isActive])
+}
+
+model AcceleratedCheckout {
+  id                 String     @id
+  cartDrawerId       String
+  shop               String
+  isActive           Boolean    @default(true)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime
+  cartDrawer         CartDrawer @relation("acceleratedCheckouts", fields: [cartDrawerId], references: [id], onDelete: Cascade)
+
+  @@index([cartDrawerId])
+  @@index([shop, isActive])
 }

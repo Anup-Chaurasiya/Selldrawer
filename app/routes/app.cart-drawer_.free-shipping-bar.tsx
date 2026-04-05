@@ -76,18 +76,30 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     };
   };
 
+  const shopDataResponse = await admin.graphql(
+    `#graphql
+    query getShop {
+      shop {
+        currencyCode
+      }
+    }
+  `,
+  );
+
   const collections = collectionsData.data?.collections.edges.map(edge => ({
     label: edge.node.title,
     value: edge.node.handle,
   })) || [];
 
-  return json({ cartDrawer, freeShippingBar, shop, collections });
+  const shopData = await shopDataResponse.json() as any;
+  const currencyCode = shopData.data?.shop?.currencyCode || 'USD';
+
+  return json({ cartDrawer, freeShippingBar, shop, collections, currencyCode });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = session.shop;
-  const url = new URL(request.url);
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -95,7 +107,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "toggle") {
     const enabled = formData.get("enabled") === "true";
 
-    // Check if data exists before enabling
     if (enabled) {
       const cartDrawer = await prisma.cartDrawer.findUnique({
         where: { shop },
@@ -117,7 +128,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       data: { freeShippingProgressBarEnabled: enabled },
     });
 
-    // Sync to metafields
     await syncCartDrawerConfigToMetafields(admin, shop);
 
     return json({ success: true });
@@ -195,21 +205,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
     }
 
-    // Auto-enable the feature after saving configuration
-    const updatedCartDrawer = await prisma.cartDrawer.update({
+    await prisma.cartDrawer.update({
       where: { shop },
       data: { freeShippingProgressBarEnabled: true },
-      include: {
-        freeShippingBars: { where: { isActive: true } },
-        productRecommendations: { where: { isActive: true } },
-        savingsDisplays: { where: { isActive: true } },
-        freeShippingMessages: { where: { isActive: true } },
-        cartTotals: { where: { isActive: true } },
-        milestones: { where: { isActive: true }, include: { targets: true } },
-      },
     });
 
-    // Standardized Sync to Shopify Metafields for zero-latency load
     await syncCartDrawerConfigToMetafields(admin, shop);
 
     return json({ savedSettings: true as const });
@@ -219,24 +219,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function FreeShippingBar() {
-  const { cartDrawer, freeShippingBar, collections } = useLoaderData<typeof loader>();
+  const { cartDrawer, freeShippingBar, collections, currencyCode } = useLoaderData<typeof loader>();
   const actionData = useActionData<{ error?: string; savedSettings?: boolean }>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const isLoading = navigation.state === "submitting";
 
-  // Check which action is being submitted
   const formData = navigation.formData;
   const submittingIntent = formData?.get("intent") as string | null;
 
-  // Track previous submission state to detect when save completes
   const prevIsSubmitting = useRef(false);
   const prevSubmittingIntent = useRef<string | null>(null);
   const [showToast, setShowToast] = useState(false);
 
-  // Show toast notification when settings are saved successfully
   useEffect(() => {
-    // Check if we just finished submitting a save action
     const justFinishedSave =
       prevIsSubmitting.current &&
       prevSubmittingIntent.current === "save" &&
@@ -244,23 +240,21 @@ export default function FreeShippingBar() {
 
     if (justFinishedSave && !actionData?.error && actionData?.savedSettings) {
       setShowToast(true);
-      // Auto-hide after 3 seconds (no redirect — merchant stays on this page)
       const timer = setTimeout(() => {
         setShowToast(false);
       }, 3000);
       return () => clearTimeout(timer);
     }
 
-    // Update refs for next render
     prevIsSubmitting.current = isLoading;
     prevSubmittingIntent.current = submittingIntent;
   }, [submittingIntent, isLoading, actionData?.error, actionData?.savedSettings]);
 
   const [formState, setFormState] = useState({
     thresholdMode: freeShippingBar?.thresholdMode || "amount",
-    thresholdAmount: freeShippingBar?.thresholdAmount?.toString() || "5000",
+    thresholdAmount: freeShippingBar?.thresholdAmount?.toString() || "25",
     thresholdCount: freeShippingBar?.thresholdCount?.toString() || "5",
-    currency: freeShippingBar?.currency || "INR",
+    currency: freeShippingBar?.currency || currencyCode,
     beforeThresholdMessage: freeShippingBar?.beforeThresholdMessage || "Add {remaining} for FREE shipping",
     afterThresholdMessage: freeShippingBar?.afterThresholdMessage || "You've unlocked FREE shipping!",
     progressBarColor: freeShippingBar?.progressBarColor || "#10b981",
@@ -273,7 +267,7 @@ export default function FreeShippingBar() {
     eligibleCollectionHandle: (freeShippingBar as any)?.eligibleCollectionHandle || "",
   });
 
-
+  const currencySymbol = (formState.currency === 'USD') ? '$' : (formState.currency === 'EUR') ? '€' : (formState.currency === 'GBP') ? '£' : (formState.currency === 'INR') ? '₹' : '';
 
   const handleSubmit = useCallback(() => {
     const formData = new FormData();
@@ -565,10 +559,10 @@ export default function FreeShippingBar() {
                   <Select
                     label="Store Currency"
                     options={[
-                      { label: "Indian Rupee (INR)", value: "INR" },
                       { label: "US Dollar (USD)", value: "USD" },
                       { label: "Euro (EUR)", value: "EUR" },
                       { label: "British Pound (GBP)", value: "GBP" },
+                      { label: "Indian Rupee (INR)", value: "INR" },
                     ]}
                     value={formState.currency}
                     onChange={(value) => setFormState({ ...formState, currency: value })}
@@ -583,7 +577,7 @@ export default function FreeShippingBar() {
                     value={formState.thresholdAmount}
                     onChange={(value) => setFormState({ ...formState, thresholdAmount: value })}
                     helpText="Customers need to spend this amount to unlock free shipping"
-                    prefix={formState.currency === 'INR' ? '₹' : formState.currency === 'USD' ? '$' : formState.currency === 'EUR' ? '€' : '£'}
+                    prefix={currencySymbol}
                     autoComplete="off"
                   />
                 ) : (
