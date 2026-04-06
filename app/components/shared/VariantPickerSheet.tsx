@@ -68,8 +68,8 @@ const fmtPrice = (cents: number, symbol?: string) => {
 
 const SHEET_KEYFRAMES = `
   @keyframes sd-vps-backdrop-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from { opacity: 0; backdrop-filter: blur(0px); }
+    to   { opacity: 1; backdrop-filter: blur(8px); }
   }
   @keyframes sd-vps-sheet-up {
     from { transform: translateY(100%); opacity: 0; }
@@ -81,13 +81,17 @@ const SHEET_KEYFRAMES = `
   }
   @keyframes sd-vps-add-pop {
     0%   { transform: scale(1); }
-    40%  { transform: scale(0.93); }
-    70%  { transform: scale(1.04); }
+    40%  { transform: scale(0.95); }
+    70%  { transform: scale(1.02); }
     100% { transform: scale(1); }
   }
   @keyframes sd-vps-check-in {
     from { transform: scale(0.5); opacity: 0; }
     to   { transform: scale(1);   opacity: 1; }
+  }
+  @keyframes sd-vps-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
   }
 `;
 
@@ -220,12 +224,12 @@ export const VariantPickerSheet: React.FC<VariantPickerSheetProps> = ({
         style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(2px)',
+          background: 'rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(8px)',
           zIndex: 99999,
           animation: isClosing
             ? 'sd-vps-backdrop-in 0.28s ease reverse'
-            : 'sd-vps-backdrop-in 0.25s ease',
+            : 'sd-vps-backdrop-in 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         {/* Sheet */}
@@ -239,42 +243,48 @@ export const VariantPickerSheet: React.FC<VariantPickerSheetProps> = ({
             maxWidth: '480px',
             margin: '0 auto',
             background: '#ffffff',
-            borderRadius: '24px 24px 0 0',
-            boxShadow: '0 -12px 60px rgba(0,0,0,0.2)',
-            padding: '0 0 env(safe-area-inset-bottom, 16px)',
+            borderRadius: '28px 28px 0 0',
+            boxShadow: '0 -20px 60px rgba(0,0,0,0.15)',
+            padding: '0 0 env(safe-area-inset-bottom, 20px)',
             animation: isClosing
-              ? 'sd-vps-sheet-down 0.28s cubic-bezier(0.4,0,1,1)'
-              : 'sd-vps-sheet-up 0.32s cubic-bezier(0.16,1,0.3,1)',
+              ? 'sd-vps-sheet-down 0.3s cubic-bezier(0.4,0,1,1)'
+              : 'sd-vps-sheet-up 0.5s cubic-bezier(0.16,1,0.3,1)',
             display: 'flex',
             flexDirection: 'column',
-            maxHeight: '90vh',
+            maxHeight: '92vh',
             overflowY: 'auto',
           }}
         >
           {/* Drag Handle */}
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
-            <div style={{ width: '40px', height: '4px', borderRadius: '100px', background: '#e5e7eb' }} />
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '16px', paddingBottom: '6px' }}>
+            <div style={{ width: '44px', height: '5px', borderRadius: '100px', background: '#E5E7EB' }} />
           </div>
 
           {/* Header row */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '10px 18px 0',
+            padding: '10px 20px 0',
           }}>
-            <span style={{ fontSize: '14px', fontWeight: 700, color: '#111827', letterSpacing: '-0.02em' }}>
-              Choose an option
+            <span style={{ fontSize: '15px', fontWeight: 850, color: '#111827', letterSpacing: '-0.02em' }}>
+              Select Options
             </span>
             <button
               onClick={handleClose}
               style={{
                 width: '32px', height: '32px', borderRadius: '50%',
-                border: 'none', background: '#f3f4f6',
+                border: 'none', background: '#F3F4F6',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', fontSize: '16px', color: '#6b7280',
-                transition: 'background 0.2s',
+                cursor: 'pointer', fontSize: '18px', color: '#6B7280',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#e5e7eb')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#f3f4f6')}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#E5E7EB';
+                e.currentTarget.style.color = '#111827';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = '#F3F4F6';
+                e.currentTarget.style.color = '#6B7280';
+              }}
               aria-label="Close"
             >
               ×
@@ -282,26 +292,27 @@ export const VariantPickerSheet: React.FC<VariantPickerSheetProps> = ({
           </div>
 
           {/* Product row */}
-          <div style={{ display: 'flex', gap: '14px', padding: '14px 18px', alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', gap: '16px', padding: '16px 20px', alignItems: 'flex-start' }}>
             {/* Product image */}
             <div style={{
-              width: '72px', height: '72px', borderRadius: '12px',
+              width: '80px', height: '80px', borderRadius: '12px',
               overflow: 'hidden', flexShrink: 0,
-              background: '#f4f4f8', border: '1.5px solid rgba(0,0,0,0.06)',
+              background: '#F9FAFB', border: '1px solid rgba(0,0,0,0.04)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               {imageUrl ? (
-                <img src={imageUrl} alt={product.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={imageUrl} alt={product.title} style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
               ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>📦</div>
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px' }}>📦</div>
               )}
             </div>
 
             {/* Title + price */}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
-                fontSize: '14px', fontWeight: 700, color: '#111827',
-                lineHeight: '1.3', marginBottom: '6px',
-                letterSpacing: '-0.01em',
+                fontSize: '15px', fontWeight: '850', color: '#111827',
+                lineHeight: '1.2', marginBottom: '8px',
+                letterSpacing: '-0.02em',
               }}>
                 {product.title}
               </div>
@@ -310,28 +321,27 @@ export const VariantPickerSheet: React.FC<VariantPickerSheetProps> = ({
               {selectedVariant && selectedVariant.title !== 'Default Title' && (
                 <div style={{
                   display: 'inline-block',
-                  fontSize: '10px', fontWeight: 600, color: '#6b7280',
-                  background: '#f3f4f6', border: '1px solid #e5e7eb',
-                  padding: '2px 8px', borderRadius: '100px',
-                  marginBottom: '6px',
+                  fontSize: '10px', fontWeight: 800, color: accentColor,
+                  background: `${accentColor}10`,
+                  padding: '2px 8px', borderRadius: '6px',
+                  marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.02em'
                 }}>
                   {selectedVariant.title}
                 </div>
               )}
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '16px', fontWeight: 800, color: hasDiscount ? '#d97706' : '#111827', letterSpacing: '-0.02em' }}>
+                <span style={{ fontSize: '17px', fontWeight: 900, color: '#111827', letterSpacing: '-0.03em' }}>
                   {fmtPrice(displayPrice, currencySymbol)}
                 </span>
                 {hasDiscount && (
                   <>
-                    <span style={{ fontSize: '12px', fontWeight: 500, color: '#d1d5db', textDecoration: 'line-through' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 500, color: '#9CA3AF', textDecoration: 'line-through' }}>
                       {fmtPrice(displayCompareAt!, currencySymbol)}
                     </span>
                     <span style={{
-                      fontSize: '10px', fontWeight: 700, color: '#fff',
-                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                      padding: '2px 6px', borderRadius: '6px',
+                      fontSize: '10px', fontWeight: 850, color: '#DC2626',
+                      background: '#FEF2F2', padding: '2px 6px', borderRadius: '4px',
                     }}>
                       {discountPct}% OFF
                     </span>
@@ -343,21 +353,22 @@ export const VariantPickerSheet: React.FC<VariantPickerSheetProps> = ({
 
           {/* Divider */}
           {optionValues.length > 0 && (
-            <div style={{ height: '1px', background: '#f3f4f6', margin: '0 18px' }} />
+            <div style={{ height: '1px', background: '#F3F4F6', margin: '0 20px' }} />
           )}
 
           {/* Option selectors */}
-          <div style={{ padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
             {optionValues.map(({ name, values }) => (
               <div key={name}>
                 <div style={{
-                  fontSize: '12px', fontWeight: 700, color: '#374151',
-                  marginBottom: '8px', letterSpacing: '0.04em', textTransform: 'uppercase',
+                  fontSize: '11px', fontWeight: '850', color: '#6B7280',
+                  marginBottom: '10px', letterSpacing: '0.05em', textTransform: 'uppercase',
+                  display: 'flex', alignItems: 'center', gap: '6px'
                 }}>
                   {name}
                   {selectedOptions[name] && (
-                    <span style={{ fontWeight: 600, color: accentColor, marginLeft: '6px', textTransform: 'none', letterSpacing: 0 }}>
-                      : {selectedOptions[name]}
+                    <span style={{ color: '#111827', textTransform: 'none', letterSpacing: 0, fontWeight: 700 }}>
+                      · {selectedOptions[name]}
                     </span>
                   )}
                 </div>
@@ -374,41 +385,37 @@ export const VariantPickerSheet: React.FC<VariantPickerSheetProps> = ({
                         }}
                         disabled={!available}
                         style={{
-                          padding: '7px 16px',
+                          padding: '8px 16px',
                           borderRadius: '10px',
-                          fontSize: '13px',
-                          fontWeight: isSelected ? 700 : 500,
-                          border: isSelected
-                            ? `2px solid ${accentColor}`
-                            : '1.5px solid #e5e7eb',
-                          background: isSelected ? `${accentColor}12` : '#fff',
+                          fontSize: '14px',
+                          fontWeight: isSelected ? '800' : '600',
+                          border: '2px solid',
+                          borderColor: isSelected ? '#111827' : '#E5E7EB',
+                          background: isSelected ? '#111827' : '#ffffff',
                           color: !available
-                            ? '#d1d5db'
-                            : isSelected ? accentColor : '#374151',
+                            ? '#D1D5DB'
+                            : isSelected ? '#ffffff' : '#1F2937',
                           cursor: available ? 'pointer' : 'not-allowed',
                           position: 'relative',
-                          transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
-                          boxShadow: isSelected ? `0 0 0 3px ${accentColor}20` : 'none',
-                          // Strikethrough for unavailable sizes
-                          textDecoration: !available ? 'none' : 'none',
-                          opacity: !available ? 0.45 : 1,
+                          transition: 'all 0.3s cubic-bezier(0.2, 1, 0.3, 1)',
+                          opacity: !available ? 0.4 : 1,
                           overflow: 'hidden',
+                          transform: isSelected ? 'scale(1.02)' : 'scale(1)',
                         }}
                         onMouseEnter={e => {
                           if (available && !isSelected) {
-                            e.currentTarget.style.borderColor = `${accentColor}80`;
-                            e.currentTarget.style.background = `${accentColor}08`;
+                            e.currentTarget.style.borderColor = '#111827';
+                            e.currentTarget.style.transform = 'scale(1.02)';
                           }
                         }}
                         onMouseLeave={e => {
                           if (!isSelected) {
-                            e.currentTarget.style.borderColor = '#e5e7eb';
-                            e.currentTarget.style.background = '#fff';
+                            e.currentTarget.style.borderColor = '#E5E7EB';
+                            e.currentTarget.style.transform = 'scale(1)';
                           }
                         }}
                       >
                         {value}
-                        {/* Diagonal strikethrough line for sold-out */}
                         {!available && (
                           <span style={{
                             position: 'absolute',
@@ -416,8 +423,8 @@ export const VariantPickerSheet: React.FC<VariantPickerSheetProps> = ({
                             left: 0,
                             right: 0,
                             height: '1.5px',
-                            background: '#d1d5db',
-                            transform: 'rotate(-15deg)',
+                            background: '#D1D5DB',
+                            transform: 'rotate(-20deg)',
                             pointerEvents: 'none',
                           }} />
                         )}
@@ -432,86 +439,84 @@ export const VariantPickerSheet: React.FC<VariantPickerSheetProps> = ({
           {/* Availability notice */}
           {selectedVariant && !selectedVariant.available && (
             <div style={{
-              margin: '0 18px 8px',
-              padding: '8px 12px',
-              background: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: '8px',
-              fontSize: '12px',
+              margin: '0 20px 8px',
+              padding: '10px 14px',
+              background: '#FFF5F5',
+              border: '1px solid #FED7D7',
+              borderRadius: '12px',
+              fontSize: '13px',
               fontWeight: 600,
-              color: '#dc2626',
+              color: '#C53030',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '8px',
             }}>
-              <span>⚠️</span> This combination is out of stock
+              <span>🚫</span> This combination is currently unavailable
             </div>
           )}
 
           {/* Add to Cart Button */}
-          <div style={{ padding: '6px 18px 20px' }}>
+          <div style={{ padding: '8px 20px 24px' }}>
             <button
               onClick={handleAdd}
               disabled={!selectedVariantId || !selectedVariant?.available || adding}
               style={{
                 width: '100%',
-                padding: '15px',
+                padding: '16px',
                 borderRadius: '14px',
                 border: 'none',
-                fontSize: '15px',
-                fontWeight: 800,
+                fontSize: '16px',
+                fontWeight: '900',
                 cursor: (!selectedVariantId || !selectedVariant?.available || adding) ? 'not-allowed' : 'pointer',
-                transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
-                letterSpacing: '-0.01em',
+                transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                letterSpacing: '-0.02em',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
-                animation: added ? 'sd-vps-add-pop 0.35s ease' : undefined,
+                gap: '10px',
+                animation: added ? 'sd-vps-add-pop 0.5s forwards' : undefined,
                 background: added
-                  ? 'linear-gradient(135deg, #10b981, #059669)'
+                  ? '#10B981'
                   : !selectedVariantId || !selectedVariant?.available
-                  ? '#f3f4f6'
-                  : `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)`,
+                  ? '#F3F4F6'
+                  : '#111827',
                 color: added
-                  ? '#fff'
+                  ? '#ffffff'
                   : !selectedVariantId || !selectedVariant?.available
-                  ? '#9ca3af'
-                  : '#fff',
+                  ? '#9CA3AF'
+                  : '#ffffff',
                 boxShadow: added
-                  ? '0 6px 20px rgba(16,185,129,0.35)'
+                  ? '0 10px 25px rgba(16,185,129,0.3)'
                   : !selectedVariantId || !selectedVariant?.available
                   ? 'none'
-                  : `0 6px 20px ${accentColor}40`,
+                  : (selectedVariantId && selectedVariant?.available) ? '0 12px 24px rgba(17,24,39,0.2)' : 'none',
               }}
               onMouseEnter={e => {
                 if (selectedVariantId && selectedVariant?.available && !adding && !added) {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = `0 10px 30px ${accentColor}50`;
+                  e.currentTarget.style.transform = 'translateY(-2px) scale(1.01)';
+                  e.currentTarget.style.background = '#000000';
                 }
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = added
-                  ? '0 6px 20px rgba(16,185,129,0.35)'
-                  : !selectedVariantId || !selectedVariant?.available
-                  ? 'none'
-                  : `0 6px 20px ${accentColor}40`;
+                if (!added) {
+                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                  e.currentTarget.style.background = !selectedVariantId || !selectedVariant?.available ? '#F3F4F6' : '#111827';
+                }
               }}
             >
               {adding ? (
                 <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"
                     style={{ animation: 'sd-spin 0.7s linear infinite' }}>
-                    <circle cx="12" cy="12" r="10" strokeOpacity="0.3" />
+                    <circle cx="12" cy="12" r="10" strokeOpacity="0.2" />
                     <path d="M12 2a10 10 0 0 1 10 10" />
                   </svg>
-                  Adding...
+                  Processing...
                 </>
               ) : added ? (
                 <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"
-                    style={{ animation: 'sd-vps-check-in 0.3s cubic-bezier(0.16,1,0.3,1)' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"
+                    style={{ animation: 'sd-vps-check-in 0.4s cubic-bezier(0.16,1,0.3,1)' }}>
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   Added to Cart!
@@ -520,12 +525,7 @@ export const VariantPickerSheet: React.FC<VariantPickerSheetProps> = ({
                 'Select Options'
               ) : (
                 <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <path d="M16 10a4 4 0 0 1-8 0" />
-                  </svg>
-                  Add to Cart — {fmtPrice(displayPrice, currencySymbol)}
+                  Add to Cart · {fmtPrice(displayPrice, currencySymbol)}
                 </>
               )}
             </button>

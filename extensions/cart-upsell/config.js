@@ -4,4 +4,4 @@
  */
 
 // App URL - Update this with your deployment URL
-export const APP_URL = 'https://jets-authority-begun-bible.trycloudflare.com';
+export const APP_URL = 'https://reynolds-deliver-sometimes-cheque.trycloudflare.com';

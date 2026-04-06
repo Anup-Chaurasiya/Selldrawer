@@ -172,13 +172,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }, { status: 400 });
       }
 
-      const hasProducts = cartDrawer.productRecommendations.length > 0 &&
-        cartDrawer.productRecommendations.some(rec => rec.products && rec.products.length > 0);
+      const hasRecommendation = cartDrawer.productRecommendations.length > 0;
+      const rec = cartDrawer.productRecommendations[0];
+      const strategy = rec?.recommendationType || 'manual';
+      
+      const hasConfiguration = hasRecommendation && (
+        strategy === 'related' || 
+        strategy === 'complementary' || 
+        (rec.products && rec.products.length > 0)
+      );
 
-      if (!hasProducts) {
+      if (!hasConfiguration) {
         return json({
           success: false,
-          error: "Configuration required. Please add at least one product before enabling."
+          error: strategy === 'manual' 
+            ? "Manual selection required. Please add at least one product before enabling."
+            : "Configuration required. Please save your settings before enabling."
         }, { status: 400 });
       }
     }
@@ -213,6 +222,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const data = {
       title: formData.get("title") as string,
       maxProducts: parseInt(formData.get("maxProducts") as string),
+      initialProductsShow: parseInt(formData.get("initialProductsShow") as string || "6"),
+      seeAllLink: formData.get("seeAllLink") as string || "/collections/all",
       layout: formData.get("layout") as string,
       recommendationType: formData.get("recommendationType") as string,
       showDiscount: formData.get("showDiscount") === "true",
@@ -225,22 +236,48 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const existingRecommendation = cartDrawer.productRecommendations[0];
 
     let recommendation;
-    if (existingRecommendation) {
-      recommendation = await prisma.productRecommendation.update({
-        where: { id: existingRecommendation.id },
-        data,
-      });
-    } else {
-      recommendation = await prisma.productRecommendation.create({
-        data: {
-          id: crypto.randomUUID(),
-          ...data,
-          shop,
-          cartDrawerId: cartDrawer.id,
-          isActive: true,
-          updatedAt: new Date(),
-        },
-      });
+    try {
+      if (existingRecommendation) {
+        recommendation = await prisma.productRecommendation.update({
+          where: { id: existingRecommendation.id },
+          data,
+        });
+      } else {
+        recommendation = await prisma.productRecommendation.create({
+          data: {
+            id: crypto.randomUUID(),
+            ...data,
+            shop,
+            cartDrawerId: cartDrawer.id,
+            isActive: true,
+            updatedAt: new Date(),
+          },
+        });
+      }
+    } catch (dbError: any) {
+      console.error("DB Update Error (possibly pending migration):", dbError);
+      // Fallback: Try saving without the new fields if migration is pending
+      const fallbackData = { ...data };
+      delete (fallbackData as any).seeAllLink;
+      delete (fallbackData as any).initialProductsShow;
+
+      if (existingRecommendation) {
+        recommendation = await prisma.productRecommendation.update({
+          where: { id: existingRecommendation.id },
+          data: fallbackData,
+        });
+      } else {
+        recommendation = await prisma.productRecommendation.create({
+          data: {
+            id: crypto.randomUUID(),
+            ...fallbackData,
+            shop,
+            cartDrawerId: cartDrawer.id,
+            isActive: true,
+            updatedAt: new Date(),
+          },
+        });
+      }
     }
 
     // Clear existing recommended products
@@ -268,16 +305,29 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                     }
                   }
                 }
-                variants(first: 1) {
+                variants(first: 100) {
                   edges {
                     node {
                       id
+                      title
                       price
                       compareAtPrice
                       availableForSale
                       inventoryQuantity
+                      selectedOptions {
+                        name
+                        value
+                      }
+                      image {
+                        url
+                      }
                     }
                   }
+                }
+                options {
+                  name
+                  values
+                  position
                 }
               }
             }
@@ -310,24 +360,56 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             // Only save if product is available
             if (variant && isAvailable) {
               const variantId = variant.id.replace('gid://shopify/ProductVariant/', '');
-
-              // Shopify GraphQL returns prices in cents, convert to rupees for storage
               const priceInRupees = parseFloat(variant.price);
               const compareAtPriceInRupees = variant.compareAtPrice ? parseFloat(variant.compareAtPrice) : null;
 
-              await prisma.recommendedProduct.create({
-                data: {
-                  id: crypto.randomUUID(),
-                  recommendationId: recommendation.id,
-                  shopifyProductId: productId, // Store product handle (which is the frontend ID)
-                  shopifyVariantId: variantId, // Store the variant ID for add to cart functionality
-                  title: product.title,
-                  price: priceInRupees,
-                  compareAtPrice: compareAtPriceInRupees,
-                  imageUrl: image?.url || null,
-                  position: i,
-                },
-              });
+              // Map all variants and options for the variant picker
+              const allVariants = product.variants.edges.map((v: any) => ({
+                id: v.node.id.replace('gid://shopify/ProductVariant/', ''),
+                title: v.node.title,
+                available: v.node.availableForSale,
+                price: Math.round(parseFloat(v.node.price) * 100),
+                compareAtPrice: v.node.compareAtPrice ? Math.round(parseFloat(v.node.compareAtPrice) * 100) : null,
+                option1: v.node.selectedOptions[0]?.value || null,
+                option2: v.node.selectedOptions[1]?.value || null,
+                option3: v.node.selectedOptions[2]?.value || null,
+                featured_image: v.node.image ? { url: v.node.image.url } : (image ? { url: image.url } : null),
+              }));
+
+              const optionNames = product.options.map((o: any) => o.name);
+
+              try {
+                await prisma.recommendedProduct.create({
+                  data: {
+                    id: crypto.randomUUID(),
+                    recommendationId: recommendation.id,
+                    shopifyProductId: productId,
+                    shopifyVariantId: variantId,
+                    title: product.title,
+                    price: priceInRupees,
+                    compareAtPrice: compareAtPriceInRupees,
+                    imageUrl: image?.url || null,
+                    position: i,
+                    variants: allVariants as any,
+                    options: optionNames as any,
+                  },
+                });
+              } catch (rpError) {
+                console.error("RecommendedProduct DB Error (possibly pending migration):", rpError);
+                await prisma.recommendedProduct.create({
+                  data: {
+                    id: crypto.randomUUID(),
+                    recommendationId: recommendation.id,
+                    shopifyProductId: productId,
+                    shopifyVariantId: variantId,
+                    title: product.title,
+                    price: priceInRupees,
+                    compareAtPrice: compareAtPriceInRupees,
+                    imageUrl: image?.url || null,
+                    position: i,
+                  },
+                });
+              }
             } else {
               console.warn(`Product ${product.title} is out of stock and will not be added to recommendations`);
             }
@@ -340,7 +422,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Redirect with cache-busting to ensure fresh data
     // Auto-enable the feature after saving configuration (only if products were added)
-    if (selectedProducts.length > 0) {
+    // Auto-enable the feature after saving configuration 
+    // (Enable if it's an automated strategy OR if manual products were added)
+    const shouldEnable = data.recommendationType === 'related' || 
+                        data.recommendationType === 'complementary' || 
+                        selectedProducts.length > 0;
+
+    if (shouldEnable) {
       await prisma.cartDrawer.update({
         where: { shop },
         data: { productRecommendationsEnabled: true },
@@ -403,6 +491,8 @@ export default function ProductRecommendations() {
   const [formState, setFormState] = useState({
     title: productRecommendation?.title || "You may also like",
     maxProducts: productRecommendation?.maxProducts?.toString() || "4",
+    initialProductsShow: (productRecommendation as any)?.initialProductsShow?.toString() || "6",
+    seeAllLink: (productRecommendation as any)?.seeAllLink || "/collections/all",
     layout: productRecommendation?.layout || "grid",
     recommendationType: productRecommendation?.recommendationType || "manual",
     showDiscount: productRecommendation?.showDiscount ?? true,
@@ -419,6 +509,8 @@ export default function ProductRecommendations() {
       setFormState({
         title: productRecommendation.title || "You may also like",
         maxProducts: productRecommendation.maxProducts?.toString() || "4",
+        initialProductsShow: (productRecommendation as any).initialProductsShow?.toString() || "6",
+        seeAllLink: (productRecommendation as any).seeAllLink || "/collections/all",
         layout: productRecommendation.layout || "grid",
         recommendationType: productRecommendation.recommendationType || "manual",
         showDiscount: productRecommendation.showDiscount ?? true,
@@ -777,6 +869,24 @@ export default function ProductRecommendations() {
                       type="number"
                       value={formState.maxProducts}
                       onChange={(value) => setFormState({ ...formState, maxProducts: value })}
+                      helpText="Total products to fetch from Shopify"
+                      autoComplete="off"
+                    />
+
+                    <TextField
+                      label="Initial Products to Display"
+                      type="number"
+                      value={formState.initialProductsShow}
+                      onChange={(value) => setFormState({ ...formState, initialProductsShow: value })}
+                      helpText="Number of products visible before 'See All' button appears"
+                      autoComplete="off"
+                    />
+
+                    <TextField
+                      label="See All Redirect Link"
+                      value={formState.seeAllLink}
+                      onChange={(value) => setFormState({ ...formState, seeAllLink: value })}
+                      helpText="URL where 'See All' button should redirect (e.g. /collections/all)"
                       autoComplete="off"
                     />
                   </div>
@@ -1109,8 +1219,11 @@ export default function ProductRecommendations() {
               }}>
                 {(() => {
                   // Prepare products for the shared component
-                  const previewProducts = selectedProducts.length > 0
-                    ? selectedProducts.slice(0, parseInt(formState.maxProducts)).map((productId) => {
+                  let previewProducts = [];
+                  
+                  if (selectedProducts.length > 0) {
+                    // Manual selection case
+                    previewProducts = selectedProducts.map((productId) => {
                       const product = shopProducts.find((p: any) => p.id === productId);
                       if (!product) return null;
 
@@ -1125,14 +1238,36 @@ export default function ProductRecommendations() {
                         compareAtPrice: comparePrice ? parseFloat(comparePrice.toString()) : null,
                         imageUrl: product.images?.[0]?.src || null,
                         variantId: product.shopifyProductId || product.id,
+                        variants: product.variants,
+                        options: product.options
                       };
-                    }).filter(Boolean)
-                    : [
-                      { id: 'sample1', title: 'Sample Product 1', price: 99900, compareAtPrice: 149900, imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=60&h=60&fit=crop&crop=center', variantId: 'sample1' },
-                      { id: 'sample2', title: 'Sample Product 2', price: 129900, compareAtPrice: null, imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=60&h=60&fit=crop&crop=center', variantId: 'sample2' },
-                      { id: 'sample3', title: 'Sample Product 3', price: 159900, compareAtPrice: 199900, imageUrl: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=60&h=60&fit=crop&crop=center', variantId: 'sample3' },
-                      { id: 'sample4', title: 'Sample Product 4', price: 89900, compareAtPrice: null, imageUrl: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=60&h=60&fit=crop&crop=center', variantId: 'sample4' }
+                    }).filter(Boolean);
+                  } else if (formState.recommendationType !== "manual" && shopProducts.length > 0) {
+                    // Automated mode preview (Related/Complementary)
+                    // Show actual catalog products to simulate the recommendations engine
+                    previewProducts = shopProducts.slice(0, parseInt(formState.maxProducts)).map((product: any) => {
+                      const variant = product.variants?.[0];
+                      const price = variant ? parseFloat(variant.price) : 0;
+                      return {
+                        id: product.id,
+                        title: product.title,
+                        price: price ? parseFloat(price.toString()) : 0,
+                        compareAtPrice: variant?.compare_at_price ? parseFloat(variant.compare_at_price) : null,
+                        imageUrl: product.images?.[0]?.src || null,
+                        variantId: product.shopifyProductId || product.id,
+                        variants: product.variants,
+                        options: product.options
+                      };
+                    });
+                  } else {
+                    // Final fallback to samples
+                    previewProducts = [
+                      { id: 'sample1', title: 'Sample Product 1', price: 25, compareAtPrice: 35, imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=60&h=60&fit=crop&crop=center', variantId: 'sample1' },
+                      { id: 'sample2', title: 'Sample Product 2', price: 42, compareAtPrice: null, imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=60&h=60&fit=crop&crop=center', variantId: 'sample2' },
+                      { id: 'sample3', title: 'Sample Product 3', price: 59, compareAtPrice: 75, imageUrl: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=60&h=60&fit=crop&crop=center', variantId: 'sample3' },
+                      { id: 'sample4', title: 'Sample Product 4', price: 18, compareAtPrice: null, imageUrl: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=60&h=60&fit=crop&crop=center', variantId: 'sample4' }
                     ];
+                  }
 
                   return (
                     <ProductRecommendationsComponent

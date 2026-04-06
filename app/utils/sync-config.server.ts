@@ -92,6 +92,8 @@ export async function syncCartDrawerConfigToMetafields(admin: any, shop: string)
       const rec = cartDrawer.productRecommendations[0];
       productRecommendations = {
         ...rec,
+        initialProductsShow: (rec as any).initialProductsShow || rec.maxProducts || 4,
+        seeAllLink: (rec as any).seeAllLink || "/collections/all",
         products: (rec.products || []).map((product: any) => ({
           id: product.shopifyProductId || product.id,
           shopifyProductId: product.shopifyProductId,
@@ -100,6 +102,8 @@ export async function syncCartDrawerConfigToMetafields(admin: any, shop: string)
           price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
           compareAtPrice: product.compareAtPrice ? (typeof product.compareAtPrice === 'string' ? parseFloat(product.compareAtPrice) : product.compareAtPrice) : null,
           imageUrl: product.imageUrl,
+          variants: product.variants,
+          options: product.options,
         }))
       };
     }

@@ -8,6 +8,8 @@ import React, { useState } from 'react';
 interface CartItem {
   key: string;
   title: string;
+  handle?: string;
+  url?: string;
   variant_title?: string;
   price: number;
   final_price?: number;
@@ -160,10 +162,14 @@ const CartItemRow: React.FC<{
               ? '0 8px 24px rgba(0,0,0,0.14)'
               : '0 2px 8px rgba(0,0,0,0.07)',
             transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
-            cursor: 'default',
+            cursor: 'pointer',
           }}
           onMouseEnter={() => setImgHovered(true)}
           onMouseLeave={() => setImgHovered(false)}
+          onClick={() => {
+            if (item.url) window.location.href = item.url;
+            else if (item.handle) window.location.href = `/products/${item.handle}`;
+          }}
         >
           {imageUrl ? (
             <img
@@ -232,15 +238,22 @@ const CartItemRow: React.FC<{
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           {/* Title + Variant */}
           <div>
-            <div style={{
-              fontSize: '13px', fontWeight: '700', color: '#111827',
-              lineHeight: '1.3', marginBottom: '3px',
-              letterSpacing: '-0.01em',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-            }}>
+            <div 
+              onClick={() => {
+                if (item.url) window.location.href = item.url;
+                else if (item.handle) window.location.href = `/products/${item.handle}`;
+              }}
+              style={{
+                fontSize: '13px', fontWeight: '700', color: '#111827',
+                lineHeight: '1.3', marginBottom: '3px',
+                letterSpacing: '-0.01em',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                cursor: 'pointer',
+              }}
+            >
               {item.title}
             </div>
 

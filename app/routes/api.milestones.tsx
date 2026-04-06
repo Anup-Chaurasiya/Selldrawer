@@ -78,6 +78,7 @@ export async function action({ request }: ActionFunctionArgs) {
       select: {
         milestonesEnabled: true,
         milestonesProgressBarColor: true,
+        milestonesBackgroundColor: true,
         milestonesAllUnlockedMessage: true,
       },
     });
@@ -242,6 +243,7 @@ export async function action({ request }: ActionFunctionArgs) {
     return jsonResponse({
       milestones,
       progressBarColor: cartDrawer.milestonesProgressBarColor,
+      backgroundColor: cartDrawer.milestonesBackgroundColor,
       allUnlockedMessage: cartDrawer.milestonesAllUnlockedMessage,
     });
   } catch (error) {

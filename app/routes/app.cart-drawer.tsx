@@ -180,8 +180,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     updateData.freeShippingProgressBarEnabled = false;
   }
 
+  const rec = cartDrawer.productRecommendations[0];
+  const isAutoMode = rec?.recommendationType === 'related' || rec?.recommendationType === 'complementary';
   const hasProductRecommendationsData = cartDrawer.productRecommendations.length > 0 &&
-    cartDrawer.productRecommendations.some(rec => rec.products && rec.products.length > 0);
+    (isAutoMode || (rec.products && rec.products.length > 0));
+
   if (cartDrawer.productRecommendationsEnabled && !hasProductRecommendationsData) {
     updateData.productRecommendationsEnabled = false;
   }
@@ -328,9 +331,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
       // Check product recommendations: needs to have products
       if (featureId === 'product-recommendations') {
-        const hasProducts = cartDrawer.productRecommendations.length > 0 &&
-          cartDrawer.productRecommendations.some(rec => rec.products && rec.products.length > 0);
-        if (!hasProducts) {
+        const rec = cartDrawer.productRecommendations[0];
+        const isAutoMode = rec?.recommendationType === 'related' || rec?.recommendationType === 'complementary';
+        const hasConfiguration = cartDrawer.productRecommendations.length > 0 &&
+          (isAutoMode || (rec.products && rec.products.length > 0));
+
+        if (!hasConfiguration) {
           return redirect(`/app/cart-drawer?error=product-recommendations-not-configured`);
         }
       }
@@ -630,6 +636,7 @@ function MiniCartDrawerPreview({
             onRemoveDiscount={() => { }}
             onSwitchDiscount={() => { }}
             isPreview={true}
+            cartTotal={sampleCart.total_price}
           />
         ));
 
@@ -674,6 +681,7 @@ function MiniCartDrawerPreview({
               cartTotal={sampleCart.total}
               isPreview={true}
               progressBarColor={(cartDrawer as any).milestonesProgressBarColor || "#3b82f6"}
+              backgroundColor={(cartDrawer as any).milestonesBackgroundColor || "#ffffff"}
               allUnlockedMessage={(cartDrawer as any).milestonesAllUnlockedMessage}
             />
           )

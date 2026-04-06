@@ -8342,7 +8342,7 @@
     return productCompareAtPrices;
   }
   async function loadShopifyRecommendations(cart, config) {
-    var _a2;
+    var _a2, _b;
     const recommendations = (_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.productRecommendations;
     if (!recommendations) {
       return;
@@ -8355,75 +8355,95 @@
       return;
     }
     try {
-      const firstItem = cart.items[0];
-      const productId = firstItem.product_id;
+      let productId = null;
+      let fallbackProductId = null;
+      for (const item of cart.items) {
+        if (item.product_id && !((_b = item.properties) == null ? void 0 : _b["_selldrawer_gift_source"]) && !item.title.toLowerCase().includes("protection")) {
+          productId = item.product_id;
+          break;
+        }
+        if (!fallbackProductId && item.product_id) {
+          fallbackProductId = item.product_id;
+        }
+      }
+      productId = productId || fallbackProductId;
       if (!productId) {
-        console.warn("Selldrawer: Product ID not found in cart item");
+        console.warn("[Selldrawer] No valid Product ID found in cart items for recommendations");
         return;
       }
       const maxProducts = recommendations.maxProducts || 4;
+      const getRecommendationsUrl = (intent) => {
+        var _a3, _b2;
+        const pathPrefix = ((_b2 = (_a3 = window.Shopify) == null ? void 0 : _a3.routes) == null ? void 0 : _b2.root) || "/";
+        const cleanPrefix = pathPrefix.endsWith("/") ? pathPrefix : pathPrefix + "/";
+        return `${cleanPrefix}recommendations/products.json?product_id=${productId}&intent=${intent}&limit=${maxProducts}`;
+      };
       const fetchRecommendationsByIntent = async (intent) => {
-        const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=${maxProducts}`;
-        const response = await fetch(recommendationsUrl);
-        if (!response.ok) {
+        const url = getRecommendationsUrl(intent);
+        try {
+          const response = await fetch(url);
+          if (!response.ok) {
+            console.warn(`[Selldrawer] Recommendations API (${intent}) returned ${response.status}`);
+            return null;
+          }
+          const data = await response.json();
+          const rawProducts = data.products || [];
+          if (rawProducts.length === 0) {
+            return [];
+          }
+          const shopifyRecommendations = rawProducts.map((product) => {
+            var _a3, _b2;
+            const normalizeVariantId = (id) => {
+              if (!id)
+                return null;
+              const idStr = id.toString();
+              return idStr.includes("gid://") ? idStr.replace("gid://shopify/ProductVariant/", "") : idStr;
+            };
+            const firstVariant = (_a3 = product.variants) == null ? void 0 : _a3[0];
+            const firstVariantId = normalizeVariantId(firstVariant == null ? void 0 : firstVariant.id);
+            const isAvailable = firstVariant ? firstVariant.available !== false && (firstVariant.inventory_management === null || firstVariant.inventory_quantity === void 0 || firstVariant.inventory_quantity === null || firstVariant.inventory_quantity > 0) : false;
+            const variants = (product.variants || []).map((v) => ({
+              id: normalizeVariantId(v.id),
+              title: v.title || "Default Title",
+              available: v.available !== false,
+              price: v.price ? Math.round(parseFloat(v.price)) : 0,
+              compareAtPrice: v.compare_at_price ? Math.round(parseFloat(v.compare_at_price)) : null,
+              option1: v.option1 || null,
+              option2: v.option2 || null,
+              option3: v.option3 || null,
+              featured_image: v.featured_image ? { url: v.featured_image.url || v.featured_image } : null
+            }));
+            const options = (product.options || []).map((o) => typeof o === "string" ? o : o.name).filter(Boolean);
+            return {
+              id: product.handle,
+              // Use handle as ID for consistency with app logic
+              shopifyProductId: ((_b2 = product.id) == null ? void 0 : _b2.toString()) || product.handle,
+              shopifyVariantId: firstVariantId,
+              title: product.title,
+              handle: product.handle,
+              price: (firstVariant == null ? void 0 : firstVariant.price) ? parseFloat(firstVariant.price) / 100 : 0,
+              compareAtPrice: (firstVariant == null ? void 0 : firstVariant.compare_at_price) ? parseFloat(firstVariant.compare_at_price) / 100 : null,
+              imageUrl: product.featured_image || product.images && product.images[0],
+              position: 0,
+              available: isAvailable,
+              variants,
+              options
+            };
+          }).filter((rec) => rec.available);
+          return shopifyRecommendations.filter((rec) => {
+            return !cart.items.some((item) => item.handle && item.handle === rec.handle || String(item.product_id) === String(rec.shopifyProductId));
+          });
+        } catch (e) {
+          console.error(`[Selldrawer] Failed to fetch ${intent} recommendations:`, e);
           return null;
         }
-        const data = await response.json();
-        const rawProducts = data.products || [];
-        const shopifyRecommendations = rawProducts.map((product) => {
-          var _a3;
-          const normalizeVariantId = (id) => {
-            if (!id)
-              return null;
-            const idStr = id.toString();
-            return idStr.includes("gid://") ? idStr.replace("gid://shopify/ProductVariant/", "") : idStr;
-          };
-          const firstVariant = (_a3 = product.variants) == null ? void 0 : _a3[0];
-          const firstVariantId = normalizeVariantId(firstVariant == null ? void 0 : firstVariant.id);
-          const isAvailable = firstVariant ? firstVariant.available !== false && (firstVariant.inventory_management === null || firstVariant.inventory_quantity === null || firstVariant.inventory_quantity === void 0 || firstVariant.inventory_quantity > 0) : false;
-          const variants = (product.variants || []).map((v) => ({
-            id: normalizeVariantId(v.id),
-            title: v.title || "Default Title",
-            available: v.available !== false && (v.inventory_management === null || v.inventory_quantity === null || v.inventory_quantity === void 0 || v.inventory_quantity > 0),
-            price: v.price ? Math.round(parseFloat(v.price)) : 0,
-            compareAtPrice: v.compare_at_price ? Math.round(parseFloat(v.compare_at_price)) : null,
-            option1: v.option1 || null,
-            option2: v.option2 || null,
-            option3: v.option3 || null,
-            featured_image: v.featured_image ? { url: v.featured_image.url || v.featured_image } : null
-          }));
-          const options = (product.options || []).map((o) => typeof o === "string" ? o : o.name).filter(Boolean);
-          return {
-            shopifyProductId: product.handle,
-            shopifyVariantId: firstVariantId,
-            title: product.title,
-            handle: product.handle,
-            price: (firstVariant == null ? void 0 : firstVariant.price) ? parseFloat(firstVariant.price) / 100 : 0,
-            compareAtPrice: (firstVariant == null ? void 0 : firstVariant.compare_at_price) ? parseFloat(firstVariant.compare_at_price) / 100 : null,
-            imageUrl: product.featured_image,
-            position: 0,
-            available: isAvailable,
-            variants,
-            options
-          };
-        }).filter((rec) => rec.available);
-        const filteredRecommendations = shopifyRecommendations.filter((rec) => {
-          const productInCart = cart.items.some((item) => {
-            if (item.handle && item.handle === rec.handle) {
-              return true;
-            }
-            return false;
-          });
-          return !productInCart;
-        });
-        return filteredRecommendations;
       };
       const primaryIntent = recommendationType === "complementary" ? "complementary" : "related";
       let finalRecommendations = await fetchRecommendationsByIntent(primaryIntent);
-      let didFallback = false;
-      if (recommendationType === "complementary" && (!finalRecommendations || finalRecommendations.length === 0)) {
-        finalRecommendations = await fetchRecommendationsByIntent("related");
-        didFallback = true;
+      if (!finalRecommendations || finalRecommendations.length === 0) {
+        const secondaryIntent = primaryIntent === "complementary" ? "related" : "complementary";
+        console.log(`[Selldrawer] Primary recommendations (${primaryIntent}) empty, trying ${secondaryIntent}...`);
+        finalRecommendations = await fetchRecommendationsByIntent(secondaryIntent);
       }
       if (!recommendations.products) {
         recommendations.products = [];
@@ -8431,7 +8451,7 @@
       if (finalRecommendations && finalRecommendations.length > 0) {
         recommendations.products = finalRecommendations.slice(0, maxProducts);
       } else {
-        recommendations.products = [];
+        console.log("Selldrawer: Dynamic recommendations empty, falling back to manual selection");
       }
     } catch (error) {
       console.error("Selldrawer: Error loading Shopify recommendations:", error);
@@ -8592,8 +8612,8 @@
   };
   var SHEET_KEYFRAMES = `
   @keyframes sd-vps-backdrop-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from { opacity: 0; backdrop-filter: blur(0px); }
+    to   { opacity: 1; backdrop-filter: blur(8px); }
   }
   @keyframes sd-vps-sheet-up {
     from { transform: translateY(100%); opacity: 0; }
@@ -8605,13 +8625,17 @@
   }
   @keyframes sd-vps-add-pop {
     0%   { transform: scale(1); }
-    40%  { transform: scale(0.93); }
-    70%  { transform: scale(1.04); }
+    40%  { transform: scale(0.95); }
+    70%  { transform: scale(1.02); }
     100% { transform: scale(1); }
   }
   @keyframes sd-vps-check-in {
     from { transform: scale(0.5); opacity: 0; }
     to   { transform: scale(1);   opacity: 1; }
+  }
+  @keyframes sd-vps-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
   }
 `;
   var VariantPickerSheet = ({
@@ -8726,10 +8750,10 @@
           style: {
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            backdropFilter: "blur(2px)",
+            background: "rgba(0,0,0,0.4)",
+            backdropFilter: "blur(8px)",
             zIndex: 99999,
-            animation: isClosing ? "sd-vps-backdrop-in 0.28s ease reverse" : "sd-vps-backdrop-in 0.25s ease"
+            animation: isClosing ? "sd-vps-backdrop-in 0.28s ease reverse" : "sd-vps-backdrop-in 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
           },
           children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
             "div",
@@ -8743,24 +8767,24 @@
                 maxWidth: "480px",
                 margin: "0 auto",
                 background: "#ffffff",
-                borderRadius: "24px 24px 0 0",
-                boxShadow: "0 -12px 60px rgba(0,0,0,0.2)",
-                padding: "0 0 env(safe-area-inset-bottom, 16px)",
-                animation: isClosing ? "sd-vps-sheet-down 0.28s cubic-bezier(0.4,0,1,1)" : "sd-vps-sheet-up 0.32s cubic-bezier(0.16,1,0.3,1)",
+                borderRadius: "28px 28px 0 0",
+                boxShadow: "0 -20px 60px rgba(0,0,0,0.15)",
+                padding: "0 0 env(safe-area-inset-bottom, 20px)",
+                animation: isClosing ? "sd-vps-sheet-down 0.3s cubic-bezier(0.4,0,1,1)" : "sd-vps-sheet-up 0.5s cubic-bezier(0.16,1,0.3,1)",
                 display: "flex",
                 flexDirection: "column",
-                maxHeight: "90vh",
+                maxHeight: "92vh",
                 overflowY: "auto"
               },
               children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", justifyContent: "center", paddingTop: "12px", paddingBottom: "4px" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: "40px", height: "4px", borderRadius: "100px", background: "#e5e7eb" } }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { display: "flex", justifyContent: "center", paddingTop: "16px", paddingBottom: "6px" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: "44px", height: "5px", borderRadius: "100px", background: "#E5E7EB" } }) }),
                 /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  padding: "10px 18px 0"
+                  padding: "10px 20px 0"
                 }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: "14px", fontWeight: 700, color: "#111827", letterSpacing: "-0.02em" }, children: "Choose an option" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: "15px", fontWeight: 850, color: "#111827", letterSpacing: "-0.02em" }, children: "Select Options" }),
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                     "button",
                     {
@@ -8770,63 +8794,73 @@
                         height: "32px",
                         borderRadius: "50%",
                         border: "none",
-                        background: "#f3f4f6",
+                        background: "#F3F4F6",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         cursor: "pointer",
-                        fontSize: "16px",
-                        color: "#6b7280",
-                        transition: "background 0.2s"
+                        fontSize: "18px",
+                        color: "#6B7280",
+                        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
                       },
-                      onMouseEnter: (e) => e.currentTarget.style.background = "#e5e7eb",
-                      onMouseLeave: (e) => e.currentTarget.style.background = "#f3f4f6",
+                      onMouseEnter: (e) => {
+                        e.currentTarget.style.background = "#E5E7EB";
+                        e.currentTarget.style.color = "#111827";
+                      },
+                      onMouseLeave: (e) => {
+                        e.currentTarget.style.background = "#F3F4F6";
+                        e.currentTarget.style.color = "#6B7280";
+                      },
                       "aria-label": "Close",
                       children: "\xD7"
                     }
                   )
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: "14px", padding: "14px 18px", alignItems: "flex-start" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", gap: "16px", padding: "16px 20px", alignItems: "flex-start" }, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-                    width: "72px",
-                    height: "72px",
+                    width: "80px",
+                    height: "80px",
                     borderRadius: "12px",
                     overflow: "hidden",
                     flexShrink: 0,
-                    background: "#f4f4f8",
-                    border: "1.5px solid rgba(0,0,0,0.06)"
-                  }, children: imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", { src: imageUrl, alt: product.title, style: { width: "100%", height: "100%", objectFit: "cover" } }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "28px" }, children: "\u{1F4E6}" }) }),
+                    background: "#F9FAFB",
+                    border: "1px solid rgba(0,0,0,0.04)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }, children: imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", { src: imageUrl, alt: product.title, style: { width: "90%", height: "90%", objectFit: "contain" } }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "32px" }, children: "\u{1F4E6}" }) }),
                   /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
-                      fontSize: "14px",
-                      fontWeight: 700,
+                      fontSize: "15px",
+                      fontWeight: "850",
                       color: "#111827",
-                      lineHeight: "1.3",
-                      marginBottom: "6px",
-                      letterSpacing: "-0.01em"
+                      lineHeight: "1.2",
+                      marginBottom: "8px",
+                      letterSpacing: "-0.02em"
                     }, children: product.title }),
                     selectedVariant && selectedVariant.title !== "Default Title" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: {
                       display: "inline-block",
                       fontSize: "10px",
-                      fontWeight: 600,
-                      color: "#6b7280",
-                      background: "#f3f4f6",
-                      border: "1px solid #e5e7eb",
+                      fontWeight: 800,
+                      color: accentColor,
+                      background: `${accentColor}10`,
                       padding: "2px 8px",
-                      borderRadius: "100px",
-                      marginBottom: "6px"
+                      borderRadius: "6px",
+                      marginBottom: "8px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.02em"
                     }, children: selectedVariant.title }),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: "16px", fontWeight: 800, color: hasDiscount ? "#d97706" : "#111827", letterSpacing: "-0.02em" }, children: fmtPrice(displayPrice, currencySymbol) }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: "17px", fontWeight: 900, color: "#111827", letterSpacing: "-0.03em" }, children: fmtPrice(displayPrice, currencySymbol) }),
                       hasDiscount && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: "12px", fontWeight: 500, color: "#d1d5db", textDecoration: "line-through" }, children: fmtPrice(displayCompareAt, currencySymbol) }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: { fontSize: "13px", fontWeight: 500, color: "#9CA3AF", textDecoration: "line-through" }, children: fmtPrice(displayCompareAt, currencySymbol) }),
                         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: {
                           fontSize: "10px",
-                          fontWeight: 700,
-                          color: "#fff",
-                          background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                          fontWeight: 850,
+                          color: "#DC2626",
+                          background: "#FEF2F2",
                           padding: "2px 6px",
-                          borderRadius: "6px"
+                          borderRadius: "4px"
                         }, children: [
                           discountPct,
                           "% OFF"
@@ -8835,19 +8869,22 @@
                     ] })
                   ] })
                 ] }),
-                optionValues.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { height: "1px", background: "#f3f4f6", margin: "0 18px" } }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { padding: "12px 18px", display: "flex", flexDirection: "column", gap: "14px" }, children: optionValues.map(({ name, values }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                optionValues.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { height: "1px", background: "#F3F4F6", margin: "0 20px" } }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { padding: "16px 20px", display: "flex", flexDirection: "column", gap: "18px" }, children: optionValues.map(({ name, values }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
                   /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "#374151",
-                    marginBottom: "8px",
-                    letterSpacing: "0.04em",
-                    textTransform: "uppercase"
+                    fontSize: "11px",
+                    fontWeight: "850",
+                    color: "#6B7280",
+                    marginBottom: "10px",
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px"
                   }, children: [
                     name,
-                    selectedOptions[name] && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { fontWeight: 600, color: accentColor, marginLeft: "6px", textTransform: "none", letterSpacing: 0 }, children: [
-                      ": ",
+                    selectedOptions[name] && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { style: { color: "#111827", textTransform: "none", letterSpacing: 0, fontWeight: 700 }, children: [
+                      "\xB7 ",
                       selectedOptions[name]
                     ] })
                   ] }),
@@ -8863,32 +8900,31 @@
                         },
                         disabled: !available,
                         style: {
-                          padding: "7px 16px",
+                          padding: "8px 16px",
                           borderRadius: "10px",
-                          fontSize: "13px",
-                          fontWeight: isSelected ? 700 : 500,
-                          border: isSelected ? `2px solid ${accentColor}` : "1.5px solid #e5e7eb",
-                          background: isSelected ? `${accentColor}12` : "#fff",
-                          color: !available ? "#d1d5db" : isSelected ? accentColor : "#374151",
+                          fontSize: "14px",
+                          fontWeight: isSelected ? "800" : "600",
+                          border: "2px solid",
+                          borderColor: isSelected ? "#111827" : "#E5E7EB",
+                          background: isSelected ? "#111827" : "#ffffff",
+                          color: !available ? "#D1D5DB" : isSelected ? "#ffffff" : "#1F2937",
                           cursor: available ? "pointer" : "not-allowed",
                           position: "relative",
-                          transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)",
-                          boxShadow: isSelected ? `0 0 0 3px ${accentColor}20` : "none",
-                          // Strikethrough for unavailable sizes
-                          textDecoration: !available ? "none" : "none",
-                          opacity: !available ? 0.45 : 1,
-                          overflow: "hidden"
+                          transition: "all 0.3s cubic-bezier(0.2, 1, 0.3, 1)",
+                          opacity: !available ? 0.4 : 1,
+                          overflow: "hidden",
+                          transform: isSelected ? "scale(1.02)" : "scale(1)"
                         },
                         onMouseEnter: (e) => {
                           if (available && !isSelected) {
-                            e.currentTarget.style.borderColor = `${accentColor}80`;
-                            e.currentTarget.style.background = `${accentColor}08`;
+                            e.currentTarget.style.borderColor = "#111827";
+                            e.currentTarget.style.transform = "scale(1.02)";
                           }
                         },
                         onMouseLeave: (e) => {
                           if (!isSelected) {
-                            e.currentTarget.style.borderColor = "#e5e7eb";
-                            e.currentTarget.style.background = "#fff";
+                            e.currentTarget.style.borderColor = "#E5E7EB";
+                            e.currentTarget.style.transform = "scale(1)";
                           }
                         },
                         children: [
@@ -8899,8 +8935,8 @@
                             left: 0,
                             right: 0,
                             height: "1.5px",
-                            background: "#d1d5db",
-                            transform: "rotate(-15deg)",
+                            background: "#D1D5DB",
+                            transform: "rotate(-20deg)",
                             pointerEvents: "none"
                           } })
                         ]
@@ -8910,95 +8946,92 @@
                   }) })
                 ] }, name)) }),
                 selectedVariant && !selectedVariant.available && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: {
-                  margin: "0 18px 8px",
-                  padding: "8px 12px",
-                  background: "#fef2f2",
-                  border: "1px solid #fecaca",
-                  borderRadius: "8px",
-                  fontSize: "12px",
+                  margin: "0 20px 8px",
+                  padding: "10px 14px",
+                  background: "#FFF5F5",
+                  border: "1px solid #FED7D7",
+                  borderRadius: "12px",
+                  fontSize: "13px",
                   fontWeight: 600,
-                  color: "#dc2626",
+                  color: "#C53030",
                   display: "flex",
                   alignItems: "center",
-                  gap: "6px"
+                  gap: "8px"
                 }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "\u26A0\uFE0F" }),
-                  " This combination is out of stock"
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "\u{1F6AB}" }),
+                  " This combination is currently unavailable"
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { padding: "6px 18px 20px" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { style: { padding: "8px 20px 24px" }, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                   "button",
                   {
                     onClick: handleAdd,
                     disabled: !selectedVariantId || !(selectedVariant == null ? void 0 : selectedVariant.available) || adding,
                     style: {
                       width: "100%",
-                      padding: "15px",
+                      padding: "16px",
                       borderRadius: "14px",
                       border: "none",
-                      fontSize: "15px",
-                      fontWeight: 800,
+                      fontSize: "16px",
+                      fontWeight: "900",
                       cursor: !selectedVariantId || !(selectedVariant == null ? void 0 : selectedVariant.available) || adding ? "not-allowed" : "pointer",
-                      transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
-                      letterSpacing: "-0.01em",
+                      transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                      letterSpacing: "-0.02em",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: "8px",
-                      animation: added ? "sd-vps-add-pop 0.35s ease" : void 0,
-                      background: added ? "linear-gradient(135deg, #10b981, #059669)" : !selectedVariantId || !(selectedVariant == null ? void 0 : selectedVariant.available) ? "#f3f4f6" : `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)`,
-                      color: added ? "#fff" : !selectedVariantId || !(selectedVariant == null ? void 0 : selectedVariant.available) ? "#9ca3af" : "#fff",
-                      boxShadow: added ? "0 6px 20px rgba(16,185,129,0.35)" : !selectedVariantId || !(selectedVariant == null ? void 0 : selectedVariant.available) ? "none" : `0 6px 20px ${accentColor}40`
+                      gap: "10px",
+                      animation: added ? "sd-vps-add-pop 0.5s forwards" : void 0,
+                      background: added ? "#10B981" : !selectedVariantId || !(selectedVariant == null ? void 0 : selectedVariant.available) ? "#F3F4F6" : "#111827",
+                      color: added ? "#ffffff" : !selectedVariantId || !(selectedVariant == null ? void 0 : selectedVariant.available) ? "#9CA3AF" : "#ffffff",
+                      boxShadow: added ? "0 10px 25px rgba(16,185,129,0.3)" : !selectedVariantId || !(selectedVariant == null ? void 0 : selectedVariant.available) ? "none" : selectedVariantId && (selectedVariant == null ? void 0 : selectedVariant.available) ? "0 12px 24px rgba(17,24,39,0.2)" : "none"
                     },
                     onMouseEnter: (e) => {
                       if (selectedVariantId && (selectedVariant == null ? void 0 : selectedVariant.available) && !adding && !added) {
-                        e.currentTarget.style.transform = "translateY(-2px)";
-                        e.currentTarget.style.boxShadow = `0 10px 30px ${accentColor}50`;
+                        e.currentTarget.style.transform = "translateY(-2px) scale(1.01)";
+                        e.currentTarget.style.background = "#000000";
                       }
                     },
                     onMouseLeave: (e) => {
-                      e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow = added ? "0 6px 20px rgba(16,185,129,0.35)" : !selectedVariantId || !(selectedVariant == null ? void 0 : selectedVariant.available) ? "none" : `0 6px 20px ${accentColor}40`;
+                      if (!added) {
+                        e.currentTarget.style.transform = "translateY(0) scale(1)";
+                        e.currentTarget.style.background = !selectedVariantId || !(selectedVariant == null ? void 0 : selectedVariant.available) ? "#F3F4F6" : "#111827";
+                      }
                     },
                     children: adding ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
                       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                         "svg",
                         {
-                          width: "16",
-                          height: "16",
+                          width: "20",
+                          height: "20",
                           viewBox: "0 0 24 24",
                           fill: "none",
                           stroke: "currentColor",
-                          strokeWidth: "2.5",
+                          strokeWidth: "3",
                           style: { animation: "sd-spin 0.7s linear infinite" },
                           children: [
-                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", { cx: "12", cy: "12", r: "10", strokeOpacity: "0.3" }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", { cx: "12", cy: "12", r: "10", strokeOpacity: "0.2" }),
                             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M12 2a10 10 0 0 1 10 10" })
                           ]
                         }
                       ),
-                      "Adding..."
+                      "Processing..."
                     ] }) : added ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
                       /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                         "svg",
                         {
-                          width: "16",
-                          height: "16",
+                          width: "20",
+                          height: "20",
                           viewBox: "0 0 24 24",
                           fill: "none",
                           stroke: "white",
-                          strokeWidth: "3",
-                          style: { animation: "sd-vps-check-in 0.3s cubic-bezier(0.16,1,0.3,1)" },
+                          strokeWidth: "4",
+                          style: { animation: "sd-vps-check-in 0.4s cubic-bezier(0.16,1,0.3,1)" },
                           children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("polyline", { points: "20 6 9 17 4 12" })
                         }
                       ),
                       "Added to Cart!"
                     ] }) : !selectedVariantId || !(selectedVariant == null ? void 0 : selectedVariant.available) ? "Select Options" : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "white", strokeWidth: "2.5", strokeLinecap: "round", children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", { x1: "3", y1: "6", x2: "21", y2: "6" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M16 10a4 4 0 0 1-8 0" })
-                      ] }),
-                      "Add to Cart \u2014 ",
+                      "Add to Cart \xB7 ",
                       fmtPrice(displayPrice, currencySymbol)
                     ] })
                   }
@@ -9325,12 +9358,17 @@
                 return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(
                   "div",
                   {
+                    onClick: () => {
+                      if (p.handle)
+                        window.location.href = `/products/${p.handle}`;
+                    },
                     style: {
                       minWidth: "calc(100% - 40px)",
                       maxWidth: "300px",
                       padding: "6px",
                       background: isDark(backgroundColor) ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.03)",
                       borderRadius: "12px",
+                      cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       gap: "8px",
@@ -9555,10 +9593,16 @@
                 border: "1.5px solid rgba(0,0,0,0.07)",
                 boxShadow: imgHovered ? "0 8px 24px rgba(0,0,0,0.14)" : "0 2px 8px rgba(0,0,0,0.07)",
                 transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)",
-                cursor: "default"
+                cursor: "pointer"
               },
               onMouseEnter: () => setImgHovered(true),
               onMouseLeave: () => setImgHovered(false),
+              onClick: () => {
+                if (item.url)
+                  window.location.href = item.url;
+                else if (item.handle)
+                  window.location.href = `/products/${item.handle}`;
+              },
               children: [
                 imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                   "img",
@@ -9635,18 +9679,31 @@
           ),
           /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { style: { flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
-                fontSize: "13px",
-                fontWeight: "700",
-                color: "#111827",
-                lineHeight: "1.3",
-                marginBottom: "3px",
-                letterSpacing: "-0.01em",
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden"
-              }, children: item.title }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                "div",
+                {
+                  onClick: () => {
+                    if (item.url)
+                      window.location.href = item.url;
+                    else if (item.handle)
+                      window.location.href = `/products/${item.handle}`;
+                  },
+                  style: {
+                    fontSize: "13px",
+                    fontWeight: "700",
+                    color: "#111827",
+                    lineHeight: "1.3",
+                    marginBottom: "3px",
+                    letterSpacing: "-0.01em",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    cursor: "pointer"
+                  },
+                  children: item.title
+                }
+              ),
               item.variant_title && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { style: {
                 display: "inline-block",
                 fontSize: "10px",
@@ -9865,19 +9922,22 @@
   var import_react4 = __toESM(require_react(), 1);
   var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
   var RECO_KEYFRAMES = `
-  @keyframes sd-reco-slide-in {
-    0% { opacity: 0; transform: translateX(20px); }
-    100% { opacity: 1; transform: translateX(0); }
+  @keyframes sd-reco-fade-up {
+    0% { opacity: 0; transform: translateY(12px); }
+    100% { opacity: 1; transform: translateY(0); }
   }
-  @keyframes sd-reco-add-success {
+  @keyframes sd-reco-image-zoom {
     0% { transform: scale(1); }
-    40% { transform: scale(0.9); }
-    70% { transform: scale(1.1); }
+    100% { transform: scale(1.06); }
+  }
+  @keyframes sd-reco-success-pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.92); }
     100% { transform: scale(1); }
   }
-  @keyframes sd-reco-quick-add-up {
-    0% { opacity: 0; transform: translateY(100%); }
-    100% { opacity: 1; transform: translateY(0); }
+  @keyframes sd-reco-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
   }
   @keyframes sd-bottom-sheet-up {
     from { transform: translateY(100%); }
@@ -9891,6 +9951,10 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
+  @keyframes sd-check-draw {
+    from { stroke-dashoffset: 20; }
+    to { stroke-dashoffset: 0; }
+  }
 `;
   var ProductRecommendations = ({
     title = "You may also like",
@@ -9903,7 +9967,9 @@
     onAddToCart,
     onImpression,
     onProductClick,
-    isPreview = false
+    isPreview = false,
+    initialProductsShow = 6,
+    seeAllLink = "/collections/all"
   }) => {
     var _a2, _b;
     const [canScrollLeft, setCanScrollLeft] = (0, import_react4.useState)(false);
@@ -9913,29 +9979,31 @@
     const [addedIds, setAddedIds] = (0, import_react4.useState)(/* @__PURE__ */ new Set());
     const [hoveredId, setHoveredId] = (0, import_react4.useState)(null);
     const [pickerProduct, setPickerProduct] = (0, import_react4.useState)(null);
-    const [showAllModal, setShowAllModal] = (0, import_react4.useState)(false);
     const scrollContainerRef = (0, import_react4.useRef)(null);
     const impressionTracked = (0, import_react4.useRef)(false);
     const isGrid = layout === "grid";
-    const maxValid = products.length >= 3 ? Math.floor(products.length / 3) * 3 : products.length;
-    const allValidProducts = products.slice(0, maxValid);
-    const displayLimit = isGrid ? 3 : maxProducts;
-    const displayProducts = allValidProducts.slice(0, displayLimit);
-    const showSeeAll = allValidProducts.length > displayProducts.length;
+    const limit = initialProductsShow || maxProducts || 4;
+    const displayLimit = isGrid ? Math.min(products.length, Math.floor(limit / 3) * 3 || 3) : Math.min(products.length, limit);
+    const displayProducts = products.slice(0, displayLimit);
+    const showSeeAll = products.length > displayLimit;
+    const [isDragging, setIsDragging] = (0, import_react4.useState)(false);
+    const [startX, setStartX] = (0, import_react4.useState)(0);
+    const [scrollLeft, setScrollLeft] = (0, import_react4.useState)(0);
     (0, import_react4.useEffect)(() => {
-      if (!impressionTracked.current && onImpression && !isPreview && displayProducts.length > 0) {
-        onImpression();
+      if (!impressionTracked.current && onAddToCart && !isPreview && displayProducts.length > 0) {
+        if (onImpression)
+          onImpression();
         impressionTracked.current = true;
       }
-    }, [onImpression, isPreview, displayProducts.length]);
+    }, [onImpression, isPreview, displayProducts.length, onAddToCart]);
     const updateScrollState = () => {
       const container = scrollContainerRef.current;
       if (!container || isGrid)
         return;
       const maxScrollLeft = container.scrollWidth - container.clientWidth;
       const currentScroll = container.scrollLeft;
-      setCanScrollLeft(currentScroll > 5);
-      setCanScrollRight(currentScroll < maxScrollLeft - 5);
+      setCanScrollLeft(currentScroll > 10);
+      setCanScrollRight(currentScroll < maxScrollLeft - 10);
     };
     (0, import_react4.useEffect)(() => {
       updateScrollState();
@@ -9944,12 +10012,48 @@
         container.addEventListener("scroll", updateScrollState);
         return () => container.removeEventListener("scroll", updateScrollState);
       }
-    }, [products.length, isGrid]);
+    }, [products.length, isGrid, displayLimit]);
+    const handleWheel = (e) => {
+      const container = scrollContainerRef.current;
+      if (!container || isGrid)
+        return;
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        e.preventDefault();
+        container.scrollLeft += e.deltaX;
+        updateScrollState();
+      }
+    };
+    const handleMouseDown = (e) => {
+      if (isGrid || !scrollContainerRef.current)
+        return;
+      setIsDragging(true);
+      setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+      setScrollLeft(scrollContainerRef.current.scrollLeft);
+      scrollContainerRef.current.style.scrollSnapType = "none";
+      scrollContainerRef.current.style.cursor = "grabbing";
+    };
+    const handleMouseMove = (e) => {
+      if (!isDragging || isGrid || !scrollContainerRef.current)
+        return;
+      e.preventDefault();
+      const x = e.pageX - scrollContainerRef.current.offsetLeft;
+      const walk = (x - startX) * 1.5;
+      scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+    };
+    const stopDragging = () => {
+      if (isDragging && scrollContainerRef.current) {
+        scrollContainerRef.current.style.scrollSnapType = "x mandatory";
+        scrollContainerRef.current.style.cursor = "pointer";
+      }
+      setIsDragging(false);
+    };
     const handleScroll = (direction) => {
       const container = scrollContainerRef.current;
       if (!container)
         return;
-      container.scrollBy({ left: direction === "left" ? -160 : 160, behavior: "smooth" });
+      const card = container.firstElementChild;
+      const scrollAmount = card ? card.offsetWidth + 10 : container.clientWidth * 0.8;
+      container.scrollBy({ left: direction === "left" ? -scrollAmount : scrollAmount, behavior: "smooth" });
     };
     const handleAddClick = async (product, stableKey, e) => {
       e.stopPropagation();
@@ -9997,6 +10101,13 @@
         const variantId = product.shopifyVariantId || product.shopifyProductId;
         onProductClick(product.id, variantId);
       }
+      if (isPreview)
+        return;
+      const handle = product.handle || product.shopifyProductId;
+      if (handle) {
+        const finalHandle = typeof handle === "string" && handle.includes("gid://") ? handle.split("/").pop() : handle;
+        window.location.href = `/products/${finalHandle}`;
+      }
     };
     const formatMoney = (cents) => {
       var _a3;
@@ -10020,13 +10131,13 @@
     if (products.length === 0)
       return null;
     const renderProductCard = (product, idx, isModal = false) => {
-      var _a3;
       const stableKey = `${product.id}-${idx}`;
       const discount = product.compareAtPrice && product.compareAtPrice > product.price ? Math.round((product.compareAtPrice - product.price) / product.compareAtPrice * 100) : 0;
       const isAdding = addingIds.has(stableKey);
       const isAdded = addedIds.has(stableKey);
       const isCardHovered = hoveredId === stableKey;
       const hasMultipleVariants = Array.isArray(product.variants) && product.variants.length > 1;
+      const accentColor = "#db2777";
       return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
         "div",
         {
@@ -10034,100 +10145,104 @@
           onMouseEnter: () => setHoveredId(stableKey),
           onMouseLeave: () => setHoveredId(null),
           style: __spreadProps(__spreadValues({}, isGrid || isModal ? {} : {
-            flex: "0 0 calc((100% - 12px) / 3)",
+            flex: "0 0 calc((100% - 16px) / 3)",
             scrollSnapAlign: "start"
           }), {
-            borderRadius: "8px",
-            border: `1px solid ${isCardHovered ? "#c4b5fd" : "#e5e7eb"}`,
+            borderRadius: "14px",
+            border: "1px solid transparent",
             background: "#ffffff",
-            boxShadow: isCardHovered ? "0 12px 32px rgba(124,58,237,0.12)" : "0 2px 8px rgba(0,0,0,0.06)",
-            transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)",
+            boxShadow: isCardHovered ? "0 12px 24px -8px rgba(0,0,0,0.15), 0 4px 12px -4px rgba(0,0,0,0.08)" : "0 4px 10px -4px rgba(0,0,0,0.05), 0 1px 4px -2px rgba(0,0,0,0.03)",
+            transition: "all 0.4s cubic-bezier(0.2, 1, 0.3, 1)",
             cursor: "pointer",
             display: "flex",
             flexDirection: "column",
-            transform: isCardHovered ? "translateY(-3px)" : "translateY(0)",
-            animation: `sd-reco-slide-in 0.35s ease ${idx * 0.05}s both`,
-            position: "relative"
+            transform: isCardHovered ? "translateY(-4px)" : "translateY(0)",
+            animation: `sd-reco-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 0.08}s both`,
+            position: "relative",
+            overflow: "hidden"
           }),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
-              position: "relative",
-              aspectRatio: "1",
-              background: "#fff",
-              borderRadius: "8px 8px 0 0",
-              padding: "4px"
+            showDiscountBadge && discount > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
+              position: "absolute",
+              top: "8px",
+              left: "8px",
+              background: "linear-gradient(135deg, #f472b6, #db2777)",
+              color: "white",
+              fontSize: "9px",
+              fontWeight: "800",
+              padding: "3px 8px",
+              borderRadius: "100px",
+              zIndex: 10,
+              boxShadow: "0 4px 10px rgba(219,39,119,0.3)",
+              letterSpacing: "0.02em",
+              display: "flex",
+              alignItems: "center",
+              gap: "2px"
             }, children: [
-              product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-                "img",
-                {
-                  src: product.imageUrl,
-                  alt: product.title,
-                  style: {
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "contain",
-                    display: "block"
-                  }
-                }
-              ) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "32px"
-              }, children: "\u{1F4E6}" }),
-              showDiscountBadge && discount > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
-                position: "absolute",
-                top: 0,
-                right: 0,
-                background: "#6b21a8",
-                color: "white",
-                fontSize: "8px",
-                fontWeight: "800",
-                padding: "4px",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                borderBottomLeftRadius: "8px",
-                borderTopRightRadius: "8px",
-                lineHeight: "1",
-                boxShadow: "0 2px 4px rgba(107,33,168,0.3)",
-                zIndex: 2
-              }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { children: [
-                  discount,
-                  "%"
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontSize: "6px" }, children: "off" })
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { padding: "2px 4px 6px", flex: 1, display: "flex", flexDirection: "column", gap: "2px" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
-                fontSize: "10px",
-                fontWeight: "600",
-                color: "#1f2937",
-                lineHeight: "1.25",
-                display: "-webkit-box",
-                WebkitLineClamp: 1,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden"
-              }, children: product.title }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
-                fontSize: "9px",
-                color: "#6b7280",
-                fontWeight: "500",
-                display: "flex",
-                alignItems: "center",
-                gap: "2px"
-              }, children: [
-                hasMultipleVariants ? "Options" : ((_a3 = product.options) == null ? void 0 : _a3[0]) || "1 Item",
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("svg", { width: "6", height: "6", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("polyline", { points: "6 9 12 15 18 9" }) })
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { children: [
+                discount,
+                "%"
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "3px", flexWrap: "wrap", marginTop: "1px" }, children: [
-                showDiscount && product.compareAtPrice && product.compareAtPrice > product.price && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { textDecoration: "line-through", color: "#9ca3af", fontSize: "9px" }, children: formatMoney(product.compareAtPrice * 100) }),
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontWeight: "800", fontSize: "12px", color: "#111827", letterSpacing: "-0.02em" }, children: formatMoney(product.price * 100) })
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontSize: "7px", opacity: 0.9, textTransform: "uppercase" }, children: "OFF" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
+              position: "relative",
+              aspectRatio: "1 / 1.1",
+              background: "#F9FAFB",
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }, children: product.imageUrl ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+              "img",
+              {
+                src: product.imageUrl,
+                alt: product.title,
+                style: {
+                  width: "90%",
+                  height: "90%",
+                  objectFit: "contain",
+                  display: "block",
+                  transition: "transform 0.6s cubic-bezier(0.2, 1, 0.3, 1)",
+                  transform: isCardHovered ? "scale(1.1)" : "scale(1)"
+                }
+              }
+            ) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "32px"
+            }, children: "\u{1F4E6}" }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { padding: "8px 10px 10px", flex: 1, display: "flex", flexDirection: "column", gap: "4px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
+                fontSize: "11px",
+                fontWeight: "700",
+                color: "#111827",
+                lineHeight: "1.3",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+                minHeight: "2.6em",
+                letterSpacing: "-0.01em"
+              }, children: product.title }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: "auto" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: "0px" }, children: [
+                  showDiscount && product.compareAtPrice && product.compareAtPrice > product.price && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { textDecoration: "line-through", color: "#9CA3AF", fontSize: "9px", fontWeight: "500" }, children: formatMoney(product.compareAtPrice * 100) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { fontWeight: "850", fontSize: "13px", color: "#111827", letterSpacing: "-0.02em" }, children: formatMoney(product.price * 100) })
+                ] }),
+                hasMultipleVariants && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
+                  fontSize: "8px",
+                  color: "#6B7280",
+                  fontWeight: "700",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  background: "#F3F4F6",
+                  padding: "2px 6px",
+                  borderRadius: "4px"
+                }, children: "Options" })
               ] }),
               showAddButton && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
                 "button",
@@ -10135,25 +10250,36 @@
                   onClick: (e) => handleAddClick(product, stableKey, e),
                   style: {
                     width: "100%",
-                    padding: "3px 0",
-                    marginTop: "3px",
-                    background: isAdded ? "#10b981" : "#ffffff",
-                    color: isAdded ? "#ffffff" : "#db2777",
-                    border: isAdded ? "1px solid #10b981" : "1px solid #db2777",
-                    borderRadius: "4px",
-                    fontSize: "10px",
-                    fontWeight: "700",
+                    padding: "7px 0",
+                    marginTop: "6px",
+                    background: isAdded ? "#10B981" : isCardHovered ? "#111827" : "#ffffff",
+                    color: isAdded ? "#ffffff" : isCardHovered ? "#ffffff" : "#111827",
+                    border: isAdded ? "1px solid #10B981" : "1.5px solid #E5E7EB",
+                    borderRadius: "8px",
+                    fontSize: "11px",
+                    fontWeight: "800",
                     cursor: "pointer",
-                    transition: "all 0.2s ease",
+                    transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: "4px"
+                    gap: "6px",
+                    boxShadow: isCardHovered && !isAdded ? "0 4px 12px rgba(0,0,0,0.1)" : "none",
+                    transform: isAdding ? "scale(0.98)" : "scale(1)"
                   },
-                  children: isAdding ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.5", style: { animation: "sd-spin 0.7s linear infinite" }, children: [
+                  children: isAdding ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "3", style: { animation: "sd-spin 0.7s linear infinite" }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("circle", { cx: "12", cy: "12", r: "10", strokeOpacity: "0.3" }),
                     /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M12 2a10 10 0 0 1 10 10" })
-                  ] }) : isAdded ? "Added" : "Add"
+                  ] }) : isAdded ? /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("svg", { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "4", strokeLinecap: "round", strokeLinejoin: "round", style: { strokeDasharray: 20, strokeDashoffset: 20, animation: "sd-check-draw 0.3s forwards" }, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("polyline", { points: "20 6 9 17 4 12" }) }),
+                    "Added"
+                  ] }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(import_jsx_runtime4.Fragment, { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "12", y1: "5", x2: "12", y2: "19" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "5", y1: "12", x2: "19", y2: "12" })
+                    ] }),
+                    "Add"
+                  ] })
                 }
               )
             ] })
@@ -10168,15 +10294,22 @@
         /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
           display: "flex",
           alignItems: "center",
-          marginBottom: "10px",
-          padding: "0 4px"
-        }, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h4", { style: {
-          fontSize: "14px",
-          fontWeight: "700",
+          justifyContent: "space-between",
+          marginBottom: "12px",
+          padding: "0 6px"
+        }, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("h4", { style: {
+          fontSize: "15px",
+          fontWeight: "850",
           color: "#111827",
           margin: 0,
-          letterSpacing: "-0.01em"
-        }, children: title }) }),
+          letterSpacing: "-0.02em",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px"
+        }, children: [
+          title,
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { width: "4px", height: "4px", borderRadius: "50%", background: "#db2777" } })
+        ] }) }),
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
           "div",
           {
@@ -10258,22 +10391,29 @@
                 "div",
                 {
                   ref: scrollContainerRef,
+                  onMouseDown: handleMouseDown,
+                  onMouseMove: handleMouseMove,
+                  onMouseUp: stopDragging,
+                  onMouseLeave: stopDragging,
+                  onWheel: handleWheel,
                   style: isGrid ? {
                     display: "grid",
                     gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: "6px"
+                    gap: "10px"
                   } : {
                     display: "flex",
-                    gap: "6px",
+                    gap: "10px",
                     overflowX: "auto",
-                    scrollSnapType: "x mandatory",
+                    scrollSnapType: isDragging ? "none" : "x mandatory",
                     WebkitOverflowScrolling: "touch",
-                    paddingBottom: "8px",
-                    paddingTop: "4px",
+                    paddingBottom: isGrid ? "0" : "8px",
+                    paddingTop: "6px",
                     scrollbarWidth: "none",
                     msOverflowStyle: "none",
-                    paddingLeft: "4px",
-                    paddingRight: "4px"
+                    paddingLeft: "6px",
+                    paddingRight: "6px",
+                    cursor: isDragging ? "grabbing" : "pointer",
+                    userSelect: "none"
                   },
                   children: displayProducts.map((product, idx) => renderProductCard(product, idx, false))
                 }
@@ -10281,110 +10421,47 @@
             ]
           }
         ),
-        showSeeAll && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { display: "flex", justifyContent: "center", marginTop: "12px", marginBottom: "8px" }, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
-          "div",
+        showSeeAll && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { marginTop: "0", padding: "0" }, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+          "a",
           {
-            onClick: () => setShowAllModal(true),
+            href: seeAllLink,
             style: {
-              fontSize: "12px",
-              fontWeight: "700",
+              width: "100%",
+              fontSize: "13px",
+              fontWeight: "850",
               color: "#db2777",
+              textDecoration: "none",
               cursor: "pointer",
-              padding: "6px 16px",
+              padding: "1px 0",
               background: "#fdf2f8",
-              borderRadius: "100px",
+              borderRadius: "0 0 14px 14px",
+              // Rounded only at bottom
               display: "flex",
               alignItems: "center",
-              gap: "4px"
+              justifyContent: "center",
+              gap: "8px",
+              transition: "all 0.3s cubic-bezier(0.2, 1, 0.3, 1)",
+              borderTop: "1px solid rgba(219,39,119,0.1)",
+              borderLeft: "1px solid rgba(219,39,119,0.05)",
+              borderRight: "1px solid rgba(219,39,119,0.05)",
+              borderBottom: "1px solid rgba(219,39,119,0.05)"
+            },
+            onMouseEnter: (e) => {
+              e.currentTarget.style.background = "#db2777";
+              e.currentTarget.style.color = "#ffffff";
+            },
+            onMouseLeave: (e) => {
+              e.currentTarget.style.background = "#fdf2f8";
+              e.currentTarget.style.color = "#db2777";
             },
             children: [
-              "See All ",
-              allValidProducts.length,
-              " ",
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("svg", { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("polyline", { points: "9 18 15 12 9 6" }) })
+              "See All Items (",
+              products.length,
+              ")",
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "3", strokeLinecap: "round", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("polyline", { points: "9 18 15 12 9 6" }) })
             ]
           }
         ) })
-      ] }),
-      showAllModal && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 999999,
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "flex-end"
-      }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-          "div",
-          {
-            onClick: () => setShowAllModal(false),
-            style: {
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(0,0,0,0.5)",
-              animation: "sd-backdrop-fade 0.3s ease"
-            }
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
-          position: "relative",
-          background: "#ffffff",
-          borderTopLeftRadius: "16px",
-          borderTopRightRadius: "16px",
-          maxHeight: "85vh",
-          display: "flex",
-          flexDirection: "column",
-          animation: "sd-bottom-sheet-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards",
-          boxShadow: "0 -4px 20px rgba(0,0,0,0.1)"
-        }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { display: "flex", justifyContent: "center", paddingTop: "10px" }, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { width: "36px", height: "4px", background: "#d1d5db", borderRadius: "100px" } }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
-            padding: "12px 16px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            borderBottom: "1px solid #f3f4f6"
-          }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h3", { style: { margin: 0, fontSize: "15px", fontWeight: "700", color: "#111827" }, children: "All Recommendations" }),
-            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-              "button",
-              {
-                onClick: () => setShowAllModal(false),
-                style: {
-                  border: "none",
-                  background: "#f3f4f6",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "6px",
-                  color: "#111827",
-                  borderRadius: "50%"
-                },
-                children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "18", y1: "6", x2: "6", y2: "18" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("line", { x1: "6", y1: "6", x2: "18", y2: "18" })
-                ] })
-              }
-            )
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
-            flex: 1,
-            overflowY: "auto",
-            padding: "12px",
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: "6px",
-            alignContent: "start",
-            paddingBottom: "safe-area-inset-bottom"
-          }, children: allValidProducts.map((product, idx) => renderProductCard(product, idx, true)) })
-        ] })
       ] }),
       pickerProduct && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
         VariantPickerSheet,
@@ -10688,18 +10765,21 @@
   var import_react5 = __toESM(require_react(), 1);
   var import_jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
   var CheckIcon = ({ size = 16, color = "currentColor" }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "3", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("polyline", { points: "20 6 9 17 4 12" }) });
-  var ChevronDownIcon = ({ size = 16, color = "currentColor" }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("polyline", { points: "6 9 12 15 18 9" }) });
-  var XIcon = ({ size = 16, color = "currentColor" }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
+  var ChevronRightIcon = ({ size = 16, color = "currentColor" }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("polyline", { points: "9 18 15 12 9 6" }) });
+  var XIcon = ({ size = 16, color = "currentColor" }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", children: [
     /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("line", { x1: "18", y1: "6", x2: "6", y2: "18" }),
     /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("line", { x1: "6", y1: "6", x2: "18", y2: "18" })
+  ] });
+  var TicketIcon = ({ size = 20, color = "currentColor" }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("path", { d: "M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" }),
+    /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("line", { x1: "13", y1: "5", x2: "13", y2: "19" })
   ] });
   var CouponCodeField = ({
     id,
     placeholder = "Enter coupon code",
     buttonText = "Apply",
-    showAllOffers = false,
-    showAllOffersButtonText = "Show all offers",
-    enableAutoApply = false,
+    showAllOffers = true,
+    showAllOffersButtonText = "View Offers",
     appliedDiscount = null,
     availableDiscounts = [],
     onApplyCoupon = () => {
@@ -10708,297 +10788,334 @@
     },
     onSwitchDiscount = () => {
     },
-    backgroundColor = "#d1fae5",
-    textColor = "#065f46",
-    couponCodeColor,
-    borderColor = "#059669",
-    appliedDiscountText,
-    isPreview = false
+    isPreview = false,
+    cartTotal = 0
   }) => {
     const [couponCode, setCouponCode] = (0, import_react5.useState)("");
-    const [showingAllOffers, setShowingAllOffers] = (0, import_react5.useState)(false);
-    const handleApply = () => {
-      if (couponCode.trim()) {
-        onApplyCoupon(couponCode.trim());
+    const [isSheetOpen, setIsSheetOpen] = (0, import_react5.useState)(false);
+    const [animationClass, setAnimationClass] = (0, import_react5.useState)("");
+    const processedDiscounts = availableDiscounts.map((d) => __spreadProps(__spreadValues({}, d), {
+      // Mock thresholds if not present
+      threshold: d.threshold || (d.code === "FLAT10" ? 5e3 : 0),
+      remaining: Math.max(0, (d.threshold || 0) - cartTotal)
+    }));
+    const validDiscounts = processedDiscounts.filter((d) => d.remaining === 0);
+    const invalidDiscounts = processedDiscounts.filter((d) => d.remaining > 0);
+    (0, import_react5.useEffect)(() => {
+      if (isSheetOpen) {
+        setAnimationClass("sd-slide-up");
+      } else {
+        setAnimationClass("sd-slide-down");
+      }
+    }, [isSheetOpen]);
+    const handleApply = (codeToApply) => {
+      const code = codeToApply || couponCode.trim();
+      if (code) {
+        onApplyCoupon(code);
         if (!isPreview) {
           setCouponCode("");
+          setIsSheetOpen(false);
         }
       }
     };
     const handleKeyPress = (e) => {
-      if (e.key === "Enter") {
+      if (e.key === "Enter")
         handleApply();
-      }
     };
-    return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { id, style: {
-      marginBottom: "16px"
-    }, children: [
-      !appliedDiscount && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
-        display: "flex",
-        gap: "8px",
-        marginBottom: "12px"
-      }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-          flex: 1,
-          position: "relative"
-        }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
-          "input",
-          {
-            type: "text",
-            value: couponCode,
-            onChange: (e) => setCouponCode(e.target.value),
-            onKeyPress: handleKeyPress,
-            placeholder,
-            disabled: isPreview,
-            style: {
-              width: "100%",
-              padding: "12px 16px",
-              border: "2px solid #e5e7eb",
-              borderRadius: "8px",
-              fontSize: "14px",
-              outline: "none",
-              transition: "border-color 0.2s ease",
-              backgroundColor: "#ffffff",
-              cursor: isPreview ? "not-allowed" : "text"
-            }
-          }
-        ) }),
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
-          "button",
-          {
-            onClick: handleApply,
-            disabled: isPreview || !couponCode.trim(),
-            style: {
-              padding: "12px 24px",
-              backgroundColor: !couponCode.trim() ? "#9ca3af" : "#f97316",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              fontSize: "14px",
-              fontWeight: "600",
-              cursor: isPreview ? "not-allowed" : "pointer",
-              transition: "background-color 0.2s ease",
-              whiteSpace: "nowrap"
-            },
-            children: buttonText
-          }
-        )
-      ] }),
-      appliedDiscount && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
-        backgroundColor: "#f0fdf4",
-        // Emerald 50
-        border: "1px solid #bbf7d0",
-        // Emerald 200
-        borderRadius: "8px",
-        padding: "12px",
-        marginBottom: "16px",
-        // Increased margin
-        display: "flex",
-        alignItems: "flex-start",
-        // Align to top for better multi-line handling
-        gap: "12px",
-        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
-      }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-          width: "20px",
-          height: "20px",
-          borderRadius: "50%",
-          backgroundColor: "#16a34a",
-          // Emerald 600
-          color: "white",
+    const TicketCard = ({ discount, isApplied, isLocked }) => /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
+      "div",
+      {
+        style: {
+          position: "relative",
+          backgroundColor: isApplied ? "#f0f9ff" : isLocked ? "#f8fafc" : "#ffffff",
+          borderRadius: "12px",
+          border: `1.5px ${isApplied ? "solid #3b82f6" : isLocked ? "dashed #e2e8f0" : "solid #f1f5f9"}`,
+          padding: "16px",
+          marginBottom: "12px",
+          transition: "all 0.2s ease",
+          cursor: isLocked ? "default" : "pointer",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-          marginTop: "1px"
-          // Align with text
-        }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 12, color: "white" }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { flex: 1 }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
-          display: "flex",
-          alignItems: "baseline",
+          flexDirection: "column",
           gap: "8px",
-          flexWrap: "wrap"
-        }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: {
-            fontSize: "14px",
-            fontWeight: "700",
-            color: "#15803d",
-            // Emerald 700
-            letterSpacing: "-0.01em"
-          }, children: appliedDiscount.code }),
-          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: {
-            fontSize: "11px",
-            color: "#166534",
-            // Emerald 800
-            backgroundColor: "#dcfce7",
-            // Emerald 100
-            padding: "1px 6px",
-            borderRadius: "10px",
-            fontWeight: "600"
-          }, children: "APPLIED" })
-        ] }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
+          overflow: "hidden",
+          opacity: isLocked ? 0.7 : 1,
+          boxShadow: isApplied ? "0 4px 6px -1px rgba(59, 130, 246, 0.1)" : "0 1px 2px rgba(0,0,0,0.05)"
+        },
+        onClick: () => !isLocked && !isApplied && handleApply(discount.code),
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+            position: "absolute",
+            top: "50%",
+            left: "-8px",
+            transform: "translateY(-50%)",
+            width: "16px",
+            height: "16px",
+            borderRadius: "50%",
+            backgroundColor: "#ffffff",
+            // Match parent sheet background
+            boxShadow: "inset -2px 0 2px rgba(0,0,0,0.02)",
+            zIndex: 2
+          } }),
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+            position: "absolute",
+            top: "50%",
+            right: "-8px",
+            transform: "translateY(-50%)",
+            width: "16px",
+            height: "16px",
+            borderRadius: "50%",
+            backgroundColor: "#ffffff",
+            boxShadow: "inset 2px 0 2px rgba(0,0,0,0.02)",
+            zIndex: 2
+          } }),
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+                padding: "4px 10px",
+                backgroundColor: isApplied ? "#3b82f6" : "#fff7ed",
+                color: isApplied ? "#ffffff" : "#f97316",
+                borderRadius: "6px",
+                fontSize: "13px",
+                fontWeight: 800,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px"
+              }, children: discount.code }),
+              isApplied && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 16, color: "#3b82f6" })
+            ] }),
+            !isLocked && !isApplied && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("button", { style: {
+              background: "none",
+              border: "none",
+              color: "#3b82f6",
+              fontWeight: 700,
+              fontSize: "13px",
+              cursor: "pointer"
+            }, children: "Apply" }),
+            isApplied && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: { fontSize: "12px", fontWeight: 700, color: "#3b82f6" }, children: "APPLIED" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { fontSize: "13px", color: "#4b5563", fontWeight: 500 }, children: discount.description || `${discount.value}${discount.type === "percentage" ? "%" : ""} off entire order` }),
+          isLocked && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { marginTop: "4px" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#9ca3af", marginBottom: "4px" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("span", { children: [
+                "Unlocks at ",
+                discount.threshold ? `Rs. ${(discount.threshold / 100).toFixed(2)}` : ""
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { children: discount.remaining ? `Rs. ${(discount.remaining / 100).toFixed(2)} left` : "" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { width: "100%", height: "4px", backgroundColor: "#f1f5f9", borderRadius: "2px", overflow: "hidden" }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+              width: `${Math.min(100, cartTotal / (discount.threshold || 1) * 100)}%`,
+              height: "100%",
+              backgroundColor: "#ffa07a",
+              transition: "width 0.5s ease"
+            } }) })
+          ] })
+        ]
+      }
+    );
+    return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { id, style: { marginBottom: "16px" }, children: [
+      !appliedDiscount ? /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
+        "div",
+        {
+          onClick: () => setIsSheetOpen(true),
+          style: {
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            padding: "12px 16px",
+            backgroundColor: "#f8fafc",
+            border: "1.5px solid #e2e8f0",
+            borderRadius: "12px",
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
+          },
+          onMouseEnter: (e) => {
+            e.currentTarget.style.borderColor = "#3b82f6";
+            e.currentTarget.style.backgroundColor = "#ffffff";
+          },
+          onMouseLeave: (e) => {
+            e.currentTarget.style.borderColor = "#e2e8f0";
+            e.currentTarget.style.backgroundColor = "#f8fafc";
+          },
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { color: "#64748b" }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(TicketIcon, {}) }),
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { flex: 1, fontSize: "14px", color: "#64748b", fontWeight: 500 }, children: "Apply Coupon Code" }),
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { color: "#3b82f6", fontSize: "13px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }, children: [
+              showAllOffersButtonText,
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(ChevronRightIcon, { size: 14 })
+            ] })
+          ]
+        }
+      ) : /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
+        backgroundColor: "#eff6ff",
+        border: "1.5px solid #bfdbfe",
+        borderRadius: "12px",
+        padding: "14px 16px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        animation: "sd-fade-in 0.3s ease"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "12px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+            width: "24px",
+            height: "24px",
+            backgroundColor: "#3b82f6",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "white"
+          }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 14 }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { fontSize: "13px", fontWeight: 800, color: "#1e40af", letterSpacing: "0.5px" }, children: appliedDiscount.code }),
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { fontSize: "11px", color: "#60a5fa", fontWeight: 600 }, children: "COUPON APPLIED" })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
           "button",
           {
             onClick: onRemoveDiscount,
             style: {
-              padding: "4px 8px",
-              backgroundColor: "white",
-              color: "#dc2626",
-              // Red 600
+              padding: "6px 12px",
+              backgroundColor: "#ffffff",
+              color: "#ef4444",
               border: "1px solid #fee2e2",
-              // Red 100
-              borderRadius: "6px",
-              fontSize: "11px",
-              fontWeight: "600",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              boxShadow: "0 1px 1px rgba(0,0,0,0.05)"
+              borderRadius: "8px",
+              fontSize: "12px",
+              fontWeight: 700,
+              cursor: "pointer"
             },
-            onMouseEnter: (e) => {
-              e.currentTarget.style.backgroundColor = "#fef2f2";
-              e.currentTarget.style.borderColor = "#fecaca";
-            },
-            onMouseLeave: (e) => {
-              e.currentTarget.style.backgroundColor = "white";
-              e.currentTarget.style.borderColor = "#fee2e2";
-            },
-            children: [
-              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { children: "Remove" }),
-              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(XIcon, { size: 12, color: "#dc2626" })
-            ]
+            children: "Remove"
           }
         )
       ] }),
-      showAllOffers && availableDiscounts.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
-          "button",
+      isSheetOpen && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(import_jsx_runtime7.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+          "div",
           {
-            onClick: () => setShowingAllOffers(!showingAllOffers),
+            onClick: () => setIsSheetOpen(false),
             style: {
-              width: "100%",
-              padding: "0 15px",
-              backgroundColor: "transparent",
-              border: "none",
-              color: "#374151",
-              cursor: isPreview ? "default" : "pointer",
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0,0,0,0.4)",
+              backdropFilter: "blur(4px)",
+              zIndex: 9998,
+              animation: "sd-fade-in 0.3s ease"
+            }
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
+          "div",
+          {
+            style: {
+              position: "fixed",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "#ffffff",
+              borderTopLeftRadius: "24px",
+              borderTopRightRadius: "24px",
+              zIndex: 9999,
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: showingAllOffers ? "8px" : "0",
-              transition: "all 0.2s ease"
+              flexDirection: "column",
+              maxHeight: "85vh",
+              padding: "24px 20px",
+              boxShadow: "0 -10px 25px -5px rgba(0,0,0,0.1)",
+              animation: "sd-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1)"
             },
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("span", { children: [
-                showAllOffersButtonText,
-                " (",
-                availableDiscounts.length,
-                " available)"
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("h3", { style: { margin: 0, fontSize: "18px", fontWeight: 800, color: "#111827" }, children: "Apply Coupon" }),
+                /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+                  "button",
+                  {
+                    onClick: () => setIsSheetOpen(false),
+                    style: {
+                      background: "#f3f4f6",
+                      border: "none",
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#64748b",
+                      cursor: "pointer"
+                    },
+                    children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(XIcon, { size: 18 })
+                  }
+                )
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: {
-                display: "flex",
-                alignItems: "center",
-                transition: "transform 0.3s ease",
-                transform: showingAllOffers ? "rotate(180deg)" : "rotate(0deg)"
-              }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(ChevronDownIcon, { size: 16, color: "#6b7280" }) })
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { display: "flex", gap: "10px", marginBottom: "24px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+                  "input",
+                  {
+                    type: "text",
+                    value: couponCode,
+                    onChange: (e) => setCouponCode(e.target.value.toUpperCase()),
+                    onKeyPress: handleKeyPress,
+                    placeholder,
+                    style: {
+                      flex: 1,
+                      padding: "14px 18px",
+                      border: "2.5px solid #f3f4f6",
+                      borderRadius: "12px",
+                      fontSize: "15px",
+                      fontWeight: 600,
+                      outline: "none",
+                      transition: "border-color 0.2s ease",
+                      color: "#111827"
+                    },
+                    onFocus: (e) => e.target.style.borderColor = "#3b82f6",
+                    onBlur: (e) => e.target.style.borderColor = "#f3f4f6"
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+                  "button",
+                  {
+                    onClick: () => handleApply(),
+                    disabled: !couponCode.trim(),
+                    style: {
+                      padding: "0 24px",
+                      backgroundColor: !couponCode.trim() ? "#e5e7eb" : "#3b82f6",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "12px",
+                      fontSize: "14px",
+                      fontWeight: 800,
+                      cursor: !couponCode.trim() ? "not-allowed" : "pointer"
+                    },
+                    children: buttonText
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { flex: 1, overflowY: "auto", marginBottom: "10px", paddingRight: "4px" }, children: [
+                validDiscounts.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { marginBottom: "24px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { fontSize: "12px", fontWeight: 800, color: "#9ca3af", textTransform: "uppercase", marginBottom: "12px", letterSpacing: "1px" }, children: "Available Coupons" }),
+                  validDiscounts.map((d) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(TicketCard, { discount: d, isApplied: (appliedDiscount == null ? void 0 : appliedDiscount.code) === d.code, isLocked: false }, d.code))
+                ] }),
+                invalidDiscounts.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { fontSize: "12px", fontWeight: 800, color: "#9ca3af", textTransform: "uppercase", marginBottom: "12px", letterSpacing: "1px" }, children: "Unavailable Coupons" }),
+                  invalidDiscounts.map((d) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(TicketCard, { discount: d, isApplied: false, isLocked: true }, d.code))
+                ] })
+              ] })
             ]
           }
         ),
-        showingAllOffers && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-          backgroundColor: "#ffffff",
-          border: "1px solid #e5e7eb",
-          borderRadius: "8px",
-          overflow: "hidden",
-          marginTop: "4px",
-          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"
-        }, children: availableDiscounts.map((discount, index) => {
-          const isSelected = (appliedDiscount == null ? void 0 : appliedDiscount.code) === discount.code;
-          const isLast = index === availableDiscounts.length - 1;
-          return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
-            "div",
-            {
-              onClick: () => {
-                if (!isPreview) {
-                  onSwitchDiscount(discount.code);
-                  setShowingAllOffers(false);
-                }
-              },
-              onMouseEnter: (e) => {
-                if (!isSelected)
-                  e.currentTarget.style.backgroundColor = "#f9fafb";
-              },
-              onMouseLeave: (e) => {
-                if (!isSelected)
-                  e.currentTarget.style.backgroundColor = "transparent";
-              },
-              style: {
-                padding: "12px 16px",
-                borderBottom: isLast ? "none" : "1px solid #f3f4f6",
-                cursor: isPreview ? "default" : "pointer",
-                transition: "background-color 0.2s ease",
-                backgroundColor: isSelected ? "#f0fdf4" : "transparent",
-                display: "flex",
-                alignItems: "center",
-                gap: "12px"
-              },
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-                  width: "18px",
-                  height: "18px",
-                  borderRadius: "50%",
-                  border: `1.5px solid ${isSelected ? borderColor : "#d1d5db"}`,
-                  backgroundColor: isSelected ? borderColor : "white",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  transition: "all 0.2s ease"
-                }, children: isSelected && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-                  width: "6px",
-                  height: "6px",
-                  borderRadius: "50%",
-                  backgroundColor: "white"
-                } }) }),
-                /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { flex: 1 }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
-                    display: "flex",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    gap: "8px",
-                    marginBottom: discount.title && discount.title !== discount.code ? "2px" : "0"
-                  }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: {
-                      fontSize: "14px",
-                      fontWeight: "700",
-                      color: "#111827",
-                      letterSpacing: "-0.01em"
-                    }, children: discount.code }),
-                    discount.description && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: {
-                      fontSize: "10px",
-                      fontWeight: "600",
-                      color: isSelected ? "#065f46" : "#6b7280",
-                      backgroundColor: isSelected ? "#d1fae5" : "#f3f4f6",
-                      padding: "2px 8px",
-                      borderRadius: "12px",
-                      letterSpacing: "0.02em",
-                      textTransform: "uppercase"
-                    }, children: discount.description.replace(/^-\s*/, "") })
-                  ] }),
-                  discount.title && discount.title !== discount.code && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-                    fontSize: "12px",
-                    color: "#6b7280",
-                    lineHeight: "1.4"
-                  }, children: discount.title })
-                ] })
-              ]
-            },
-            discount.code
-          );
-        }) })
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("style", { dangerouslySetInnerHTML: { __html: `
+            @keyframes sd-slide-up {
+              from { transform: translateY(100%); }
+              to { transform: translateY(0); }
+            }
+            @keyframes sd-fade-in {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            .sd-slide-up { animation: sd-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+          ` } })
       ] })
     ] });
   };
@@ -11193,6 +11310,7 @@
     milestones,
     cartTotal,
     progressBarColor = "#1c1c3b",
+    backgroundColor = "#ffffff",
     allUnlockedMessage = "\u{1F389} Congratulations! All rewards unlocked!",
     currency = "USD",
     onAddToCart
@@ -11207,7 +11325,16 @@
     const statusMsg = allUnlocked ? allUnlockedMessage : (_a2 = nextMilestone == null ? void 0 : nextMilestone.message) != null ? _a2 : null;
     const n = sorted.length;
     const segmentWidth = 100 / (n + 1);
-    return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: { width: "100%", boxSizing: "border-box", fontFamily: "inherit" }, children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { style: {
+      width: "100%",
+      boxSizing: "border-box",
+      fontFamily: "inherit",
+      backgroundColor: backgroundColor || "#ffffff",
+      padding: backgroundColor && backgroundColor !== "transparent" ? "20px" : "0",
+      borderRadius: backgroundColor && backgroundColor !== "transparent" ? "16px" : "0",
+      border: backgroundColor && backgroundColor !== "transparent" ? "1px solid rgba(0,0,0,0.08)" : "none",
+      boxShadow: backgroundColor && backgroundColor !== "transparent" ? "0 4px 20px rgba(0,0,0,0.05)" : "none"
+    }, children: [
       statusMsg && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("p", { style: {
         textAlign: "center",
         fontSize: "13px",
@@ -11430,6 +11557,10 @@
               products.map((p) => /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
                 "div",
                 {
+                  onClick: () => {
+                    if (p.handle)
+                      window.location.href = `/products/${p.handle}`;
+                  },
                   style: {
                     minWidth: "220px",
                     width: "220px",
@@ -11443,7 +11574,8 @@
                     gap: "12px",
                     boxShadow: "0 4px 15px rgba(0,0,0,0.04)",
                     boxSizing: "border-box",
-                    transition: "transform 0.2s, box-shadow 0.2s"
+                    transition: "transform 0.2s, box-shadow 0.2s",
+                    cursor: "pointer"
                   },
                   onMouseEnter: (e) => {
                     e.currentTarget.style.transform = "translateY(-2px)";
@@ -12768,55 +12900,94 @@
       "div",
       {
         style: {
+          position: "relative",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "12px 16px",
-          backgroundColor: "#f8fafc",
-          borderRadius: "12px",
+          padding: "16px 20px",
+          backgroundColor: isEnabled ? "#f0f7ff" : "#ffffff",
+          borderRadius: "16px",
           border: `1px solid ${isEnabled ? "#3b82f6" : "#e2e8f0"}`,
           marginBottom: "16px",
           cursor: isPending ? "wait" : "pointer",
-          transition: "all 0.2s ease",
-          opacity: isPending ? 0.7 : 1
+          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          opacity: isPending ? 0.7 : 1,
+          boxShadow: isEnabled ? "0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -2px rgba(59, 130, 246, 0.05)" : "0 1px 3px rgba(0,0,0,0.05)",
+          overflow: "hidden"
         },
         onClick: () => !isPending && onToggle(!isEnabled),
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "12px" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { style: {
-              width: "32px",
-              height: "32px",
-              borderRadius: "8px",
-              backgroundColor: isEnabled ? "#dbeafe" : "#f1f5f9",
+          isEnabled && /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { style: {
+            position: "absolute",
+            top: "-20px",
+            right: "-20px",
+            width: "100px",
+            height: "100px",
+            background: "radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%)",
+            pointerEvents: "none"
+          } }),
+          /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "16px", zIndex: 1 }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { style: {
+              width: "44px",
+              height: "44px",
+              borderRadius: "12px",
+              backgroundColor: isEnabled ? "#3b82f6" : "#f8fafc",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: isEnabled ? "#2563eb" : "#64748b"
-            }, children: /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("svg", { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("path", { d: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" }) }) }),
+              color: isEnabled ? "#ffffff" : "#64748b",
+              transition: "all 0.3s ease",
+              boxShadow: isEnabled ? "0 4px 12px rgba(59, 130, 246, 0.3)" : "none",
+              position: "relative"
+            }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("svg", { width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", children: /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("path", { d: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" }) }),
+              isEnabled && /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { style: {
+                position: "absolute",
+                top: "-4px",
+                right: "-4px",
+                width: "12px",
+                height: "12px",
+                backgroundColor: "#10b981",
+                borderRadius: "50%",
+                border: "2px solid #ffffff",
+                boxShadow: "0 0 8px rgba(16, 185, 129, 0.5)"
+              } })
+            ] }),
             /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { style: { fontSize: "14px", fontWeight: 600, color: "#1e293b" }, children: title }),
-              /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { style: { fontSize: "12px", color: "#64748b" }, children: "Against loss, theft, or damage" })
+              /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { style: {
+                fontSize: "15px",
+                fontWeight: 700,
+                color: isEnabled ? "#1e40af" : "#1e293b",
+                transition: "color 0.3s ease"
+              }, children: title }),
+              /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { style: { fontSize: "12px", color: isEnabled ? "#60a5fa" : "#64748b", fontWeight: 500 }, children: "Against loss, theft, or damage" })
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "10px" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { style: { fontSize: "14px", fontWeight: 700, color: "#334155" }, children: price > 0 ? formatPrice(price) : "FREE" }),
+          /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "12px", zIndex: 1 }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { style: {
-              width: "36px",
-              height: "20px",
-              backgroundColor: isEnabled ? "#3b82f6" : "#cbd5e1",
-              borderRadius: "10px",
+              fontSize: "15px",
+              fontWeight: 800,
+              color: isEnabled ? "#3b82f6" : "#64748b",
+              transition: "color 0.3s ease"
+            }, children: price > 0 ? formatPrice(price) : "FREE" }),
+            /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { style: {
+              width: "42px",
+              height: "24px",
+              backgroundColor: isEnabled ? "#3b82f6" : "#e2e8f0",
+              borderRadius: "12px",
               position: "relative",
-              transition: "background-color 0.2s"
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              boxShadow: isEnabled ? "inset 0 2px 4px rgba(0,0,0,0.1)" : "none"
             }, children: /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("div", { style: {
-              width: "16px",
-              height: "16px",
+              width: "18px",
+              height: "18px",
               backgroundColor: "white",
               borderRadius: "50%",
               position: "absolute",
-              top: "2px",
-              left: isEnabled ? "18px" : "2px",
-              transition: "left 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.1)"
+              top: "3px",
+              left: isEnabled ? "21px" : "3px",
+              transition: "left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.15)"
             } }) })
           ] })
         ]
@@ -12889,7 +13060,7 @@
       return Math.max(itemLevelSavings, discountSavings);
     };
     const renderFeature = (featureId) => {
-      var _a3, _b2, _c2, _d2, _e2, _f2, _g2, _h2, _i2, _j2, _k2, _l2, _m2, _n2, _o2, _p2, _q2, _r, _s, _t, _u, _v, _w, _x, _y, _z;
+      var _a3, _b2, _c2, _d2, _e2, _f2, _g2, _h2, _i2, _j2, _k2, _l2, _m2, _n2, _o2, _p2, _q2, _r, _s, _t, _u, _v, _w, _x, _y, _z, _A;
       switch (featureId) {
         case "free-shipping-bar": {
           const bar = (_a3 = config == null ? void 0 : config.features) == null ? void 0 : _a3.freeShippingProgressBar;
@@ -13027,13 +13198,14 @@
           if (!milestones || milestones.length === 0)
             return null;
           const cartTotalForWidget = (cart.total_price || 0) / 100;
-          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { style: { marginBottom: "12px", padding: "12px", background: "#f9fafb", borderRadius: "10px", border: "1px solid #e5e7eb" }, children: /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
+          return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
             MilestonesWidget,
             {
               milestones,
               cartTotal: cartTotalForWidget,
               progressBarColor: ((_p2 = config == null ? void 0 : config.features) == null ? void 0 : _p2.milestonesProgressBarColor) || "#1c1c3b",
-              allUnlockedMessage: ((_q2 = config == null ? void 0 : config.features) == null ? void 0 : _q2.milestonesAllUnlockedMessage) || "\u{1F389} Congratulations! All rewards unlocked!",
+              backgroundColor: (_q2 = config == null ? void 0 : config.features) == null ? void 0 : _q2.milestonesBackgroundColor,
+              allUnlockedMessage: ((_r = config == null ? void 0 : config.features) == null ? void 0 : _r.milestonesAllUnlockedMessage) || "\u{1F389} Congratulations! All rewards unlocked!",
               currency: void 0,
               onAddToCart: (product) => {
                 if (onAddProductToCart) {
@@ -13046,8 +13218,8 @@
           ) }, featureId);
         }
         case "free-gifts": {
-          const gifts = (_r = config == null ? void 0 : config.features) == null ? void 0 : _r.freeGifts;
-          if (!((_s = config == null ? void 0 : config.features) == null ? void 0 : _s.freeGiftsEnabled) || !gifts || gifts.length === 0)
+          const gifts = (_s = config == null ? void 0 : config.features) == null ? void 0 : _s.freeGifts;
+          if (!((_t = config == null ? void 0 : config.features) == null ? void 0 : _t.freeGiftsEnabled) || !gifts || gifts.length === 0)
             return null;
           return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { style: { marginBottom: "16px" }, children: /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
             FreeGiftSelector,
@@ -13090,7 +13262,7 @@
                 onToggle: (enabled) => onToggleShippingProtection(config.shippingProtectionProductId, enabled),
                 title: config.shippingProtectionTitle || "Shipping Protection",
                 price: config.shippingProtectionPrice || 0,
-                currency: (_t = config.currency) == null ? void 0 : _t.isoCode,
+                currency: (_u = config.currency) == null ? void 0 : _u.isoCode,
                 isPending: pendingOperations == null ? void 0 : pendingOperations.has("shipping-protection")
               }
             ),
@@ -13113,22 +13285,22 @@
           ] }, featureId);
         }
         case "trust-badges": {
-          const trustBadges = (config == null ? void 0 : config.trustBadges) || ((_u = config == null ? void 0 : config.features) == null ? void 0 : _u.trustBadges);
-          const isEnabled = (config == null ? void 0 : config.trustBadgesEnabled) || ((_v = config == null ? void 0 : config.features) == null ? void 0 : _v.trustBadgesEnabled);
+          const trustBadges = (config == null ? void 0 : config.trustBadges) || ((_v = config == null ? void 0 : config.features) == null ? void 0 : _v.trustBadges);
+          const isEnabled = (config == null ? void 0 : config.trustBadgesEnabled) || ((_w = config == null ? void 0 : config.features) == null ? void 0 : _w.trustBadgesEnabled);
           if (!isEnabled || !trustBadges || trustBadges.length === 0)
             return null;
           return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(TrustBadges, { config: trustBadges[0] }) }, featureId);
         }
         case "countdown-timer": {
-          const timers = (config == null ? void 0 : config.countdownTimers) || ((_w = config == null ? void 0 : config.features) == null ? void 0 : _w.countdownTimers);
-          const isEnabled = (config == null ? void 0 : config.countdownTimerEnabled) || ((_x = config == null ? void 0 : config.features) == null ? void 0 : _x.countdownTimerEnabled);
+          const timers = (config == null ? void 0 : config.countdownTimers) || ((_x = config == null ? void 0 : config.features) == null ? void 0 : _x.countdownTimers);
+          const isEnabled = (config == null ? void 0 : config.countdownTimerEnabled) || ((_y = config == null ? void 0 : config.features) == null ? void 0 : _y.countdownTimerEnabled);
           if (!isEnabled || !timers || timers.length === 0)
             return null;
           return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(CountdownTimer, { config: timers[0] }) }, featureId);
         }
         case "accelerated-checkout": {
-          const checkouts = (config == null ? void 0 : config.acceleratedCheckouts) || ((_y = config == null ? void 0 : config.features) == null ? void 0 : _y.acceleratedCheckouts);
-          const isEnabled = (config == null ? void 0 : config.acceleratedCheckoutEnabled) || ((_z = config == null ? void 0 : config.features) == null ? void 0 : _z.acceleratedCheckoutEnabled);
+          const checkouts = (config == null ? void 0 : config.acceleratedCheckouts) || ((_z = config == null ? void 0 : config.features) == null ? void 0 : _z.acceleratedCheckouts);
+          const isEnabled = (config == null ? void 0 : config.acceleratedCheckoutEnabled) || ((_A = config == null ? void 0 : config.features) == null ? void 0 : _A.acceleratedCheckoutEnabled);
           if (!isEnabled || !checkouts || checkouts.length === 0)
             return null;
           return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { style: { marginBottom: "12px" }, children: /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(AcceleratedCheckout, { config: checkouts[0] }) }, featureId);
@@ -13498,6 +13670,9 @@
         }
         if (data.allUnlockedMessage && this.config.features) {
           this.config.features.milestonesAllUnlockedMessage = data.allUnlockedMessage;
+        }
+        if (data.backgroundColor && this.config.features) {
+          this.config.features.milestonesBackgroundColor = data.backgroundColor;
         }
       } catch (error) {
         console.error("Selldrawer: Failed to load milestones", error);
@@ -14324,7 +14499,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://jets-authority-begun-bible.trycloudflare.com" : "https://app.selldrawer.com";
+  var APP_URL = true ? "https://reynolds-deliver-sometimes-cheque.trycloudflare.com" : "https://app.selldrawer.com";
   async function initializeCartDrawer() {
     if (typeof window === "undefined")
       return;

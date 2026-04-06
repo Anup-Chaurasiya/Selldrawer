@@ -261,11 +261,12 @@ export const UnifiedCartDrawer = ({
         const cartTotalForWidget = (cart.total_price || 0) / 100;
 
         return (
-          <div key={featureId} style={{ marginBottom: '12px', padding: '12px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+          <div key={featureId} style={{ marginBottom: '12px' }}>
             <MilestonesWidget
               milestones={milestones}
               cartTotal={cartTotalForWidget}
               progressBarColor={config?.features?.milestonesProgressBarColor || '#1c1c3b'}
+              backgroundColor={config?.features?.milestonesBackgroundColor}
               allUnlockedMessage={config?.features?.milestonesAllUnlockedMessage || '🎉 Congratulations! All rewards unlocked!'}
               currency={undefined}
               onAddToCart={(product) => {

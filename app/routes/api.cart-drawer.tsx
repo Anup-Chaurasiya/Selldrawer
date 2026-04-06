@@ -185,15 +185,43 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       const rec = cartDrawer.productRecommendations[0];
       productRecommendations = {
         ...rec,
-        products: (rec.products || []).map((product: any) => ({
-          id: product.shopifyProductId || product.id,
-          shopifyProductId: product.shopifyProductId,
-          shopifyVariantId: product.shopifyVariantId,
-          title: product.title,
-          price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
-          compareAtPrice: product.compareAtPrice ? (typeof product.compareAtPrice === 'string' ? parseFloat(product.compareAtPrice) : product.compareAtPrice) : null,
-          imageUrl: product.imageUrl,
-        }))
+        initialProductsShow: (rec as any).initialProductsShow || rec.maxProducts || 4,
+        seeAllLink: (rec as any).seeAllLink || "/collections/all",
+        products: (rec.products || []).map((product: any) => {
+          // Transform variants to the format expected by the VariantPickerSheet (if they exist)
+          const variants = Array.isArray(product.variants) ? product.variants.map((v: any) => ({
+            id: v.id,
+            title: v.title,
+            // Support both old (availableForSale) and new (available) formats
+            available: v.available ?? v.availableForSale ?? true,
+            // Ensure price is in cents (if it's < 1000, it's likely dollars/rupees; if > 1000, it might already be cents)
+            // But better to check if it matches the main product price unit
+            price: v.price < 50000 && product.price < 50000 ? Math.round(v.price * 100) : v.price,
+            compareAtPrice: v.compareAtPrice ? (v.compareAtPrice < 50000 ? Math.round(v.compareAtPrice * 100) : v.compareAtPrice) : null,
+            option1: v.option1 ?? v.selectedOptions?.[0]?.value ?? null,
+            option2: v.option2 ?? v.selectedOptions?.[1]?.value ?? null,
+            option3: v.option3 ?? v.selectedOptions?.[2]?.value ?? null,
+            featured_image: v.featured_image ?? (v.imageUrl ? { url: v.imageUrl } : (product.imageUrl ? { url: product.imageUrl } : null)),
+          })) : [];
+
+          // Support both old (objects) and new (strings) option formats
+          const options = Array.isArray(product.options) 
+            ? product.options.map((o: any) => (typeof o === 'string' ? o : o.name)) 
+            : [];
+
+          return {
+            id: product.shopifyProductId || product.id,
+            shopifyProductId: product.shopifyProductId,
+            shopifyVariantId: product.shopifyVariantId,
+            handle: (product as any).handle || product.shopifyProductId, // Use handle if available, fallback to shopifyProductId
+            title: product.title,
+            price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
+            compareAtPrice: product.compareAtPrice ? (typeof product.compareAtPrice === 'string' ? parseFloat(product.compareAtPrice) : product.compareAtPrice) : null,
+            imageUrl: product.imageUrl,
+            variants,
+            options,
+          };
+        })
       };
     }
 
@@ -217,6 +245,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       milestones: cartDrawer.milestones || [],
       milestonesEnabled: cartDrawer.milestonesEnabled,
       milestonesProgressBarColor: (cartDrawer as any).milestonesProgressBarColor || "#3b82f6",
+      milestonesBackgroundColor: (cartDrawer as any).milestonesBackgroundColor || "#ffffff",
       milestonesAllUnlockedMessage: (cartDrawer as any).milestonesAllUnlockedMessage || "🎉 Congratulations! All rewards unlocked!",
       freeGiftsEnabled: cartDrawer.freeGiftsEnabled,
       freeGifts: cartDrawer.freeGifts || [],

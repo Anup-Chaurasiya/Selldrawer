@@ -10,6 +10,7 @@ interface Product {
   id: string;
   shopifyProductId?: string;
   shopifyVariantId?: string;
+  handle?: string;
   title: string;
   price: number;
   compareAtPrice?: number;
@@ -23,6 +24,8 @@ interface ProductRecommendationsProps {
   products: Product[];
   layout?: 'carousel' | 'grid';
   maxProducts?: number;
+  initialProductsShow?: number;
+  seeAllLink?: string;
   showDiscount?: boolean;
   showDiscountBadge?: boolean;
   showAddButton?: boolean;
@@ -33,19 +36,22 @@ interface ProductRecommendationsProps {
 }
 
 const RECO_KEYFRAMES = `
-  @keyframes sd-reco-slide-in {
-    0% { opacity: 0; transform: translateX(20px); }
-    100% { opacity: 1; transform: translateX(0); }
+  @keyframes sd-reco-fade-up {
+    0% { opacity: 0; transform: translateY(12px); }
+    100% { opacity: 1; transform: translateY(0); }
   }
-  @keyframes sd-reco-add-success {
+  @keyframes sd-reco-image-zoom {
     0% { transform: scale(1); }
-    40% { transform: scale(0.9); }
-    70% { transform: scale(1.1); }
+    100% { transform: scale(1.06); }
+  }
+  @keyframes sd-reco-success-pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.92); }
     100% { transform: scale(1); }
   }
-  @keyframes sd-reco-quick-add-up {
-    0% { opacity: 0; transform: translateY(100%); }
-    100% { opacity: 1; transform: translateY(0); }
+  @keyframes sd-reco-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
   }
   @keyframes sd-bottom-sheet-up {
     from { transform: translateY(100%); }
@@ -59,8 +65,11 @@ const RECO_KEYFRAMES = `
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
+  @keyframes sd-check-draw {
+    from { stroke-dashoffset: 20; }
+    to { stroke-dashoffset: 0; }
+  }
 `;
-
 export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
   title = "You may also like",
   products = [],
@@ -72,7 +81,9 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
   onAddToCart,
   onImpression,
   onProductClick,
-  isPreview = false
+  isPreview = false,
+  initialProductsShow = 6,
+  seeAllLink = '/collections/all',
 }) => {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -81,33 +92,40 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [pickerProduct, setPickerProduct] = useState<VariantPickerProduct | null>(null);
-  const [showAllModal, setShowAllModal] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const impressionTracked = useRef(false);
 
   const isGrid = layout === 'grid';
-  // Always enforce solid groupings of 3 across both grid and carousel previews
-  const maxValid = products.length >= 3 ? Math.floor(products.length / 3) * 3 : products.length;
-  const allValidProducts = products.slice(0, maxValid);
-  
-  const displayLimit = isGrid ? 3 : maxProducts;
-  const displayProducts = allValidProducts.slice(0, displayLimit);
-  const showSeeAll = allValidProducts.length > displayProducts.length;
+
+  // displayLimit is now strictly driven by initialProductsShow (dynamic)
+  // We cap it at the actual products length
+  const limit = initialProductsShow || maxProducts || 4;
+  const displayLimit = isGrid
+    ? Math.min(products.length, Math.floor(limit / 3) * 3 || 3)
+    : Math.min(products.length, limit);
+
+  const displayProducts = products.slice(0, displayLimit);
+  const showSeeAll = products.length > displayLimit;
+
+  // Drag-to-scroll state
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
 
   useEffect(() => {
-    if (!impressionTracked.current && onImpression && !isPreview && displayProducts.length > 0) {
-      onImpression();
+    if (!impressionTracked.current && onAddToCart && !isPreview && displayProducts.length > 0) {
+      if (onImpression) onImpression();
       impressionTracked.current = true;
     }
-  }, [onImpression, isPreview, displayProducts.length]);
+  }, [onImpression, isPreview, displayProducts.length, onAddToCart]);
 
   const updateScrollState = () => {
     const container = scrollContainerRef.current;
     if (!container || isGrid) return;
     const maxScrollLeft = container.scrollWidth - container.clientWidth;
     const currentScroll = container.scrollLeft;
-    setCanScrollLeft(currentScroll > 5);
-    setCanScrollRight(currentScroll < maxScrollLeft - 5);
+    setCanScrollLeft(currentScroll > 10);
+    setCanScrollRight(currentScroll < maxScrollLeft - 10);
   };
 
   useEffect(() => {
@@ -117,13 +135,54 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
       container.addEventListener('scroll', updateScrollState);
       return () => container.removeEventListener('scroll', updateScrollState);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products.length, isGrid]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products.length, isGrid, displayLimit]);
+
+  // Support for horizontal mouse wheel
+  const handleWheel = (e: React.WheelEvent) => {
+    const container = scrollContainerRef.current;
+    if (!container || isGrid) return;
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      e.preventDefault();
+      container.scrollLeft += e.deltaX;
+      updateScrollState();
+    }
+  };
+
+  // Drag to scroll logic (Free Shipping style)
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (isGrid || !scrollContainerRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+    setScrollLeft(scrollContainerRef.current.scrollLeft);
+    scrollContainerRef.current.style.scrollSnapType = 'none'; // Disable snap while dragging
+    scrollContainerRef.current.style.cursor = 'grabbing';
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || isGrid || !scrollContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5; // Scroll speed
+    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const stopDragging = () => {
+    if (isDragging && scrollContainerRef.current) {
+      scrollContainerRef.current.style.scrollSnapType = 'x mandatory'; // Re-enable snap
+      scrollContainerRef.current.style.cursor = 'pointer';
+    }
+    setIsDragging(false);
+  };
 
   const handleScroll = (direction: 'left' | 'right') => {
     const container = scrollContainerRef.current;
     if (!container) return;
-    container.scrollBy({ left: direction === 'left' ? -160 : 160, behavior: 'smooth' });
+
+    // Scroll by exactly one card width if possible
+    const card = container.firstElementChild as HTMLElement;
+    const scrollAmount = card ? card.offsetWidth + 10 : container.clientWidth * 0.8;
+    container.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
   };
 
   // ─── Variant-aware add handler ───────────────────────────────────────────
@@ -167,9 +226,23 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
   // ─────────────────────────────────────────────────────────────────────────
 
   const handleCardClick = (product: Product) => {
+    // 1. Track analytics via callback
     if (onProductClick) {
       const variantId = product.shopifyVariantId || product.shopifyProductId;
       onProductClick(product.id, variantId);
+    }
+
+    // 2. Perform redirection "nicely"
+    if (isPreview) return;
+
+    const handle = product.handle || product.shopifyProductId;
+    if (handle) {
+      // If it looks like a GID, don't use it as a handle directly
+      const finalHandle = typeof handle === 'string' && handle.includes('gid://') 
+        ? handle.split('/').pop() 
+        : handle;
+      
+      window.location.href = `/products/${finalHandle}`;
     }
   };
 
@@ -181,7 +254,7 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
     // @ts-ignore
     const currencyConfig = typeof window !== 'undefined' ? window.selldrawer_config?.currency : null;
     const isoCode = currencyConfig?.isoCode || currencyConfig?.code || 'USD';
-      
+
     try {
       return new Intl.NumberFormat(undefined, {
         style: 'currency',
@@ -206,6 +279,7 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
     const isAdded = addedIds.has(stableKey);
     const isCardHovered = hoveredId === stableKey;
     const hasMultipleVariants = Array.isArray(product.variants) && product.variants.length > 1;
+    const accentColor = '#db2777'; // Premium pink/purple
 
     return (
       <div
@@ -215,38 +289,61 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
         onMouseLeave={() => setHoveredId(null)}
         style={{
           ...(isGrid || isModal ? {} : {
-            flex: '0 0 calc((100% - 12px) / 3)',
+            flex: '0 0 calc((100% - 16px) / 3)',
             scrollSnapAlign: 'start',
           }),
-          borderRadius: '8px',
-          border: `1px solid ${isCardHovered ? '#c4b5fd' : '#e5e7eb'}`,
+          borderRadius: '14px',
+          border: '1px solid transparent',
           background: '#ffffff',
           boxShadow: isCardHovered
-            ? '0 12px 32px rgba(124,58,237,0.12)'
-            : '0 2px 8px rgba(0,0,0,0.06)',
-          transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
+            ? '0 12px 24px -8px rgba(0,0,0,0.15), 0 4px 12px -4px rgba(0,0,0,0.08)'
+            : '0 4px 10px -4px rgba(0,0,0,0.05), 0 1px 4px -2px rgba(0,0,0,0.03)',
+          transition: 'all 0.4s cubic-bezier(0.2, 1, 0.3, 1)',
           cursor: 'pointer',
           display: 'flex',
           flexDirection: 'column' as const,
-          transform: isCardHovered ? 'translateY(-3px)' : 'translateY(0)',
-          animation: `sd-reco-slide-in 0.35s ease ${idx * 0.05}s both`,
+          transform: isCardHovered ? 'translateY(-4px)' : 'translateY(0)',
+          animation: `sd-reco-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 0.08}s both`,
           position: 'relative',
+          overflow: 'hidden',
         }}
       >
+        {/* Discount Badge - Pill style */}
+        {showDiscountBadge && discount > 0 && (
+          <div style={{
+            position: 'absolute', top: '8px', left: '8px',
+            background: 'linear-gradient(135deg, #f472b6, #db2777)',
+            color: 'white', fontSize: '9px', fontWeight: '800',
+            padding: '3px 8px',
+            borderRadius: '100px',
+            zIndex: 10,
+            boxShadow: '0 4px 10px rgba(219,39,119,0.3)',
+            letterSpacing: '0.02em',
+            display: 'flex', alignItems: 'center', gap: '2px'
+          }}>
+            <span>{discount}%</span>
+            <span style={{ fontSize: '7px', opacity: 0.9, textTransform: 'uppercase' }}>OFF</span>
+          </div>
+        )}
+
         <div style={{
           position: 'relative',
-          aspectRatio: '1',
-          background: '#fff',
-          borderRadius: '8px 8px 0 0',
-          padding: '4px',
+          aspectRatio: '1 / 1.1',
+          background: '#F9FAFB',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}>
           {product.imageUrl ? (
             <img
               src={product.imageUrl}
               alt={product.title}
               style={{
-                width: '100%', height: '100%', objectFit: 'contain',
+                width: '90%', height: '90%', objectFit: 'contain',
                 display: 'block',
+                transition: 'transform 0.6s cubic-bezier(0.2, 1, 0.3, 1)',
+                transform: isCardHovered ? 'scale(1.1)' : 'scale(1)',
               }}
             />
           ) : (
@@ -256,58 +353,43 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
               fontSize: '32px',
             }}>📦</div>
           )}
-
-          {showDiscountBadge && discount > 0 && (
-            <div style={{
-              position: 'absolute', top: 0, right: 0,
-              background: '#6b21a8',
-              color: 'white', fontSize: '8px', fontWeight: '800',
-              padding: '4px',
-              display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center',
-              borderBottomLeftRadius: '8px',
-              borderTopRightRadius: '8px',
-              lineHeight: '1',
-              boxShadow: '0 2px 4px rgba(107,33,168,0.3)',
-              zIndex: 2,
-            }}>
-              <span>{discount}%</span>
-              <span style={{ fontSize: '6px' }}>off</span>
-            </div>
-          )}
         </div>
 
-        <div style={{ padding: '2px 4px 6px', flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <div style={{ padding: '8px 10px 10px', flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <div style={{
-            fontSize: '10px', fontWeight: '600', color: '#1f2937',
-            lineHeight: '1.25',
+            fontSize: '11px', fontWeight: '700', color: '#111827',
+            lineHeight: '1.3',
             display: '-webkit-box',
-            WebkitLineClamp: 1,
+            WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
+            minHeight: '2.6em',
+            letterSpacing: '-0.01em',
           }}>
             {product.title}
           </div>
 
-          <div style={{
-            fontSize: '9px', color: '#6b7280', fontWeight: '500',
-            display: 'flex', alignItems: 'center', gap: '2px'
-          }}>
-            {hasMultipleVariants ? 'Options' : (product.options?.[0] || '1 Item')}
-            <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexWrap: 'wrap', marginTop: '1px' }}>
-            {showDiscount && product.compareAtPrice && product.compareAtPrice > product.price && (
-              <span style={{ textDecoration: 'line-through', color: '#9ca3af', fontSize: '9px' }}>
-                {formatMoney(product.compareAtPrice * 100)}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
+              {showDiscount && product.compareAtPrice && product.compareAtPrice > product.price && (
+                <span style={{ textDecoration: 'line-through', color: '#9CA3AF', fontSize: '9px', fontWeight: '500' }}>
+                  {formatMoney(product.compareAtPrice * 100)}
+                </span>
+              )}
+              <span style={{ fontWeight: '850', fontSize: '13px', color: '#111827', letterSpacing: '-0.02em' }}>
+                {formatMoney(product.price * 100)}
               </span>
+            </div>
+
+            {hasMultipleVariants && (
+              <div style={{
+                fontSize: '8px', color: '#6B7280', fontWeight: '700',
+                textTransform: 'uppercase', letterSpacing: '0.05em',
+                background: '#F3F4F6', padding: '2px 6px', borderRadius: '4px'
+              }}>
+                Options
+              </div>
             )}
-            <span style={{ fontWeight: '800', fontSize: '12px', color: '#111827', letterSpacing: '-0.02em' }}>
-              {formatMoney(product.price * 100)}
-            </span>
           </div>
 
           {showAddButton && (
@@ -315,24 +397,41 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
               onClick={(e) => handleAddClick(product, stableKey, e)}
               style={{
                 width: '100%',
-                padding: '3px 0',
-                marginTop: '3px',
-                background: isAdded ? '#10b981' : '#ffffff',
-                color: isAdded ? '#ffffff' : '#db2777',
-                border: isAdded ? '1px solid #10b981' : '1px solid #db2777',
-                borderRadius: '4px',
-                fontSize: '10px', fontWeight: '700',
+                padding: '7px 0',
+                marginTop: '6px',
+                background: isAdded ? '#10B981' : isCardHovered ? '#111827' : '#ffffff',
+                color: isAdded ? '#ffffff' : isCardHovered ? '#ffffff' : '#111827',
+                border: isAdded ? '1px solid #10B981' : '1.5px solid #E5E7EB',
+                borderRadius: '8px',
+                fontSize: '11px', fontWeight: '800',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                boxShadow: isCardHovered && !isAdded ? '0 4px 12px rgba(0,0,0,0.1)' : 'none',
+                transform: isAdding ? 'scale(0.98)' : 'scale(1)',
               }}
             >
               {isAdding ? (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'sd-spin 0.7s linear infinite' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ animation: 'sd-spin 0.7s linear infinite' }}>
                   <circle cx="12" cy="12" r="10" strokeOpacity="0.3" />
                   <path d="M12 2a10 10 0 0 1 10 10" />
                 </svg>
-              ) : isAdded ? 'Added' : 'Add'}
+              ) : isAdded ? (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" style={{ strokeDasharray: 20, strokeDashoffset: 20, animation: 'sd-check-draw 0.3s forwards' }}>
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Added
+                </>
+              ) : (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  Add
+                </>
+              )}
             </button>
           )}
         </div>
@@ -346,14 +445,16 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
       <div style={{ marginTop: '8px' }}>
         {/* Section Header */}
         <div style={{
-          display: 'flex', alignItems: 'center',
-          marginBottom: '10px', padding: '0 4px'
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          marginBottom: '12px', padding: '0 6px'
         }}>
           <h4 style={{
-            fontSize: '14px', fontWeight: '700', color: '#111827',
-            margin: 0, letterSpacing: '-0.01em'
+            fontSize: '15px', fontWeight: '850', color: '#111827',
+            margin: 0, letterSpacing: '-0.02em',
+            display: 'flex', alignItems: 'center', gap: '8px'
           }}>
             {title}
+            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#db2777' }}></span>
           </h4>
         </div>
 
@@ -430,114 +531,72 @@ export const ProductRecommendations: React.FC<ProductRecommendationsProps> = ({
           {/* Products scroll */}
           <div
             ref={scrollContainerRef}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={stopDragging}
+            onMouseLeave={stopDragging}
+            onWheel={handleWheel}
             style={isGrid ? {
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '6px',
+              gap: '10px',
             } : {
               display: 'flex',
-              gap: '6px',
+              gap: '10px',
               overflowX: 'auto',
-              scrollSnapType: 'x mandatory',
+              scrollSnapType: isDragging ? 'none' : 'x mandatory',
               WebkitOverflowScrolling: 'touch',
-              paddingBottom: '8px',
-              paddingTop: '4px',
+              paddingBottom: isGrid ? '0' : '8px',
+              paddingTop: '6px',
               scrollbarWidth: 'none',
               msOverflowStyle: 'none' as any,
-              paddingLeft: '4px',
-              paddingRight: '4px',
+              paddingLeft: '6px',
+              paddingRight: '6px',
+              cursor: isDragging ? 'grabbing' : 'pointer',
+              userSelect: 'none',
             }}
           >
             {displayProducts.map((product, idx) => renderProductCard(product, idx, false))}
           </div>
         </div>
 
-        {/* See All link */}
+        {/* Unified See All Button - Flush & Integrated Footer */}
         {showSeeAll && (
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px', marginBottom: '8px' }}>
-            <div
-              onClick={() => setShowAllModal(true)}
+          <div style={{ marginTop: '0', padding: '0' }}>
+            <a
+              href={seeAllLink}
               style={{
-                fontSize: '12px', fontWeight: '700', color: '#db2777',
-                cursor: 'pointer', padding: '6px 16px', background: '#fdf2f8',
-                borderRadius: '100px', display: 'flex', alignItems: 'center', gap: '4px'
+                width: '100%',
+                fontSize: '13px', fontWeight: '850', color: '#db2777',
+                textDecoration: 'none',
+                cursor: 'pointer',
+                padding: '1px 0',
+                background: '#fdf2f8',
+                borderRadius: '0 0 14px 14px', // Rounded only at bottom
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                transition: 'all 0.3s cubic-bezier(0.2, 1, 0.3, 1)',
+                borderTop: '1px solid rgba(219,39,119,0.1)',
+                borderLeft: '1px solid rgba(219,39,119,0.05)',
+                borderRight: '1px solid rgba(219,39,119,0.05)',
+                borderBottom: '1px solid rgba(219,39,119,0.05)',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#db2777';
+                e.currentTarget.style.color = '#ffffff';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = '#fdf2f8';
+                e.currentTarget.style.color = '#db2777';
               }}
             >
-              See All {allValidProducts.length} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </div>
+              See All Items ({products.length})
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </a>
           </div>
         )}
       </div>
-
-      {/* ALL PRODUCTS BOTTOM SHEET POPUP */}
-      {showAllModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          zIndex: 999999,
-          display: 'flex', flexDirection: 'column',
-          justifyContent: 'flex-end',
-        }}>
-          {/* Backdrop */}
-          <div 
-             onClick={() => setShowAllModal(false)}
-             style={{
-               position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-               background: 'rgba(0,0,0,0.5)',
-               animation: 'sd-backdrop-fade 0.3s ease'
-             }} 
-          />
-          
-          {/* Bottom Sheet */}
-          <div style={{
-            position: 'relative',
-            background: '#ffffff',
-            borderTopLeftRadius: '16px', borderTopRightRadius: '16px',
-            maxHeight: '85vh',
-            display: 'flex', flexDirection: 'column',
-            animation: 'sd-bottom-sheet-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-            boxShadow: '0 -4px 20px rgba(0,0,0,0.1)'
-          }}>
-            {/* Grabber indicator */}
-            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '10px' }}>
-               <div style={{ width: '36px', height: '4px', background: '#d1d5db', borderRadius: '100px' }} />
-            </div>
-
-            {/* Header */}
-            <div style={{
-              padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              borderBottom: '1px solid #f3f4f6'
-            }}>
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#111827' }}>
-                All Recommendations
-              </h3>
-              <button
-                onClick={() => setShowAllModal(false)}
-                style={{
-                  border: 'none', background: '#f3f4f6', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  padding: '6px', color: '#111827',
-                  borderRadius: '50%'
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-
-            {/* Grid Content */}
-            <div style={{
-              flex: 1, overflowY: 'auto', padding: '12px',
-              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px',
-              alignContent: 'start',
-              paddingBottom: 'safe-area-inset-bottom'
-            }}>
-              {allValidProducts.map((product, idx) => renderProductCard(product, idx, true))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Variant Picker Sheet */}
       {pickerProduct && (

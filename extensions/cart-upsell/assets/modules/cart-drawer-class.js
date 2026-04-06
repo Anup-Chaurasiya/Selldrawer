@@ -280,6 +280,11 @@ export class SelldrawerCartDrawer {
       if (data.allUnlockedMessage && this.config.features) {
         this.config.features.milestonesAllUnlockedMessage = data.allUnlockedMessage;
       }
+
+      // Store background color if provided
+      if (data.backgroundColor && this.config.features) {
+        this.config.features.milestonesBackgroundColor = data.backgroundColor;
+      }
     } catch (error) {
       console.error('Selldrawer: Failed to load milestones', error);
     }

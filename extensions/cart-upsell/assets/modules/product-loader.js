@@ -87,110 +87,131 @@ export async function loadShopifyRecommendations(cart, config) {
   }
 
   try {
-    const firstItem = cart.items[0];
-    const productId = firstItem.product_id;
+    // Find the first valid product ID in the cart (skipping gifts and shipping protection)
+    let productId = null;
+    let fallbackProductId = null;
+    
+    for (const item of cart.items) {
+      if (item.product_id && !item.properties?.['_selldrawer_gift_source'] && !item.title.toLowerCase().includes('protection')) {
+        productId = item.product_id;
+        break;
+      }
+      if (!fallbackProductId && item.product_id) {
+        fallbackProductId = item.product_id;
+      }
+    }
+
+    productId = productId || fallbackProductId;
 
     if (!productId) {
-      console.warn('Selldrawer: Product ID not found in cart item');
+      console.warn('[Selldrawer] No valid Product ID found in cart items for recommendations');
       return;
     }
 
     const maxProducts = recommendations.maxProducts || 4;
+    
+    // Get recommendations URL with potential locale prefix
+    const getRecommendationsUrl = (intent) => {
+      // Try to detect locale from URL
+      const pathPrefix = window.Shopify?.routes?.root || '/';
+      const cleanPrefix = pathPrefix.endsWith('/') ? pathPrefix : pathPrefix + '/';
+      return `${cleanPrefix}recommendations/products.json?product_id=${productId}&intent=${intent}&limit=${maxProducts}`;
+    };
 
     // Helper function to fetch recommendations by intent
     const fetchRecommendationsByIntent = async (intent) => {
-      const recommendationsUrl = `/recommendations/products.json?product_id=${productId}&intent=${intent}&limit=${maxProducts}`;
-      const response = await fetch(recommendationsUrl);
+      const url = getRecommendationsUrl(intent);
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          console.warn(`[Selldrawer] Recommendations API (${intent}) returned ${response.status}`);
+          return null;
+        }
 
-      if (!response.ok) {
+        const data = await response.json();
+        const rawProducts = data.products || [];
+        
+        if (rawProducts.length === 0) {
+          return [];
+        }
+
+        const shopifyRecommendations = rawProducts
+          .map(product => {
+            const normalizeVariantId = (id) => {
+              if (!id) return null;
+              const idStr = id.toString();
+              return idStr.includes('gid://') ? idStr.replace('gid://shopify/ProductVariant/', '') : idStr;
+            };
+
+            const firstVariant = product.variants?.[0];
+            const firstVariantId = normalizeVariantId(firstVariant?.id);
+
+            // Robust availability check
+            const isAvailable = firstVariant ? (
+              firstVariant.available !== false && 
+              (firstVariant.inventory_management === null || 
+               firstVariant.inventory_quantity === undefined || 
+               firstVariant.inventory_quantity === null || 
+               firstVariant.inventory_quantity > 0)
+            ) : false;
+
+            // Map all variants for the variant picker
+            const variants = (product.variants || []).map(v => ({
+              id: normalizeVariantId(v.id),
+              title: v.title || 'Default Title',
+              available: v.available !== false,
+              price: v.price ? Math.round(parseFloat(v.price)) : 0,
+              compareAtPrice: v.compare_at_price ? Math.round(parseFloat(v.compare_at_price)) : null,
+              option1: v.option1 || null,
+              option2: v.option2 || null,
+              option3: v.option3 || null,
+              featured_image: v.featured_image ? { url: v.featured_image.url || v.featured_image } : null,
+            }));
+
+            // Shopify product.options is array of option names
+            const options = (product.options || []).map(o => (typeof o === 'string' ? o : o.name)).filter(Boolean);
+
+            return {
+              id: product.handle, // Use handle as ID for consistency with app logic
+              shopifyProductId: product.id?.toString() || product.handle,
+              shopifyVariantId: firstVariantId,
+              title: product.title,
+              handle: product.handle,
+              price: firstVariant?.price ? parseFloat(firstVariant.price) / 100 : 0,
+              compareAtPrice: firstVariant?.compare_at_price
+                ? parseFloat(firstVariant.compare_at_price) / 100
+                : null,
+              imageUrl: product.featured_image || (product.images && product.images[0]),
+              position: 0,
+              available: isAvailable,
+              variants,
+              options,
+            };
+          })
+          .filter(rec => rec.available);
+
+        // Filter out products already in cart
+        return shopifyRecommendations.filter(rec => {
+          return !cart.items.some(item => (item.handle && item.handle === rec.handle) || (String(item.product_id) === String(rec.shopifyProductId)));
+        });
+      } catch (e) {
+        console.error(`[Selldrawer] Failed to fetch ${intent} recommendations:`, e);
         return null;
       }
-
-      const data = await response.json();
-      const rawProducts = data.products || [];
-
-      const shopifyRecommendations = rawProducts
-        .map(product => {
-          const normalizeVariantId = (id) => {
-            if (!id) return null;
-            const idStr = id.toString();
-            return idStr.includes('gid://') ? idStr.replace('gid://shopify/ProductVariant/', '') : idStr;
-          };
-
-          const firstVariant = product.variants?.[0];
-          const firstVariantId = normalizeVariantId(firstVariant?.id);
-
-          const isAvailable = firstVariant ? (
-            firstVariant.available !== false &&
-            (firstVariant.inventory_management === null ||
-              firstVariant.inventory_quantity === null ||
-              firstVariant.inventory_quantity === undefined ||
-              firstVariant.inventory_quantity > 0)
-          ) : false;
-
-          // Map all variants for the variant picker
-          const variants = (product.variants || []).map(v => ({
-            id: normalizeVariantId(v.id),
-            title: v.title || 'Default Title',
-            available: v.available !== false &&
-              (v.inventory_management === null ||
-               v.inventory_quantity === null ||
-               v.inventory_quantity === undefined ||
-               v.inventory_quantity > 0),
-            price: v.price ? Math.round(parseFloat(v.price)) : 0,
-            compareAtPrice: v.compare_at_price ? Math.round(parseFloat(v.compare_at_price)) : null,
-            option1: v.option1 || null,
-            option2: v.option2 || null,
-            option3: v.option3 || null,
-            featured_image: v.featured_image ? { url: v.featured_image.url || v.featured_image } : null,
-          }));
-
-          // Shopify product.options is array of option names e.g. ['Size', 'Color']
-          const options = (product.options || []).map(o => (typeof o === 'string' ? o : o.name)).filter(Boolean);
-
-          return {
-            shopifyProductId: product.handle,
-            shopifyVariantId: firstVariantId,
-            title: product.title,
-            handle: product.handle,
-            price: firstVariant?.price ? parseFloat(firstVariant.price) / 100 : 0,
-            compareAtPrice: firstVariant?.compare_at_price
-              ? parseFloat(firstVariant.compare_at_price) / 100
-              : null,
-            imageUrl: product.featured_image,
-            position: 0,
-            available: isAvailable,
-            variants,
-            options,
-          };
-        })
-        .filter(rec => rec.available);
-
-      // Filter out products already in cart
-      const filteredRecommendations = shopifyRecommendations.filter(rec => {
-        const productInCart = cart.items.some(item => {
-          if (item.handle && item.handle === rec.handle) {
-            return true;
-          }
-          return false;
-        });
-        return !productInCart;
-      });
-
-      return filteredRecommendations;
     };
 
-    // Determine initial intent based on recommendation type
+    // Robust Fetching Strategy:
+    // 1. Try primary intent
+    // 2. If empty and was complementary, try related
+    // 3. If still empty, try whatever was NOT tried
+    
     const primaryIntent = recommendationType === 'complementary' ? 'complementary' : 'related';
-
-    // Fetch primary recommendations
     let finalRecommendations = await fetchRecommendationsByIntent(primaryIntent);
-    let didFallback = false;
 
-    // If complementary returns empty and we want complementary, fallback to related
-    if (recommendationType === 'complementary' && (!finalRecommendations || finalRecommendations.length === 0)) {
-      finalRecommendations = await fetchRecommendationsByIntent('related');
-      didFallback = true;
+    if (!finalRecommendations || finalRecommendations.length === 0) {
+      const secondaryIntent = primaryIntent === 'complementary' ? 'related' : 'complementary';
+      console.log(`[Selldrawer] Primary recommendations (${primaryIntent}) empty, trying ${secondaryIntent}...`);
+      finalRecommendations = await fetchRecommendationsByIntent(secondaryIntent);
     }
 
     // Set the final recommendations
@@ -201,7 +222,10 @@ export async function loadShopifyRecommendations(cart, config) {
     if (finalRecommendations && finalRecommendations.length > 0) {
       recommendations.products = finalRecommendations.slice(0, maxProducts);
     } else {
-      recommendations.products = [];
+      // If dynamic recommendations are empty, keep the manual ones if any exist
+      // This provides a robust fallback when Shopify AI has no data
+      console.log('Selldrawer: Dynamic recommendations empty, falling back to manual selection');
+      // recommendations.products already contains the manual products from the API call
     }
 
   } catch (error) {

@@ -397,12 +397,16 @@ export const FreeShippingBar: React.FC<FreeShippingBarProps> = ({
                 return (
                   <div
                     key={variantId}
+                    onClick={() => {
+                      if (p.handle) window.location.href = `/products/${p.handle}`;
+                    }}
                     style={{
                       minWidth: 'calc(100% - 40px)',
                       maxWidth: '300px',
                       padding: '6px',
                       background: isDark(backgroundColor) ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.03)',
                       borderRadius: '12px',
+                      cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',

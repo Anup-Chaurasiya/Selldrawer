@@ -105,6 +105,7 @@ interface MilestonesWidgetProps {
   isPreview?: boolean;
   layout?: 'vertical' | 'horizontal';
   progressBarColor?: string;
+  backgroundColor?: string;
   allUnlockedMessage?: string;
   currency?: string;
   onAddToCart?: (product: UpsellProduct) => void;
@@ -114,6 +115,7 @@ export function MilestonesWidget({
   milestones,
   cartTotal,
   progressBarColor = '#1c1c3b',
+  backgroundColor = '#ffffff',
   allUnlockedMessage = '🎉 Congratulations! All rewards unlocked!',
   currency = 'USD',
   onAddToCart,
@@ -131,7 +133,16 @@ export function MilestonesWidget({
   const segmentWidth = 100 / (n + 1);
 
   return (
-    <div style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }}>
+    <div style={{ 
+      width: '100%', 
+      boxSizing: 'border-box', 
+      fontFamily: 'inherit',
+      backgroundColor: backgroundColor || '#ffffff',
+      padding: (backgroundColor && backgroundColor !== 'transparent') ? '20px' : '0',
+      borderRadius: (backgroundColor && backgroundColor !== 'transparent') ? '16px' : '0',
+      border: (backgroundColor && backgroundColor !== 'transparent') ? '1px solid rgba(0,0,0,0.08)' : 'none',
+      boxShadow: (backgroundColor && backgroundColor !== 'transparent') ? '0 4px 20px rgba(0,0,0,0.05)' : 'none'
+    }}>
 
       {/* Status message */}
       {statusMsg && (
@@ -395,6 +406,9 @@ export function MilestoneUpsellProducts({
           {products.map(p => (
             <div
               key={p.id}
+              onClick={() => {
+                if (p.handle) window.location.href = `/products/${p.handle}`;
+              }}
               style={{
                 minWidth: '220px',
                 width: '220px',
@@ -409,6 +423,7 @@ export function MilestoneUpsellProducts({
                 boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
                 boxSizing: 'border-box',
                 transition: 'transform 0.2s, box-shadow 0.2s',
+                cursor: 'pointer',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-2px)';

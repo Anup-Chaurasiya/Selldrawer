@@ -1,9 +1,9 @@
 /**
- * Shared Coupon Code Field Component
+ * Shared Coupon Code Field Component - Redesigned for Premium Experience
  * Used in both production cart drawer and Remix preview
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // Icon Components
 const CheckIcon = ({ size = 16, color = 'currentColor' }) => (
@@ -12,26 +12,35 @@ const CheckIcon = ({ size = 16, color = 'currentColor' }) => (
   </svg>
 );
 
-const ChevronDownIcon = ({ size = 16, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="6 9 12 15 18 9" />
+const ChevronRightIcon = ({ size = 16, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="9 18 15 12 9 6" />
   </svg>
 );
 
 const XIcon = ({ size = 16, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
 
+const TicketIcon = ({ size = 20, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+    <line x1="13" y1="5" x2="13" y2="19" />
+  </svg>
+);
+
 interface Discount {
   code: string;
-  amount?: number; // Discount amount in cents from Shopify cart
-  title?: string; // Optional, for display purposes
-  description?: string; // Optional, for display purposes
+  amount?: number;
+  title?: string;
+  description?: string;
   type?: string;
   value?: number;
+  threshold?: number; // Minimum amount to unlock in cents
+  remaining?: number; // How much more needed in cents
 }
 
 interface CouponCodeFieldProps {
@@ -52,333 +61,385 @@ interface CouponCodeFieldProps {
   borderColor?: string;
   appliedDiscountText?: string;
   isPreview?: boolean;
+  cartTotal?: number; // In cents
 }
 
 export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
   id,
   placeholder = 'Enter coupon code',
   buttonText = 'Apply',
-  showAllOffers = false,
-  showAllOffersButtonText = 'Show all offers',
-  enableAutoApply = false,
+  showAllOffers = true,
+  showAllOffersButtonText = 'View Offers',
   appliedDiscount = null,
   availableDiscounts = [],
   onApplyCoupon = () => { },
   onRemoveDiscount = () => { },
   onSwitchDiscount = () => { },
-  backgroundColor = '#d1fae5',
-  textColor = '#065f46',
-  couponCodeColor,
-  borderColor = '#059669',
-  appliedDiscountText,
-  isPreview = false
+  isPreview = false,
+  cartTotal = 0
 }) => {
   const [couponCode, setCouponCode] = useState('');
-  const [showingAllOffers, setShowingAllOffers] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [animationClass, setAnimationClass] = useState('');
 
-  const handleApply = () => {
-    if (couponCode.trim()) {
-      onApplyCoupon(couponCode.trim());
+  // Simplified available/unavailable logic for demonstration/preview
+  const processedDiscounts = availableDiscounts.map(d => ({
+    ...d,
+    // Mock thresholds if not present
+    threshold: d.threshold || (d.code === 'FLAT10' ? 5000 : 0),
+    remaining: Math.max(0, (d.threshold || 0) - cartTotal)
+  }));
+
+  const validDiscounts = processedDiscounts.filter(d => d.remaining === 0);
+  const invalidDiscounts = processedDiscounts.filter(d => d.remaining > 0);
+
+  useEffect(() => {
+    if (isSheetOpen) {
+      setAnimationClass('sd-slide-up');
+    } else {
+      setAnimationClass('sd-slide-down');
+    }
+  }, [isSheetOpen]);
+
+  const handleApply = (codeToApply?: string) => {
+    const code = codeToApply || couponCode.trim();
+    if (code) {
+      onApplyCoupon(code);
       if (!isPreview) {
         setCouponCode('');
+        setIsSheetOpen(false);
       }
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleApply();
-    }
+    if (e.key === 'Enter') handleApply();
   };
 
-  return (
-    <div id={id} style={{
-      marginBottom: '16px'
-    }}>
-      {/* Coupon Input - Only show when no discount is applied */}
-      {!appliedDiscount && (
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-          marginBottom: '12px'
-        }}>
+  // Ticket Edge Design Helper
+  const TicketCard: React.FC<{ discount: Discount; isApplied: boolean; isLocked: boolean }> = ({ discount, isApplied, isLocked }) => (
+    <div style={{
+      position: 'relative',
+      backgroundColor: isApplied ? '#f0f9ff' : isLocked ? '#f8fafc' : '#ffffff',
+      borderRadius: '12px',
+      border: `1.5px ${isApplied ? 'solid #3b82f6' : isLocked ? 'dashed #e2e8f0' : 'solid #f1f5f9'}`,
+      padding: '16px',
+      marginBottom: '12px',
+      transition: 'all 0.2s ease',
+      cursor: isLocked ? 'default' : 'pointer',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px',
+      overflow: 'hidden',
+      opacity: isLocked ? 0.7 : 1,
+      boxShadow: isApplied ? '0 4px 6px -1px rgba(59, 130, 246, 0.1)' : '0 1px 2px rgba(0,0,0,0.05)'
+    }}
+      onClick={() => !isLocked && !isApplied && handleApply(discount.code)}
+    >
+      {/* Ticket Cutouts */}
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '-8px',
+        transform: 'translateY(-50%)',
+        width: '16px',
+        height: '16px',
+        borderRadius: '50%',
+        backgroundColor: '#ffffff', // Match parent sheet background
+        boxShadow: 'inset -2px 0 2px rgba(0,0,0,0.02)',
+        zIndex: 2
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        right: '-8px',
+        transform: 'translateY(-50%)',
+        width: '16px',
+        height: '16px',
+        borderRadius: '50%',
+        backgroundColor: '#ffffff',
+        boxShadow: 'inset 2px 0 2px rgba(0,0,0,0.02)',
+        zIndex: 2
+      }} />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{
-            flex: 1,
-            position: 'relative'
+            padding: '4px 10px',
+            backgroundColor: isApplied ? '#3b82f6' : '#fff7ed',
+            color: isApplied ? '#ffffff' : '#f97316',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
           }}>
-            <input
-              type="text"
-              value={couponCode}
-              onChange={(e) => setCouponCode(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={placeholder}
-              disabled={isPreview}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: '2px solid #e5e7eb',
-                borderRadius: '8px',
-                fontSize: '14px',
-                outline: 'none',
-                transition: 'border-color 0.2s ease',
-                backgroundColor: '#ffffff',
-                cursor: isPreview ? 'not-allowed' : 'text'
-              }}
-            />
+            {discount.code}
           </div>
-          <button
-            onClick={handleApply}
-            disabled={isPreview || !couponCode.trim()}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: !couponCode.trim() ? '#9ca3af' : '#f97316',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: isPreview ? 'not-allowed' : 'pointer',
-              transition: 'background-color 0.2s ease',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {buttonText}
+          {isApplied && <CheckIcon size={16} color="#3b82f6" />}
+        </div>
+        {!isLocked && !isApplied && (
+          <button style={{
+            background: 'none',
+            border: 'none',
+            color: '#3b82f6',
+            fontWeight: 700,
+            fontSize: '13px',
+            cursor: 'pointer'
+          }}>
+            Apply
           </button>
+        )}
+        {isApplied && (
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#3b82f6' }}>APPLIED</span>
+        )}
+      </div>
+
+      <div style={{ fontSize: '13px', color: '#4b5563', fontWeight: 500 }}>
+        {discount.description || `${discount.value}${discount.type === 'percentage' ? '%' : ''} off entire order`}
+      </div>
+
+      {isLocked && (
+        <div style={{ marginTop: '4px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>
+            <span>Unlocks at {discount.threshold ? `Rs. ${(discount.threshold / 100).toFixed(2)}` : ''}</span>
+            <span>{discount.remaining ? `Rs. ${(discount.remaining / 100).toFixed(2)} left` : ''}</span>
+          </div>
+          <div style={{ width: '100%', height: '4px', backgroundColor: '#f1f5f9', borderRadius: '2px', overflow: 'hidden' }}>
+            <div style={{ 
+              width: `${Math.min(100, (cartTotal / (discount.threshold || 1)) * 100)}%`, 
+              height: '100%', 
+              backgroundColor: '#ffa07a',
+              transition: 'width 0.5s ease'
+            }} />
+          </div>
         </div>
       )}
+    </div>
+  );
 
-      {/* Applied Discount */}
-      {appliedDiscount && (
-        <div style={{
-          backgroundColor: '#f0fdf4', // Emerald 50
-          border: '1px solid #bbf7d0', // Emerald 200
-          borderRadius: '8px',
-          padding: '12px',
-          marginBottom: '16px', // Increased margin
-          display: 'flex',
-          alignItems: 'flex-start', // Align to top for better multi-line handling
-          gap: '12px',
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-        }}>
-          <div style={{
-            width: '20px',
-            height: '20px',
-            borderRadius: '50%',
-            backgroundColor: '#16a34a', // Emerald 600
-            color: 'white',
+  return (
+    <div id={id} style={{ marginBottom: '16px' }}>
+      {/* Main Bar */}
+      {!appliedDiscount ? (
+        <div 
+          onClick={() => setIsSheetOpen(true)}
+          style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            marginTop: '1px' // Align with text
-          }}>
-            <CheckIcon size={12} color="white" />
+            gap: '12px',
+            padding: '12px 16px',
+            backgroundColor: '#f8fafc',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#3b82f6';
+            e.currentTarget.style.backgroundColor = '#ffffff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = '#e2e8f0';
+            e.currentTarget.style.backgroundColor = '#f8fafc';
+          }}
+        >
+          <div style={{ color: '#64748b' }}><TicketIcon /></div>
+          <div style={{ flex: 1, fontSize: '14px', color: '#64748b', fontWeight: 500 }}>
+            Apply Coupon Code
           </div>
-
-          <div style={{ flex: 1 }}>
+          <div style={{ color: '#3b82f6', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {showAllOffersButtonText}
+            <ChevronRightIcon size={14} />
+          </div>
+        </div>
+      ) : (
+        <div style={{
+          backgroundColor: '#eff6ff',
+          border: '1.5px solid #bfdbfe',
+          borderRadius: '12px',
+          padding: '14px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          animation: 'sd-fade-in 0.3s ease'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
+              width: '24px',
+              height: '24px',
+              backgroundColor: '#3b82f6',
+              borderRadius: '50%',
               display: 'flex',
-              alignItems: 'baseline',
-              gap: '8px',
-              flexWrap: 'wrap'
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white'
             }}>
-              <span style={{
-                fontSize: '14px',
-                fontWeight: '700',
-                color: '#15803d', // Emerald 700
-                letterSpacing: '-0.01em'
-              }}>
-                {appliedDiscount.code}
-              </span>
-              <span style={{
-                fontSize: '11px',
-                color: '#166534', // Emerald 800
-                backgroundColor: '#dcfce7', // Emerald 100
-                padding: '1px 6px',
-                borderRadius: '10px',
-                fontWeight: '600'
-              }}>
-                APPLIED
-              </span>
+              <CheckIcon size={14} />
             </div>
-
-
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#1e40af', letterSpacing: '0.5px' }}>
+                {appliedDiscount.code}
+              </div>
+              <div style={{ fontSize: '11px', color: '#60a5fa', fontWeight: 600 }}>COUPON APPLIED</div>
+            </div>
           </div>
-
           <button
             onClick={onRemoveDiscount}
             style={{
-              padding: '4px 8px',
-              backgroundColor: 'white',
-              color: '#dc2626', // Red 600
-              border: '1px solid #fee2e2', // Red 100
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              flexShrink: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              boxShadow: '0 1px 1px rgba(0,0,0,0.05)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#fef2f2';
-              e.currentTarget.style.borderColor = '#fecaca';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'white';
-              e.currentTarget.style.borderColor = '#fee2e2';
+              padding: '6px 12px',
+              backgroundColor: '#ffffff',
+              color: '#ef4444',
+              border: '1px solid #fee2e2',
+              borderRadius: '8px',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer'
             }}
           >
-            <span>Remove</span>
-            <XIcon size={12} color="#dc2626" />
+            Remove
           </button>
         </div>
       )}
 
-      {/* Show All Offers */}
-      {showAllOffers && availableDiscounts.length > 0 && (
-        <div>
-          <button
-            onClick={() => setShowingAllOffers(!showingAllOffers)}
+      {/* Offers Sheet Overlay */}
+      {isSheetOpen && (
+        <>
+          <div 
+            onClick={() => setIsSheetOpen(false)}
             style={{
-              width: '100%',
-              padding: '0 15px',
-              backgroundColor: 'transparent',
-              border: 'none',
-              color: '#374151',
-              cursor: isPreview ? 'default' : 'pointer',
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 9998,
+              animation: 'sd-fade-in 0.3s ease'
+            }} 
+          />
+          <div 
+            style={{
+              position: 'fixed',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: '#ffffff',
+              borderTopLeftRadius: '24px',
+              borderTopRightRadius: '24px',
+              zIndex: 9999,
               display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: showingAllOffers ? '8px' : '0',
-              transition: 'all 0.2s ease'
+              flexDirection: 'column',
+              maxHeight: '85vh',
+              padding: '24px 20px',
+              boxShadow: '0 -10px 25px -5px rgba(0,0,0,0.1)',
+              animation: 'sd-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
             }}
           >
-            <span>{showAllOffersButtonText} ({availableDiscounts.length} available)</span>
-            <span style={{
-              display: 'flex',
-              alignItems: 'center',
-              transition: 'transform 0.3s ease',
-              transform: showingAllOffers ? 'rotate(180deg)' : 'rotate(0deg)'
-            }}>
-              <ChevronDownIcon size={16} color="#6b7280" />
-            </span>
-          </button>
-
-          {/* Offers Dropdown */}
-          {showingAllOffers && (
-            <div style={{
-              backgroundColor: '#ffffff',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              overflow: 'hidden',
-              marginTop: '4px',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-            }}>
-              {availableDiscounts.map((discount, index) => {
-                const isSelected = appliedDiscount?.code === discount.code;
-                const isLast = index === availableDiscounts.length - 1;
-
-                return (
-                  <div
-                    key={discount.code}
-                    onClick={() => {
-                      if (!isPreview) {
-                        onSwitchDiscount(discount.code);
-                        setShowingAllOffers(false);
-                      }
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) e.currentTarget.style.backgroundColor = '#f9fafb';
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                    style={{
-                      padding: '12px 16px',
-                      borderBottom: isLast ? 'none' : '1px solid #f3f4f6',
-                      cursor: isPreview ? 'default' : 'pointer',
-                      transition: 'background-color 0.2s ease',
-                      backgroundColor: isSelected ? '#f0fdf4' : 'transparent',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px'
-                    }}
-                  >
-                    {/* Custom Radio Button */}
-                    <div style={{
-                      width: '18px',
-                      height: '18px',
-                      borderRadius: '50%',
-                      border: `1.5px solid ${isSelected ? borderColor : '#d1d5db'}`,
-                      backgroundColor: isSelected ? borderColor : 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      transition: 'all 0.2s ease'
-                    }}>
-                      {isSelected && (
-                        <div style={{
-                          width: '6px',
-                          height: '6px',
-                          borderRadius: '50%',
-                          backgroundColor: 'white'
-                        }} />
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div style={{ flex: 1 }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: '8px',
-                        marginBottom: discount.title && discount.title !== discount.code ? '2px' : '0'
-                      }}>
-                        <span style={{
-                          fontSize: '14px',
-                          fontWeight: '700',
-                          color: '#111827',
-                          letterSpacing: '-0.01em'
-                        }}>
-                          {discount.code}
-                        </span>
-                        {discount.description && (
-                          <span style={{
-                            fontSize: '10px',
-                            fontWeight: '600',
-                            color: isSelected ? '#065f46' : '#6b7280',
-                            backgroundColor: isSelected ? '#d1fae5' : '#f3f4f6',
-                            padding: '2px 8px',
-                            borderRadius: '12px',
-                            letterSpacing: '0.02em',
-                            textTransform: 'uppercase'
-                          }}>
-                            {discount.description.replace(/^-\s*/, '')}
-                          </span>
-                        )}
-                      </div>
-                      {discount.title && discount.title !== discount.code && (
-                        <div style={{
-                          fontSize: '12px',
-                          color: '#6b7280',
-                          lineHeight: '1.4'
-                        }}>
-                          {discount.title}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#111827' }}>Apply Coupon</h3>
+              <button 
+                onClick={() => setIsSheetOpen(false)}
+                style={{
+                  background: '#f3f4f6',
+                  border: 'none',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#64748b',
+                  cursor: 'pointer'
+                }}
+              >
+                <XIcon size={18} />
+              </button>
             </div>
-          )}
-        </div>
+
+            {/* Manual Input */}
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                onKeyPress={handleKeyPress}
+                placeholder={placeholder}
+                style={{
+                  flex: 1,
+                  padding: '14px 18px',
+                  border: '2.5px solid #f3f4f6',
+                  borderRadius: '12px',
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  outline: 'none',
+                  transition: 'border-color 0.2s ease',
+                  color: '#111827'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                onBlur={(e) => e.target.style.borderColor = '#f3f4f6'}
+              />
+              <button
+                onClick={() => handleApply()}
+                disabled={!couponCode.trim()}
+                style={{
+                  padding: '0 24px',
+                  backgroundColor: !couponCode.trim() ? '#e5e7eb' : '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontWeight: 800,
+                  cursor: !couponCode.trim() ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {buttonText}
+              </button>
+            </div>
+
+            {/* Coupons List */}
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '10px', paddingRight: '4px' }}>
+              {/* Available Coupons */}
+              {validDiscounts.length > 0 && (
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '1px' }}>
+                    Available Coupons
+                  </div>
+                  {validDiscounts.map(d => (
+                    <TicketCard key={d.code} discount={d} isApplied={appliedDiscount?.code === d.code} isLocked={false} />
+                  ))}
+                </div>
+              )}
+
+              {/* Unavailable Coupons */}
+              {invalidDiscounts.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '1px' }}>
+                    Unavailable Coupons
+                  </div>
+                  {invalidDiscounts.map(d => (
+                    <TicketCard key={d.code} discount={d} isApplied={false} isLocked={true} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes sd-slide-up {
+              from { transform: translateY(100%); }
+              to { transform: translateY(0); }
+            }
+            @keyframes sd-fade-in {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            .sd-slide-up { animation: sd-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+          `}} />
+        </>
       )}
     </div>
   );

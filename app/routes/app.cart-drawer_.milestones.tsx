@@ -53,6 +53,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     },
   });
 
+  if (!cartDrawer) {
     cartDrawer = await prisma.cartDrawer.create({
       data: { 
         id: crypto.randomUUID(),
@@ -71,6 +72,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         },
       },
     });
+  }
 
 
   // Fetch products from Shopify
@@ -546,6 +548,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       where: { id: cartDrawer.id },
       data: {
         milestonesProgressBarColor: progressBarColor,
+        milestonesBackgroundColor: formData.get("backgroundColor") as string || "#ffffff",
         milestonesAllUnlockedMessage: allUnlockedMessage,
         milestonesEnabled: true, // Auto-enable when saving
       } as any
@@ -611,6 +614,7 @@ export default function MilestonesPage() {
   // Global settings state
   const [globalSettings, setGlobalSettings] = useState(() => ({
     progressBarColor: (cartDrawer as any)?.milestonesProgressBarColor || "#3b82f6",
+    backgroundColor: (cartDrawer as any)?.milestonesBackgroundColor || "#ffffff",
     allUnlockedMessage: (cartDrawer as any)?.milestonesAllUnlockedMessage || "🎉 Congratulations! All rewards unlocked!",
   }));
 
@@ -918,6 +922,7 @@ export default function MilestonesPage() {
     const formData = new FormData();
     formData.append("intent", "save-global-settings");
     formData.append("progressBarColor", globalSettings.progressBarColor);
+    formData.append("backgroundColor", globalSettings.backgroundColor);
     formData.append("allUnlockedMessage", globalSettings.allUnlockedMessage);
     submit(formData, { method: "post", action: `/app/cart-drawer/milestones` });
   }, [globalSettings, submit]);
@@ -997,6 +1002,14 @@ export default function MilestonesPage() {
                     autoComplete="off"
                     {...({ type: "color" } as any)}
                     helpText="Applies to all milestones"
+                  />
+                  <TextField
+                    label="Widget Background Color"
+                    value={globalSettings.backgroundColor}
+                    onChange={(value) => setGlobalSettings({ ...globalSettings, backgroundColor: value })}
+                    autoComplete="off"
+                    {...({ type: "color" } as any)}
+                    helpText="Background color for the entire widget"
                   />
                   <TextField
                     label="All Unlocked Message"
@@ -1191,11 +1204,11 @@ export default function MilestonesPage() {
                 <div style={{ 
                   width: '100%', 
                   maxWidth: '420px',
-                  backgroundColor: '#ffffff',
                   borderRadius: '16px',
                   boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
-                  padding: '16px',
-                  border: '1px solid #e5e7eb'
+                  border: '1px solid #e5e7eb',
+                  backgroundColor: globalSettings.backgroundColor,
+                  padding: '4px' // Minimal padding to show the border
                 }}>
                   <MilestonesWidget
                     milestones={previewMilestones}
@@ -1203,6 +1216,7 @@ export default function MilestonesPage() {
                     isPreview={true}
                     layout="vertical"
                     progressBarColor={globalSettings.progressBarColor}
+                    backgroundColor={globalSettings.backgroundColor}
                     allUnlockedMessage={globalSettings.allUnlockedMessage}
                   />
                 </div>

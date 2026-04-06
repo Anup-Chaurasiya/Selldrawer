@@ -108,6 +108,7 @@ model CartDrawer {
   cartTotalsEnabled              Boolean                   @default(true)
   milestonesEnabled              Boolean                   @default(false)
   milestonesProgressBarColor     String                    @default("#3b82f6")
+  milestonesBackgroundColor      String                    @default("#ffffff")
   milestonesAllUnlockedMessage   String                    @default("🎉 Congratulations! All rewards unlocked!")
   freeGiftsEnabled               Boolean                   @default(false)
   trustBadgesEnabled             Boolean                   @default(false)
@@ -483,6 +484,8 @@ model ProductRecommendation {
   priority                  Int                         @default(0)
   title                     String                      @default("You may also like")
   maxProducts               Int                         @default(4)
+  initialProductsShow       Int                         @default(6)
+  seeAllLink                String                      @default("/collections/all")
   layout                    String                      @default("grid")
   recommendationType        String                      @default("manual")
   showDiscount              Boolean                     @default(true)
@@ -647,6 +650,8 @@ model RecommendedProduct {
   price                 Decimal
   compareAtPrice        Decimal?
   imageUrl              String?
+  variants              Json?
+  options               Json?
   position              Int                   @default(0)
   shopifyVariantId      String?
   productRecommendation ProductRecommendation @relation("products", fields: [recommendationId], references: [id], onDelete: Cascade)
