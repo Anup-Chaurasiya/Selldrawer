@@ -13,7 +13,7 @@ import db from "../db.server";
 export async function createStorefrontAccessToken(
     admin: any,
     shop: string
-): Promise<string> {
+): Promise<string | null> {
     const mutation = `
     mutation storefrontAccessTokenCreate($input: StorefrontAccessTokenInput!) {
       storefrontAccessTokenCreate(input: $input) {
@@ -42,16 +42,18 @@ export async function createStorefrontAccessToken(
 
         if (data.data?.storefrontAccessTokenCreate?.userErrors?.length > 0) {
             const errors = data.data.storefrontAccessTokenCreate.userErrors;
-            throw new Error(
-                `Failed to create storefront access token: ${errors.map((e: any) => e.message).join(", ")}`
+            console.warn(
+                `[createStorefrontAccessToken] Failed to create token: ${errors.map((e: any) => e.message).join(", ")}`
             );
+            return null;
         }
 
         const accessToken =
             data.data?.storefrontAccessTokenCreate?.storefrontAccessToken?.accessToken;
 
         if (!accessToken) {
-            throw new Error("No access token returned from Shopify");
+            console.warn("[createStorefrontAccessToken] No access token returned from Shopify");
+            return null;
         }
 
         // Save token to database
@@ -59,7 +61,16 @@ export async function createStorefrontAccessToken(
 
         return accessToken;
     } catch (error) {
-        throw error;
+        // Handle permission errors gracefully
+        if (error instanceof GraphqlQueryError) {
+            const errorMessage = error.message || '';
+            if (errorMessage.includes('Access denied') || errorMessage.includes('storefrontAccessTokenCreate')) {
+                console.warn(`[createStorefrontAccessToken] Permission denied for shop ${shop}. Storefront API features will be limited.`);
+                return null;
+            }
+        }
+        console.error(`[createStorefrontAccessToken] Unexpected error:`, error);
+        return null;
     }
 }
 
@@ -156,20 +167,26 @@ export async function getStorefrontAccessToken(
 /**
  * Ensure shop has a Storefront Access Token
  * Call this during app installation or first use
+ * Returns null if token cannot be created (e.g., missing permissions)
  */
 export async function ensureStorefrontAccessToken(
     request: Request
-): Promise<string> {
-    const { admin, session } = await authenticate.admin(request);
-    const shop = session.shop;
+): Promise<string | null> {
+    try {
+        const { admin, session } = await authenticate.admin(request);
+        const shop = session.shop;
 
-    // Check if token already exists
-    const existingToken = await getStorefrontAccessToken(shop);
+        // Check if token already exists
+        const existingToken = await getStorefrontAccessToken(shop);
 
-    if (existingToken) {
-        return existingToken;
+        if (existingToken) {
+            return existingToken;
+        }
+
+        // Create new token (may return null if permissions are missing)
+        return await createStorefrontAccessToken(admin, shop);
+    } catch (error) {
+        console.error('[ensureStorefrontAccessToken] Error:', error);
+        return null;
     }
-
-    // Create new token
-    return await createStorefrontAccessToken(admin, shop);
 }

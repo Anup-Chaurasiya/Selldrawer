@@ -8586,6 +8586,636 @@
     }
   }
 
+  // extensions/cart-upsell/assets/modules/cart-operations-enhanced.js
+  var DEFAULT_MAX_RETRIES = 3;
+  var DEFAULT_RETRY_DELAY = 300;
+  var CART_UPDATE_VERIFICATION_TIMEOUT = 2e3;
+  var CartOperations = class {
+    constructor() {
+      this.isOperationInProgress = false;
+      this.operationQueue = [];
+    }
+    /**
+     * Retry a cart operation with exponential backoff
+     * @param {Function} operation - The async operation to retry
+     * @param {number} maxRetries - Maximum retry attempts
+     * @param {number} baseDelay - Base delay between retries (ms)
+     * @returns {Promise} Result of the operation
+     */
+    async retryOperation(operation, maxRetries = DEFAULT_MAX_RETRIES, baseDelay = DEFAULT_RETRY_DELAY) {
+      let lastError;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const result = await operation();
+          return result;
+        } catch (error) {
+          lastError = error;
+          console.warn(`Cart operation attempt ${attempt} failed:`, error);
+          if (attempt < maxRetries) {
+            const delay = baseDelay * Math.pow(2, attempt - 1);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+          }
+        }
+      }
+      throw new Error(`Cart operation failed after ${maxRetries} attempts: ${(lastError == null ? void 0 : lastError.message) || "Unknown error"}`);
+    }
+    /**
+     * Fetch current cart state
+     * @returns {Promise<Object>} Current cart data
+     */
+    async getCart() {
+      return this.retryOperation(async () => {
+        const response = await fetch("/cart.js", {
+          method: "GET",
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`Cart fetch failed: ${response.status}`);
+        }
+        return await response.json();
+      });
+    }
+    /**
+     * Add items to cart with verification
+     * @param {Array} items - Array of items to add [{id, quantity, properties}]
+     * @param {Object} options - Additional options
+     * @returns {Promise<Object>} Result with success status and cart data
+     */
+    async addToCart(items, options = {}) {
+      const { verify = true, maxRetries = DEFAULT_MAX_RETRIES } = options;
+      try {
+        const result = await this.retryOperation(async () => {
+          const response = await fetch("/cart/add.js", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ items })
+          });
+          if (!response.ok) {
+            const errorText = await response.text();
+            let errorData;
+            try {
+              errorData = JSON.parse(errorText);
+            } catch (e) {
+              errorData = { description: errorText };
+            }
+            throw new Error(errorData.description || `Failed to add to cart: ${response.status}`);
+          }
+          return await response.json();
+        }, maxRetries);
+        if (verify) {
+          await new Promise((resolve) => setTimeout(resolve, 150));
+          const cart = await this.getCart();
+          const allItemsAdded = items.every((item) => {
+            const itemId = this.normalizeVariantId(item.id);
+            return cart.items.some((cartItem) => {
+              const cartItemId = this.normalizeVariantId(cartItem.variant_id || cartItem.id);
+              return cartItemId === itemId;
+            });
+          });
+          if (!allItemsAdded) {
+            console.warn("Not all items were verified in cart");
+          }
+        }
+        return { success: true, data: result };
+      } catch (error) {
+        console.error("Add to cart failed:", error);
+        return { success: false, error: error.message };
+      }
+    }
+    /**
+     * Remove item from cart by key
+     * @param {string} itemKey - Cart item key
+     * @param {Object} options - Additional options
+     * @returns {Promise<Object>} Result with success status
+     */
+    async removeFromCart(itemKey, options = {}) {
+      const { verify = true, maxRetries = DEFAULT_MAX_RETRIES } = options;
+      try {
+        await this.retryOperation(async () => {
+          const response = await fetch("/cart/change.js", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              id: itemKey,
+              quantity: 0
+            })
+          });
+          if (!response.ok) {
+            throw new Error(`Failed to remove from cart: ${response.status}`);
+          }
+          return await response.json();
+        }, maxRetries);
+        if (verify) {
+          await new Promise((resolve) => setTimeout(resolve, 150));
+          const cart = await this.getCart();
+          const itemStillExists = cart.items.some((item) => item.key === itemKey);
+          if (itemStillExists) {
+            throw new Error("Item not removed from cart");
+          }
+        }
+        return { success: true };
+      } catch (error) {
+        console.error("Remove from cart failed:", error);
+        return { success: false, error: error.message };
+      }
+    }
+    /**
+     * Replace a cart item with new items (atomic operation)
+     * @param {string} oldItemKey - Key of item to remove
+     * @param {Array} newItems - New items to add
+     * @param {Object} options - Additional options
+     * @returns {Promise<Object>} Result with success status
+     */
+    async replaceCartItem(oldItemKey, newItems, options = {}) {
+      const { maxRetries = DEFAULT_MAX_RETRIES } = options;
+      try {
+        const removeResult = await this.removeFromCart(oldItemKey, { verify: true, maxRetries });
+        if (!removeResult.success) {
+          throw new Error(`Failed to remove old item: ${removeResult.error}`);
+        }
+        const addResult = await this.addToCart(newItems, { verify: true, maxRetries });
+        if (!addResult.success) {
+          throw new Error(`Failed to add new items: ${addResult.error}`);
+        }
+        return { success: true };
+      } catch (error) {
+        console.error("Replace cart item failed:", error);
+        return { success: false, error: error.message };
+      }
+    }
+    /**
+     * Verify a product is in the cart
+     * @param {string|number} variantId - Variant ID to check
+     * @returns {Promise<boolean>} True if product is in cart
+     */
+    async verifyProductInCart(variantId) {
+      try {
+        const cart = await this.getCart();
+        const normalizedId = this.normalizeVariantId(variantId);
+        return cart.items.some((item) => {
+          const itemId = this.normalizeVariantId(item.variant_id || item.id);
+          return itemId === normalizedId;
+        });
+      } catch (error) {
+        console.error("Error verifying product in cart:", error);
+        return false;
+      }
+    }
+    /**
+     * Wait for cart to be ready (not locked)
+     * @param {number} timeout - Max time to wait in ms
+     * @returns {Promise<boolean>} True if cart is ready
+     */
+    async waitForCartReady(timeout = CART_UPDATE_VERIFICATION_TIMEOUT) {
+      const startTime = Date.now();
+      while (Date.now() - startTime < timeout) {
+        try {
+          const cart = await this.getCart();
+          return true;
+        } catch (error) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
+      return false;
+    }
+    /**
+     * Find cart item by variant ID
+     * @param {string|number} variantId - Variant ID to find
+     * @returns {Promise<Object|null>} Cart item or null
+     */
+    async findCartItem(variantId) {
+      try {
+        const cart = await this.getCart();
+        const normalizedId = this.normalizeVariantId(variantId);
+        return cart.items.find((item) => {
+          const itemId = this.normalizeVariantId(item.variant_id || item.id);
+          return itemId === normalizedId;
+        }) || null;
+      } catch (error) {
+        console.error("Error finding cart item:", error);
+        return null;
+      }
+    }
+    /**
+     * Normalize variant ID to consistent format (numeric string)
+     * @param {string|number} variantId - Variant ID in any format
+     * @returns {string} Normalized variant ID
+     */
+    normalizeVariantId(variantId) {
+      if (!variantId)
+        return "";
+      let id = String(variantId);
+      if (id.includes("gid://shopify/ProductVariant/")) {
+        id = id.replace("gid://shopify/ProductVariant/", "");
+      }
+      const numericId = id.replace(/\D/g, "");
+      return numericId;
+    }
+    /**
+     * Get checkout URL (handles custom checkout apps)
+     * @returns {string} Checkout URL
+     */
+    getCheckoutUrl() {
+      if (typeof Shopify !== "undefined" && Shopify.routes && Shopify.routes.root) {
+        const root = Shopify.routes.root.replace(/\/$/, "");
+        return `${root}/checkout`;
+      }
+      return "/checkout";
+    }
+    /**
+     * Validate variant ID format
+     * @param {string|number} variantId - Variant ID to validate
+     * @returns {boolean} True if valid
+     */
+    isValidVariantId(variantId) {
+      if (!variantId)
+        return false;
+      const normalized = this.normalizeVariantId(variantId);
+      const numericId = parseInt(normalized, 10);
+      return !isNaN(numericId) && numericId > 0;
+    }
+    /**
+     * Trigger cart updated event
+     */
+    triggerCartUpdated() {
+      document.dispatchEvent(new CustomEvent("cart:updated", { bubbles: true }));
+    }
+    /**
+     * Fetch product data from Shopify
+     * @param {string} handle - Product handle
+     * @returns {Promise<Object|null>} Product data or null
+     */
+    async fetchProductData(handle) {
+      try {
+        const response = await fetch(`/products/${handle}.js`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch product: ${response.status}`);
+        }
+        return await response.json();
+      } catch (error) {
+        console.error(`Error fetching product ${handle}:`, error);
+        return null;
+      }
+    }
+    /**
+     * Get variant from product data
+     * @param {Object} productData - Product data from Shopify
+     * @param {string|number} variantId - Preferred variant ID
+     * @returns {Object|null} Variant object or null
+     */
+    getVariantFromProduct(productData, variantId = null) {
+      if (!productData || !productData.variants || productData.variants.length === 0) {
+        return null;
+      }
+      if (variantId) {
+        const normalizedId = this.normalizeVariantId(variantId);
+        const variant = productData.variants.find((v) => {
+          const vId = this.normalizeVariantId(v.id);
+          return vId === normalizedId;
+        });
+        if (variant)
+          return variant;
+      }
+      return productData.variants[0];
+    }
+  };
+  var cartOps = new CartOperations();
+
+  // extensions/cart-upsell/assets/modules/milestone-reward-manager.js
+  var MilestoneRewardManager = {
+    /**
+     * Calculate cart total excluding gift items
+     */
+    calculateCartTotalExcludingGifts(cart) {
+      if (!cart || !cart.items)
+        return 0;
+      let total = 0;
+      for (const item of cart.items) {
+        const props = this.normalizeProperties(item.properties);
+        const isGift = props["_selldrawer_gift_source"];
+        if (!isGift) {
+          total += item.line_price;
+        }
+      }
+      return total;
+    },
+    /**
+     * Handle milestone rewards - add gift to cart with discount properties
+     */
+    async handleMilestoneRewards(milestones, cart, onSuccess) {
+      if (!milestones || milestones.length === 0)
+        return null;
+      const cartTotal = this.calculateCartTotalExcludingGifts(cart);
+      let unlockedMilestone = null;
+      for (const milestone of milestones) {
+        if (milestone.rewardType === "gift_wrapping" && cartTotal >= milestone.targetAmount * 100) {
+          unlockedMilestone = milestone;
+        }
+      }
+      if (!unlockedMilestone)
+        return null;
+      const existingGift = this.getMilestoneGiftInCart(cart, unlockedMilestone);
+      if (existingGift)
+        return unlockedMilestone;
+      if (unlockedMilestone.giftProducts && unlockedMilestone.giftProducts.length > 0) {
+        const giftProduct = unlockedMilestone.giftProducts[0];
+        const variantId = giftProduct.shopifyVariantId || giftProduct.shopifyProductId;
+        const items = [{
+          id: variantId,
+          quantity: 1,
+          properties: {
+            "_selldrawer_gift_source": "milestone",
+            "_selldrawer_discount_type": "FREE",
+            "_selldrawer_discount_value": "100",
+            "_milestone_id": unlockedMilestone.id
+          }
+        }];
+        const result = await cartOps.addToCart(items);
+        if (result.success) {
+          this.showMilestoneUnlockedNotification(unlockedMilestone);
+          if (onSuccess)
+            await onSuccess();
+        }
+      }
+      return unlockedMilestone;
+    },
+    /**
+     * Show milestone unlocked notification
+     */
+    showMilestoneUnlockedNotification(milestone) {
+      const notification = document.createElement("div");
+      notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #10b981;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 10000;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      animation: slideIn 0.3s ease-out;
+    `;
+      notification.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 24px;">\u{1F389}</span>
+        <div>
+          <div style="font-weight: 700; margin-bottom: 4px;">Milestone Unlocked!</div>
+          <div style="font-weight: 400; opacity: 0.9;">${milestone.title}</div>
+        </div>
+      </div>
+    `;
+      document.body.appendChild(notification);
+      setTimeout(() => {
+        notification.style.animation = "slideOut 0.3s ease-in";
+        setTimeout(() => notification.remove(), 300);
+      }, 4e3);
+    },
+    /**
+     * Get all gifts in cart
+     */
+    getAllGiftsInCart(cart) {
+      if (!cart || !cart.items)
+        return [];
+      return cart.items.filter((item) => {
+        const props = this.normalizeProperties(item.properties);
+        return props["_selldrawer_gift_source"] === "milestone";
+      });
+    },
+    /**
+     * Get milestone gift in cart
+     */
+    getMilestoneGiftInCart(cart, milestone) {
+      if (!cart || !cart.items || !milestone)
+        return null;
+      return cart.items.find((item) => {
+        const props = this.normalizeProperties(item.properties);
+        return props["_milestone_id"] === milestone.id;
+      });
+    },
+    /**
+     * Remove gift from cart
+     */
+    async removeGiftFromCart(itemKey) {
+      try {
+        await cartOps.removeFromCart(itemKey);
+        return true;
+      } catch (error) {
+        console.error("Error removing gift from cart:", error);
+        return false;
+      }
+    },
+    /**
+     * Normalize properties object
+     */
+    normalizeProperties(properties) {
+      if (!properties)
+        return {};
+      if (Array.isArray(properties)) {
+        const normalized = {};
+        properties.forEach((prop) => {
+          if (prop && prop.name) {
+            normalized[prop.name] = prop.value;
+          }
+        });
+        return normalized;
+      }
+      return properties;
+    },
+    /**
+     * Validate milestone for checkout
+     */
+    async validateMilestoneForCheckout(cart, milestones) {
+      const cartTotal = this.calculateCartTotalExcludingGifts(cart);
+      const giftsInCart = this.getAllGiftsInCart(cart);
+      for (const giftItem of giftsInCart) {
+        const props = this.normalizeProperties(giftItem.properties);
+        const milestoneId = props["_milestone_id"];
+        const milestone = milestones.find((m) => m.id === milestoneId);
+        if (!milestone || cartTotal < milestone.targetAmount * 100) {
+          return {
+            valid: false,
+            message: "Cart total has dropped below milestone threshold. Please remove the gift or add more items."
+          };
+        }
+      }
+      return { valid: true, message: "" };
+    },
+    /**
+     * Get checkout URL with discount code if applicable
+     */
+    getCheckoutUrlWithDiscount(milestone) {
+      if (!milestone || !milestone.discountCode) {
+        return "/checkout";
+      }
+      return `/checkout?discount=${encodeURIComponent(milestone.discountCode)}`;
+    }
+  };
+  if (typeof document !== "undefined") {
+    const style = document.createElement("style");
+    style.textContent = `
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+    }
+  `;
+    document.head.appendChild(style);
+  }
+
+  // extensions/cart-upsell/assets/modules/free-gift-manager.js
+  var FreeGiftManager = {
+    /**
+     * Load free gifts from API
+     */
+    async loadFreeGifts(shop, cart, cartTotal) {
+      try {
+        const appUrl = true ? "https://drew-fix-america-insertion.trycloudflare.com" : "https://app.selldrawer.com";
+        const response = await fetch(`${appUrl}/api/free-gifts?shop=${encodeURIComponent(shop)}&cartTotal=${cartTotal}`);
+        if (!response.ok) {
+          console.error("Failed to load free gifts:", response.status);
+          return [];
+        }
+        const data = await response.json();
+        return data.freeGifts || [];
+      } catch (error) {
+        console.error("Error loading free gifts:", error);
+        return [];
+      }
+    },
+    /**
+     * Select a free gift and add it to cart with discount properties
+     */
+    async selectGift(variantId, freeGift, onSuccess) {
+      try {
+        const cart = await cartOps.getCart();
+        const existingGifts = this.getAllGiftsInCart(cart, freeGift);
+        for (const giftItem of existingGifts) {
+          await cartOps.removeFromCart(giftItem.key);
+        }
+        const items = [{
+          id: variantId,
+          quantity: 1,
+          properties: {
+            "_selldrawer_gift_source": "free_gift",
+            "_selldrawer_discount_type": "FREE",
+            "_selldrawer_discount_value": "100",
+            "_free_gift_id": freeGift.id
+          }
+        }];
+        const result = await cartOps.addToCart(items);
+        if (result.success && onSuccess) {
+          await onSuccess();
+        }
+        return result.success;
+      } catch (error) {
+        console.error("Error selecting free gift:", error);
+        return false;
+      }
+    },
+    /**
+     * Sync free gift with cart (auto-add if only one option)
+     */
+    async syncFreeGiftWithCart(freeGift, cart, onSuccess) {
+      if (!freeGift || !freeGift.qualified)
+        return;
+      if (freeGift.giftProducts && freeGift.giftProducts.length === 1) {
+        const giftProduct = freeGift.giftProducts[0];
+        const variantId = giftProduct.shopifyVariantId || giftProduct.shopifyProductId;
+        const existingGift = this.getSelectedGiftFromCart(cart, freeGift);
+        if (!existingGift) {
+          await this.selectGift(variantId, freeGift, onSuccess);
+        }
+      }
+    },
+    /**
+     * Get selected gift from cart
+     */
+    getSelectedGiftFromCart(cart, freeGift) {
+      if (!cart || !cart.items || !freeGift)
+        return null;
+      const giftItem = cart.items.find((item) => {
+        const props = this.normalizeProperties(item.properties);
+        return props["_free_gift_id"] === freeGift.id;
+      });
+      if (giftItem) {
+        const matchingProduct = freeGift.giftProducts.find((p) => {
+          const variantId = p.shopifyVariantId || p.shopifyProductId;
+          return cartOps.normalizeVariantId(variantId) === cartOps.normalizeVariantId(giftItem.variant_id);
+        });
+        return matchingProduct ? matchingProduct.id : null;
+      }
+      return null;
+    },
+    /**
+     * Get all free gifts in cart
+     */
+    getAllGiftsInCart(cart, freeGift = null) {
+      if (!cart || !cart.items)
+        return [];
+      return cart.items.filter((item) => {
+        const props = this.normalizeProperties(item.properties);
+        const source = props["_selldrawer_gift_source"];
+        if (source !== "free_gift")
+          return false;
+        if (freeGift) {
+          return props["_free_gift_id"] === freeGift.id;
+        }
+        return true;
+      });
+    },
+    /**
+     * Normalize properties object
+     */
+    normalizeProperties(properties) {
+      if (!properties)
+        return {};
+      if (Array.isArray(properties)) {
+        const normalized = {};
+        properties.forEach((prop) => {
+          if (prop && prop.name) {
+            normalized[prop.name] = prop.value;
+          }
+        });
+        return normalized;
+      }
+      return properties;
+    },
+    /**
+     * Get checkout URL with discount code if applicable
+     */
+    getCheckoutUrlWithDiscount(freeGift) {
+      if (!freeGift || !freeGift.discountCode) {
+        return "/checkout";
+      }
+      return `/checkout?discount=${encodeURIComponent(freeGift.discountCode)}`;
+    }
+  };
+
   // extensions/cart-upsell/assets/modules/components/UnifiedCartDrawer.jsx
   var import_react11 = __toESM(require_react(), 1);
 
@@ -13211,7 +13841,13 @@
                 if (onAddProductToCart) {
                   const id = product.variantId || product.id;
                   const numericId = typeof id === "string" && id.startsWith("gid://") ? id.split("/").pop() : id;
-                  onAddProductToCart(numericId);
+                  const properties = {
+                    "_selldrawer_gift_source": "milestone",
+                    "_selldrawer_discount_type": "FREE",
+                    // Milestone rewards are free (100% off)
+                    "_selldrawer_discount_value": "100"
+                  };
+                  onAddProductToCart(numericId, 1, properties);
                 }
               }
             }
@@ -13473,27 +14109,6 @@
   };
 
   // extensions/cart-upsell/assets/modules/cart-drawer-class.js
-  var MilestoneRewardManager = {
-    calculateCartTotalExcludingGifts: (cart) => cart.total_price,
-    handleMilestoneRewards: async () => null,
-    showMilestoneUnlockedNotification: () => {
-    },
-    getAllGiftsInCart: () => [],
-    normalizeProperties: () => ({}),
-    removeGiftFromCart: async () => {
-    },
-    validateMilestoneForCheckout: async () => ({ valid: true, message: "" }),
-    getCheckoutUrlWithDiscount: () => "/checkout"
-  };
-  var FreeGiftManager = {
-    loadFreeGifts: async () => [],
-    syncFreeGiftWithCart: async () => {
-    },
-    getSelectedGiftFromCart: () => null,
-    selectGift: async () => false,
-    getCheckoutUrlWithDiscount: () => "/checkout",
-    getAllGiftsInCart: () => []
-  };
   var SelldrawerCartDrawer = class {
     constructor(appUrl) {
       this.appUrl = appUrl;
@@ -14063,7 +14678,7 @@
           pendingOperations: this.pendingOperations,
           onClose: () => this.close(),
           onCheckout: () => this.handleCheckout(),
-          onAddProductToCart: (variantId) => this.addProductToCart(variantId, 1, { "_upsell_source": "cart_drawer_recommendation" }),
+          onAddProductToCart: (variantId, quantity = 1, properties = {}) => this.addProductToCart(variantId, quantity, properties),
           onUpdateQuantity: (itemKey, newQuantity) => this.updateQuantity(itemKey, newQuantity),
           onRemoveItem: (itemKey) => this.removeItem(itemKey),
           onApplyCoupon: (code) => this.applyCouponWithCode(code),
@@ -14499,7 +15114,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://reynolds-deliver-sometimes-cheque.trycloudflare.com" : "https://app.selldrawer.com";
+  var APP_URL = true ? "https://drew-fix-america-insertion.trycloudflare.com" : "https://app.selldrawer.com";
   async function initializeCartDrawer() {
     if (typeof window === "undefined")
       return;

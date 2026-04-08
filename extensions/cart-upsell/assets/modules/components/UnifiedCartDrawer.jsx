@@ -278,7 +278,15 @@ export const UnifiedCartDrawer = ({
                   const numericId = typeof id === 'string' && id.startsWith('gid://') 
                     ? id.split('/').pop() 
                     : id;
-                  onAddProductToCart(numericId);
+                  
+                  // Add discount properties for milestone rewards
+                  const properties = {
+                    '_selldrawer_gift_source': 'milestone',
+                    '_selldrawer_discount_type': 'FREE', // Milestone rewards are free (100% off)
+                    '_selldrawer_discount_value': '100'
+                  };
+                  
+                  onAddProductToCart(numericId, 1, properties);
                 }
               }}
             />

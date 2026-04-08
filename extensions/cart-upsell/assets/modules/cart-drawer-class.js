@@ -10,25 +10,8 @@ import * as CartOps from './cart-operations.js';
 import * as DiscountManager from './discount-manager.js';
 import * as ProductLoader from './product-loader.js';
 import * as AutoApplyStorage from './auto-apply-storage.js';
-const MilestoneRewardManager = {
-  calculateCartTotalExcludingGifts: (cart) => cart.total_price,
-  handleMilestoneRewards: async () => null,
-  showMilestoneUnlockedNotification: () => { },
-  getAllGiftsInCart: () => [],
-  normalizeProperties: () => ({}),
-  removeGiftFromCart: async () => { },
-  validateMilestoneForCheckout: async () => ({ valid: true, message: '' }),
-  getCheckoutUrlWithDiscount: () => '/checkout'
-};
-
-const FreeGiftManager = {
-  loadFreeGifts: async () => [],
-  syncFreeGiftWithCart: async () => { },
-  getSelectedGiftFromCart: () => null,
-  selectGift: async () => false,
-  getCheckoutUrlWithDiscount: () => '/checkout',
-  getAllGiftsInCart: () => []
-};
+import { MilestoneRewardManager } from './milestone-reward-manager.js';
+import { FreeGiftManager } from './free-gift-manager.js';
 import { UnifiedCartDrawer } from './components/UnifiedCartDrawer.jsx';
 import { Analytics } from './analytics.js';
 
@@ -810,7 +793,7 @@ export class SelldrawerCartDrawer {
         pendingOperations: this.pendingOperations,
         onClose: () => this.close(),
         onCheckout: () => this.handleCheckout(),
-        onAddProductToCart: (variantId) => this.addProductToCart(variantId, 1, { '_upsell_source': 'cart_drawer_recommendation' }),
+        onAddProductToCart: (variantId, quantity = 1, properties = {}) => this.addProductToCart(variantId, quantity, properties),
         onUpdateQuantity: (itemKey, newQuantity) => this.updateQuantity(itemKey, newQuantity),
         onRemoveItem: (itemKey) => this.removeItem(itemKey),
         onApplyCoupon: (code) => this.applyCouponWithCode(code),

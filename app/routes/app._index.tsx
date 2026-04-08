@@ -24,7 +24,7 @@ import prisma from "../db.server";
 import { checkAppEmbedEnabled } from "../utils/appEmbed.server";
 import { requireBilling } from "../utils/billing.server";
 import { ensureStorefrontAccessToken } from "../utils/storefrontToken.server";
-import { createFBTFunctionDiscount, getFBTFunctionId } from "../utils/fbt-discount.server";
+import { createFBTFunctionDiscount, getFBTFunctionId, verifyDiscountExists } from "../utils/fbt-discount.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing, session, admin } = await authenticate.admin(request);
@@ -62,14 +62,31 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (!appSettings) {
     appSettings = await prisma.appSettings.create({
       data: { 
-        id: crypto.randomUUID(),
+        id: shop, // Use shop as id for consistency
         shop,
         updatedAt: new Date()
       }
     });
   }
 
-  const discountFunctionActivated = appSettings.discountFunctionActivated;
+  // Verify the discount actually exists in Shopify
+  let discountFunctionActivated = appSettings.discountFunctionActivated;
+  if (discountFunctionActivated && appSettings.discountId) {
+    const discountExists = await verifyDiscountExists(admin, appSettings.discountId);
+    if (!discountExists) {
+      // Discount was deleted in Shopify, update our database
+      console.log("[app._index] Discount no longer exists, updating database");
+      await prisma.appSettings.update({
+        where: { shop },
+        data: {
+          discountFunctionActivated: false,
+          discountId: null,
+          updatedAt: new Date()
+        }
+      });
+      discountFunctionActivated = false;
+    }
+  }
 
   // Analytics Data Fetching
   const now = new Date();
@@ -195,15 +212,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       await prisma.appSettings.upsert({
         where: { shop },
         create: {
+          id: shop, // Use shop as the id since it's unique
           shop,
           discountFunctionActivated: true,
           discountFunctionId: functionId,
-          discountId: discountId
+          discountId: discountId,
+          updatedAt: new Date()
         },
         update: {
           discountFunctionActivated: true,
           discountFunctionId: functionId,
-          discountId: discountId
+          discountId: discountId,
+          updatedAt: new Date()
         }
       });
 

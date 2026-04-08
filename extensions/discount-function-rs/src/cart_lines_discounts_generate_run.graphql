@@ -12,6 +12,7 @@ query CartInput {
           }
         }
       }
+      # FBT Bundle attributes
       fbtBundleId: attribute(key: "_fbt_bundle_id") {
         value
       }
@@ -24,6 +25,16 @@ query CartInput {
       fbtBundleSize: attribute(key: "_fbt_bundle_size") {
         value
       }
+      # Milestone/Free Gift attributes
+      selldrawerGiftSource: attribute(key: "_selldrawer_gift_source") {
+        value
+      }
+      selldrawerDiscountType: attribute(key: "_selldrawer_discount_type") {
+        value
+      }
+      selldrawerDiscountValue: attribute(key: "_selldrawer_discount_value") {
+        value
+      }
       cost {
         subtotalAmount {
           amount
@@ -32,3 +43,4 @@ query CartInput {
     }
   }
 }
+

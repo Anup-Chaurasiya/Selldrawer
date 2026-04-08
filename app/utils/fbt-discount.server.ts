@@ -1,8 +1,10 @@
 /**
  * FBT Discount Management using Shopify Discount Functions
- * - No longer creates automatic discounts
- * - Discounts are now applied via the fbt-discount function
- * - Line item properties drive the discount logic
+ *
+ * Uses the `discountAutomaticAppCreate` mutation to create a single
+ * "Selldrawer Automatic Discounts" node tied to our deployed function.
+ * The function itself (cart_lines_discounts_generate_run.js) reads
+ * line item attributes to compute the actual discounts at checkout.
  */
 
 type AdminApiContext = {
@@ -10,190 +12,315 @@ type AdminApiContext = {
 };
 
 /**
- * Get the Shopify Function ID for the FBT discount function
- * This function must be deployed before discounts can be applied
+ * Safe wrapper for admin.graphql() calls.
+ *
+ * The Shopify graphql client can THROW (instead of returning errors in the
+ * response body) when there are GraphQL errors. This wrapper catches both
+ * cases, logs the actual error content, and returns null on failure.
  */
-export async function getFBTFunctionId(admin: AdminApiContext): Promise<string | null> {
-  const query = `
-    query {
-      shopifyFunctions(first: 50) {
-        nodes {
-          id
-          apiType
-          title
-          appKey
-          app {
-            handle
-          }
-        }
-      }
-    }
-  `;
-
+async function safeGraphql(
+  admin: AdminApiContext,
+  query: string,
+  options?: { variables?: any },
+  label = "safeGraphql"
+): Promise<any | null> {
   try {
-    const res = await admin.graphql(query);
-    const payloadData = await res.json();
-    const functions = payloadData?.data?.shopifyFunctions?.nodes || [];
+    const res = await admin.graphql(query, options);
+    const data = await res.json();
 
-    // Try to find FBT function by multiple criteria
-    const fbtFunction = functions.find((fn: any) => {
-      // Check if it matches our app's function by handle/key
-      const handleMatch = fn.appKey?.includes("fbt-discount") ||
-        fn.appKey?.includes("discount-function");
-
-      return handleMatch;
-    });
-
-    if (fbtFunction) {
-      return fbtFunction.id;
+    // Response-body errors (some API versions return errors in the JSON body)
+    if (data?.errors?.length > 0) {
+      console.error(`[${label}] GraphQL body errors:`, JSON.stringify(data.errors, null, 2));
+      return null;
     }
 
-    // Fallback: Use ANY discount-related function from our app
-    const anyDiscountFunction = functions.find((fn: any) => {
-      const apiType = fn.apiType?.toLowerCase() || "";
-      return apiType.includes("discount") || apiType.includes("product");
-    });
-    
-    if (anyDiscountFunction) {
-      return anyDiscountFunction.id;
+    return data;
+  } catch (err: any) {
+    // Thrown errors (newer Shopify client versions throw on GraphQL errors)
+    const gqlErrors = err?.graphQLErrors ?? err?.errors;
+    if (gqlErrors) {
+      console.error(`[${label}] Caught graphQLErrors:`, JSON.stringify(gqlErrors, null, 2));
+    } else {
+      console.error(`[${label}] Unexpected exception:`, err?.message ?? String(err));
     }
-
-    return null;
-  } catch (err) {
     return null;
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Create an automatic discount that uses the FBT function
- * This creates a discount node that activates the function for all FBT bundles
+ * Get the Shopify Function ID for the FBT discount function.
+ *
+ * Queries `shopifyFunctions` (requires API v2025-04+) to find the deployed
+ * "Frequently Bought Together Discount" function for this app.
+ */
+export async function getFBTFunctionId(admin: AdminApiContext): Promise<string | null> {
+  const data = await safeGraphql(
+    admin,
+    `query getFBTFunction {
+      shopifyFunctions(first: 25) {
+        nodes {
+          id
+          apiType
+          title
+        }
+      }
+    }`,
+    undefined,
+    "getFBTFunctionId"
+  );
+
+  if (!data) return null;
+
+  const functions: Array<{ id: string; apiType: string; title: string }> =
+    data?.data?.shopifyFunctions?.nodes ?? [];
+
+  console.log(
+    "[getFBTFunctionId] Available functions:",
+    functions.map((f) => `${f.title} (${f.id}, apiType=${f.apiType})`)
+  );
+
+  if (functions.length === 0) {
+    console.error("[getFBTFunctionId] No ShopifyFunctions found. Is the app deployed?");
+    return null;
+  }
+
+  // Priority 1: match by title
+  const byTitle = functions.find(
+    (fn) =>
+      fn.title?.toLowerCase().includes("fbt") ||
+      fn.title?.toLowerCase().includes("frequently bought") ||
+      fn.title?.toLowerCase().includes("discount")
+  );
+  if (byTitle) {
+    console.log("[getFBTFunctionId] Matched by title →", byTitle.id, byTitle.title);
+    return byTitle.id;
+  }
+
+  // Priority 2: match by apiType
+  const byApiType = functions.find((fn) =>
+    fn.apiType?.toLowerCase().includes("discount")
+  );
+  if (byApiType) {
+    console.log("[getFBTFunctionId] Matched by apiType →", byApiType.id, byApiType.apiType);
+    return byApiType.id;
+  }
+
+  // Priority 3: first available function
+  console.warn("[getFBTFunctionId] Using first available function →", functions[0].id);
+  return functions[0].id;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Create a "Selldrawer Automatic Discounts" automatic app discount node.
+ *
+ * This discount node is backed by the deployed `fbt-discount` Shopify Function.
+ * The function reads line item attributes to decide which discounts to apply.
+ *
+ * Returns the discountId (GID) on success, or null on failure.
  */
 export async function createFBTFunctionDiscount(
   admin: AdminApiContext,
   shop: string
 ): Promise<string | null> {
-  try {
-    // Get the FBT Function ID
-    const functionId = await getFBTFunctionId(admin);
-    if (!functionId) {
-      return null;
-    }
+  // 1. Resolve function ID
+  const functionId = await getFBTFunctionId(admin);
+  if (!functionId) {
+    console.error("[createFBTFunctionDiscount] Could not resolve functionId.");
+    return null;
+  }
 
-    const discountTitle = `Selldrawer Automatic Discounts`;
+  const discountTitle = "Selldrawer Automatic Discounts";
 
-    // Check if discount already exists
-    const checkQuery = `
-      query {
-        automaticDiscountNodes(first: 50) {
-          nodes {
-            id
-            automaticDiscount {
-              ... on DiscountAutomaticApp {
-                title
-                discountId
-              }
+  // 2. Check if the discount already exists (avoid duplicates)
+  const checkData = await safeGraphql(
+    admin,
+    `query checkExistingDiscount {
+      discountNodes(first: 50) {
+        nodes {
+          id
+          discount {
+            ... on DiscountAutomaticApp {
+              title
+              discountId
             }
           }
         }
       }
-    `;
+    }`,
+    undefined,
+    "createFBTFunctionDiscount/check"
+  );
 
-    const checkRes = await admin.graphql(checkQuery);
-    const checkData = await checkRes.json();
-    const existingDiscount = checkData?.data?.automaticDiscountNodes?.nodes?.find(
-      (node: any) => node.automaticDiscount?.title === discountTitle
+  if (checkData?.data?.discountNodes?.nodes) {
+    const nodes = checkData.data.discountNodes.nodes;
+    console.log("[createFBTFunctionDiscount] Checking existing discounts:", 
+      nodes.map((n: any) => n.discount?.title || 'untitled'));
+    
+    const existingNode = nodes.find(
+      (node: any) => node.discount?.title === discountTitle
     );
 
-    if (existingDiscount) {
-      return existingDiscount.automaticDiscount.discountId;
+    if (existingNode) {
+      const discountId = existingNode.discount?.discountId || existingNode.id;
+      console.log("[createFBTFunctionDiscount] Discount already exists, returning id:", discountId);
+      return discountId;
     }
+  }
 
-    // Create automatic app discount
-    const mutation = `
-      mutation discountAutomaticAppCreate($automaticAppDiscount: DiscountAutomaticAppInput!) {
-        discountAutomaticAppCreate(automaticAppDiscount: $automaticAppDiscount) {
-          automaticAppDiscount {
-            discountId
-            title
-          }
-          userErrors {
-            field
-            message
-          }
+  // 3. Create the discount node
+  console.log(
+    "[createFBTFunctionDiscount] Creating discount for shop:", shop,
+    "with functionId:", functionId
+  );
+
+  const mutationData = await safeGraphql(
+    admin,
+    `mutation discountAutomaticAppCreate($automaticAppDiscount: DiscountAutomaticAppInput!) {
+      discountAutomaticAppCreate(automaticAppDiscount: $automaticAppDiscount) {
+        automaticAppDiscount {
+          discountId
+          title
+        }
+        userErrors {
+          field
+          message
+          code
         }
       }
-    `;
+    }`,
+    {
+      variables: {
+        automaticAppDiscount: {
+          title: discountTitle,
+          functionId,
+          startsAt: new Date().toISOString(),
+          // Required when the function uses the 'discounts' API type
+          discountClasses: ["PRODUCT"],
+          combinesWith: {
+            orderDiscounts: false,
+            productDiscounts: false,
+            shippingDiscounts: false,
+          },
+        },
+      },
+    },
+    "createFBTFunctionDiscount/mutation"
+  );
 
-    const variables = {
-      automaticAppDiscount: {
-        title: discountTitle,
-        functionId: functionId,
-        startsAt: new Date().toISOString(),
-        combinesWith: {
-          orderDiscounts: false,
-          productDiscounts: false,
-          shippingDiscounts: false
-        }
-      }
-    };
+  if (!mutationData) return null;
 
-    // Add discountClass or discountClasses based on API type
-    // For 'discount' API type, we need discountClasses array
-    // For 'product_discount' API type, we don't need it
-    const apiType = await admin.graphql(`
-      query {
-        shopifyFunction(id: "${functionId}") {
-          apiType
-        }
-      }
-    `).then(r => r.json()).then(d => d?.data?.shopifyFunction?.apiType);
-
-    if (apiType === "discount") {
-      (variables.automaticAppDiscount as any).discountClasses = ["PRODUCT"];
-    }
-
-    console.log("Creating FBT Function discount:", {
-      shop,
-      functionId
-    });
-
-    const res = await admin.graphql(mutation, { variables });
-    const payloadData = await res.json();
-    const payload = payloadData?.data?.discountAutomaticAppCreate;
-
-    if (!payload) {
-      console.error("createFBTFunctionDiscount: invalid response", JSON.stringify(payloadData, null, 2));
-      return null;
-    }
-
-    if (payload.userErrors && payload.userErrors.length > 0) {
-      console.error("createFBTFunctionDiscount userErrors:", JSON.stringify(payload.userErrors, null, 2));
-      return null;
-    }
-
-    const discountId = payload.automaticAppDiscount?.discountId;
-    if (!discountId) {
-      console.error("createFBTFunctionDiscount: no discountId returned");
-      return null;
-    }
-
-    console.log("✅ Selldrawer Automatic Discounts created successfully:", discountId);
-    return discountId;
-  } catch (err) {
-    console.error("Exception in createFBTFunctionDiscount:", err);
+  const payload = mutationData?.data?.discountAutomaticAppCreate;
+  if (!payload) {
+    console.error("[createFBTFunctionDiscount] Unexpected response shape:", JSON.stringify(mutationData, null, 2));
     return null;
   }
+
+  if (payload.userErrors?.length > 0) {
+    console.error("[createFBTFunctionDiscount] userErrors:", JSON.stringify(payload.userErrors, null, 2));
+    
+    // If the error is about duplicate title, try to find and return the existing discount
+    const isDuplicateError = payload.userErrors.some((err: any) => 
+      err.message?.toLowerCase().includes("must be unique") || 
+      err.message?.toLowerCase().includes("already exists")
+    );
+    
+    if (isDuplicateError) {
+      console.log("[createFBTFunctionDiscount] Duplicate detected, attempting to fetch existing discount...");
+      const recheckData = await safeGraphql(
+        admin,
+        `query recheckExistingDiscount {
+          discountNodes(first: 50) {
+            nodes {
+              id
+              discount {
+                ... on DiscountAutomaticApp {
+                  title
+                  discountId
+                }
+              }
+            }
+          }
+        }`,
+        undefined,
+        "createFBTFunctionDiscount/recheck"
+      );
+      
+      const existingNode = recheckData?.data?.discountNodes?.nodes?.find(
+        (node: any) => node.discount?.title === discountTitle
+      );
+      
+      if (existingNode) {
+        const discountId = existingNode.discount?.discountId || existingNode.id;
+        console.log("[createFBTFunctionDiscount] Found existing discount after duplicate error:", discountId);
+        return discountId;
+      }
+    }
+    
+    return null;
+  }
+
+  const discountId = payload.automaticAppDiscount?.discountId;
+  if (!discountId) {
+    console.error("[createFBTFunctionDiscount] No discountId in response:", JSON.stringify(payload, null, 2));
+    return null;
+  }
+
+  console.log("✅ [createFBTFunctionDiscount] Created successfully, discountId:", discountId);
+  return discountId;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Delete an FBT automatic discount by ID
+ * Verify if a discount still exists in Shopify
+ * Returns true if the discount exists and is active, false otherwise
  */
+export async function verifyDiscountExists(
+  admin: AdminApiContext,
+  discountId: string
+): Promise<boolean> {
+  if (!discountId) return false;
+
+  const data = await safeGraphql(
+    admin,
+    `query getDiscount($id: ID!) {
+      discountNode(id: $id) {
+        id
+        discount {
+          ... on DiscountAutomaticApp {
+            title
+            status
+          }
+        }
+      }
+    }`,
+    { variables: { id: discountId } },
+    "verifyDiscountExists"
+  );
+
+  const discountNode = data?.data?.discountNode;
+  if (!discountNode) {
+    console.log("[verifyDiscountExists] Discount not found:", discountId);
+    return false;
+  }
+
+  const status = discountNode.discount?.status;
+  const isActive = status === "ACTIVE";
+  console.log("[verifyDiscountExists] Discount status:", status, "isActive:", isActive);
+  
+  return isActive;
+}
 export async function deleteFBTDiscount(
   admin: AdminApiContext,
   discountId: string
 ): Promise<boolean> {
-  const mutation = `
-    mutation discountAutomaticDelete($id: ID!) {
+  const data = await safeGraphql(
+    admin,
+    `mutation discountAutomaticDelete($id: ID!) {
       discountAutomaticDelete(id: $id) {
         deletedAutomaticDiscountId
         userErrors {
@@ -201,38 +328,28 @@ export async function deleteFBTDiscount(
           message
         }
       }
+    }`,
+    { variables: { id: discountId } },
+    "deleteFBTDiscount"
+  );
+
+  if (!data) return false;
+
+  const payload = data?.data?.discountAutomaticDelete;
+  if (!payload) return false;
+
+  if (payload.userErrors?.length > 0) {
+    const notFound = payload.userErrors.some((e: any) =>
+      e.message?.toLowerCase().includes("does not exist")
+    );
+    if (notFound) {
+      console.log("[deleteFBTDiscount] Discount not found, treating as success.");
+      return true;
     }
-  `;
-
-  try {
-    const res = await admin.graphql(mutation, { variables: { id: discountId } });
-    const payloadData = await res.json();
-    const payload = payloadData?.data?.discountAutomaticDelete;
-
-    if (!payload) {
-      console.error("deleteFBTDiscount: invalid response", JSON.stringify(payloadData, null, 2));
-      return false;
-    }
-
-    if (payload.userErrors && payload.userErrors.length > 0) {
-      // Check if the error is "discount does not exist" - treat this as success
-      const doesNotExistError = payload.userErrors.some((err: any) =>
-        err.message && err.message.toLowerCase().includes("does not exist")
-      );
-
-      if (doesNotExistError) {
-        console.log("deleteFBTDiscount: discount already deleted or does not exist, treating as success");
-        return true;
-      }
-
-      console.error("deleteFBTDiscount userErrors:", JSON.stringify(payload.userErrors, null, 2));
-      return false;
-    }
-
-    console.log("FBT discount deleted successfully:", discountId);
-    return !!payload.deletedAutomaticDiscountId;
-  } catch (err) {
-    console.error("Exception in deleteFBTDiscount:", err);
+    console.error("[deleteFBTDiscount] userErrors:", JSON.stringify(payload.userErrors, null, 2));
     return false;
   }
+
+  console.log("[deleteFBTDiscount] Deleted successfully:", discountId);
+  return !!payload.deletedAutomaticDiscountId;
 }
