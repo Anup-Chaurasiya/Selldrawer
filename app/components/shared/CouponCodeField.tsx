@@ -81,6 +81,18 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
   const [couponCode, setCouponCode] = useState('');
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [animationClass, setAnimationClass] = useState('');
+  const [validationState, setValidationState] = useState<'idle' | 'valid' | 'invalid' | 'loading'>('idle');
+  const [matchedDiscount, setMatchedDiscount] = useState<Discount | null>(null);
+  const [discounts, setDiscounts] = useState<Discount[]>(availableDiscounts || []);
+  const [validationMessage, setValidationMessage] = useState('');
+
+  // Update discounts when availableDiscounts prop changes
+  useEffect(() => {
+    if (availableDiscounts && availableDiscounts.length > 0) {
+      console.log('CouponCodeField: Received available discounts', availableDiscounts.map(d => d.code));
+      setDiscounts(availableDiscounts);
+    }
+  }, [availableDiscounts]);
 
   // Simplified available/unavailable logic for demonstration/preview
   const processedDiscounts = availableDiscounts.map(d => ({
@@ -101,14 +113,102 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
     }
   }, [isSheetOpen]);
 
-  const handleApply = (codeToApply?: string) => {
+  // Remove real-time validation - only validate on Apply button click
+  useEffect(() => {
+    if (!couponCode.trim()) {
+      setValidationState('idle');
+      setMatchedDiscount(null);
+      setValidationMessage('');
+      return;
+    }
+
+    // Just check if it's in the available discounts list for instant feedback
+    const upperCode = couponCode.toUpperCase();
+    const found = discounts.find(d => d.code === upperCode);
+    
+    if (found) {
+      setMatchedDiscount(found);
+    } else {
+      setMatchedDiscount(null);
+    }
+  }, [couponCode, discounts]);
+
+  // Fetch available discounts from API on mount (fallback if not passed as prop)
+  useEffect(() => {
+    if (isPreview || discounts.length > 0) return;
+
+    const fetchDiscounts = async () => {
+      try {
+        const config = (window as any).selldrawer_config;
+        const shop = config?.shop;
+        const appUrl = config?.appUrl;
+        
+        if (!shop || !appUrl) {
+          console.warn('CouponCodeField: Missing shop or appUrl in selldrawer_config');
+          return;
+        }
+
+        console.log('CouponCodeField: Fetching discounts from API...');
+        const response = await fetch(`${appUrl}/api/available-discounts?shop=${encodeURIComponent(shop)}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.discounts && Array.isArray(data.discounts)) {
+            console.log('CouponCodeField: Fetched discounts from API', data.discounts.map(d => d.code));
+            setDiscounts(data.discounts);
+          } else {
+            console.warn('CouponCodeField: No discounts in API response', data);
+          }
+        } else {
+          console.error('CouponCodeField: API request failed', response.status);
+        }
+      } catch (error) {
+        console.error('CouponCodeField: Failed to fetch discounts', error);
+      }
+    };
+
+    fetchDiscounts();
+  }, [isPreview, discounts.length]);
+
+  const handleApply = async (codeToApply?: string) => {
     const code = codeToApply || couponCode.trim();
-    if (code) {
-      onApplyCoupon(code);
-      if (!isPreview) {
+    if (!code) return;
+
+    // Validate when Apply button is clicked
+    setValidationState('loading');
+    setValidationMessage('Validating...');
+
+    try {
+      // ONLY accept codes that are in the available discounts list
+      const upperCode = code.toUpperCase();
+      const found = discounts.find(d => d.code === upperCode);
+      
+      if (found) {
+        // Code is in the list, it's valid - apply immediately without showing message
+        console.log('Coupon found in available discounts:', found);
+        
+        // Apply the coupon
+        onApplyCoupon(code);
+        
+        // Close immediately without showing success message
         setCouponCode('');
         setIsSheetOpen(false);
+        setValidationState('idle');
+        setMatchedDiscount(null);
+        setValidationMessage('');
+        return;
       }
+
+      // Code not in available discounts - reject it
+      console.log('Coupon not found in available discounts. Available codes:', discounts.map(d => d.code));
+      setValidationState('invalid');
+      setMatchedDiscount(null);
+      setValidationMessage('Invalid coupon code');
+      
+    } catch (error) {
+      console.error('Failed to validate discount:', error);
+      setValidationState('invalid');
+      setMatchedDiscount(null);
+      setValidationMessage('Unable to validate code');
     }
   };
 
@@ -121,18 +221,18 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
     <div style={{
       position: 'relative',
       backgroundColor: isApplied ? '#f0f9ff' : isLocked ? '#f8fafc' : '#ffffff',
-      borderRadius: '12px',
-      border: `1.5px ${isApplied ? 'solid #3b82f6' : isLocked ? 'dashed #e2e8f0' : 'solid #f1f5f9'}`,
-      padding: '16px',
-      marginBottom: '12px',
+      borderRadius: '10px',
+      border: `1px ${isApplied ? 'solid #3b82f6' : isLocked ? 'dashed #e2e8f0' : 'solid #e5e7eb'}`,
+      padding: '12px 14px',
+      marginBottom: '10px',
       transition: 'all 0.2s ease',
       cursor: isLocked ? 'default' : 'pointer',
       display: 'flex',
       flexDirection: 'column',
-      gap: '8px',
+      gap: '6px',
       overflow: 'hidden',
       opacity: isLocked ? 0.7 : 1,
-      boxShadow: isApplied ? '0 4px 6px -1px rgba(59, 130, 246, 0.1)' : '0 1px 2px rgba(0,0,0,0.05)'
+      boxShadow: isApplied ? '0 2px 4px rgba(59, 130, 246, 0.08)' : '0 1px 2px rgba(0,0,0,0.03)'
     }}
       onClick={() => !isLocked && !isApplied && handleApply(discount.code)}
     >
@@ -145,7 +245,7 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
         width: '16px',
         height: '16px',
         borderRadius: '50%',
-        backgroundColor: '#ffffff', // Match parent sheet background
+        backgroundColor: '#ffffff',
         boxShadow: 'inset -2px 0 2px rgba(0,0,0,0.02)',
         zIndex: 2
       }} />
@@ -165,47 +265,47 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{
-            padding: '4px 10px',
+            padding: '3px 8px',
             backgroundColor: isApplied ? '#3b82f6' : '#fff7ed',
             color: isApplied ? '#ffffff' : '#f97316',
-            borderRadius: '6px',
-            fontSize: '13px',
-            fontWeight: 800,
+            borderRadius: '5px',
+            fontSize: '12px',
+            fontWeight: 700,
             textTransform: 'uppercase',
-            letterSpacing: '0.5px'
+            letterSpacing: '0.3px'
           }}>
             {discount.code}
           </div>
-          {isApplied && <CheckIcon size={16} color="#3b82f6" />}
+          {isApplied && <CheckIcon size={14} color="#3b82f6" />}
         </div>
         {!isLocked && !isApplied && (
           <button style={{
             background: 'none',
             border: 'none',
             color: '#3b82f6',
-            fontWeight: 700,
-            fontSize: '13px',
+            fontWeight: 600,
+            fontSize: '12px',
             cursor: 'pointer'
           }}>
             Apply
           </button>
         )}
         {isApplied && (
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#3b82f6' }}>APPLIED</span>
+          <span style={{ fontSize: '11px', fontWeight: 600, color: '#3b82f6' }}>APPLIED</span>
         )}
       </div>
 
-      <div style={{ fontSize: '13px', color: '#4b5563', fontWeight: 500 }}>
+      <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>
         {discount.description || `${discount.value}${discount.type === 'percentage' ? '%' : ''} off entire order`}
       </div>
 
       {isLocked && (
-        <div style={{ marginTop: '4px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>
+        <div style={{ marginTop: '2px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#9ca3af', marginBottom: '3px' }}>
             <span>Unlocks at {discount.threshold ? `Rs. ${(discount.threshold / 100).toFixed(2)}` : ''}</span>
             <span>{discount.remaining ? `Rs. ${(discount.remaining / 100).toFixed(2)} left` : ''}</span>
           </div>
-          <div style={{ width: '100%', height: '4px', backgroundColor: '#f1f5f9', borderRadius: '2px', overflow: 'hidden' }}>
+          <div style={{ width: '100%', height: '3px', backgroundColor: '#f1f5f9', borderRadius: '2px', overflow: 'hidden' }}>
             <div style={{ 
               width: `${Math.min(100, (cartTotal / (discount.threshold || 1)) * 100)}%`, 
               height: '100%', 
@@ -219,7 +319,7 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
   );
 
   return (
-    <div id={id} style={{ marginBottom: '16px' }}>
+    <div id={id}>
       {/* Main Bar */}
       {!appliedDiscount ? (
         <div 
@@ -333,14 +433,14 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
               display: 'flex',
               flexDirection: 'column',
               maxHeight: '85vh',
-              padding: '24px 20px',
+              padding: '20px 18px',
               boxShadow: '0 -10px 25px -5px rgba(0,0,0,0.1)',
               animation: 'sd-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
             }}
           >
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#111827' }}>Apply Coupon</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#111827' }}>Apply Coupon</h3>
               <button 
                 onClick={() => setIsSheetOpen(false)}
                 style={{
@@ -353,60 +453,139 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: '#64748b',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s ease'
                 }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e5e7eb'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
               >
                 <XIcon size={18} />
               </button>
             </div>
 
-            {/* Manual Input */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
-              <input
-                type="text"
-                value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                onKeyPress={handleKeyPress}
-                placeholder={placeholder}
-                style={{
-                  flex: 1,
-                  padding: '14px 18px',
-                  border: '2.5px solid #f3f4f6',
-                  borderRadius: '12px',
-                  fontSize: '15px',
-                  fontWeight: 600,
-                  outline: 'none',
-                  transition: 'border-color 0.2s ease',
-                  color: '#111827'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                onBlur={(e) => e.target.style.borderColor = '#f3f4f6'}
-              />
+                  {/* Manual Input */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+              <div style={{ flex: 1, position: 'relative' }}>
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  onKeyPress={handleKeyPress}
+                  placeholder={placeholder}
+                  disabled={validationState === 'loading'}
+                  style={{
+                    width: '100%',
+                    padding: '11px 40px 11px 14px',
+                    border: validationState === 'valid' ? '1.5px solid #10b981' : validationState === 'invalid' ? '1.5px solid #ef4444' : '1.5px solid #e5e7eb',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    outline: 'none',
+                    transition: 'all 0.2s ease',
+                    color: '#111827',
+                    backgroundColor: validationState === 'valid' ? '#f0fdf4' : validationState === 'invalid' ? '#fef2f2' : '#fafbfc',
+                    boxSizing: 'border-box',
+                    opacity: validationState === 'loading' ? 0.6 : 1
+                  }}
+                  onFocus={(e) => {
+                    if (validationState === 'idle') {
+                      e.target.style.borderColor = '#3b82f6';
+                      e.target.style.backgroundColor = '#ffffff';
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (validationState === 'idle') {
+                      e.target.style.borderColor = '#e5e7eb';
+                      e.target.style.backgroundColor = '#fafbfc';
+                    }
+                  }}
+                />
+                {validationState === 'valid' && (
+                  <div style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#10b981'
+                  }}>
+                    <CheckIcon size={16} color="#10b981" />
+                  </div>
+                )}
+                {validationState === 'invalid' && (
+                  <div style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#ef4444'
+                  }}>
+                    <XIcon size={16} color="#ef4444" />
+                  </div>
+                )}
+                {validationState === 'loading' && (
+                  <div style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#3b82f6'
+                  }}>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid #e5e7eb',
+                      borderTop: '2px solid #3b82f6',
+                      borderRadius: '50%',
+                      animation: 'spin 0.6s linear infinite'
+                    }} />
+                  </div>
+                )}
+              </div>
               <button
                 onClick={() => handleApply()}
-                disabled={!couponCode.trim()}
+                disabled={!couponCode.trim() || validationState === 'loading'}
                 style={{
-                  padding: '0 24px',
-                  backgroundColor: !couponCode.trim() ? '#e5e7eb' : '#3b82f6',
+                  padding: '11px 20px',
+                  backgroundColor: !couponCode.trim() || validationState === 'loading' ? '#e5e7eb' : '#3b82f6',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '14px',
-                  fontWeight: 800,
-                  cursor: !couponCode.trim() ? 'not-allowed' : 'pointer'
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: !couponCode.trim() || validationState === 'loading' ? 'not-allowed' : 'pointer',
+                  transition: 'background-color 0.2s ease',
+                  whiteSpace: 'nowrap'
+                }}
+                onMouseEnter={(e) => {
+                  if (couponCode.trim() && validationState !== 'loading') e.currentTarget.style.backgroundColor = '#2563eb';
+                }}
+                onMouseLeave={(e) => {
+                  if (couponCode.trim() && validationState !== 'loading') e.currentTarget.style.backgroundColor = '#3b82f6';
                 }}
               >
-                {buttonText}
+                {validationState === 'loading' ? 'Validating...' : buttonText}
               </button>
             </div>
+
+            {/* Validation Message - Simple text only */}
+            {validationState === 'invalid' && (
+              <div style={{
+                marginBottom: '16px',
+                fontSize: '12px',
+                color: '#ef4444',
+                fontWeight: 500
+              }}>
+                {validationMessage}
+              </div>
+            )}
 
             {/* Coupons List */}
             <div style={{ flex: 1, overflowY: 'auto', marginBottom: '10px', paddingRight: '4px' }}>
               {/* Available Coupons */}
               {validDiscounts.length > 0 && (
-                <div style={{ marginBottom: '24px' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '1px' }}>
-                    Available Coupons
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '10px', letterSpacing: '0.5px' }}>
+                    Available Coupons ({validDiscounts.length})
                   </div>
                   {validDiscounts.map(d => (
                     <TicketCard key={d.code} discount={d} isApplied={appliedDiscount?.code === d.code} isLocked={false} />
@@ -417,12 +596,28 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
               {/* Unavailable Coupons */}
               {invalidDiscounts.length > 0 && (
                 <div>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '1px' }}>
-                    Unavailable Coupons
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '10px', letterSpacing: '0.5px' }}>
+                    Unavailable Coupons ({invalidDiscounts.length})
                   </div>
                   {invalidDiscounts.map(d => (
                     <TicketCard key={d.code} discount={d} isApplied={false} isLocked={true} />
                   ))}
+                </div>
+              )}
+
+              {/* No Coupons */}
+              {discounts.length === 0 && (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '40px 20px',
+                  color: '#9ca3af'
+                }}>
+                  <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>
+                    No coupons available
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#d1d5db' }}>
+                    Check back later for new offers
+                  </div>
                 </div>
               )}
             </div>
@@ -436,6 +631,10 @@ export const CouponCodeField: React.FC<CouponCodeFieldProps> = ({
             @keyframes sd-fade-in {
               from { opacity: 0; }
               to { opacity: 1; }
+            }
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
             }
             .sd-slide-up { animation: sd-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
           `}} />

@@ -4,4 +4,4 @@
  */
 
 // App URL - Update this with your deployment URL
-export const APP_URL = 'https://drew-fix-america-insertion.trycloudflare.com';
+export const APP_URL = 'https://java-usual-gentle-candle.trycloudflare.com';

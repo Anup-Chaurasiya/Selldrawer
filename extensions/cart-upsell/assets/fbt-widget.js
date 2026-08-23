@@ -405,13 +405,13 @@
         console.error("Selldrawer: Missing shop or product handle");
         return;
       }
-      const appUrl = true ? "https://drew-fix-america-insertion.trycloudflare.com" : "https://app.selldrawer.com";
+      const appUrl = true ? "https://java-usual-gentle-candle.trycloudflare.com" : "https://app.selldrawer.com";
       Analytics.init(appUrl);
       await this.loadFBTData(this.shop, productHandle);
     }
     async loadFBTData(shop, productHandle) {
       try {
-        const appUrl = true ? "https://drew-fix-america-insertion.trycloudflare.com" : "https://app.selldrawer.com";
+        const appUrl = true ? "https://java-usual-gentle-candle.trycloudflare.com" : "https://app.selldrawer.com";
         const response = await fetch(`${appUrl}/api/fbt?shop=${encodeURIComponent(shop)}&productHandle=${encodeURIComponent(productHandle)}`);
         if (!response.ok) {
           throw new Error(`Failed to load FBT data: ${response.status}`);

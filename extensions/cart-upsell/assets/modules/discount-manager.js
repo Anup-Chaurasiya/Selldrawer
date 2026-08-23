@@ -6,12 +6,13 @@
 // import { showNotification } from './utils.js';
 
 /**
- * Load available discounts from API (for display purposes only)
+ * Load available discounts from API (for display purposes and validation)
  */
 export async function loadAvailableDiscounts(appUrl, shop, config) {
   const couponField = config?.features?.couponCodeField;
 
-  if (!couponField || (!couponField.enableAutoApply && !couponField.showAllOffers)) {
+  // Always fetch discounts if coupon field is enabled (needed for validation)
+  if (!couponField) {
     return [];
   }
 
@@ -20,6 +21,7 @@ export async function loadAvailableDiscounts(appUrl, shop, config) {
     const data = await response.json();
 
     if (data.discounts && data.discounts.length > 0) {
+      console.log('Selldrawer: Loaded available discounts', data.discounts.map(d => d.code));
       return data.discounts;
     } else {
       console.warn('Selldrawer: No discounts available', {
@@ -159,9 +161,17 @@ export async function removeDiscount(loadCartCallback) {
 
 /**
  * Validate and apply coupon code (used with React component)
- * Uses Shopify AJAX API directly
+ * Uses Shopify's native validation via cart API
  */
 export async function validateAndApplyCoupon(appUrl, shop, config, couponCode, loadCartCallback) {
+  if (!couponCode || !couponCode.trim()) {
+    console.error('Selldrawer: No coupon code provided');
+    return false;
+  }
+
+  console.log('Selldrawer: Applying coupon code:', couponCode);
+  
+  // Just apply the code - Shopify will validate it
   return await applyDiscountCode(couponCode, loadCartCallback);
 }
 

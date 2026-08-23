@@ -8117,13 +8117,14 @@
   async function loadAvailableDiscounts(appUrl, shop, config) {
     var _a2;
     const couponField = (_a2 = config == null ? void 0 : config.features) == null ? void 0 : _a2.couponCodeField;
-    if (!couponField || !couponField.enableAutoApply && !couponField.showAllOffers) {
+    if (!couponField) {
       return [];
     }
     try {
       const response = await fetch(`${appUrl}/api/available-discounts?shop=${shop}`);
       const data = await response.json();
       if (data.discounts && data.discounts.length > 0) {
+        console.log("Selldrawer: Loaded available discounts", data.discounts.map((d) => d.code));
         return data.discounts;
       } else {
         console.warn("Selldrawer: No discounts available", {
@@ -8226,6 +8227,11 @@
     }
   }
   async function validateAndApplyCoupon(appUrl, shop, config, couponCode, loadCartCallback) {
+    if (!couponCode || !couponCode.trim()) {
+      console.error("Selldrawer: No coupon code provided");
+      return false;
+    }
+    console.log("Selldrawer: Applying coupon code:", couponCode);
     return await applyDiscountCode(couponCode, loadCartCallback);
   }
   async function applyCoupon(appUrl, shop, config, appliedDiscount, renderCallback) {
@@ -9094,7 +9100,7 @@
      */
     async loadFreeGifts(shop, cart, cartTotal) {
       try {
-        const appUrl = true ? "https://drew-fix-america-insertion.trycloudflare.com" : "https://app.selldrawer.com";
+        const appUrl = true ? "https://java-usual-gentle-candle.trycloudflare.com" : "https://app.selldrawer.com";
         const response = await fetch(`${appUrl}/api/free-gifts?shop=${encodeURIComponent(shop)}&cartTotal=${cartTotal}`);
         if (!response.ok) {
           console.error("Failed to load free gifts:", response.status);
@@ -11424,6 +11430,16 @@
     const [couponCode, setCouponCode] = (0, import_react5.useState)("");
     const [isSheetOpen, setIsSheetOpen] = (0, import_react5.useState)(false);
     const [animationClass, setAnimationClass] = (0, import_react5.useState)("");
+    const [validationState, setValidationState] = (0, import_react5.useState)("idle");
+    const [matchedDiscount, setMatchedDiscount] = (0, import_react5.useState)(null);
+    const [discounts, setDiscounts] = (0, import_react5.useState)(availableDiscounts || []);
+    const [validationMessage, setValidationMessage] = (0, import_react5.useState)("");
+    (0, import_react5.useEffect)(() => {
+      if (availableDiscounts && availableDiscounts.length > 0) {
+        console.log("CouponCodeField: Received available discounts", availableDiscounts.map((d) => d.code));
+        setDiscounts(availableDiscounts);
+      }
+    }, [availableDiscounts]);
     const processedDiscounts = availableDiscounts.map((d) => __spreadProps(__spreadValues({}, d), {
       // Mock thresholds if not present
       threshold: d.threshold || (d.code === "FLAT10" ? 5e3 : 0),
@@ -11438,14 +11454,80 @@
         setAnimationClass("sd-slide-down");
       }
     }, [isSheetOpen]);
-    const handleApply = (codeToApply) => {
+    (0, import_react5.useEffect)(() => {
+      if (!couponCode.trim()) {
+        setValidationState("idle");
+        setMatchedDiscount(null);
+        setValidationMessage("");
+        return;
+      }
+      const upperCode = couponCode.toUpperCase();
+      const found = discounts.find((d) => d.code === upperCode);
+      if (found) {
+        setMatchedDiscount(found);
+      } else {
+        setMatchedDiscount(null);
+      }
+    }, [couponCode, discounts]);
+    (0, import_react5.useEffect)(() => {
+      if (isPreview || discounts.length > 0)
+        return;
+      const fetchDiscounts = async () => {
+        try {
+          const config = window.selldrawer_config;
+          const shop = config == null ? void 0 : config.shop;
+          const appUrl = config == null ? void 0 : config.appUrl;
+          if (!shop || !appUrl) {
+            console.warn("CouponCodeField: Missing shop or appUrl in selldrawer_config");
+            return;
+          }
+          console.log("CouponCodeField: Fetching discounts from API...");
+          const response = await fetch(`${appUrl}/api/available-discounts?shop=${encodeURIComponent(shop)}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.discounts && Array.isArray(data.discounts)) {
+              console.log("CouponCodeField: Fetched discounts from API", data.discounts.map((d) => d.code));
+              setDiscounts(data.discounts);
+            } else {
+              console.warn("CouponCodeField: No discounts in API response", data);
+            }
+          } else {
+            console.error("CouponCodeField: API request failed", response.status);
+          }
+        } catch (error) {
+          console.error("CouponCodeField: Failed to fetch discounts", error);
+        }
+      };
+      fetchDiscounts();
+    }, [isPreview, discounts.length]);
+    const handleApply = async (codeToApply) => {
       const code = codeToApply || couponCode.trim();
-      if (code) {
-        onApplyCoupon(code);
-        if (!isPreview) {
+      if (!code)
+        return;
+      setValidationState("loading");
+      setValidationMessage("Validating...");
+      try {
+        const upperCode = code.toUpperCase();
+        const found = discounts.find((d) => d.code === upperCode);
+        if (found) {
+          console.log("Coupon found in available discounts:", found);
+          onApplyCoupon(code);
           setCouponCode("");
           setIsSheetOpen(false);
+          setValidationState("idle");
+          setMatchedDiscount(null);
+          setValidationMessage("");
+          return;
         }
+        console.log("Coupon not found in available discounts. Available codes:", discounts.map((d) => d.code));
+        setValidationState("invalid");
+        setMatchedDiscount(null);
+        setValidationMessage("Invalid coupon code");
+      } catch (error) {
+        console.error("Failed to validate discount:", error);
+        setValidationState("invalid");
+        setMatchedDiscount(null);
+        setValidationMessage("Unable to validate code");
       }
     };
     const handleKeyPress = (e) => {
@@ -11458,18 +11540,18 @@
         style: {
           position: "relative",
           backgroundColor: isApplied ? "#f0f9ff" : isLocked ? "#f8fafc" : "#ffffff",
-          borderRadius: "12px",
-          border: `1.5px ${isApplied ? "solid #3b82f6" : isLocked ? "dashed #e2e8f0" : "solid #f1f5f9"}`,
-          padding: "16px",
-          marginBottom: "12px",
+          borderRadius: "10px",
+          border: `1px ${isApplied ? "solid #3b82f6" : isLocked ? "dashed #e2e8f0" : "solid #e5e7eb"}`,
+          padding: "12px 14px",
+          marginBottom: "10px",
           transition: "all 0.2s ease",
           cursor: isLocked ? "default" : "pointer",
           display: "flex",
           flexDirection: "column",
-          gap: "8px",
+          gap: "6px",
           overflow: "hidden",
           opacity: isLocked ? 0.7 : 1,
-          boxShadow: isApplied ? "0 4px 6px -1px rgba(59, 130, 246, 0.1)" : "0 1px 2px rgba(0,0,0,0.05)"
+          boxShadow: isApplied ? "0 2px 4px rgba(59, 130, 246, 0.08)" : "0 1px 2px rgba(0,0,0,0.03)"
         },
         onClick: () => !isLocked && !isApplied && handleApply(discount.code),
         children: [
@@ -11482,7 +11564,6 @@
             height: "16px",
             borderRadius: "50%",
             backgroundColor: "#ffffff",
-            // Match parent sheet background
             boxShadow: "inset -2px 0 2px rgba(0,0,0,0.02)",
             zIndex: 2
           } }),
@@ -11501,37 +11582,37 @@
           /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" }, children: [
             /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
-                padding: "4px 10px",
+                padding: "3px 8px",
                 backgroundColor: isApplied ? "#3b82f6" : "#fff7ed",
                 color: isApplied ? "#ffffff" : "#f97316",
-                borderRadius: "6px",
-                fontSize: "13px",
-                fontWeight: 800,
+                borderRadius: "5px",
+                fontSize: "12px",
+                fontWeight: 700,
                 textTransform: "uppercase",
-                letterSpacing: "0.5px"
+                letterSpacing: "0.3px"
               }, children: discount.code }),
-              isApplied && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 16, color: "#3b82f6" })
+              isApplied && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 14, color: "#3b82f6" })
             ] }),
             !isLocked && !isApplied && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("button", { style: {
               background: "none",
               border: "none",
               color: "#3b82f6",
-              fontWeight: 700,
-              fontSize: "13px",
+              fontWeight: 600,
+              fontSize: "12px",
               cursor: "pointer"
             }, children: "Apply" }),
-            isApplied && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: { fontSize: "12px", fontWeight: 700, color: "#3b82f6" }, children: "APPLIED" })
+            isApplied && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { style: { fontSize: "11px", fontWeight: 600, color: "#3b82f6" }, children: "APPLIED" })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { fontSize: "13px", color: "#4b5563", fontWeight: 500 }, children: discount.description || `${discount.value}${discount.type === "percentage" ? "%" : ""} off entire order` }),
-          isLocked && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { marginTop: "4px" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#9ca3af", marginBottom: "4px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { fontSize: "12px", color: "#6b7280", fontWeight: 400 }, children: discount.description || `${discount.value}${discount.type === "percentage" ? "%" : ""} off entire order` }),
+          isLocked && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { marginTop: "2px" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#9ca3af", marginBottom: "3px" }, children: [
               /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("span", { children: [
                 "Unlocks at ",
                 discount.threshold ? `Rs. ${(discount.threshold / 100).toFixed(2)}` : ""
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("span", { children: discount.remaining ? `Rs. ${(discount.remaining / 100).toFixed(2)} left` : "" })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { width: "100%", height: "4px", backgroundColor: "#f1f5f9", borderRadius: "2px", overflow: "hidden" }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+            /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { width: "100%", height: "3px", backgroundColor: "#f1f5f9", borderRadius: "2px", overflow: "hidden" }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
               width: `${Math.min(100, cartTotal / (discount.threshold || 1) * 100)}%`,
               height: "100%",
               backgroundColor: "#ffa07a",
@@ -11541,7 +11622,7 @@
         ]
       }
     );
-    return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { id, style: { marginBottom: "16px" }, children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { id, children: [
       !appliedDiscount ? /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(
         "div",
         {
@@ -11652,13 +11733,13 @@
               display: "flex",
               flexDirection: "column",
               maxHeight: "85vh",
-              padding: "24px 20px",
+              padding: "20px 18px",
               boxShadow: "0 -10px 25px -5px rgba(0,0,0,0.1)",
               animation: "sd-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1)"
             },
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("h3", { style: { margin: 0, fontSize: "18px", fontWeight: 800, color: "#111827" }, children: "Apply Coupon" }),
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("h3", { style: { margin: 0, fontSize: "16px", fontWeight: 700, color: "#111827" }, children: "Apply Coupon" }),
                 /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
                   "button",
                   {
@@ -11673,63 +11754,142 @@
                       alignItems: "center",
                       justifyContent: "center",
                       color: "#64748b",
-                      cursor: "pointer"
+                      cursor: "pointer",
+                      transition: "background-color 0.2s ease"
                     },
+                    onMouseEnter: (e) => e.currentTarget.style.backgroundColor = "#e5e7eb",
+                    onMouseLeave: (e) => e.currentTarget.style.backgroundColor = "#f3f4f6",
                     children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(XIcon, { size: 18 })
                   }
                 )
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { display: "flex", gap: "10px", marginBottom: "24px" }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
-                  "input",
-                  {
-                    type: "text",
-                    value: couponCode,
-                    onChange: (e) => setCouponCode(e.target.value.toUpperCase()),
-                    onKeyPress: handleKeyPress,
-                    placeholder,
-                    style: {
-                      flex: 1,
-                      padding: "14px 18px",
-                      border: "2.5px solid #f3f4f6",
-                      borderRadius: "12px",
-                      fontSize: "15px",
-                      fontWeight: 600,
-                      outline: "none",
-                      transition: "border-color 0.2s ease",
-                      color: "#111827"
-                    },
-                    onFocus: (e) => e.target.style.borderColor = "#3b82f6",
-                    onBlur: (e) => e.target.style.borderColor = "#f3f4f6"
-                  }
-                ),
+              /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { display: "flex", gap: "8px", marginBottom: "20px" }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { flex: 1, position: "relative" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
+                    "input",
+                    {
+                      type: "text",
+                      value: couponCode,
+                      onChange: (e) => setCouponCode(e.target.value.toUpperCase()),
+                      onKeyPress: handleKeyPress,
+                      placeholder,
+                      disabled: validationState === "loading",
+                      style: {
+                        width: "100%",
+                        padding: "11px 40px 11px 14px",
+                        border: validationState === "valid" ? "1.5px solid #10b981" : validationState === "invalid" ? "1.5px solid #ef4444" : "1.5px solid #e5e7eb",
+                        borderRadius: "10px",
+                        fontSize: "14px",
+                        fontWeight: 500,
+                        outline: "none",
+                        transition: "all 0.2s ease",
+                        color: "#111827",
+                        backgroundColor: validationState === "valid" ? "#f0fdf4" : validationState === "invalid" ? "#fef2f2" : "#fafbfc",
+                        boxSizing: "border-box",
+                        opacity: validationState === "loading" ? 0.6 : 1
+                      },
+                      onFocus: (e) => {
+                        if (validationState === "idle") {
+                          e.target.style.borderColor = "#3b82f6";
+                          e.target.style.backgroundColor = "#ffffff";
+                        }
+                      },
+                      onBlur: (e) => {
+                        if (validationState === "idle") {
+                          e.target.style.borderColor = "#e5e7eb";
+                          e.target.style.backgroundColor = "#fafbfc";
+                        }
+                      }
+                    }
+                  ),
+                  validationState === "valid" && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#10b981"
+                  }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(CheckIcon, { size: 16, color: "#10b981" }) }),
+                  validationState === "invalid" && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#ef4444"
+                  }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(XIcon, { size: 16, color: "#ef4444" }) }),
+                  validationState === "loading" && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#3b82f6"
+                  }, children: /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+                    width: "16px",
+                    height: "16px",
+                    border: "2px solid #e5e7eb",
+                    borderTop: "2px solid #3b82f6",
+                    borderRadius: "50%",
+                    animation: "spin 0.6s linear infinite"
+                  } }) })
+                ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(
                   "button",
                   {
                     onClick: () => handleApply(),
-                    disabled: !couponCode.trim(),
+                    disabled: !couponCode.trim() || validationState === "loading",
                     style: {
-                      padding: "0 24px",
-                      backgroundColor: !couponCode.trim() ? "#e5e7eb" : "#3b82f6",
+                      padding: "11px 20px",
+                      backgroundColor: !couponCode.trim() || validationState === "loading" ? "#e5e7eb" : "#3b82f6",
                       color: "white",
                       border: "none",
-                      borderRadius: "12px",
-                      fontSize: "14px",
-                      fontWeight: 800,
-                      cursor: !couponCode.trim() ? "not-allowed" : "pointer"
+                      borderRadius: "10px",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      cursor: !couponCode.trim() || validationState === "loading" ? "not-allowed" : "pointer",
+                      transition: "background-color 0.2s ease",
+                      whiteSpace: "nowrap"
                     },
-                    children: buttonText
+                    onMouseEnter: (e) => {
+                      if (couponCode.trim() && validationState !== "loading")
+                        e.currentTarget.style.backgroundColor = "#2563eb";
+                    },
+                    onMouseLeave: (e) => {
+                      if (couponCode.trim() && validationState !== "loading")
+                        e.currentTarget.style.backgroundColor = "#3b82f6";
+                    },
+                    children: validationState === "loading" ? "Validating..." : buttonText
                   }
                 )
               ] }),
+              validationState === "invalid" && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: {
+                marginBottom: "16px",
+                fontSize: "12px",
+                color: "#ef4444",
+                fontWeight: 500
+              }, children: validationMessage }),
               /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { flex: 1, overflowY: "auto", marginBottom: "10px", paddingRight: "4px" }, children: [
-                validDiscounts.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { marginBottom: "24px" }, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { fontSize: "12px", fontWeight: 800, color: "#9ca3af", textTransform: "uppercase", marginBottom: "12px", letterSpacing: "1px" }, children: "Available Coupons" }),
+                validDiscounts.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { marginBottom: "20px" }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", marginBottom: "10px", letterSpacing: "0.5px" }, children: [
+                    "Available Coupons (",
+                    validDiscounts.length,
+                    ")"
+                  ] }),
                   validDiscounts.map((d) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(TicketCard, { discount: d, isApplied: (appliedDiscount == null ? void 0 : appliedDiscount.code) === d.code, isLocked: false }, d.code))
                 ] }),
                 invalidDiscounts.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { fontSize: "12px", fontWeight: 800, color: "#9ca3af", textTransform: "uppercase", marginBottom: "12px", letterSpacing: "1px" }, children: "Unavailable Coupons" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: { fontSize: "11px", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", marginBottom: "10px", letterSpacing: "0.5px" }, children: [
+                    "Unavailable Coupons (",
+                    invalidDiscounts.length,
+                    ")"
+                  ] }),
                   invalidDiscounts.map((d) => /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(TicketCard, { discount: d, isApplied: false, isLocked: true }, d.code))
+                ] }),
+                discounts.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("div", { style: {
+                  textAlign: "center",
+                  padding: "40px 20px",
+                  color: "#9ca3af"
+                }, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { fontSize: "14px", fontWeight: 500, marginBottom: "8px" }, children: "No coupons available" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { style: { fontSize: "12px", color: "#d1d5db" }, children: "Check back later for new offers" })
                 ] })
               ] })
             ]
@@ -11743,6 +11903,10 @@
             @keyframes sd-fade-in {
               from { opacity: 0; }
               to { opacity: 1; }
+            }
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
             }
             .sd-slide-up { animation: sd-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
           ` } })
@@ -15114,7 +15278,7 @@
   }
 
   // extensions/cart-upsell/assets/modules/cart-drawer-entry.js
-  var APP_URL = true ? "https://drew-fix-america-insertion.trycloudflare.com" : "https://app.selldrawer.com";
+  var APP_URL = true ? "https://java-usual-gentle-candle.trycloudflare.com" : "https://app.selldrawer.com";
   async function initializeCartDrawer() {
     if (typeof window === "undefined")
       return;
